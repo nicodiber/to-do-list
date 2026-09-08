@@ -14,13 +14,15 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 
 ## Fase 2 — Lógica de tiempo y estados
 
+- [x] Fecha de inicio posible (`fecha_inicio_posible`) además de la fecha límite — las tareas que todavía no pueden empezar se separan en la vista "Hoy"
+- [x] Atajos de reprogramación al posponer: "mañana" (07:00), "tarde" (12:00), "tardecita" (17:00), "noche" (20:00), atajos de día (+1, +7, +15, +30 días) — pendiente el atajo "primer [día] del próximo mes" (ver más abajo)
+- [x] Asistente de cierre de tarea (vista "Hoy"): botones "Cumplida" (pide duración real) y "No cumplida" (pide motivo y abre el panel de reprogramación)
+- [ ] Asistente de cierre a nivel *día completo* (repasar todas las tareas de hoy en una sola pasada, no tarea por tarea)
+- [ ] Atajo de día "primer [día de la semana] del próximo mes" en el panel de reprogramar
 - [ ] Subtareas y dependencias entre tareas (una tarea "desbloquea" a otra; si se pospone la primera, se corren automáticamente las dependientes)
 - [ ] Tareas de mantenimiento cíclicas: no se eliminan al completarse, se reprograman sumando el intervalo a la **fecha real de finalización** (no a la fecha teórica) — ej. corte de cabello cada 1 mes, limpiar pileta cada fin de semana, backup de celular cada 1 mes
 - [ ] Atributo `divisible` (booleano): si la tarea puede pausarse y retomarse o debe hacerse de punta a punta (default: no divisible)
 - [ ] Atributo `dias_habiles`: días de la semana en que una tarea puede realizarse (si se pospone, salta al próximo día hábil de esa tarea)
-- [ ] Fecha de inicio posible (`earliest start date`) además de la fecha límite
-- [ ] Atajos de reprogramación al posponer: "mañana" (07:00), "tarde" (12:00), "tardecita" (17:00), "noche" (20:00), "próximos X días", "primer [día] del próximo mes"
-- [ ] Asistente de cierre de tarea/día: preguntar si se cumplió, por qué no si aplica, duración real, y reprogramar
 - [ ] Para tareas repetibles: preguntar qué mejorar de cara a la próxima vez
 - [ ] Vistas de 3 días y de 8 días (además de la vista "Hoy")
 - [ ] Agrupar tareas por similitud, familia/jerarquía o por poder hacerse en simultáneo (multitasking vs. foco)

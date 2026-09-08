@@ -226,6 +226,79 @@ h1, h2, h3 {
   border-left: 4px solid var(--color-peligro);
 }
 
+.item-tarea.aun-no-disponible {
+  opacity: 0.6;
+}
+
+.etiqueta-agendada {
+  background: #eef2ff;
+  color: var(--color-primario);
+}
+
+.item-tarea-acciones button[data-accion="posponer"],
+.item-tarea-acciones button[data-accion="cumplida"],
+.item-tarea-acciones button[data-accion="no-cumplida"] {
+  color: var(--color-texto);
+}
+
+.panel-reprogramar,
+.panel-cierre {
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.panel-reprogramar-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.panel-reprogramar-etiqueta {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  margin-right: 0.15rem;
+}
+
+.panel-reprogramar-fila button,
+.panel-reprogramar-acciones button,
+.panel-cierre button {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  cursor: pointer;
+}
+
+.panel-reprogramar-fila input,
+.panel-cierre input {
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+  font-size: 0.82rem;
+}
+
+.panel-cierre label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+}
+
+.boton-primario {
+  background: var(--color-primario) !important;
+  color: white !important;
+  border-color: var(--color-primario) !important;
+}
+
 .item-tarea-info {
   display: flex;
   flex-direction: column;

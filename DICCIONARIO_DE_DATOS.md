@@ -34,7 +34,10 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `notas` | string | MVP | Texto libre: recursos, procedimiento, referencias |
 | `creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
 | `completada_en` | string (ISO datetime) \| null | MVP | Timestamp de finalización |
-| `fecha_inicio_posible` | string (`YYYY-MM-DD`) | Fase 2 | A partir de cuándo se puede empezar (earliest start date) |
+| `fecha_inicio_posible` | string (`YYYY-MM-DD`) \| "" | MVP | A partir de cuándo se puede empezar (earliest start date). En la vista "Hoy" las tareas con esta fecha en el futuro se muestran aparte, en "Todavía no pueden empezar" |
+| `fecha_hora_agendada` | string (ISO datetime) \| "" | MVP | Cuándo se planea concretamente hacer la tarea. Se define con el botón "Posponer" (atajos de día + horario: mañana 07:00, tarde 12:00, tardecita 17:00, noche 20:00) |
+| `duracion_real_min` | number \| null | MVP | Duración real registrada al marcar la tarea como cumplida desde el asistente de cierre de la vista "Hoy" |
+| `motivo_incumplimiento` | string | MVP | Motivo indicado la última vez que se marcó la tarea como "no cumplida" desde el asistente de cierre |
 | `divisible` | boolean (default `false`) | Fase 2 | Si se puede pausar y retomar, o debe hacerse de punta a punta |
 | `dias_habiles` | array de strings | Fase 2 | Días de la semana en que se puede realizar |
 | `dependencias` | array de `Tarea.id` | Fase 2 | Tareas que deben completarse antes de habilitar esta |

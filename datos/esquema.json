@@ -33,10 +33,14 @@
           "type": "string",
           "enum": ["a_confirmar", "pendiente", "en_progreso", "completada"]
         },
+        "fecha_inicio_posible": { "type": "string" },
         "fecha_limite": { "type": "string" },
         "fecha_sugerida": { "type": "string" },
+        "fecha_hora_agendada": { "type": "string" },
         "duracion_estimada_min": { "type": "number", "minimum": 0 },
+        "duracion_real_min": { "type": ["number", "null"], "minimum": 0 },
         "notas": { "type": "string" },
+        "motivo_incumplimiento": { "type": "string" },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }

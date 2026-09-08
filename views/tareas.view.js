@@ -1,6 +1,7 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { crearTarea, ESTADOS_TAREA, ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
-import { formatearFecha, esVencida, escaparHtml } from '../assets/js/utilidades.js';
+import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
+import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
@@ -20,6 +21,7 @@ export function renderVistaTareas(contenedor) {
       <select name="estado">
         ${ESTADOS_TAREA.map((e) => `<option value="${e}">${ETIQUETAS_ESTADO[e]}</option>`).join('')}
       </select>
+      <label>Desde <input type="date" name="fecha_inicio_posible" /></label>
       <label>Límite <input type="date" name="fecha_limite" /></label>
       <label>Sugerida <input type="date" name="fecha_sugerida" /></label>
       <label>Duración (min) <input type="number" name="duracion_estimada_min" value="30" min="0" step="15" /></label>
@@ -73,6 +75,7 @@ export function renderVistaTareas(contenedor) {
         categoria_id: datos.get('categoria_id') || null,
         subcategoria_id: datos.get('subcategoria_id') || null,
         estado: datos.get('estado'),
+        fecha_inicio_posible: datos.get('fecha_inicio_posible'),
         fecha_limite: datos.get('fecha_limite'),
         fecha_sugerida: datos.get('fecha_sugerida'),
         duracion_estimada_min: Number(datos.get('duracion_estimada_min')) || 0,
@@ -111,7 +114,10 @@ function renderTarea(tarea) {
   const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
 
   const li = document.createElement('li');
-  li.className = 'item-tarea' + (esVencida(tarea.fecha_limite) && tarea.estado !== 'completada' ? ' vencida' : '');
+  const clases = ['item-tarea'];
+  if (esVencida(tarea.fecha_limite) && tarea.estado !== 'completada') clases.push('vencida');
+  if (noPuedeEmpezarTodavia(tarea.fecha_inicio_posible)) clases.push('aun-no-disponible');
+  li.className = clases.join(' ');
   li.innerHTML = `
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.nombre)}</strong>
@@ -123,16 +129,21 @@ function renderTarea(tarea) {
               }</span>`
             : ''
         }
+        ${tarea.fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.fecha_inicio_posible)}</span>` : ''}
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
         ${tarea.fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFecha(tarea.fecha_sugerida)}</span>` : ''}
+        ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         ${tarea.duracion_estimada_min ? `<span class="etiqueta-fecha">${tarea.duracion_estimada_min} min</span>` : ''}
       </span>
       ${tarea.notas ? `<p class="notas-tarea">${escaparHtml(tarea.notas)}</p>` : ''}
+      ${tarea.motivo_incumplimiento ? `<p class="notas-tarea">Motivo del último replanteo: ${escaparHtml(tarea.motivo_incumplimiento)}</p>` : ''}
+      <div class="contenedor-panel-reprogramar" hidden></div>
     </div>
     <div class="item-tarea-acciones">
       <select data-accion="cambiar-estado">
         ${ESTADOS_TAREA.map((e) => `<option value="${e}" ${e === tarea.estado ? 'selected' : ''}>${ETIQUETAS_ESTADO[e]}</option>`).join('')}
       </select>
+      <button type="button" data-accion="posponer">Posponer</button>
       <button type="button" data-accion="eliminar">Eliminar</button>
     </div>
   `;
@@ -141,6 +152,29 @@ function renderTarea(tarea) {
     tarea.estado = evento.target.value;
     tarea.completada_en = tarea.estado === 'completada' ? new Date().toISOString() : null;
     await persistirYNotificar();
+  });
+
+  const contenedorPanel = li.querySelector('.contenedor-panel-reprogramar');
+  li.querySelector('[data-accion="posponer"]').addEventListener('click', () => {
+    const yaAbierto = !contenedorPanel.hidden;
+    contenedorPanel.innerHTML = '';
+    contenedorPanel.hidden = true;
+    if (yaAbierto) return;
+
+    const panel = crearPanelReprogramar({
+      onConfirmar: async (fechaHoraISO) => {
+        tarea.fecha_hora_agendada = fechaHoraISO;
+        contenedorPanel.hidden = true;
+        contenedorPanel.innerHTML = '';
+        await persistirYNotificar();
+      },
+      onCancelar: () => {
+        contenedorPanel.hidden = true;
+        contenedorPanel.innerHTML = '';
+      },
+    });
+    contenedorPanel.appendChild(panel);
+    contenedorPanel.hidden = false;
   });
 
   li.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {

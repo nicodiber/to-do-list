@@ -1,12 +1,16 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
-import { formatearFecha, esVencida, esHoy, escaparHtml } from '../assets/js/utilidades.js';
+import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
+import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 
 export function renderVistaHoy(contenedor) {
   const pendientesActivas = estado.tareas.filter((t) => t.estado !== 'completada');
-  const urgentes = pendientesActivas.filter((t) => esVencida(t.fecha_limite) || esHoy(t.fecha_limite));
+  const disponibles = pendientesActivas.filter((t) => !noPuedeEmpezarTodavia(t.fecha_inicio_posible));
+  const aunNoDisponibles = pendientesActivas.filter((t) => noPuedeEmpezarTodavia(t.fecha_inicio_posible));
+
+  const urgentes = disponibles.filter((t) => esVencida(t.fecha_limite) || esHoy(t.fecha_limite));
   const idsUrgentes = new Set(urgentes.map((t) => t.id));
-  const resto = pendientesActivas
+  const resto = disponibles
     .filter((t) => !idsUrgentes.has(t.id))
     .sort((a, b) => (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99'));
 
@@ -21,6 +25,14 @@ export function renderVistaHoy(contenedor) {
       <h3>Resto de tus pendientes</h3>
       <ul id="lista-resto" class="lista-tareas"></ul>
     </section>
+    ${
+      aunNoDisponibles.length > 0
+        ? `<section>
+            <h3>Todavía no pueden empezar</h3>
+            <ul id="lista-no-disponibles" class="lista-tareas"></ul>
+          </section>`
+        : ''
+    }
   `;
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
@@ -32,13 +44,20 @@ export function renderVistaHoy(contenedor) {
 
   const listaResto = contenedor.querySelector('#lista-resto');
   if (resto.length === 0) {
-    listaResto.innerHTML = '<p class="mensaje-vacio">No hay más tareas pendientes.</p>';
+    listaResto.innerHTML = '<p class="mensaje-vacio">No hay más tareas pendientes disponibles.</p>';
   } else {
     resto.forEach((tarea) => listaResto.appendChild(renderItem(tarea)));
   }
+
+  const listaNoDisponibles = contenedor.querySelector('#lista-no-disponibles');
+  if (listaNoDisponibles) {
+    aunNoDisponibles
+      .sort((a, b) => a.fecha_inicio_posible.localeCompare(b.fecha_inicio_posible))
+      .forEach((tarea) => listaNoDisponibles.appendChild(renderItem(tarea, { soloInfo: true })));
+  }
 }
 
-function renderItem(tarea) {
+function renderItem(tarea, { soloInfo = false } = {}) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
   const li = document.createElement('li');
   li.className = 'item-tarea' + (esVencida(tarea.fecha_limite) ? ' vencida' : '');
@@ -47,19 +66,97 @@ function renderItem(tarea) {
       <strong>${escaparHtml(tarea.nombre)}</strong>
       <span class="etiquetas">
         ${categoria ? `<span class="etiqueta" style="background:${categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
+        ${tarea.fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.fecha_inicio_posible)}</span>` : ''}
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
+        ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.estado]}</span>
       </span>
+      <div class="contenedor-cierre" hidden></div>
+      <div class="contenedor-panel-reprogramar" hidden></div>
     </div>
     <div class="item-tarea-acciones">
-      <button type="button" data-accion="completar">Marcar completada</button>
+      ${
+        soloInfo
+          ? ''
+          : `<button type="button" data-accion="cumplida">Cumplida ✓</button>
+             <button type="button" data-accion="no-cumplida">No cumplida ✗</button>`
+      }
     </div>
   `;
 
-  li.querySelector('[data-accion="completar"]').addEventListener('click', async () => {
-    tarea.estado = 'completada';
-    tarea.completada_en = new Date().toISOString();
-    await persistirYNotificar();
+  if (soloInfo) return li;
+
+  const contenedorCierre = li.querySelector('.contenedor-cierre');
+  const contenedorPanel = li.querySelector('.contenedor-panel-reprogramar');
+
+  li.querySelector('[data-accion="cumplida"]').addEventListener('click', () => {
+    contenedorPanel.hidden = true;
+    contenedorPanel.innerHTML = '';
+    contenedorCierre.innerHTML = `
+      <div class="panel-cierre">
+        <label>Duración real (min)
+          <input type="number" min="0" step="5" value="${tarea.duracion_estimada_min || 30}" data-campo="duracion-real" />
+        </label>
+        <button type="button" data-accion="confirmar-cumplida" class="boton-primario">Confirmar</button>
+        <button type="button" data-accion="cancelar-cierre">Cancelar</button>
+      </div>
+    `;
+    contenedorCierre.hidden = false;
+
+    contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
+      const duracionReal = Number(contenedorCierre.querySelector('[data-campo="duracion-real"]').value) || 0;
+      tarea.estado = 'completada';
+      tarea.completada_en = new Date().toISOString();
+      tarea.duracion_real_min = duracionReal;
+      await persistirYNotificar();
+    });
+    contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
+      contenedorCierre.hidden = true;
+      contenedorCierre.innerHTML = '';
+    });
+  });
+
+  li.querySelector('[data-accion="no-cumplida"]').addEventListener('click', () => {
+    contenedorPanel.hidden = true;
+    contenedorPanel.innerHTML = '';
+    contenedorCierre.innerHTML = `
+      <div class="panel-cierre">
+        <label>¿Por qué no se cumplió?
+          <input type="text" placeholder="Motivo (opcional)" data-campo="motivo" />
+        </label>
+        <button type="button" data-accion="continuar-reprogramar" class="boton-primario">Reprogramar</button>
+        <button type="button" data-accion="cancelar-cierre">Cancelar</button>
+      </div>
+    `;
+    contenedorCierre.hidden = false;
+
+    contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
+      contenedorCierre.hidden = true;
+      contenedorCierre.innerHTML = '';
+    });
+
+    contenedorCierre.querySelector('[data-accion="continuar-reprogramar"]').addEventListener('click', () => {
+      const motivo = contenedorCierre.querySelector('[data-campo="motivo"]').value.trim();
+      contenedorCierre.hidden = true;
+      contenedorCierre.innerHTML = '';
+
+      const panel = crearPanelReprogramar({
+        onConfirmar: async (fechaHoraISO) => {
+          tarea.motivo_incumplimiento = motivo;
+          tarea.fecha_hora_agendada = fechaHoraISO;
+          if (tarea.estado === 'a_confirmar' || tarea.estado === 'en_progreso') tarea.estado = 'pendiente';
+          contenedorPanel.hidden = true;
+          contenedorPanel.innerHTML = '';
+          await persistirYNotificar();
+        },
+        onCancelar: () => {
+          contenedorPanel.hidden = true;
+          contenedorPanel.innerHTML = '';
+        },
+      });
+      contenedorPanel.appendChild(panel);
+      contenedorPanel.hidden = false;
+    });
   });
 
   return li;

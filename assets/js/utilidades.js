@@ -5,7 +5,7 @@ export function generarId() {
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
 
-function hoyISO() {
+export function hoyISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
@@ -34,4 +34,34 @@ export function escaparHtml(texto) {
   const div = document.createElement('div');
   div.textContent = texto == null ? '' : String(texto);
   return div.innerHTML;
+}
+
+export function formatearFechaHora(fechaHoraISO) {
+  if (!fechaHoraISO) return '';
+  const fecha = new Date(fechaHoraISO);
+  if (Number.isNaN(fecha.getTime())) return fechaHoraISO;
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const anio = fecha.getFullYear();
+  const horas = String(fecha.getHours()).padStart(2, '0');
+  const minutos = String(fecha.getMinutes()).padStart(2, '0');
+  return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
+}
+
+export function fechaISOMasDias(dias, desdeISODate) {
+  const base = desdeISODate ? new Date(desdeISODate + 'T00:00:00') : new Date();
+  base.setDate(base.getDate() + dias);
+  return base.toISOString().slice(0, 10);
+}
+
+export function combinarFechaYHora(fechaISODate, horaHHMM) {
+  const [horas, minutos] = horaHHMM.split(':').map(Number);
+  const fecha = new Date(fechaISODate + 'T00:00:00');
+  fecha.setHours(horas, minutos, 0, 0);
+  return fecha.toISOString();
+}
+
+export function noPuedeEmpezarTodavia(fechaInicioPosibleISO) {
+  if (!fechaInicioPosibleISO) return false;
+  return fechaInicioPosibleISO > hoyISO();
 }
