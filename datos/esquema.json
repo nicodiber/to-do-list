@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Super To-Do List — esquema de datos (MVP v0.1.x)",
+  "definitions": {
+    "categoria": {
+      "type": "object",
+      "required": ["id", "nombre", "color", "orden"],
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "color": { "type": "string" },
+        "orden": { "type": "number" }
+      }
+    },
+    "subcategoria": {
+      "type": "object",
+      "required": ["id", "categoria_id", "nombre"],
+      "properties": {
+        "id": { "type": "string" },
+        "categoria_id": { "type": "string" },
+        "nombre": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tarea": {
+      "type": "object",
+      "required": ["id", "nombre", "estado", "creada_en"],
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "categoria_id": { "type": ["string", "null"] },
+        "subcategoria_id": { "type": ["string", "null"] },
+        "estado": {
+          "type": "string",
+          "enum": ["a_confirmar", "pendiente", "en_progreso", "completada"]
+        },
+        "fecha_limite": { "type": "string" },
+        "fecha_sugerida": { "type": "string" },
+        "duracion_estimada_min": { "type": "number", "minimum": 0 },
+        "notas": { "type": "string" },
+        "creada_en": { "type": "string" },
+        "completada_en": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "categorias": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/categoria" }
+    },
+    "subcategorias": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/subcategoria" }
+    },
+    "tareas": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/tarea" }
+    }
+  }
+}

@@ -1,0 +1,293 @@
+:root {
+  --color-fondo: #f5f6fa;
+  --color-superficie: #ffffff;
+  --color-texto: #1f2430;
+  --color-texto-suave: #6b7280;
+  --color-borde: #e2e5eb;
+  --color-primario: #4f7cff;
+  --color-peligro: #e0503c;
+  --radio: 10px;
+  --sombra: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+h1, h2, h3 {
+  margin: 0 0 0.5rem;
+}
+
+.cabecera {
+  background: var(--color-superficie);
+  border-bottom: 1px solid var(--color-borde);
+  padding: 1rem 1.5rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.cabecera-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.acciones-datos {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.acciones-datos button,
+.boton-archivo {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-borde);
+  background: var(--color-fondo);
+  cursor: pointer;
+}
+
+.boton-archivo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-vistas {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.enlace-nav {
+  text-decoration: none;
+  color: var(--color-texto-suave);
+  padding: 0.5rem 0.1rem;
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+}
+
+.enlace-nav.activo {
+  color: var(--color-primario);
+  border-bottom-color: var(--color-primario);
+}
+
+.estado-conexion {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  margin: 0.5rem 0 0.75rem;
+}
+
+.vista {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.ayuda {
+  color: var(--color-texto-suave);
+  font-size: 0.9rem;
+  margin-top: 0;
+}
+
+.mensaje-vacio {
+  color: var(--color-texto-suave);
+  font-style: italic;
+}
+
+.formulario-en-linea,
+.formulario-tarea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 0.75rem;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.formulario-tarea label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: var(--color-texto-suave);
+  gap: 0.15rem;
+}
+
+.formulario-en-linea input[type="text"],
+.formulario-tarea input,
+.formulario-tarea select {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.formulario-en-linea button,
+.formulario-tarea button {
+  background: var(--color-primario);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+
+.lista-categorias {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tarjeta-categoria {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-left: 4px solid var(--color-primario);
+  border-radius: var(--radio);
+  padding: 0.75rem 1rem;
+}
+
+.encabezado-categoria {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.encabezado-categoria button,
+.lista-subcategorias button {
+  background: none;
+  border: none;
+  color: var(--color-texto-suave);
+  cursor: pointer;
+}
+
+.lista-subcategorias {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+}
+
+.lista-subcategorias li {
+  background: var(--color-fondo);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.filtros {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.filtros select {
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+}
+
+.lista-tareas {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.item-tarea {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  box-shadow: var(--sombra);
+}
+
+.item-tarea.vencida {
+  border-left: 4px solid var(--color-peligro);
+}
+
+.item-tarea-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.etiqueta {
+  color: white;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.etiqueta-fecha {
+  font-size: 0.72rem;
+  color: var(--color-texto-suave);
+  background: var(--color-fondo);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.notas-tarea {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.item-tarea-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.item-tarea-acciones select {
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+  font-size: 0.8rem;
+}
+
+.item-tarea-acciones button {
+  background: none;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--color-texto-suave);
+}
+
+.item-tarea-acciones button:hover {
+  border-color: var(--color-peligro);
+  color: var(--color-peligro);
+}
+
+section h3 {
+  margin-top: 1.5rem;
+}

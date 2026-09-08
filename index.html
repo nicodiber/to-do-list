@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Super To-Do List</title>
+  <link rel="stylesheet" href="assets/css/main.css" />
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera-fila">
+      <h1>Super To-Do List</h1>
+      <div class="acciones-datos">
+        <button id="boton-elegir-carpeta" type="button">Elegir carpeta de datos</button>
+        <button id="boton-exportar" type="button">Exportar JSON</button>
+        <label class="boton-archivo">
+          Importar JSON
+          <input type="file" id="input-importar" accept="application/json" hidden />
+        </label>
+      </div>
+    </div>
+    <nav id="nav-vistas" class="nav-vistas"></nav>
+    <p id="estado-conexion" class="estado-conexion"></p>
+  </header>
+  <main id="vista" class="vista"></main>
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

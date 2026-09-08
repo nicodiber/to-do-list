@@ -1,0 +1,83 @@
+import {
+  estado,
+  suscribir,
+  inicializarAlmacenamiento,
+  elegirCarpetaDatos,
+  exportarJSON,
+  importarJSON,
+  soportaFileSystemAccess,
+  hayCarpetaDatosElegida,
+} from './almacenamiento.js';
+import { renderVistaHoy } from '../../views/hoy.view.js';
+import { renderVistaTareas } from '../../views/tareas.view.js';
+import { renderVistaCategorias } from '../../views/categorias.view.js';
+
+const CONTENEDOR = document.getElementById('vista');
+const NAV = document.getElementById('nav-vistas');
+const ESTADO_CONEXION = document.getElementById('estado-conexion');
+
+const VISTAS = {
+  hoy: { etiqueta: 'Hoy', render: renderVistaHoy },
+  tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
+  categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
+};
+
+function vistaActual() {
+  const clave = location.hash.replace('#/', '');
+  return VISTAS[clave] ? clave : 'hoy';
+}
+
+function renderNav() {
+  const actual = vistaActual();
+  NAV.innerHTML = '';
+  Object.entries(VISTAS).forEach(([clave, vista]) => {
+    const enlace = document.createElement('a');
+    enlace.href = `#/${clave}`;
+    enlace.textContent = vista.etiqueta;
+    enlace.className = clave === actual ? 'enlace-nav activo' : 'enlace-nav';
+    NAV.appendChild(enlace);
+  });
+}
+
+function actualizarEstadoConexion() {
+  if (!soportaFileSystemAccess) {
+    ESTADO_CONEXION.textContent = 'Tu navegador no soporta elegir carpeta de datos. Usá exportar/importar JSON.';
+  } else if (hayCarpetaDatosElegida()) {
+    ESTADO_CONEXION.textContent = 'Guardando en tu carpeta de datos elegida.';
+  } else {
+    ESTADO_CONEXION.textContent = 'Sin carpeta de datos elegida (por ahora se guarda solo en este navegador).';
+  }
+}
+
+function render() {
+  renderNav();
+  actualizarEstadoConexion();
+  VISTAS[vistaActual()].render(CONTENEDOR, estado);
+}
+
+window.addEventListener('hashchange', render);
+suscribir(render);
+
+document.getElementById('boton-elegir-carpeta').addEventListener('click', async () => {
+  try {
+    await elegirCarpetaDatos();
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+document.getElementById('boton-exportar').addEventListener('click', exportarJSON);
+
+document.getElementById('input-importar').addEventListener('change', async (evento) => {
+  const archivo = evento.target.files[0];
+  if (!archivo) return;
+  try {
+    await importarJSON(archivo);
+  } catch (error) {
+    alert('No se pudo importar el archivo: ' + error.message);
+  } finally {
+    evento.target.value = '';
+  }
+});
+
+inicializarAlmacenamiento();

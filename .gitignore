@@ -1,0 +1,14 @@
+# Datos personales reales (no se versionan; viven en la carpeta de Google Drive del usuario)
+/datos/categorias.json
+/datos/tareas.json
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Por si en el futuro se agregan herramientas de build/paquetes
+node_modules/
+dist/

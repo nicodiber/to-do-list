@@ -1,0 +1,43 @@
+{
+  "tareas": [
+    {
+      "id": "tarea-elegir-carpeta",
+      "nombre": "Elegir carpeta de datos en Google Drive",
+      "categoria_id": "cat-personal",
+      "subcategoria_id": null,
+      "estado": "pendiente",
+      "fecha_limite": "",
+      "fecha_sugerida": "",
+      "duracion_estimada_min": 15,
+      "notas": "Usá el botón \"Elegir carpeta de datos\" para que esta lista se guarde y sincronice.",
+      "creada_en": "2026-09-08T00:00:00.000Z",
+      "completada_en": null
+    },
+    {
+      "id": "tarea-estudiar-examen",
+      "nombre": "Estudiar para el próximo examen",
+      "categoria_id": "cat-facultad",
+      "subcategoria_id": "sub-examenes",
+      "estado": "pendiente",
+      "fecha_limite": "",
+      "fecha_sugerida": "",
+      "duracion_estimada_min": 90,
+      "notas": "",
+      "creada_en": "2026-09-08T00:00:00.000Z",
+      "completada_en": null
+    },
+    {
+      "id": "tarea-salir-moto",
+      "nombre": "Salir a andar en moto",
+      "categoria_id": "cat-personal",
+      "subcategoria_id": "sub-hobbies",
+      "estado": "a_confirmar",
+      "fecha_limite": "",
+      "fecha_sugerida": "",
+      "duracion_estimada_min": 120,
+      "notas": "Solo posible los fines de semana.",
+      "creada_en": "2026-09-08T00:00:00.000Z",
+      "completada_en": null
+    }
+  ]
+}

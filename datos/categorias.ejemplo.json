@@ -1,0 +1,11 @@
+{
+  "categorias": [
+    { "id": "cat-personal", "nombre": "Personal", "color": "#4f7cff", "orden": 1 },
+    { "id": "cat-facultad", "nombre": "Facultad", "color": "#22c55e", "orden": 2 },
+    { "id": "cat-trabajo", "nombre": "Trabajo", "color": "#f59e0b", "orden": 3 }
+  ],
+  "subcategorias": [
+    { "id": "sub-hobbies", "categoria_id": "cat-personal", "nombre": "Hobbies" },
+    { "id": "sub-examenes", "categoria_id": "cat-facultad", "nombre": "Exámenes" }
+  ]
+}
