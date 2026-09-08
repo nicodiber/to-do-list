@@ -17,6 +17,14 @@ export function crearSubcategoria({ nombre, categoria_id }) {
   return { id: generarId(), nombre, categoria_id };
 }
 
+export const UNIDADES_MANTENIMIENTO = ['dias', 'semanas', 'meses'];
+
+export const ETIQUETAS_UNIDAD_MANTENIMIENTO = {
+  dias: 'día(s)',
+  semanas: 'semana(s)',
+  meses: 'mes(es)',
+};
+
 export function crearTarea({
   nombre,
   categoria_id = null,
@@ -28,6 +36,8 @@ export function crearTarea({
   fecha_hora_agendada = '',
   duracion_estimada_min = 30,
   notas = '',
+  dependencias = [],
+  mantenimiento = null,
 }) {
   return {
     id: generarId(),
@@ -43,6 +53,8 @@ export function crearTarea({
     duracion_real_min: null,
     notas,
     motivo_incumplimiento: '',
+    dependencias,
+    mantenimiento,
     creada_en: ahoraISO(),
     completada_en: null,
   };

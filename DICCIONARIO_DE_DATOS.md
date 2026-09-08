@@ -38,10 +38,10 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `fecha_hora_agendada` | string (ISO datetime) \| "" | MVP | Cuándo se planea concretamente hacer la tarea. Se define con el botón "Posponer" (atajos de día + horario: mañana 07:00, tarde 12:00, tardecita 17:00, noche 20:00) |
 | `duracion_real_min` | number \| null | MVP | Duración real registrada al marcar la tarea como cumplida desde el asistente de cierre de la vista "Hoy" |
 | `motivo_incumplimiento` | string | MVP | Motivo indicado la última vez que se marcó la tarea como "no cumplida" desde el asistente de cierre |
+| `dependencias` | array de `Tarea.id` | MVP | Tareas que deben estar `completada` para que esta se considere accionable. Se edita desde el panel "Dependencias" en la vista Tareas |
+| `mantenimiento` | `{ cantidad: number, unidad: 'dias' \| 'semanas' \| 'meses' }` \| null | MVP | Si está seteado, al completar la tarea se clona una nueva instancia pendiente con `fecha_limite` = fecha real de finalización + este intervalo |
 | `divisible` | boolean (default `false`) | Fase 2 | Si se puede pausar y retomar, o debe hacerse de punta a punta |
 | `dias_habiles` | array de strings | Fase 2 | Días de la semana en que se puede realizar |
-| `dependencias` | array de `Tarea.id` | Fase 2 | Tareas que deben completarse antes de habilitar esta |
-| `mantenimiento` | objeto `{ intervalo, desde }` | Fase 2 | Regla de ciclicidad para tareas de mantenimiento recurrente |
 | `multitasking` | boolean | Fase 2 | Si se puede hacer en simultáneo con otra tarea de baja atención |
 | `costo` | number | Fase 3 | Costo monetario estimado o real asociado |
 | `ubicacion` | string / coordenadas | Fase 3 | Lugar del que depende la tarea |

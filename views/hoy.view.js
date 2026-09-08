@@ -2,11 +2,20 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
+import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada } from '../assets/js/tareas-logica.js';
 
 export function renderVistaHoy(contenedor) {
   const pendientesActivas = estado.tareas.filter((t) => t.estado !== 'completada');
-  const disponibles = pendientesActivas.filter((t) => !noPuedeEmpezarTodavia(t.fecha_inicio_posible));
-  const aunNoDisponibles = pendientesActivas.filter((t) => noPuedeEmpezarTodavia(t.fecha_inicio_posible));
+
+  const infoPorTarea = new Map(
+    pendientesActivas.map((tarea) => [tarea.id, tareaEstaBloqueada(tarea, estado.tareas)])
+  );
+  const bloqueadas = pendientesActivas.filter((t) => infoPorTarea.get(t.id).bloqueada);
+  const idsBloqueadas = new Set(bloqueadas.map((t) => t.id));
+
+  const accionables = pendientesActivas.filter((t) => !idsBloqueadas.has(t.id));
+  const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.fecha_inicio_posible));
+  const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.fecha_inicio_posible));
 
   const urgentes = disponibles.filter((t) => esVencida(t.fecha_limite) || esHoy(t.fecha_limite));
   const idsUrgentes = new Set(urgentes.map((t) => t.id));
@@ -33,6 +42,14 @@ export function renderVistaHoy(contenedor) {
           </section>`
         : ''
     }
+    ${
+      bloqueadas.length > 0
+        ? `<section>
+            <h3>Bloqueadas por otras tareas</h3>
+            <ul id="lista-bloqueadas" class="lista-tareas"></ul>
+          </section>`
+        : ''
+    }
   `;
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
@@ -55,9 +72,16 @@ export function renderVistaHoy(contenedor) {
       .sort((a, b) => a.fecha_inicio_posible.localeCompare(b.fecha_inicio_posible))
       .forEach((tarea) => listaNoDisponibles.appendChild(renderItem(tarea, { soloInfo: true })));
   }
+
+  const listaBloqueadas = contenedor.querySelector('#lista-bloqueadas');
+  if (listaBloqueadas) {
+    bloqueadas.forEach((tarea) =>
+      listaBloqueadas.appendChild(renderItem(tarea, { soloInfo: true, bloqueantes: infoPorTarea.get(tarea.id).bloqueantes }))
+    );
+  }
 }
 
-function renderItem(tarea, { soloInfo = false } = {}) {
+function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
   const li = document.createElement('li');
   li.className = 'item-tarea' + (esVencida(tarea.fecha_limite) ? ' vencida' : '');
@@ -71,6 +95,11 @@ function renderItem(tarea, { soloInfo = false } = {}) {
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.estado]}</span>
       </span>
+      ${
+        bloqueantes
+          ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.nombre)).join(', ')}</p>`
+          : ''
+      }
       <div class="contenedor-cierre" hidden></div>
       <div class="contenedor-panel-reprogramar" hidden></div>
     </div>
@@ -105,9 +134,7 @@ function renderItem(tarea, { soloInfo = false } = {}) {
 
     contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
       const duracionReal = Number(contenedorCierre.querySelector('[data-campo="duracion-real"]').value) || 0;
-      tarea.estado = 'completada';
-      tarea.completada_en = new Date().toISOString();
-      tarea.duracion_real_min = duracionReal;
+      completarTarea(tarea, estado.tareas, { duracionReal });
       await persistirYNotificar();
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
@@ -143,7 +170,7 @@ function renderItem(tarea, { soloInfo = false } = {}) {
       const panel = crearPanelReprogramar({
         onConfirmar: async (fechaHoraISO) => {
           tarea.motivo_incumplimiento = motivo;
-          tarea.fecha_hora_agendada = fechaHoraISO;
+          reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
           if (tarea.estado === 'a_confirmar' || tarea.estado === 'en_progreso') tarea.estado = 'pendiente';
           contenedorPanel.hidden = true;
           contenedorPanel.innerHTML = '';

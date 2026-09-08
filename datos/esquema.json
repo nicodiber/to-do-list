@@ -41,6 +41,17 @@
         "duracion_real_min": { "type": ["number", "null"], "minimum": 0 },
         "notas": { "type": "string" },
         "motivo_incumplimiento": { "type": "string" },
+        "dependencias": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "mantenimiento": {
+          "type": ["object", "null"],
+          "properties": {
+            "cantidad": { "type": "number", "minimum": 1 },
+            "unidad": { "type": "string", "enum": ["dias", "semanas", "meses"] }
+          }
+        },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }

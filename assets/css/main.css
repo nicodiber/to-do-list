@@ -226,13 +226,74 @@ h1, h2, h3 {
   border-left: 4px solid var(--color-peligro);
 }
 
-.item-tarea.aun-no-disponible {
+.item-tarea.aun-no-disponible,
+.item-tarea.bloqueada {
   opacity: 0.6;
 }
 
 .etiqueta-agendada {
   background: #eef2ff;
   color: var(--color-primario);
+}
+
+.etiqueta-mantenimiento {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.aviso-bloqueada {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-peligro);
+}
+
+.opcion-mantenimiento {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.campos-mantenimiento {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.campos-mantenimiento input,
+.campos-mantenimiento select {
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+}
+
+.panel-dependencias {
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.checklist-dependencias {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.checklist-dependencias label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
 }
 
 .item-tarea-acciones button[data-accion="posponer"],
