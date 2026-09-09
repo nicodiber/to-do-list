@@ -9,6 +9,8 @@ import {
   hayCarpetaDatosElegida,
 } from './almacenamiento.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
+import { renderVistaTresDias } from '../../views/tres-dias.view.js';
+import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
 import { renderVistaTareas } from '../../views/tareas.view.js';
 import { renderVistaCategorias } from '../../views/categorias.view.js';
 
@@ -18,6 +20,8 @@ const ESTADO_CONEXION = document.getElementById('estado-conexion');
 
 const VISTAS = {
   hoy: { etiqueta: 'Hoy', render: renderVistaHoy },
+  'tres-dias': { etiqueta: '3 días', render: renderVistaTresDias },
+  'ocho-dias': { etiqueta: '8 días', render: renderVistaOchoDias },
   tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
   categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
 };
