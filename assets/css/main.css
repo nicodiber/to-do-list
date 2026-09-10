@@ -360,6 +360,62 @@ h1, h2, h3 {
   border-color: var(--color-primario) !important;
 }
 
+#boton-revisar-dia {
+  margin: 0.5rem 0 1rem;
+}
+
+.dialogo-revision {
+  border: none;
+  border-radius: var(--radio);
+  padding: 1.25rem;
+  max-width: 420px;
+  width: 90vw;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+}
+
+.dialogo-revision::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.dialogo-revision h3 {
+  margin: 0.1rem 0 0.5rem;
+}
+
+.progreso-revision {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-texto-suave);
+}
+
+.acciones-revision {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0.5rem;
+  flex-wrap: wrap;
+}
+
+.acciones-revision button {
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  cursor: pointer;
+}
+
+.boton-cerrar-repaso {
+  display: block;
+  margin-top: 0.9rem;
+  background: none;
+  border: none;
+  color: var(--color-texto-suave);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0;
+}
+
 .item-tarea-info {
   display: flex;
   flex-direction: column;

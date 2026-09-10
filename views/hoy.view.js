@@ -3,6 +3,7 @@ import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada } from '../assets/js/tareas-logica.js';
+import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 
 export function renderVistaHoy(contenedor) {
   const pendientesActivas = estado.tareas.filter((t) => t.estado !== 'completada');
@@ -26,6 +27,7 @@ export function renderVistaHoy(contenedor) {
   contenedor.innerHTML = `
     <h2>Hoy</h2>
     <p class="ayuda">Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.</p>
+    <button type="button" id="boton-revisar-dia" class="boton-primario">Revisar mi día</button>
     <section>
       <h3>Urgentes</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
@@ -51,6 +53,10 @@ export function renderVistaHoy(contenedor) {
         : ''
     }
   `;
+
+  contenedor.querySelector('#boton-revisar-dia').addEventListener('click', () => {
+    iniciarRevisionDia([...urgentes, ...resto]);
+  });
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0) {
@@ -126,6 +132,13 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
         <label>Duración real (min)
           <input type="number" min="0" step="5" value="${tarea.duracion_estimada_min || 30}" data-campo="duracion-real" />
         </label>
+        ${
+          tarea.mantenimiento
+            ? `<label>¿Qué podrías mejorar la próxima vez? (opcional)
+                <input type="text" data-campo="mejora" />
+              </label>`
+            : ''
+        }
         <button type="button" data-accion="confirmar-cumplida" class="boton-primario">Confirmar</button>
         <button type="button" data-accion="cancelar-cierre">Cancelar</button>
       </div>
@@ -134,7 +147,9 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
 
     contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
       const duracionReal = Number(contenedorCierre.querySelector('[data-campo="duracion-real"]').value) || 0;
-      completarTarea(tarea, estado.tareas, { duracionReal });
+      const campoMejora = contenedorCierre.querySelector('[data-campo="mejora"]');
+      const notaMejora = campoMejora ? campoMejora.value.trim() : '';
+      completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
       await persistirYNotificar();
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {

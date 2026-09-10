@@ -24,13 +24,17 @@ export function calcularProximaFechaMantenimiento(desdeISODatetime, mantenimient
  * la fecha real de finalización, dejando la instancia actual como historial.
  * Devuelve la nueva tarea clonada, o null si no aplica mantenimiento.
  */
-export function completarTarea(tarea, listaTareas, { duracionReal = null } = {}) {
+export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMejora = '' } = {}) {
   const ahora = ahoraISO();
   tarea.estado = 'completada';
   tarea.completada_en = ahora;
   if (duracionReal != null) tarea.duracion_real_min = duracionReal;
 
   if (!tarea.mantenimiento) return null;
+
+  const notas = notaMejora
+    ? `${tarea.notas ? tarea.notas + '\n\n' : ''}Mejora sugerida la vez anterior: ${notaMejora}`
+    : tarea.notas;
 
   const nueva = crearTarea({
     nombre: tarea.nombre,
@@ -39,7 +43,7 @@ export function completarTarea(tarea, listaTareas, { duracionReal = null } = {})
     estado: 'pendiente',
     fecha_limite: calcularProximaFechaMantenimiento(ahora, tarea.mantenimiento),
     duracion_estimada_min: tarea.duracion_estimada_min,
-    notas: tarea.notas,
+    notas,
     mantenimiento: tarea.mantenimiento,
   });
   listaTareas.push(nueva);
@@ -105,11 +109,22 @@ export function tareaEstaBloqueada(tarea, listaTareas) {
 
 /**
  * Valida que se pueda agregar `candidatoId` como dependencia de `tareaId`:
- * ni auto-referencia, ni dependencia mutua directa (ciclo A<->B).
+ * ni auto-referencia, ni que ya exista un camino (directo o indirecto) desde
+ * `candidatoId` de vuelta hasta `tareaId` en el grafo de dependencias, lo que
+ * cerraría un ciclo (A depende de B depende de C depende de A, etc.).
  */
 export function puedeAgregarDependencia(tareaId, candidatoId, listaTareas) {
   if (tareaId === candidatoId) return false;
-  const candidato = listaTareas.find((t) => t.id === candidatoId);
-  if (candidato && (candidato.dependencias || []).includes(tareaId)) return false;
-  return true;
+  return !existeCaminoDeDependencias(candidatoId, tareaId, listaTareas, new Set());
+}
+
+function existeCaminoDeDependencias(desdeId, hastaId, listaTareas, visitados) {
+  if (desdeId === hastaId) return true;
+  if (visitados.has(desdeId)) return false;
+  visitados.add(desdeId);
+  const tarea = listaTareas.find((t) => t.id === desdeId);
+  if (!tarea) return false;
+  return (tarea.dependencias || []).some((depId) =>
+    existeCaminoDeDependencias(depId, hastaId, listaTareas, visitados)
+  );
 }

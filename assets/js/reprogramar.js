@@ -15,6 +15,16 @@ const ATAJOS_DIA = [
   { etiqueta: '+30 días', dias: 30 },
 ];
 
+const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+function primerDiaSemanaProximoMes(indiceDiaSemana, desde = new Date()) {
+  const fecha = new Date(desde.getFullYear(), desde.getMonth() + 1, 1);
+  while (fecha.getDay() !== indiceDiaSemana) {
+    fecha.setDate(fecha.getDate() + 1);
+  }
+  return fecha.toISOString().slice(0, 10);
+}
+
 /**
  * Panel inline con atajos de día + horario para reprogramar una tarea.
  * onConfirmar recibe la fecha/hora elegida en formato ISO datetime.
@@ -27,6 +37,13 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar }) {
       <span class="panel-reprogramar-etiqueta">Día:</span>
       ${ATAJOS_DIA.map((a) => `<button type="button" data-dias="${a.dias}">${a.etiqueta}</button>`).join('')}
       <input type="date" data-campo="fecha" value="${hoyISO()}" />
+    </div>
+    <div class="panel-reprogramar-fila">
+      <span class="panel-reprogramar-etiqueta">o el 1er</span>
+      <select data-campo="dia-semana-proximo-mes">
+        ${DIAS_SEMANA.map((nombre, indice) => `<option value="${indice}">${nombre}</option>`).join('')}
+      </select>
+      <button type="button" data-accion="primer-dia-proximo-mes">del próximo mes</button>
     </div>
     <div class="panel-reprogramar-fila">
       <span class="panel-reprogramar-etiqueta">Horario:</span>
@@ -51,6 +68,11 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar }) {
     boton.addEventListener('click', () => {
       campoHora.value = boton.dataset.hora;
     });
+  });
+
+  panel.querySelector('[data-accion="primer-dia-proximo-mes"]').addEventListener('click', () => {
+    const indice = Number(panel.querySelector('[data-campo="dia-semana-proximo-mes"]').value);
+    campoFecha.value = primerDiaSemanaProximoMes(indice);
   });
 
   panel.querySelector('[data-accion="confirmar"]').addEventListener('click', () => {

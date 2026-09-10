@@ -176,6 +176,7 @@ function renderTarea(tarea) {
       ${tarea.motivo_incumplimiento ? `<p class="notas-tarea">Motivo del último replanteo: ${escaparHtml(tarea.motivo_incumplimiento)}</p>` : ''}
       <div class="contenedor-panel-reprogramar" hidden></div>
       <div class="contenedor-panel-dependencias" hidden></div>
+      <div class="contenedor-panel-mejora" hidden></div>
     </div>
     <div class="item-tarea-acciones">
       <select data-accion="cambiar-estado">
@@ -187,8 +188,28 @@ function renderTarea(tarea) {
     </div>
   `;
 
+  const contenedorMejora = li.querySelector('.contenedor-panel-mejora');
   li.querySelector('[data-accion="cambiar-estado"]').addEventListener('change', async (evento) => {
     const nuevoEstado = evento.target.value;
+    if (nuevoEstado === 'completada' && tarea.mantenimiento) {
+      contenedorMejora.innerHTML = `
+        <div class="panel-cierre">
+          <label>¿Qué podrías mejorar la próxima vez? (opcional)
+            <input type="text" data-campo="mejora" />
+          </label>
+          <button type="button" data-accion="confirmar-mejora" class="boton-primario">Confirmar</button>
+        </div>
+      `;
+      contenedorMejora.hidden = false;
+      contenedorMejora.querySelector('[data-accion="confirmar-mejora"]').addEventListener('click', async () => {
+        const notaMejora = contenedorMejora.querySelector('[data-campo="mejora"]').value.trim();
+        completarTarea(tarea, estado.tareas, { notaMejora });
+        contenedorMejora.hidden = true;
+        contenedorMejora.innerHTML = '';
+        await persistirYNotificar();
+      });
+      return;
+    }
     if (nuevoEstado === 'completada') {
       completarTarea(tarea, estado.tareas);
     } else {
@@ -279,7 +300,7 @@ function crearPanelDependencias(tarea) {
       if (checkbox.checked) {
         if (!puedeAgregarDependencia(tarea.id, candidatoId, estado.tareas)) {
           checkbox.checked = false;
-          alert('No se puede agregar esa dependencia (auto-referencia o ciclo directo entre ambas tareas).');
+          alert('No se puede agregar esa dependencia: crearía un ciclo (directo o indirecto) entre tareas.');
           return;
         }
         tarea.dependencias = [...(tarea.dependencias || []), candidatoId];

@@ -20,12 +20,12 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Subtareas y dependencias entre tareas (una tarea "desbloquea" a otra; si se pospone la primera, se corren automáticamente las dependientes con la misma cantidad de tiempo)
 - [x] Tareas de mantenimiento cíclicas: al completarse se clona una nueva instancia pendiente sumando el intervalo a la **fecha real de finalización** (no a la fecha teórica) — ej. corte de cabello cada 1 mes, limpiar pileta cada fin de semana, backup de celular cada 1 mes. La instancia completada queda como historial
 - [x] Vistas de 3 días y de 8 días (además de la vista "Hoy"): agrupan las tareas pendientes por día (según fecha agendada, límite o sugerida, en ese orden de prioridad) para anticipar cuellos de botella. Incluyen "Posponer" directo desde cada tarjeta
-- [ ] Asistente de cierre a nivel *día completo* (repasar todas las tareas de hoy en una sola pasada, no tarea por tarea)
-- [ ] Atajo de día "primer [día de la semana] del próximo mes" en el panel de reprogramar
-- [ ] Detección de dependencias cíclicas más allá de un ciclo directo A↔B (por ahora solo se valida auto-referencia y ciclo directo entre dos tareas; un ciclo A→B→C→A no se detecta)
+- [x] Asistente de cierre a nivel *día completo*: botón "Revisar mi día" en Hoy, repasa una por una las tareas accionables del día (Cumplida/No cumplida/Saltar) en un diálogo, sin tener que abrir cada tarjeta
+- [x] Atajo de día "primer [día de la semana] del próximo mes" en el panel de reprogramar
+- [x] Detección de dependencias cíclicas más allá de un ciclo directo A↔B: ahora se valida el grafo completo (A→B→C→A también se rechaza)
+- [x] Para tareas repetibles (mantenimiento): al completarlas se pregunta opcionalmente qué mejorar de cara a la próxima vez, y queda anotado en la instancia clonada
 - [ ] Atributo `divisible` (booleano): si la tarea puede pausarse y retomarse o debe hacerse de punta a punta (default: no divisible)
 - [ ] Atributo `dias_habiles`: días de la semana en que una tarea puede realizarse (si se pospone, salta al próximo día hábil de esa tarea)
-- [ ] Para tareas repetibles: preguntar qué mejorar de cara a la próxima vez
 - [ ] Agrupar tareas por similitud, familia/jerarquía o por poder hacerse en simultáneo (multitasking vs. foco)
 - [ ] Autocompletado predictivo al crear una tarea, basado en tareas similares ya creadas (trae atributos por defecto)
 - [ ] Prioridad/jerarquía configurable entre categorías

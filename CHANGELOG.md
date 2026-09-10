@@ -2,6 +2,15 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.5.0] - 2026-09-10
+
+### Agregado
+
+- Atajo "primer [día de la semana] del próximo mes" en el panel de reprogramar.
+- Asistente de cierre a nivel día completo: botón "Revisar mi día" en Hoy abre un diálogo que repasa una por una las tareas accionables (Cumplida/No cumplida/Saltar), avanzando automáticamente. Nuevo módulo `assets/js/revision-dia.js`.
+- Mejora continua para tareas de mantenimiento: al completarlas (desde cualquiera de los 3 caminos: Tareas, Hoy por tarjeta, o Revisar mi día) se pregunta opcionalmente qué mejorar la próxima vez, y queda anotado en la instancia clonada.
+- Detección de dependencias cíclicas más allá de un ciclo directo: `puedeAgregarDependencia` ahora recorre todo el grafo de dependencias en profundidad.
+
 ## [v0.4.0] - 2026-09-08
 
 ### Agregado
