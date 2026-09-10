@@ -38,7 +38,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Al completar una tarea, preguntar si se quiere abrir en Google Calendar con los datos precargados
 - [x] Al completar una tarea repetible, sugerir la próxima fecha y crear la siguiente instancia — resuelto desde la ronda de mantenimiento cíclico (v0.3.0), había quedado listado acá también por error
 - [ ] Evaluar opciones técnicas de sincronización multi-dispositivo (ver sección "Sync — opciones a evaluar" abajo)
-- [ ] Integración con Google Calendar: lectura de eventos existentes para detectar solapamientos (requiere que el usuario cree un proyecto OAuth en Google Cloud Console)
+- [ ] Integración con Google Calendar: lectura de eventos existentes para detectar solapamientos. **Pausado a pedido del usuario** — requiere crear antes un proyecto OAuth en Google Cloud Console (Client ID); retomar cuando el usuario pida específicamente que lo guiemos paso a paso por ese setup
 - [ ] Validación de condiciones climáticas para tareas que dependan del clima (pronóstico del tiempo)
 - [ ] Atributo de ubicación geográfica asociado a una tarea
 - [ ] Notificación por proximidad geográfica (GPS del celular) para tareas ligadas a un lugar
