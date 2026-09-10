@@ -7,11 +7,31 @@ import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAg
 let filtroCategoria = '';
 let filtroEstado = '';
 
+function tareasUnicasPorNombre() {
+  const mapa = new Map();
+  estado.tareas
+    .slice()
+    .sort((a, b) => b.creada_en.localeCompare(a.creada_en))
+    .forEach((t) => {
+      const clave = t.nombre.trim().toLowerCase();
+      if (!mapa.has(clave)) mapa.set(clave, t);
+    });
+  return [...mapa.values()];
+}
+
 export function renderVistaTareas(contenedor) {
   contenedor.innerHTML = `
     <h2>Tareas</h2>
+    <form id="form-alta-rapida" class="formulario-en-linea">
+      <input type="text" name="nombre" placeholder="Agregar tarea rápido (solo nombre)..." required />
+      <button type="submit">Agregar</button>
+    </form>
+    <p class="ayuda">...o cargala con más detalle:</p>
     <form id="form-nueva-tarea" class="formulario-tarea">
-      <input type="text" name="nombre" placeholder="Nueva tarea" required />
+      <input type="text" name="nombre" placeholder="Nueva tarea" required list="lista-sugerencias-tareas" />
+      <datalist id="lista-sugerencias-tareas">
+        ${tareasUnicasPorNombre().map((t) => `<option value="${escaparHtml(t.nombre)}"></option>`).join('')}
+      </datalist>
       <select name="categoria_id">
         <option value="">Sin categoría</option>
         ${estado.categorias.map((c) => `<option value="${c.id}">${escaparHtml(c.nombre)}</option>`).join('')}
@@ -80,6 +100,33 @@ export function renderVistaTareas(contenedor) {
   const camposMantenimiento = contenedor.querySelector('.campos-mantenimiento');
   checkboxMantenimiento.addEventListener('change', () => {
     camposMantenimiento.hidden = !checkboxMantenimiento.checked;
+  });
+
+  formulario.nombre.addEventListener('input', () => {
+    const coincidencia = tareasUnicasPorNombre().find(
+      (t) => t.nombre.trim().toLowerCase() === formulario.nombre.value.trim().toLowerCase()
+    );
+    if (!coincidencia) return;
+    formulario.categoria_id.value = coincidencia.categoria_id || '';
+    actualizarSubcategoriasFormulario();
+    formulario.subcategoria_id.value = coincidencia.subcategoria_id || '';
+    formulario.duracion_estimada_min.value = coincidencia.duracion_estimada_min || 30;
+    formulario.notas.value = coincidencia.notas || '';
+    checkboxMantenimiento.checked = !!coincidencia.mantenimiento;
+    camposMantenimiento.hidden = !coincidencia.mantenimiento;
+    if (coincidencia.mantenimiento) {
+      formulario.mantenimiento_cantidad.value = coincidencia.mantenimiento.cantidad;
+      formulario.mantenimiento_unidad.value = coincidencia.mantenimiento.unidad;
+    }
+  });
+
+  const formularioRapido = contenedor.querySelector('#form-alta-rapida');
+  formularioRapido.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const nombre = String(new FormData(formularioRapido).get('nombre') || '').trim();
+    if (!nombre) return;
+    estado.tareas.push(crearTarea({ nombre }));
+    await persistirYNotificar();
   });
 
   formulario.addEventListener('submit', async (evento) => {
@@ -177,6 +224,7 @@ function renderTarea(tarea) {
       <div class="contenedor-panel-reprogramar" hidden></div>
       <div class="contenedor-panel-dependencias" hidden></div>
       <div class="contenedor-panel-mejora" hidden></div>
+      <div class="contenedor-panel-editar" hidden></div>
     </div>
     <div class="item-tarea-acciones">
       <select data-accion="cambiar-estado">
@@ -184,6 +232,7 @@ function renderTarea(tarea) {
       </select>
       <button type="button" data-accion="posponer">Posponer</button>
       <button type="button" data-accion="dependencias">Dependencias</button>
+      <button type="button" data-accion="editar">Editar</button>
       <button type="button" data-accion="eliminar">Eliminar</button>
     </div>
   `;
@@ -253,6 +302,17 @@ function renderTarea(tarea) {
     contenedorDependencias.hidden = false;
   });
 
+  const contenedorEditar = li.querySelector('.contenedor-panel-editar');
+  li.querySelector('[data-accion="editar"]').addEventListener('click', () => {
+    const yaAbierto = !contenedorEditar.hidden;
+    contenedorEditar.innerHTML = '';
+    contenedorEditar.hidden = true;
+    if (yaAbierto) return;
+
+    contenedorEditar.appendChild(crearPanelEditar(tarea));
+    contenedorEditar.hidden = false;
+  });
+
   li.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar la tarea "${tarea.nombre}"?`)) return;
     estado.tareas = estado.tareas.filter((t) => t.id !== tarea.id);
@@ -263,6 +323,81 @@ function renderTarea(tarea) {
   });
 
   return li;
+}
+
+function crearPanelEditar(tarea) {
+  const panel = document.createElement('form');
+  panel.className = 'formulario-tarea panel-editar';
+  panel.innerHTML = `
+    <input type="text" name="nombre" value="${escaparHtml(tarea.nombre)}" required />
+    <select name="categoria_id">
+      <option value="">Sin categoría</option>
+      ${estado.categorias
+        .map((c) => `<option value="${c.id}" ${c.id === tarea.categoria_id ? 'selected' : ''}>${escaparHtml(c.nombre)}</option>`)
+        .join('')}
+    </select>
+    <select name="subcategoria_id">
+      <option value="">Sin subcategoría</option>
+    </select>
+    <label>Desde <input type="date" name="fecha_inicio_posible" value="${tarea.fecha_inicio_posible || ''}" /></label>
+    <label>Límite <input type="date" name="fecha_limite" value="${tarea.fecha_limite || ''}" /></label>
+    <label>Sugerida <input type="date" name="fecha_sugerida" value="${tarea.fecha_sugerida || ''}" /></label>
+    <label>Duración (min) <input type="number" name="duracion_estimada_min" value="${tarea.duracion_estimada_min || 0}" min="0" step="15" /></label>
+    <input type="text" name="notas" placeholder="Notas / recursos" value="${escaparHtml(tarea.notas || '')}" />
+    <label class="opcion-mantenimiento">
+      <input type="checkbox" name="es_mantenimiento" ${tarea.mantenimiento ? 'checked' : ''} />
+      Es tarea de mantenimiento (se renueva sola)
+    </label>
+    <span class="campos-mantenimiento" ${tarea.mantenimiento ? '' : 'hidden'}>
+      cada
+      <input type="number" name="mantenimiento_cantidad" value="${tarea.mantenimiento ? tarea.mantenimiento.cantidad : 1}" min="1" style="width: 3.5rem" />
+      <select name="mantenimiento_unidad">
+        ${UNIDADES_MANTENIMIENTO.map(
+          (u) => `<option value="${u}" ${tarea.mantenimiento && tarea.mantenimiento.unidad === u ? 'selected' : ''}>${ETIQUETAS_UNIDAD_MANTENIMIENTO[u]}</option>`
+        ).join('')}
+      </select>
+    </span>
+    <button type="submit" class="boton-primario">Guardar cambios</button>
+  `;
+
+  const selectCategoria = panel.categoria_id;
+  const selectSubcategoria = panel.subcategoria_id;
+  function actualizarSubcategoriasPanel(valorSeleccionado) {
+    const subs = estado.subcategorias.filter((s) => s.categoria_id === selectCategoria.value);
+    selectSubcategoria.innerHTML =
+      '<option value="">Sin subcategoría</option>' +
+      subs.map((s) => `<option value="${s.id}" ${s.id === valorSeleccionado ? 'selected' : ''}>${escaparHtml(s.nombre)}</option>`).join('');
+  }
+  actualizarSubcategoriasPanel(tarea.subcategoria_id);
+  selectCategoria.addEventListener('change', () => actualizarSubcategoriasPanel(null));
+
+  const checkboxMantenimiento = panel.es_mantenimiento;
+  const camposMantenimiento = panel.querySelector('.campos-mantenimiento');
+  checkboxMantenimiento.addEventListener('change', () => {
+    camposMantenimiento.hidden = !checkboxMantenimiento.checked;
+  });
+
+  panel.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const datos = new FormData(panel);
+    const nombre = String(datos.get('nombre') || '').trim();
+    if (!nombre) return;
+    tarea.nombre = nombre;
+    tarea.categoria_id = datos.get('categoria_id') || null;
+    tarea.subcategoria_id = datos.get('subcategoria_id') || null;
+    tarea.fecha_inicio_posible = datos.get('fecha_inicio_posible');
+    tarea.fecha_limite = datos.get('fecha_limite');
+    tarea.fecha_sugerida = datos.get('fecha_sugerida');
+    tarea.duracion_estimada_min = Number(datos.get('duracion_estimada_min')) || 0;
+    tarea.notas = String(datos.get('notas') || '').trim();
+    tarea.mantenimiento =
+      datos.get('es_mantenimiento') === 'on'
+        ? { cantidad: Number(datos.get('mantenimiento_cantidad')) || 1, unidad: datos.get('mantenimiento_unidad') }
+        : null;
+    await persistirYNotificar();
+  });
+
+  return panel;
 }
 
 function crearPanelDependencias(tarea) {

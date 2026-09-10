@@ -364,6 +364,15 @@ h1, h2, h3 {
   margin: 0.5rem 0 1rem;
 }
 
+#form-alta-rapida input[type="text"] {
+  flex: 1;
+  min-width: 180px;
+}
+
+.panel-editar {
+  margin-top: 0.5rem;
+}
+
 .dialogo-revision {
   border: none;
   border-radius: var(--radio);
