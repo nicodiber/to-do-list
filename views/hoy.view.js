@@ -2,12 +2,16 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada } from '../assets/js/tareas-logica.js';
+import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, ubicacionesUnicas } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 
+let filtroUbicacion = '';
+
 export function renderVistaHoy(contenedor) {
-  const pendientesActivas = estado.tareas.filter((t) => t.estado !== 'completada');
+  const pendientesActivas = estado.tareas
+    .filter((t) => t.estado !== 'completada')
+    .filter((t) => !filtroUbicacion || t.ubicacion === filtroUbicacion);
 
   const infoPorTarea = new Map(
     pendientesActivas.map((tarea) => [tarea.id, tareaEstaBloqueada(tarea, estado.tareas)])
@@ -28,6 +32,18 @@ export function renderVistaHoy(contenedor) {
   contenedor.innerHTML = `
     <h2>Hoy</h2>
     <p class="ayuda">Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.</p>
+    ${
+      ubicacionesUnicas(estado.tareas).length > 0
+        ? `<label class="filtro-ubicacion-hoy">¿Dónde estás?
+            <select id="filtro-ubicacion-hoy">
+              <option value="">Cualquier ubicación</option>
+              ${ubicacionesUnicas(estado.tareas)
+                .map((u) => `<option value="${escaparHtml(u)}" ${filtroUbicacion === u ? 'selected' : ''}>${escaparHtml(u)}</option>`)
+                .join('')}
+            </select>
+          </label>`
+        : ''
+    }
     <button type="button" id="boton-revisar-dia" class="boton-primario">Revisar mi día</button>
     <section>
       <h3>Urgentes</h3>
@@ -58,6 +74,14 @@ export function renderVistaHoy(contenedor) {
   contenedor.querySelector('#boton-revisar-dia').addEventListener('click', () => {
     iniciarRevisionDia([...urgentes, ...resto]);
   });
+
+  const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-hoy');
+  if (selectFiltroUbicacion) {
+    selectFiltroUbicacion.addEventListener('change', (evento) => {
+      filtroUbicacion = evento.target.value;
+      renderVistaHoy(contenedor);
+    });
+  }
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0) {
@@ -101,6 +125,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.estado]}</span>
+        ${tarea.ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(tarea.ubicacion)}</span>` : ''}
       </span>
       ${
         bloqueantes

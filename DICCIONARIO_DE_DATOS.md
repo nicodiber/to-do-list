@@ -42,6 +42,7 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `mantenimiento` | `{ cantidad: number, unidad: 'dias' \| 'semanas' \| 'meses' }` \| null | MVP | Si está seteado, al completar la tarea se clona una nueva instancia pendiente con `fecha_limite` = fecha real de finalización + este intervalo |
 | `divisible` | boolean (default `false`) | MVP | Si se puede pausar y retomar, o debe hacerse de punta a punta. Informativo, no gatea lógica todavía |
 | `dias_habiles` | array de números 0-6 (0=domingo), default `[]` | MVP | Días de la semana en que se puede realizar. Vacío = sin restricción. Al posponer la tarea, el panel de reprogramar salta automáticamente al próximo día hábil si la fecha elegida cae en un día no permitido |
+| `ubicacion` | string, default `""` | MVP | Texto libre y opcional. Sin GPS ni geolocalización: solo sirve para mostrar un badge y para filtrar manualmente en Tareas/Hoy ("¿dónde estás?") |
 | `multitasking` | boolean | Fase 2 | Si se puede hacer en simultáneo con otra tarea de baja atención |
 | `costo` | number | Fase 3 | Costo monetario estimado o real asociado |
 | `ubicacion` | string / coordenadas | Fase 3 | Lugar del que depende la tarea |

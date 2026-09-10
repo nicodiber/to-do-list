@@ -57,6 +57,7 @@
           "type": "array",
           "items": { "type": "number", "minimum": 0, "maximum": 6 }
         },
+        "ubicacion": { "type": "string" },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }

@@ -40,6 +40,7 @@ export function crearTarea({
   mantenimiento = null,
   divisible = false,
   dias_habiles = [],
+  ubicacion = '',
 }) {
   return {
     id: generarId(),
@@ -59,6 +60,7 @@ export function crearTarea({
     mantenimiento,
     divisible,
     dias_habiles,
+    ubicacion,
     creada_en: ahoraISO(),
     completada_en: null,
   };

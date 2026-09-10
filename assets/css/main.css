@@ -364,6 +364,20 @@ h1, h2, h3 {
   margin: 0.5rem 0 1rem;
 }
 
+.filtro-ubicacion-hoy {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  margin-bottom: 0.5rem;
+}
+
+.filtro-ubicacion-hoy select {
+  margin-left: 0.4rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+}
+
 #form-alta-rapida input[type="text"] {
   flex: 1;
   min-width: 180px;

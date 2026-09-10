@@ -37,13 +37,13 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Integración con Google Calendar: exportación puntual de tareas completadas como registro histórico (con hora de inicio real y duración real) — vía URL de `calendar.google.com/render`, sin OAuth ni API key
 - [x] Al completar una tarea, preguntar si se quiere abrir en Google Calendar con los datos precargados
 - [x] Al completar una tarea repetible, sugerir la próxima fecha y crear la siguiente instancia — resuelto desde la ronda de mantenimiento cíclico (v0.3.0), había quedado listado acá también por error
+- [x] Atributo de ubicación geográfica asociado a una tarea — alcance acotado a pedido del usuario: texto libre y opcional (`ubicacion`), badge en Tareas/Hoy/3-8 días, y filtro manual por ubicación en Tareas y en Hoy ("¿dónde estás?"). **Sin GPS ni geolocalización** — eso queda en el ítem de abajo si algún día se retoma
 - [ ] Evaluar opciones técnicas de sincronización multi-dispositivo (ver sección "Sync — opciones a evaluar" abajo)
 - [ ] Integración con Google Calendar: lectura de eventos existentes para detectar solapamientos. **Pausado a pedido del usuario** — requiere crear antes un proyecto OAuth en Google Cloud Console (Client ID); retomar cuando el usuario pida específicamente que lo guiemos paso a paso por ese setup
-- [ ] Validación de condiciones climáticas para tareas que dependan del clima (pronóstico del tiempo)
-- [ ] Atributo de ubicación geográfica asociado a una tarea
-- [ ] Notificación por proximidad geográfica (GPS del celular) para tareas ligadas a un lugar
+- [ ] Validación de condiciones climáticas: atributo de condición climática por tarea; si en el día/horario agendado el pronóstico real (Open-Meteo, gratis, sin API key) no acompaña, avisar para posponerla. **Diseño confirmado por el usuario, todavía sin implementar**
+- [ ] Notificación por proximidad geográfica (GPS del celular) para tareas ligadas a un lugar — fuera de alcance por ahora (el usuario prefiere el filtro manual de arriba)
 - [ ] Lectura de eventos pasados de Google Calendar para estimar tiempos/recursos de tareas similares futuras
-- [ ] Exportar/importar una categoría completa (ej. compartir el cronograma de una materia con otro estudiante)
+- [ ] Exportar/importar una categoría completa (ej. compartir el cronograma de una materia con otro estudiante). **Pospuesto a pedido del usuario** para la etapa final del proyecto
 
 ## Fase 4 — Inteligencia e informes
 

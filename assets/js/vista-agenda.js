@@ -85,6 +85,7 @@ function renderTarjetaTarea(tarea) {
             ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.mantenimiento.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.mantenimiento.unidad]}</span>`
             : ''
         }
+        ${tarea.ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(tarea.ubicacion)}</span>` : ''}
       </span>
       ${
         bloqueada
