@@ -3,6 +3,7 @@ import { crearTarea, ESTADOS_TAREA, ETIQUETAS_ESTADO, UNIDADES_MANTENIMIENTO, ET
 import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia } from '../assets/js/tareas-logica.js';
+import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
@@ -256,15 +257,18 @@ function renderTarea(tarea) {
         contenedorMejora.hidden = true;
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
+        ofrecerExportarACalendar(tarea);
       });
       return;
     }
     if (nuevoEstado === 'completada') {
       completarTarea(tarea, estado.tareas);
-    } else {
-      tarea.estado = nuevoEstado;
-      tarea.completada_en = null;
+      await persistirYNotificar();
+      ofrecerExportarACalendar(tarea);
+      return;
     }
+    tarea.estado = nuevoEstado;
+    tarea.completada_en = null;
     await persistirYNotificar();
   });
 

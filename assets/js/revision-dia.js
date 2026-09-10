@@ -2,6 +2,7 @@ import { estado, persistirYNotificar } from './almacenamiento.js';
 import { formatearFecha, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada } from './tareas-logica.js';
+import { ofrecerExportarACalendar } from './exportar-calendar.js';
 
 // El <dialog> vive en document.body (no en el contenedor de la vista) para
 // sobrevivir a los re-renders que dispara persistirYNotificar() en cada paso.
@@ -90,6 +91,7 @@ function renderPaso() {
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
       completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
       await persistirYNotificar();
+      ofrecerExportarACalendar(tarea);
       avanzar();
     });
   });

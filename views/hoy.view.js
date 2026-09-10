@@ -4,6 +4,7 @@ import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTod
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
+import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 
 export function renderVistaHoy(contenedor) {
   const pendientesActivas = estado.tareas.filter((t) => t.estado !== 'completada');
@@ -151,6 +152,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
       completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
       await persistirYNotificar();
+      ofrecerExportarACalendar(tarea);
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
       contenedorCierre.hidden = true;

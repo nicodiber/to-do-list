@@ -34,11 +34,11 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 
 ## Fase 3 — Integraciones externas
 
+- [x] Integración con Google Calendar: exportación puntual de tareas completadas como registro histórico (con hora de inicio real y duración real) — vía URL de `calendar.google.com/render`, sin OAuth ni API key
+- [x] Al completar una tarea, preguntar si se quiere abrir en Google Calendar con los datos precargados
+- [x] Al completar una tarea repetible, sugerir la próxima fecha y crear la siguiente instancia — resuelto desde la ronda de mantenimiento cíclico (v0.3.0), había quedado listado acá también por error
 - [ ] Evaluar opciones técnicas de sincronización multi-dispositivo (ver sección "Sync — opciones a evaluar" abajo)
-- [ ] Integración con Google Calendar: lectura de eventos existentes para detectar solapamientos
-- [ ] Integración con Google Calendar: exportación puntual de tareas completadas/agendadas como registro histórico (con hora de inicio y duración real)
-- [ ] Al completar una tarea, preguntar si se quiere abrir en Google Calendar con los datos precargados
-- [ ] Al completar una tarea repetible, sugerir la próxima fecha (con atajos) y crear la siguiente instancia
+- [ ] Integración con Google Calendar: lectura de eventos existentes para detectar solapamientos (requiere que el usuario cree un proyecto OAuth en Google Cloud Console)
 - [ ] Validación de condiciones climáticas para tareas que dependan del clima (pronóstico del tiempo)
 - [ ] Atributo de ubicación geográfica asociado a una tarea
 - [ ] Notificación por proximidad geográfica (GPS del celular) para tareas ligadas a un lugar
