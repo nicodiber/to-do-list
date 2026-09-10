@@ -26,8 +26,8 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Para tareas repetibles (mantenimiento): al completarlas se pregunta opcionalmente qué mejorar de cara a la próxima vez, y queda anotado en la instancia clonada
 - [x] Autocompletado predictivo al crear una tarea: `<datalist>` con tareas ya creadas; al coincidir el nombre exacto, precarga categoría/subcategoría/duración/notas/mantenimiento
 - [x] Crear tareas rápido desde el celular con datos mínimos (barra de alta rápida, solo nombre), completar el resto después desde la PC — para que esto tuviera sentido se agregó también **edición de tarea** (botón "Editar" en Tareas, no estaba en el backlog original pero es un requisito de este ítem)
-- [ ] Atributo `divisible` (booleano): si la tarea puede pausarse y retomarse o debe hacerse de punta a punta (default: no divisible)
-- [ ] Atributo `dias_habiles`: días de la semana en que una tarea puede realizarse (si se pospone, salta al próximo día hábil de esa tarea)
+- [x] Atributo `divisible` (booleano): si la tarea puede pausarse y retomarse o debe hacerse de punta a punta (default: no divisible). Informativo por ahora, con badge "⏸ Divisible"
+- [x] Atributo `dias_habiles`: días de la semana en que una tarea puede realizarse; al posponerla, el panel de reprogramar salta automáticamente al próximo día hábil (aplica en los 4 puntos donde se abre ese panel: Tareas, Hoy, 3/8 días, Revisar mi día)
 - [ ] Agrupar tareas por similitud, familia/jerarquía o por poder hacerse en simultáneo (multitasking vs. foco)
 - [ ] Prioridad/jerarquía configurable entre categorías
 - [ ] Aplicar principios de SCRUM (sprints, planificaciones y revisiones periódicas) a nivel personal

@@ -373,6 +373,35 @@ h1, h2, h3 {
   margin-top: 0.5rem;
 }
 
+.dias-habiles {
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dias-habiles legend {
+  font-size: 0.75rem;
+  color: var(--color-texto-suave);
+  padding: 0 0.3rem;
+}
+
+.dia-habil {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.panel-reprogramar-leyenda {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-primario);
+}
+
 .dialogo-revision {
   border: none;
   border-radius: var(--radio);

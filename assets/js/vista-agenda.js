@@ -106,6 +106,7 @@ function renderTarjetaTarea(tarea) {
     if (yaAbierto) return;
 
     const panel = crearPanelReprogramar({
+      diasHabiles: tarea.dias_habiles,
       onConfirmar: async (fechaHoraISO) => {
         reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
         contenedorPanel.hidden = true;

@@ -38,6 +38,8 @@ export function crearTarea({
   notas = '',
   dependencias = [],
   mantenimiento = null,
+  divisible = false,
+  dias_habiles = [],
 }) {
   return {
     id: generarId(),
@@ -55,6 +57,8 @@ export function crearTarea({
     motivo_incumplimiento: '',
     dependencias,
     mantenimiento,
+    divisible,
+    dias_habiles,
     creada_en: ahoraISO(),
     completada_en: null,
   };

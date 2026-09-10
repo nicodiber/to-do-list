@@ -52,6 +52,11 @@
             "unidad": { "type": "string", "enum": ["dias", "semanas", "meses"] }
           }
         },
+        "divisible": { "type": "boolean" },
+        "dias_habiles": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0, "maximum": 6 }
+        },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }

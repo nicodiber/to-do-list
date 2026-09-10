@@ -1,12 +1,22 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { crearTarea, ESTADOS_TAREA, ETIQUETAS_ESTADO, UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
-import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
+import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
+
+function htmlDiasHabiles(seleccionados = []) {
+  return DIAS_SEMANA.map(
+    (nombre, indice) => `
+      <label class="dia-habil">
+        <input type="checkbox" name="dias_habiles" value="${indice}" ${seleccionados.includes(indice) ? 'checked' : ''} />
+        ${nombre.slice(0, 3)}
+      </label>`
+  ).join('');
+}
 
 function tareasUnicasPorNombre() {
   const mapa = new Map();
@@ -59,6 +69,14 @@ export function renderVistaTareas(contenedor) {
           ${UNIDADES_MANTENIMIENTO.map((u) => `<option value="${u}">${ETIQUETAS_UNIDAD_MANTENIMIENTO[u]}</option>`).join('')}
         </select>
       </span>
+      <label class="opcion-mantenimiento">
+        <input type="checkbox" name="divisible" />
+        Se puede pausar y retomar (divisible)
+      </label>
+      <fieldset class="dias-habiles">
+        <legend>Días hábiles (vacío = cualquier día)</legend>
+        ${htmlDiasHabiles()}
+      </fieldset>
       <button type="submit">Agregar tarea</button>
     </form>
 
@@ -119,6 +137,11 @@ export function renderVistaTareas(contenedor) {
       formulario.mantenimiento_cantidad.value = coincidencia.mantenimiento.cantidad;
       formulario.mantenimiento_unidad.value = coincidencia.mantenimiento.unidad;
     }
+    formulario.divisible.checked = !!coincidencia.divisible;
+    const diasSeleccionados = coincidencia.dias_habiles || [];
+    formulario.querySelectorAll('input[name="dias_habiles"]').forEach((checkbox) => {
+      checkbox.checked = diasSeleccionados.includes(Number(checkbox.value));
+    });
   });
 
   const formularioRapido = contenedor.querySelector('#form-alta-rapida');
@@ -153,6 +176,8 @@ export function renderVistaTareas(contenedor) {
               unidad: datos.get('mantenimiento_unidad'),
             }
           : null,
+        divisible: datos.get('divisible') === 'on',
+        dias_habiles: datos.getAll('dias_habiles').map(Number),
       })
     );
     await persistirYNotificar();
@@ -212,6 +237,16 @@ function renderTarea(tarea) {
         ${
           tarea.mantenimiento
             ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.mantenimiento.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.mantenimiento.unidad]}</span>`
+            : ''
+        }
+        ${tarea.divisible ? `<span class="etiqueta-fecha">⏸ Divisible</span>` : ''}
+        ${
+          tarea.dias_habiles && tarea.dias_habiles.length > 0
+            ? `<span class="etiqueta-fecha">📅 ${tarea.dias_habiles
+                .slice()
+                .sort()
+                .map((i) => DIAS_SEMANA[i].slice(0, 3))
+                .join(', ')}</span>`
             : ''
         }
       </span>
@@ -280,6 +315,7 @@ function renderTarea(tarea) {
     if (yaAbierto) return;
 
     const panel = crearPanelReprogramar({
+      diasHabiles: tarea.dias_habiles,
       onConfirmar: async (fechaHoraISO) => {
         reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
         contenedorPanel.hidden = true;
@@ -361,6 +397,14 @@ function crearPanelEditar(tarea) {
         ).join('')}
       </select>
     </span>
+    <label class="opcion-mantenimiento">
+      <input type="checkbox" name="divisible" ${tarea.divisible ? 'checked' : ''} />
+      Se puede pausar y retomar (divisible)
+    </label>
+    <fieldset class="dias-habiles">
+      <legend>Días hábiles (vacío = cualquier día)</legend>
+      ${htmlDiasHabiles(tarea.dias_habiles || [])}
+    </fieldset>
     <button type="submit" class="boton-primario">Guardar cambios</button>
   `;
 
@@ -398,6 +442,8 @@ function crearPanelEditar(tarea) {
       datos.get('es_mantenimiento') === 'on'
         ? { cantidad: Number(datos.get('mantenimiento_cantidad')) || 1, unidad: datos.get('mantenimiento_unidad') }
         : null;
+    tarea.divisible = datos.get('divisible') === 'on';
+    tarea.dias_habiles = datos.getAll('dias_habiles').map(Number);
     await persistirYNotificar();
   });
 

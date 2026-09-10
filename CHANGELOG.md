@@ -2,6 +2,15 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.8.0] - 2026-09-10
+
+### Agregado
+
+- Campo `divisible`: checkbox en el alta y en editar, badge "⏸ Divisible" en el listado. Informativo por ahora.
+- Campo `dias_habiles`: checklist de días de la semana en el alta y en editar. El panel de reprogramar (Tareas, Hoy, 3/8 días, Revisar mi día) ahora recibe los días hábiles de la tarea y ajusta automáticamente cualquier fecha elegida (atajo o manual) al próximo día permitido.
+
+Con esto, Fase 2 queda completa salvo los ítems de baja prioridad documentados en el backlog (agrupar por similitud, prioridad entre categorías, SCRUM).
+
 ## [v0.7.0] - 2026-09-10
 
 ### Agregado

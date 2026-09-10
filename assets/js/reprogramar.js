@@ -15,7 +15,7 @@ const ATAJOS_DIA = [
   { etiqueta: '+30 días', dias: 30 },
 ];
 
-const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+export const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 function primerDiaSemanaProximoMes(indiceDiaSemana, desde = new Date()) {
   const fecha = new Date(desde.getFullYear(), desde.getMonth() + 1, 1);
@@ -25,14 +25,39 @@ function primerDiaSemanaProximoMes(indiceDiaSemana, desde = new Date()) {
   return fecha.toISOString().slice(0, 10);
 }
 
+function esDiaHabil(fechaISODate, diasHabiles) {
+  if (!diasHabiles || diasHabiles.length === 0) return true;
+  return diasHabiles.includes(new Date(fechaISODate + 'T00:00:00').getDay());
+}
+
+function siguienteDiaHabil(fechaISODate, diasHabiles) {
+  if (!diasHabiles || diasHabiles.length === 0) return fechaISODate;
+  let fecha = fechaISODate;
+  let intentos = 0;
+  while (!esDiaHabil(fecha, diasHabiles) && intentos < 14) {
+    fecha = fechaISOMasDias(1, fecha);
+    intentos++;
+  }
+  return fecha;
+}
+
 /**
  * Panel inline con atajos de día + horario para reprogramar una tarea.
  * onConfirmar recibe la fecha/hora elegida en formato ISO datetime.
  */
-export function crearPanelReprogramar({ onConfirmar, onCancelar }) {
+export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [] }) {
   const panel = document.createElement('div');
   panel.className = 'panel-reprogramar';
   panel.innerHTML = `
+    ${
+      diasHabiles && diasHabiles.length > 0
+        ? `<p class="panel-reprogramar-leyenda">Solo: ${diasHabiles
+            .slice()
+            .sort()
+            .map((i) => DIAS_SEMANA[i].slice(0, 3))
+            .join(', ')}</p>`
+        : ''
+    }
     <div class="panel-reprogramar-fila">
       <span class="panel-reprogramar-etiqueta">Día:</span>
       ${ATAJOS_DIA.map((a) => `<button type="button" data-dias="${a.dias}">${a.etiqueta}</button>`).join('')}
@@ -59,9 +84,13 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar }) {
   const campoFecha = panel.querySelector('[data-campo="fecha"]');
   const campoHora = panel.querySelector('[data-campo="hora"]');
 
+  function fijarFecha(valor) {
+    campoFecha.value = siguienteDiaHabil(valor, diasHabiles);
+  }
+
   panel.querySelectorAll('[data-dias]').forEach((boton) => {
     boton.addEventListener('click', () => {
-      campoFecha.value = fechaISOMasDias(Number(boton.dataset.dias));
+      fijarFecha(fechaISOMasDias(Number(boton.dataset.dias)));
     });
   });
   panel.querySelectorAll('[data-hora]').forEach((boton) => {
@@ -72,7 +101,11 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar }) {
 
   panel.querySelector('[data-accion="primer-dia-proximo-mes"]').addEventListener('click', () => {
     const indice = Number(panel.querySelector('[data-campo="dia-semana-proximo-mes"]').value);
-    campoFecha.value = primerDiaSemanaProximoMes(indice);
+    fijarFecha(primerDiaSemanaProximoMes(indice));
+  });
+
+  campoFecha.addEventListener('change', () => {
+    if (campoFecha.value) fijarFecha(campoFecha.value);
   });
 
   panel.querySelector('[data-accion="confirmar"]').addEventListener('click', () => {

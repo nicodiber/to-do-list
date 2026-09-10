@@ -108,6 +108,7 @@ function renderPaso() {
       contenedorPaso.innerHTML = '';
 
       const panel = crearPanelReprogramar({
+        diasHabiles: tarea.dias_habiles,
         onConfirmar: async (fechaHoraISO) => {
           tarea.motivo_incumplimiento = motivo;
           reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
