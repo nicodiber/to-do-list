@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from './almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { hoyISO, fechaISOMasDias, formatearFecha, formatearFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { reprogramarTareaConCascada, tareaEstaBloqueada } from './tareas-logica.js';
+import { reprogramarTareaConCascada, tareaEstaBloqueada, compararPorPrioridad } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -59,7 +59,11 @@ function renderColumnaDia(fechaDia, hoy, tareasDelDia) {
     lista.innerHTML = '<p class="mensaje-vacio">Sin tareas para este día.</p>';
   } else {
     tareasDelDia
-      .sort((a, b) => (a.fecha_hora_agendada || '').localeCompare(b.fecha_hora_agendada || ''))
+      .sort(
+        (a, b) =>
+          (a.fecha_hora_agendada || '').localeCompare(b.fecha_hora_agendada || '') ||
+          compararPorPrioridad(a, b, estado.categorias)
+      )
       .forEach((tarea) => lista.appendChild(renderTarjetaTarea(tarea)));
   }
 

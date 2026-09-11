@@ -31,13 +31,13 @@ export function renderVistaCategorias(contenedor) {
     return;
   }
 
-  estado.categorias
-    .slice()
-    .sort((a, b) => a.orden - b.orden)
-    .forEach((categoria) => listaCategorias.appendChild(renderCategoria(categoria)));
+  const categoriasOrdenadas = estado.categorias.slice().sort((a, b) => a.orden - b.orden);
+  categoriasOrdenadas.forEach((categoria, indice) =>
+    listaCategorias.appendChild(renderCategoria(categoria, indice, categoriasOrdenadas))
+  );
 }
 
-function renderCategoria(categoria) {
+function renderCategoria(categoria, indice, categoriasOrdenadas) {
   const subcategorias = estado.subcategorias.filter((s) => s.categoria_id === categoria.id);
 
   const tarjeta = document.createElement('article');
@@ -46,7 +46,11 @@ function renderCategoria(categoria) {
   tarjeta.innerHTML = `
     <div class="encabezado-categoria">
       <strong>${escaparHtml(categoria.nombre)}</strong>
-      <button type="button" data-accion="eliminar-categoria" title="Eliminar categoría">✕</button>
+      <span class="acciones-prioridad">
+        <button type="button" data-accion="subir-prioridad" title="Subir prioridad" ${indice === 0 ? 'disabled' : ''}>▲</button>
+        <button type="button" data-accion="bajar-prioridad" title="Bajar prioridad" ${indice === categoriasOrdenadas.length - 1 ? 'disabled' : ''}>▼</button>
+        <button type="button" data-accion="eliminar-categoria" title="Eliminar categoría">✕</button>
+      </span>
     </div>
     <ul class="lista-subcategorias">
       ${subcategorias
@@ -64,6 +68,20 @@ function renderCategoria(categoria) {
       <button type="submit">+</button>
     </form>
   `;
+
+  function intercambiarPrioridad(indiceAdyacente) {
+    return async () => {
+      const adyacente = categoriasOrdenadas[indiceAdyacente];
+      if (!adyacente) return;
+      const ordenPropio = categoria.orden;
+      categoria.orden = adyacente.orden;
+      adyacente.orden = ordenPropio;
+      await persistirYNotificar();
+    };
+  }
+
+  tarjeta.querySelector('[data-accion="subir-prioridad"]').addEventListener('click', intercambiarPrioridad(indice - 1));
+  tarjeta.querySelector('[data-accion="bajar-prioridad"]').addEventListener('click', intercambiarPrioridad(indice + 1));
 
   tarjeta.querySelector('[data-accion="eliminar-categoria"]').addEventListener('click', async () => {
     if (

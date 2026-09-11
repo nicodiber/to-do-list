@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada } from '../assets/js/tareas-logica.js';
+import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
@@ -24,11 +24,17 @@ export function renderVistaHoy(contenedor) {
   const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.fecha_inicio_posible));
   const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.fecha_inicio_posible));
 
-  const urgentes = disponibles.filter((t) => esVencida(t.fecha_limite) || esHoy(t.fecha_limite));
+  const urgentes = disponibles
+    .filter((t) => esVencida(t.fecha_limite) || esHoy(t.fecha_limite))
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
   const idsUrgentes = new Set(urgentes.map((t) => t.id));
   const resto = disponibles
     .filter((t) => !idsUrgentes.has(t.id))
-    .sort((a, b) => (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99'));
+    .sort(
+      (a, b) =>
+        (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99') ||
+        compararPorPrioridad(a, b, estado.categorias)
+    );
 
   contenedor.innerHTML = `
     <h2>Hoy</h2>

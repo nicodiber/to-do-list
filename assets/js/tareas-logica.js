@@ -108,6 +108,17 @@ export function tareaEstaBloqueada(tarea, listaTareas) {
 }
 
 /**
+ * Compara dos tareas por prioridad de categoría (`Categoria.orden`, menor =
+ * más prioritaria). Tareas sin categoría, o cuya categoría ya no existe,
+ * quedan siempre al final.
+ */
+export function compararPorPrioridad(a, b, categorias) {
+  const ordenA = categorias.find((c) => c.id === a.categoria_id)?.orden ?? Infinity;
+  const ordenB = categorias.find((c) => c.id === b.categoria_id)?.orden ?? Infinity;
+  return ordenA - ordenB;
+}
+
+/**
  * Valida que se pueda agregar `candidatoId` como dependencia de `tareaId`:
  * ni auto-referencia, ni que ya exista un camino (directo o indirecto) desde
  * `candidatoId` de vuelta hasta `tareaId` en el grafo de dependencias, lo que

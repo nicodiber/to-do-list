@@ -172,6 +172,17 @@ h1, h2, h3 {
   cursor: pointer;
 }
 
+.acciones-prioridad {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.acciones-prioridad button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .lista-subcategorias {
   list-style: none;
   padding: 0;

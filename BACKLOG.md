@@ -29,7 +29,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Atributo `divisible` (booleano): si la tarea puede pausarse y retomarse o debe hacerse de punta a punta (default: no divisible). Informativo por ahora, con badge "⏸ Divisible"
 - [x] Atributo `dias_habiles`: días de la semana en que una tarea puede realizarse; al posponerla, el panel de reprogramar salta automáticamente al próximo día hábil (aplica en los 4 puntos donde se abre ese panel: Tareas, Hoy, 3/8 días, Revisar mi día)
 - [ ] Agrupar tareas por similitud, familia/jerarquía o por poder hacerse en simultáneo (multitasking vs. foco)
-- [ ] Prioridad/jerarquía configurable entre categorías
+- [x] Prioridad/jerarquía configurable entre categorías: botones ▲/▼ en la vista Categorías para reordenar `orden`; se usa como desempate al listar tareas en Tareas, Hoy (urgentes y resto) y las vistas de 3/8 días
 - [ ] Aplicar principios de SCRUM (sprints, planificaciones y revisiones periódicas) a nivel personal
 
 ## Fase 3 — Integraciones externas

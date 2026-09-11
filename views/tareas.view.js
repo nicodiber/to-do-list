@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { crearTarea, ESTADOS_TAREA, ETIQUETAS_ESTADO, UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia } from '../assets/js/tareas-logica.js';
+import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 
 let filtroCategoria = '';
@@ -223,7 +223,11 @@ export function renderVistaTareas(contenedor) {
     .filter((t) => !filtroEstado || t.estado === filtroEstado)
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
     .slice()
-    .sort((a, b) => (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99'));
+    .sort(
+      (a, b) =>
+        (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99') ||
+        compararPorPrioridad(a, b, estado.categorias)
+    );
 
   if (tareasFiltradas.length === 0) {
     listaTareas.innerHTML = '<p class="mensaje-vacio">No hay tareas que coincidan con el filtro.</p>';
