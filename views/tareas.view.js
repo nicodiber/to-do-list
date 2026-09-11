@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { crearTarea, ESTADOS_TAREA, ETIQUETAS_ESTADO, UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia, ubicacionesUnicas } from '../assets/js/tareas-logica.js';
+import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 
 let filtroCategoria = '';
@@ -59,10 +59,14 @@ export function renderVistaTareas(contenedor) {
       <label>Sugerida <input type="date" name="fecha_sugerida" /></label>
       <label>Duración (min) <input type="number" name="duracion_estimada_min" value="30" min="0" step="15" /></label>
       <input type="text" name="notas" placeholder="Notas / recursos" />
-      <input type="text" name="ubicacion" placeholder="Ubicación (opcional)" list="lista-ubicaciones" />
-      <datalist id="lista-ubicaciones">
-        ${ubicacionesUnicas(estado.tareas).map((u) => `<option value="${escaparHtml(u)}"></option>`).join('')}
-      </datalist>
+      <select name="ubicacion_id">
+        <option value="">Sin ubicación</option>
+        ${estado.ubicaciones.map((u) => `<option value="${u.id}">${escaparHtml(u.nombre)}</option>`).join('')}
+      </select>
+      <label class="opcion-mantenimiento">
+        <input type="checkbox" name="requiere_clima_bueno" />
+        Requiere buen tiempo (sin lluvia)
+      </label>
       <label class="opcion-mantenimiento">
         <input type="checkbox" name="es_mantenimiento" />
         Es tarea de mantenimiento (se renueva sola)
@@ -105,8 +109,8 @@ export function renderVistaTareas(contenedor) {
       <label>Ubicación
         <select id="filtro-ubicacion">
           <option value="">Todas</option>
-          ${ubicacionesUnicas(estado.tareas)
-            .map((u) => `<option value="${escaparHtml(u)}" ${filtroUbicacion === u ? 'selected' : ''}>${escaparHtml(u)}</option>`)
+          ${estado.ubicaciones
+            .map((u) => `<option value="${u.id}" ${filtroUbicacion === u.id ? 'selected' : ''}>${escaparHtml(u.nombre)}</option>`)
             .join('')}
         </select>
       </label>
@@ -155,7 +159,8 @@ export function renderVistaTareas(contenedor) {
     formulario.querySelectorAll('input[name="dias_habiles"]').forEach((checkbox) => {
       checkbox.checked = diasSeleccionados.includes(Number(checkbox.value));
     });
-    formulario.ubicacion.value = coincidencia.ubicacion || '';
+    formulario.ubicacion_id.value = coincidencia.ubicacion_id || '';
+    formulario.requiere_clima_bueno.checked = !!coincidencia.requiere_clima_bueno;
   });
 
   const formularioRapido = contenedor.querySelector('#form-alta-rapida');
@@ -192,7 +197,8 @@ export function renderVistaTareas(contenedor) {
           : null,
         divisible: datos.get('divisible') === 'on',
         dias_habiles: datos.getAll('dias_habiles').map(Number),
-        ubicacion: String(datos.get('ubicacion') || '').trim(),
+        ubicacion_id: datos.get('ubicacion_id') || null,
+        requiere_clima_bueno: datos.get('requiere_clima_bueno') === 'on',
       })
     );
     await persistirYNotificar();
@@ -215,7 +221,7 @@ export function renderVistaTareas(contenedor) {
   const tareasFiltradas = estado.tareas
     .filter((t) => !filtroCategoria || t.categoria_id === filtroCategoria)
     .filter((t) => !filtroEstado || t.estado === filtroEstado)
-    .filter((t) => !filtroUbicacion || t.ubicacion === filtroUbicacion)
+    .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
     .slice()
     .sort((a, b) => (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99'));
 
@@ -230,6 +236,7 @@ export function renderVistaTareas(contenedor) {
 function renderTarea(tarea) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
   const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
+  const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
   const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
 
   const li = document.createElement('li');
@@ -269,7 +276,7 @@ function renderTarea(tarea) {
                 .join(', ')}</span>`
             : ''
         }
-        ${tarea.ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(tarea.ubicacion)}</span>` : ''}
+        ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
       </span>
       ${
         bloqueada
@@ -405,7 +412,16 @@ function crearPanelEditar(tarea) {
     <label>Sugerida <input type="date" name="fecha_sugerida" value="${tarea.fecha_sugerida || ''}" /></label>
     <label>Duración (min) <input type="number" name="duracion_estimada_min" value="${tarea.duracion_estimada_min || 0}" min="0" step="15" /></label>
     <input type="text" name="notas" placeholder="Notas / recursos" value="${escaparHtml(tarea.notas || '')}" />
-    <input type="text" name="ubicacion" placeholder="Ubicación (opcional)" value="${escaparHtml(tarea.ubicacion || '')}" list="lista-ubicaciones" />
+    <select name="ubicacion_id">
+      <option value="">Sin ubicación</option>
+      ${estado.ubicaciones
+        .map((u) => `<option value="${u.id}" ${u.id === tarea.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.nombre)}</option>`)
+        .join('')}
+    </select>
+    <label class="opcion-mantenimiento">
+      <input type="checkbox" name="requiere_clima_bueno" ${tarea.requiere_clima_bueno ? 'checked' : ''} />
+      Requiere buen tiempo (sin lluvia)
+    </label>
     <label class="opcion-mantenimiento">
       <input type="checkbox" name="es_mantenimiento" ${tarea.mantenimiento ? 'checked' : ''} />
       Es tarea de mantenimiento (se renueva sola)
@@ -466,7 +482,8 @@ function crearPanelEditar(tarea) {
         : null;
     tarea.divisible = datos.get('divisible') === 'on';
     tarea.dias_habiles = datos.getAll('dias_habiles').map(Number);
-    tarea.ubicacion = String(datos.get('ubicacion') || '').trim();
+    tarea.ubicacion_id = datos.get('ubicacion_id') || null;
+    tarea.requiere_clima_bueno = datos.get('requiere_clima_bueno') === 'on';
     await persistirYNotificar();
   });
 

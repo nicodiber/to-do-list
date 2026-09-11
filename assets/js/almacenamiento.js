@@ -12,6 +12,7 @@ export const soportaFileSystemAccess = typeof window !== 'undefined' && 'showDir
 export const estado = {
   categorias: [],
   subcategorias: [],
+  ubicaciones: [],
   tareas: [],
 };
 
@@ -72,6 +73,7 @@ function cargarDeLocalStorage() {
     const datos = JSON.parse(crudo);
     estado.categorias = datos.categorias || [];
     estado.subcategorias = datos.subcategorias || [];
+    estado.ubicaciones = datos.ubicaciones || [];
     estado.tareas = datos.tareas || [];
     return true;
   } catch (error) {
@@ -105,6 +107,7 @@ export async function guardarTodo() {
     await escribirArchivo(ARCHIVO_CATEGORIAS, {
       categorias: estado.categorias,
       subcategorias: estado.subcategorias,
+      ubicaciones: estado.ubicaciones,
     });
     await escribirArchivo(ARCHIVO_TAREAS, { tareas: estado.tareas });
   }
@@ -145,6 +148,7 @@ export async function cargarDesdeCarpeta() {
   if (datosCategorias || datosTareas) {
     estado.categorias = (datosCategorias && datosCategorias.categorias) || [];
     estado.subcategorias = (datosCategorias && datosCategorias.subcategorias) || [];
+    estado.ubicaciones = (datosCategorias && datosCategorias.ubicaciones) || [];
     estado.tareas = (datosTareas && datosTareas.tareas) || [];
     guardarEnLocalStorage();
   } else {
@@ -232,6 +236,7 @@ export async function importarJSON(archivo) {
   const datos = JSON.parse(texto);
   estado.categorias = datos.categorias || [];
   estado.subcategorias = datos.subcategorias || [];
+  estado.ubicaciones = datos.ubicaciones || [];
   estado.tareas = datos.tareas || [];
   await persistirYNotificar();
 }

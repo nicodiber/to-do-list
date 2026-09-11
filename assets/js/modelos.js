@@ -17,6 +17,10 @@ export function crearSubcategoria({ nombre, categoria_id }) {
   return { id: generarId(), nombre, categoria_id };
 }
 
+export function crearUbicacion({ nombre, latitud, longitud }) {
+  return { id: generarId(), nombre, latitud, longitud };
+}
+
 export const UNIDADES_MANTENIMIENTO = ['dias', 'semanas', 'meses'];
 
 export const ETIQUETAS_UNIDAD_MANTENIMIENTO = {
@@ -40,7 +44,8 @@ export function crearTarea({
   mantenimiento = null,
   divisible = false,
   dias_habiles = [],
-  ubicacion = '',
+  ubicacion_id = null,
+  requiere_clima_bueno = false,
 }) {
   return {
     id: generarId(),
@@ -60,7 +65,8 @@ export function crearTarea({
     mantenimiento,
     divisible,
     dias_habiles,
-    ubicacion,
+    ubicacion_id: ubicacion_id || null,
+    requiere_clima_bueno,
     creada_en: ahoraISO(),
     completada_en: null,
   };

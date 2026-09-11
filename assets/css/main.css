@@ -241,6 +241,11 @@ h1, h2, h3 {
   color: #059669;
 }
 
+.etiqueta-clima {
+  background: #fef2f2;
+  color: var(--color-peligro);
+}
+
 .aviso-bloqueada {
   margin: 0;
   font-size: 0.8rem;

@@ -21,6 +21,16 @@
         "nombre": { "type": "string", "minLength": 1 }
       }
     },
+    "ubicacion": {
+      "type": "object",
+      "required": ["id", "nombre", "latitud", "longitud"],
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "latitud": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitud": { "type": "number", "minimum": -180, "maximum": 180 }
+      }
+    },
     "tarea": {
       "type": "object",
       "required": ["id", "nombre", "estado", "creada_en"],
@@ -57,7 +67,8 @@
           "type": "array",
           "items": { "type": "number", "minimum": 0, "maximum": 6 }
         },
-        "ubicacion": { "type": "string" },
+        "ubicacion_id": { "type": ["string", "null"] },
+        "requiere_clima_bueno": { "type": "boolean" },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }
@@ -72,6 +83,10 @@
     "subcategorias": {
       "type": "array",
       "items": { "$ref": "#/definitions/subcategoria" }
+    },
+    "ubicaciones": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ubicacion" }
     },
     "tareas": {
       "type": "array",

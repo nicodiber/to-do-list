@@ -2,16 +2,17 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, ubicacionesUnicas } from '../assets/js/tareas-logica.js';
+import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
+import { evaluarClimaTarea } from '../assets/js/clima.js';
 
 let filtroUbicacion = '';
 
 export function renderVistaHoy(contenedor) {
   const pendientesActivas = estado.tareas
     .filter((t) => t.estado !== 'completada')
-    .filter((t) => !filtroUbicacion || t.ubicacion === filtroUbicacion);
+    .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion);
 
   const infoPorTarea = new Map(
     pendientesActivas.map((tarea) => [tarea.id, tareaEstaBloqueada(tarea, estado.tareas)])
@@ -33,12 +34,12 @@ export function renderVistaHoy(contenedor) {
     <h2>Hoy</h2>
     <p class="ayuda">Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.</p>
     ${
-      ubicacionesUnicas(estado.tareas).length > 0
+      estado.ubicaciones.length > 0
         ? `<label class="filtro-ubicacion-hoy">¿Dónde estás?
             <select id="filtro-ubicacion-hoy">
               <option value="">Cualquier ubicación</option>
-              ${ubicacionesUnicas(estado.tareas)
-                .map((u) => `<option value="${escaparHtml(u)}" ${filtroUbicacion === u ? 'selected' : ''}>${escaparHtml(u)}</option>`)
+              ${estado.ubicaciones
+                .map((u) => `<option value="${u.id}" ${filtroUbicacion === u.id ? 'selected' : ''}>${escaparHtml(u.nombre)}</option>`)
                 .join('')}
             </select>
           </label>`
@@ -114,6 +115,7 @@ export function renderVistaHoy(contenedor) {
 
 function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
+  const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
   const li = document.createElement('li');
   li.className = 'item-tarea' + (esVencida(tarea.fecha_limite) ? ' vencida' : '');
   li.innerHTML = `
@@ -125,7 +127,8 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.estado]}</span>
-        ${tarea.ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(tarea.ubicacion)}</span>` : ''}
+        ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
+        <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
       ${
         bloqueantes
@@ -144,6 +147,13 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
       }
     </div>
   `;
+
+  const etiquetaClima = li.querySelector('.etiqueta-clima');
+  evaluarClimaTarea(tarea).then((resultado) => {
+    if (!resultado || resultado.favorable) return;
+    etiquetaClima.textContent = `🌧️ Lluvia probable (${resultado.probabilidadLluvia}%) — considerá posponer`;
+    etiquetaClima.hidden = false;
+  });
 
   if (soloInfo) return li;
 

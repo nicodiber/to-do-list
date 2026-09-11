@@ -108,14 +108,6 @@ export function tareaEstaBloqueada(tarea, listaTareas) {
 }
 
 /**
- * Ubicaciones distintas ya cargadas en las tareas, para construir el
- * dropdown de filtro manual por ubicación (sin GPS, sin lista fija).
- */
-export function ubicacionesUnicas(listaTareas) {
-  return [...new Set(listaTareas.map((t) => t.ubicacion).filter(Boolean))].sort();
-}
-
-/**
  * Valida que se pueda agregar `candidatoId` como dependencia de `tareaId`:
  * ni auto-referencia, ni que ya exista un camino (directo o indirecto) desde
  * `candidatoId` de vuelta hasta `tareaId` en el grafo de dependencias, lo que

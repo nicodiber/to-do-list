@@ -3,6 +3,7 @@ import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { hoyISO, fechaISOMasDias, formatearFecha, formatearFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { reprogramarTareaConCascada, tareaEstaBloqueada } from './tareas-logica.js';
+import { evaluarClimaTarea } from './clima.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -67,6 +68,7 @@ function renderColumnaDia(fechaDia, hoy, tareasDelDia) {
 
 function renderTarjetaTarea(tarea) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
+  const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
   const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
 
   const li = document.createElement('li');
@@ -85,7 +87,8 @@ function renderTarjetaTarea(tarea) {
             ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.mantenimiento.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.mantenimiento.unidad]}</span>`
             : ''
         }
-        ${tarea.ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(tarea.ubicacion)}</span>` : ''}
+        ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
+        <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
       ${
         bloqueada
@@ -98,6 +101,13 @@ function renderTarjetaTarea(tarea) {
       <button type="button" data-accion="posponer">Posponer</button>
     </div>
   `;
+
+  const etiquetaClima = li.querySelector('.etiqueta-clima');
+  evaluarClimaTarea(tarea).then((resultado) => {
+    if (!resultado || resultado.favorable) return;
+    etiquetaClima.textContent = `🌧️ Lluvia probable (${resultado.probabilidadLluvia}%) — considerá posponer`;
+    etiquetaClima.hidden = false;
+  });
 
   const contenedorPanel = li.querySelector('.contenedor-panel-reprogramar');
   li.querySelector('[data-accion="posponer"]').addEventListener('click', () => {
