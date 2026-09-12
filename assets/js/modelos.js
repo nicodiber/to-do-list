@@ -13,8 +13,8 @@ export function crearCategoria({ nombre, color = '#4f7cff', orden = 0 }) {
   return { id: generarId(), nombre, color, orden };
 }
 
-export function crearSubcategoria({ nombre, categoria_id }) {
-  return { id: generarId(), nombre, categoria_id };
+export function crearSubcategoria({ nombre, categoria_id, color = '#4f7cff' }) {
+  return { id: generarId(), nombre, categoria_id, color };
 }
 
 export function crearUbicacion({ nombre, latitud, longitud }) {

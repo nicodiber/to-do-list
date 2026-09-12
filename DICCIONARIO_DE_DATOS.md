@@ -18,6 +18,7 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `id` | string (UUID) | MVP | Identificador único |
 | `categoria_id` | string (UUID) | MVP | Referencia a `Categoria.id` |
 | `nombre` | string | MVP | Nombre de la subcategoría (ej. "Hobbies", "Exámenes") |
+| `color` | string (hex), default = color de la categoría padre al crearla | MVP | Se puede elegir distinto al de la categoría; si la tarea tiene subcategoría, su badge usa este color en vez del de la categoría |
 
 ## Tarea
 

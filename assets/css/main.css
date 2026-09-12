@@ -197,6 +197,14 @@ h1, h2, h3 {
   cursor: default;
 }
 
+.punto-color {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+}
+
 .lista-subcategorias {
   list-style: none;
   padding: 0;

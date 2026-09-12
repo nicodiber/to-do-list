@@ -14,11 +14,12 @@
     },
     "subcategoria": {
       "type": "object",
-      "required": ["id", "categoria_id", "nombre"],
+      "required": ["id", "categoria_id", "nombre", "color"],
       "properties": {
         "id": { "type": "string" },
         "categoria_id": { "type": "string" },
-        "nombre": { "type": "string", "minLength": 1 }
+        "nombre": { "type": "string", "minLength": 1 },
+        "color": { "type": "string" }
       }
     },
     "ubicacion": {

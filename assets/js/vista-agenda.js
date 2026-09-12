@@ -72,6 +72,7 @@ function renderColumnaDia(fechaDia, hoy, tareasDelDia) {
 
 function renderTarjetaTarea(tarea) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
+  const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
   const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
 
@@ -81,7 +82,7 @@ function renderTarjetaTarea(tarea) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.nombre)}</strong>
       <span class="etiquetas">
-        ${categoria ? `<span class="etiqueta" style="background:${categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
+        ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
         ${tarea.fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFecha(tarea.fecha_sugerida)}</span>` : ''}

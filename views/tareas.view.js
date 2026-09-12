@@ -255,7 +255,7 @@ function renderTarea(tarea) {
       <span class="etiquetas">
         ${
           categoria
-            ? `<span class="etiqueta" style="background:${categoria.color}">${escaparHtml(categoria.nombre)}${
+            ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}${
                 subcategoria ? ' / ' + escaparHtml(subcategoria.nombre) : ''
               }</span>`
             : ''

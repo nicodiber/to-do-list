@@ -121,6 +121,7 @@ export function renderVistaHoy(contenedor) {
 
 function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
+  const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
   const li = document.createElement('li');
   li.className = 'item-tarea' + (esVencida(tarea.fecha_limite) ? ' vencida' : '');
@@ -128,7 +129,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.nombre)}</strong>
       <span class="etiquetas">
-        ${categoria ? `<span class="etiqueta" style="background:${categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
+        ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
         ${tarea.fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.fecha_inicio_posible)}</span>` : ''}
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}

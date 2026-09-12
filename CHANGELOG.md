@@ -2,6 +2,13 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.13.0] - 2026-09-12
+
+### Agregado
+
+- Las subcategorías ahora tienen su propio `color` (hereda el de la categoría padre por defecto al crearla, se puede elegir otro). Se muestra como un punto de color junto al nombre en la vista Categorías.
+- Los badges de categoría/subcategoría en Tareas, Hoy y las vistas de 3/8 días usan el color de la subcategoría cuando la tarea tiene una asignada (antes siempre usaban el de la categoría).
+
 ## [v0.12.0] - 2026-09-12
 
 ### Agregado

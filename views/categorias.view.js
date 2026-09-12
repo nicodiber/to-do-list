@@ -57,6 +57,7 @@ function renderCategoria(categoria, indice, categoriasOrdenadas) {
         .map(
           (sub) => `
             <li>
+              <span class="punto-color" style="background:${sub.color}"></span>
               ${escaparHtml(sub.nombre)}
               <button type="button" data-accion="eliminar-subcategoria" data-id="${sub.id}" title="Eliminar subcategoría">✕</button>
             </li>`
@@ -65,6 +66,7 @@ function renderCategoria(categoria, indice, categoriasOrdenadas) {
     </ul>
     <form data-accion="nueva-subcategoria" class="formulario-en-linea">
       <input type="text" name="nombre" placeholder="Nueva subcategoría" required />
+      <input type="color" name="color" value="${categoria.color}" />
       <button type="submit">+</button>
     </form>
   `;
@@ -117,7 +119,9 @@ function renderCategoria(categoria, indice, categoriasOrdenadas) {
     evento.preventDefault();
     const nombre = evento.target.nombre.value.trim();
     if (!nombre) return;
-    estado.subcategorias.push(crearSubcategoria({ nombre, categoria_id: categoria.id }));
+    estado.subcategorias.push(
+      crearSubcategoria({ nombre, categoria_id: categoria.id, color: evento.target.color.value })
+    );
     await persistirYNotificar();
   });
 
