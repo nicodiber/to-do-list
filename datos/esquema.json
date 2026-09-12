@@ -86,6 +86,7 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "recompensa": { "type": "string" },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }

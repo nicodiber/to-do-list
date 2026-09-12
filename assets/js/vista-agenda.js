@@ -93,6 +93,7 @@ function renderTarjetaTarea(tarea) {
             : ''
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
+        ${tarea.recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.recompensa)}</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
       ${

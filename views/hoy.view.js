@@ -6,6 +6,7 @@ import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, compara
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
+import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
 
 let filtroUbicacion = '';
 
@@ -135,6 +136,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.estado]}</span>
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
+        ${tarea.recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.recompensa)}</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
       ${
@@ -194,6 +196,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
       completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
       await persistirYNotificar();
+      mostrarRecompensaSiCorresponde(tarea);
       ofrecerExportarACalendar(tarea);
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {

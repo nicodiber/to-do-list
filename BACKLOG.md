@@ -56,7 +56,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [ ] KPIs y OKRs personales
 - [ ] Comparación de throughput con amigos (diaria/semanal/mensual)
 - [ ] Recordatorio de sociabilización: hace cuánto no te reunís con determinada persona (familiares, amigos), ordenado de mayor a menor tiempo
-- [ ] Recompensa asociada a cada tarea según dificultad/importancia
+- [x] Recompensa asociada a cada tarea: campo de texto libre opcional, badge "🎁" en los listados, y aviso al completar la tarea (en los 3 caminos existentes) reforzando el principio de Premack. Se conserva al clonarse una instancia de mantenimiento
 - [x] Colores por categoría/subcategoría: las subcategorías ahora tienen su propio color (hereda el de la categoría por defecto, se puede cambiar al crearla); los badges de tareas usan el color de la subcategoría cuando la tarea tiene una asignada
 
 ## Fase 5 — Móvil y UX avanzada

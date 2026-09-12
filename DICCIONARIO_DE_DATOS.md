@@ -47,8 +47,8 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `requiere_clima_bueno` | boolean (default `false`) | MVP | Si está en `true` y la tarea tiene `ubicacion_id` con coordenadas y una fecha resoluble dentro de los próximos 16 días, en Hoy y en las vistas de 3/8 días se consulta el pronóstico real (Open-Meteo) y se avisa si la probabilidad de lluvia es alta |
 | `multitasking` | boolean | Fase 2 | Si se puede hacer en simultáneo con otra tarea de baja atención |
 | `costo` | number | Fase 3 | Costo monetario estimado o real asociado |
-| `recompensa` | string | Fase 4 | Recompensa asociada según dificultad/importancia |
 | `metas_ids` | array de `Meta.id`, default `[]` | MVP | Metas/propósitos de vida a los que aporta esta tarea. Se edita desde el panel "Metas" en la vista Tareas |
+| `recompensa` | string, default `""` | MVP | Texto libre y opcional (ej. "10 min de redes"). Badge "🎁" en los listados; al completar la tarea desde cualquiera de los 3 caminos se muestra un aviso con la recompensa. Se copia a la instancia clonada si la tarea es de mantenimiento |
 
 ## Ubicacion
 

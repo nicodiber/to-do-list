@@ -4,6 +4,7 @@ import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, e
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
+import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
@@ -63,6 +64,7 @@ export function renderVistaTareas(contenedor) {
         <option value="">Sin ubicación</option>
         ${estado.ubicaciones.map((u) => `<option value="${u.id}">${escaparHtml(u.nombre)}</option>`).join('')}
       </select>
+      <input type="text" name="recompensa" placeholder="Recompensa (opcional)" />
       <label class="opcion-mantenimiento">
         <input type="checkbox" name="requiere_clima_bueno" />
         Requiere buen tiempo (sin lluvia)
@@ -161,6 +163,7 @@ export function renderVistaTareas(contenedor) {
     });
     formulario.ubicacion_id.value = coincidencia.ubicacion_id || '';
     formulario.requiere_clima_bueno.checked = !!coincidencia.requiere_clima_bueno;
+    formulario.recompensa.value = coincidencia.recompensa || '';
   });
 
   const formularioRapido = contenedor.querySelector('#form-alta-rapida');
@@ -199,6 +202,7 @@ export function renderVistaTareas(contenedor) {
         dias_habiles: datos.getAll('dias_habiles').map(Number),
         ubicacion_id: datos.get('ubicacion_id') || null,
         requiere_clima_bueno: datos.get('requiere_clima_bueno') === 'on',
+        recompensa: String(datos.get('recompensa') || '').trim(),
       })
     );
     await persistirYNotificar();
@@ -281,6 +285,7 @@ function renderTarea(tarea) {
             : ''
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
+        ${tarea.recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.recompensa)}</span>` : ''}
       </span>
       ${
         bloqueada
@@ -326,6 +331,7 @@ function renderTarea(tarea) {
         contenedorMejora.hidden = true;
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
+        mostrarRecompensaSiCorresponde(tarea);
         ofrecerExportarACalendar(tarea);
       });
       return;
@@ -333,6 +339,7 @@ function renderTarea(tarea) {
     if (nuevoEstado === 'completada') {
       completarTarea(tarea, estado.tareas);
       await persistirYNotificar();
+      mostrarRecompensaSiCorresponde(tarea);
       ofrecerExportarACalendar(tarea);
       return;
     }
@@ -435,6 +442,7 @@ function crearPanelEditar(tarea) {
         .map((u) => `<option value="${u.id}" ${u.id === tarea.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.nombre)}</option>`)
         .join('')}
     </select>
+    <input type="text" name="recompensa" placeholder="Recompensa (opcional)" value="${escaparHtml(tarea.recompensa || '')}" />
     <label class="opcion-mantenimiento">
       <input type="checkbox" name="requiere_clima_bueno" ${tarea.requiere_clima_bueno ? 'checked' : ''} />
       Requiere buen tiempo (sin lluvia)
@@ -501,6 +509,7 @@ function crearPanelEditar(tarea) {
     tarea.dias_habiles = datos.getAll('dias_habiles').map(Number);
     tarea.ubicacion_id = datos.get('ubicacion_id') || null;
     tarea.requiere_clima_bueno = datos.get('requiere_clima_bueno') === 'on';
+    tarea.recompensa = String(datos.get('recompensa') || '').trim();
     await persistirYNotificar();
   });
 

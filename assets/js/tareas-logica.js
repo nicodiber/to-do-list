@@ -45,6 +45,7 @@ export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMe
     duracion_estimada_min: tarea.duracion_estimada_min,
     notas,
     mantenimiento: tarea.mantenimiento,
+    recompensa: tarea.recompensa,
   });
   listaTareas.push(nueva);
   return nueva;

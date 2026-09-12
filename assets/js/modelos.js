@@ -59,6 +59,7 @@ export function crearTarea({
   ubicacion_id = null,
   requiere_clima_bueno = false,
   metas_ids = [],
+  recompensa = '',
 }) {
   return {
     id: generarId(),
@@ -81,6 +82,7 @@ export function crearTarea({
     ubicacion_id: ubicacion_id || null,
     requiere_clima_bueno,
     metas_ids,
+    recompensa,
     creada_en: ahoraISO(),
     completada_en: null,
   };
