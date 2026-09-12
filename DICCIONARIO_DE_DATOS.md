@@ -10,6 +10,7 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `nombre` | string | MVP | Nombre del área de vida (ej. "Personal", "Facultad", "Trabajo") |
 | `color` | string (hex) | MVP | Color identificatorio en la UI |
 | `orden` | number | MVP | Orden de presentación / prioridad relativa entre categorías |
+| `disfrute` | number (1-5, default `3`) | MVP | Cuánto disfrutás las tareas de esta categoría. Se define al crearla (sin edición posterior, igual que `color`). Al completar una tarea de una categoría con `disfrute` bajo (1-2), se sugiere continuar con una tarea accionable de una categoría con `disfrute` alto (4-5) — principio de Premack a nivel categoría |
 
 ## Subcategoria
 

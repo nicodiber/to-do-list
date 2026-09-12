@@ -9,6 +9,15 @@ export function renderVistaCategorias(contenedor) {
     <form id="form-nueva-categoria" class="formulario-en-linea">
       <input type="text" name="nombre" placeholder="Nueva categoría" required />
       <input type="color" name="color" value="#4f7cff" />
+      <label>Disfrute
+        <select name="disfrute">
+          <option value="1">⭐ (1)</option>
+          <option value="2">⭐⭐ (2)</option>
+          <option value="3" selected>⭐⭐⭐ (3)</option>
+          <option value="4">⭐⭐⭐⭐ (4)</option>
+          <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+        </select>
+      </label>
       <button type="submit">Agregar categoría</button>
     </form>
     <div id="lista-categorias" class="lista-categorias"></div>
@@ -20,7 +29,12 @@ export function renderVistaCategorias(contenedor) {
     const nombre = formulario.nombre.value.trim();
     if (!nombre) return;
     estado.categorias.push(
-      crearCategoria({ nombre, color: formulario.color.value, orden: estado.categorias.length })
+      crearCategoria({
+        nombre,
+        color: formulario.color.value,
+        orden: estado.categorias.length,
+        disfrute: Number(formulario.disfrute.value),
+      })
     );
     await persistirYNotificar();
   });
@@ -52,6 +66,7 @@ function renderCategoria(categoria, indice, categoriasOrdenadas) {
         <button type="button" data-accion="eliminar-categoria" title="Eliminar categoría">✕</button>
       </span>
     </div>
+    <p class="notas-tarea" title="Cuánto disfrutás las tareas de esta categoría">${'⭐'.repeat(categoria.disfrute || 3)}</p>
     <ul class="lista-subcategorias">
       ${subcategorias
         .map(

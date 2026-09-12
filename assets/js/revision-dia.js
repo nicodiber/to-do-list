@@ -4,6 +4,7 @@ import { crearPanelReprogramar } from './reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { mostrarRecompensaSiCorresponde } from './recompensa.js';
+import { sugerirTareaDeAltoDisfrute } from './disfrute.js';
 
 // El <dialog> vive en document.body (no en el contenedor de la vista) para
 // sobrevivir a los re-renders que dispara persistirYNotificar() en cada paso.
@@ -93,6 +94,7 @@ function renderPaso() {
       completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
       await persistirYNotificar();
       mostrarRecompensaSiCorresponde(tarea);
+      sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
       avanzar();
     });

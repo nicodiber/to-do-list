@@ -9,8 +9,8 @@ export const ETIQUETAS_ESTADO = {
   completada: 'Completada',
 };
 
-export function crearCategoria({ nombre, color = '#4f7cff', orden = 0 }) {
-  return { id: generarId(), nombre, color, orden };
+export function crearCategoria({ nombre, color = '#4f7cff', orden = 0, disfrute = 3 }) {
+  return { id: generarId(), nombre, color, orden, disfrute };
 }
 
 export function crearSubcategoria({ nombre, categoria_id, color = '#4f7cff' }) {

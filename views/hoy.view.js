@@ -7,6 +7,7 @@ import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
+import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 
 let filtroUbicacion = '';
 
@@ -197,6 +198,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
       completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
       await persistirYNotificar();
       mostrarRecompensaSiCorresponde(tarea);
+      sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {

@@ -5,6 +5,7 @@ import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js'
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
+import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
@@ -332,6 +333,7 @@ function renderTarea(tarea) {
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
         mostrarRecompensaSiCorresponde(tarea);
+        sugerirTareaDeAltoDisfrute(tarea);
         ofrecerExportarACalendar(tarea);
       });
       return;
@@ -340,6 +342,7 @@ function renderTarea(tarea) {
       completarTarea(tarea, estado.tareas);
       await persistirYNotificar();
       mostrarRecompensaSiCorresponde(tarea);
+      sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
       return;
     }

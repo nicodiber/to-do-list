@@ -9,7 +9,8 @@
         "id": { "type": "string" },
         "nombre": { "type": "string", "minLength": 1 },
         "color": { "type": "string" },
-        "orden": { "type": "number" }
+        "orden": { "type": "number" },
+        "disfrute": { "type": "number", "minimum": 1, "maximum": 5 }
       }
     },
     "subcategoria": {
