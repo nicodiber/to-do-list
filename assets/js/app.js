@@ -15,6 +15,7 @@ import { renderVistaTareas } from '../../views/tareas.view.js';
 import { renderVistaCategorias } from '../../views/categorias.view.js';
 import { renderVistaUbicaciones } from '../../views/ubicaciones.view.js';
 import { renderVistaMetas } from '../../views/metas.view.js';
+import { renderVistaInformes } from '../../views/informes.view.js';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -28,6 +29,7 @@ const VISTAS = {
   categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
   ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },
   metas: { etiqueta: 'Metas', render: renderVistaMetas },
+  informes: { etiqueta: 'Informes', render: renderVistaInformes },
 };
 
 function vistaActual() {

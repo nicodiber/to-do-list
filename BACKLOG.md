@@ -50,8 +50,8 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Roadmap de objetivos — versión manual: nueva entidad Meta (corto/mediano/largo plazo) con ABM en la vista "Metas", que muestra progreso (tareas completadas/asociadas) con barra simple. Las tareas se asocian a una o varias metas desde el panel "Metas" en la vista Tareas. La versión con IA que arma hitos automáticamente queda en el ítem de abajo
 - [ ] Capa opcional de IA conectable (offline-first, el core nunca depende de tokens de LLM): exportar el JSON, pedirle a un LLM externo que reestructure prioridades, arme hitos a partir de una meta, o proponga subtareas, reimportar el resultado
 - [ ] Chatbot para dialogar y definir metas/objetivos de vida
-- [ ] Informes semanales: propuesto vs. hecho
-- [ ] Índice de procrastinación
+- [x] Informes básicos: nueva vista "Informes" con tabla de completadas (últimos 7 días) vs. pendientes actuales por categoría, y promedio de duración estimada vs. real
+- [x] Índice de procrastinación — versión proxy: tareas actualmente pospuestas al menos una vez (`motivo_incumplimiento` cargado y sin completar) contra completadas en los últimos 7 días. No es un histórico real de reprogramaciones (el modelo no guarda ese log todavía); si hace falta más precisión, una ronda futura puede sumar un registro de eventos
 - [ ] Métrica de throughput (capacidad de trabajo, estilo Kanban)
 - [ ] KPIs y OKRs personales
 - [ ] Comparación de throughput con amigos (diaria/semanal/mensual)

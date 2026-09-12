@@ -205,6 +205,25 @@ h1, h2, h3 {
   margin-right: 0.3rem;
 }
 
+.tabla-informe {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla-informe th,
+.tabla-informe td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla-informe th {
+  color: var(--color-texto-suave);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
 .lista-subcategorias {
   list-style: none;
   padding: 0;
