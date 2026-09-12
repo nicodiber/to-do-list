@@ -47,7 +47,7 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `multitasking` | boolean | Fase 2 | Si se puede hacer en simultáneo con otra tarea de baja atención |
 | `costo` | number | Fase 3 | Costo monetario estimado o real asociado |
 | `recompensa` | string | Fase 4 | Recompensa asociada según dificultad/importancia |
-| `metas_ids` | array de `Meta.id` | Fase 4 | Metas/propósitos de vida a los que aporta esta tarea |
+| `metas_ids` | array de `Meta.id`, default `[]` | MVP | Metas/propósitos de vida a los que aporta esta tarea. Se edita desde el panel "Metas" en la vista Tareas |
 
 ## Ubicacion
 
@@ -60,9 +60,22 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 
 Se administra desde el ABM en la vista "Ubicaciones" (igual que Categorías, pero sin subcategorías). Al eliminar una ubicación, las tareas que la referenciaban quedan con `ubicacion_id: null`.
 
+## Meta
+
+| Campo | Tipo | Fase | Descripción |
+|---|---|---|---|
+| `id` | string (UUID) | MVP | Identificador único |
+| `nombre` | string | MVP | Nombre del objetivo/propósito |
+| `plazo` | enum: `corto` \| `mediano` \| `largo` | MVP | Horizonte temporal de la meta |
+| `descripcion` | string, default `""` | MVP | Texto libre opcional |
+| `fecha_objetivo` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha en la que se aspira a cumplir la meta |
+| `creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
+
+Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas / tareas asociadas) se calcula al vuelo filtrando `estado.tareas` por `metas_ids`, no se guarda como campo. Al eliminar una meta, las tareas que la referenciaban quedan sin esa entrada en `metas_ids`.
+
 ## Estructura de los archivos de datos
 
-- `datos/categorias.json` → `{ "categorias": Categoria[], "subcategorias": Subcategoria[], "ubicaciones": Ubicacion[] }`
+- `datos/categorias.json` → `{ "categorias": Categoria[], "subcategorias": Subcategoria[], "ubicaciones": Ubicacion[], "metas": Meta[] }`
 - `datos/tareas.json` → `{ "tareas": Tarea[] }`
 
 Los archivos reales con datos personales **no se versionan** (ver `.gitignore`); solo se versionan `datos/categorias.ejemplo.json`, `datos/tareas.ejemplo.json` y `datos/esquema.json`.

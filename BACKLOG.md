@@ -47,10 +47,9 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 
 ## Fase 4 — Inteligencia e informes
 
-- [ ] Capa opcional de IA conectable (offline-first, el core nunca depende de tokens de LLM): exportar el JSON, pedirle a un LLM externo que reestructure prioridades o proponga subtareas, reimportar el resultado
+- [x] Roadmap de objetivos — versión manual: nueva entidad Meta (corto/mediano/largo plazo) con ABM en la vista "Metas", que muestra progreso (tareas completadas/asociadas) con barra simple. Las tareas se asocian a una o varias metas desde el panel "Metas" en la vista Tareas. La versión con IA que arma hitos automáticamente queda en el ítem de abajo
+- [ ] Capa opcional de IA conectable (offline-first, el core nunca depende de tokens de LLM): exportar el JSON, pedirle a un LLM externo que reestructure prioridades, arme hitos a partir de una meta, o proponga subtareas, reimportar el resultado
 - [ ] Chatbot para dialogar y definir metas/objetivos de vida
-- [ ] Roadmap de objetivos a largo plazo: usuario define metas (corto/mediano/largo plazo), el sistema arma hitos y tareas, usuario confirma/ajusta
-- [ ] Asociar cada tarea a una o varias metas/propósitos de vida
 - [ ] Informes semanales: propuesto vs. hecho
 - [ ] Índice de procrastinación
 - [ ] Métrica de throughput (capacidad de trabajo, estilo Kanban)

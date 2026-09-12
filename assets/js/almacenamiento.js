@@ -13,6 +13,7 @@ export const estado = {
   categorias: [],
   subcategorias: [],
   ubicaciones: [],
+  metas: [],
   tareas: [],
 };
 
@@ -74,6 +75,7 @@ function cargarDeLocalStorage() {
     estado.categorias = datos.categorias || [];
     estado.subcategorias = datos.subcategorias || [];
     estado.ubicaciones = datos.ubicaciones || [];
+    estado.metas = datos.metas || [];
     estado.tareas = datos.tareas || [];
     return true;
   } catch (error) {
@@ -108,6 +110,7 @@ export async function guardarTodo() {
       categorias: estado.categorias,
       subcategorias: estado.subcategorias,
       ubicaciones: estado.ubicaciones,
+      metas: estado.metas,
     });
     await escribirArchivo(ARCHIVO_TAREAS, { tareas: estado.tareas });
   }
@@ -149,6 +152,7 @@ export async function cargarDesdeCarpeta() {
     estado.categorias = (datosCategorias && datosCategorias.categorias) || [];
     estado.subcategorias = (datosCategorias && datosCategorias.subcategorias) || [];
     estado.ubicaciones = (datosCategorias && datosCategorias.ubicaciones) || [];
+    estado.metas = (datosCategorias && datosCategorias.metas) || [];
     estado.tareas = (datosTareas && datosTareas.tareas) || [];
     guardarEnLocalStorage();
   } else {
@@ -237,6 +241,7 @@ export async function importarJSON(archivo) {
   estado.categorias = datos.categorias || [];
   estado.subcategorias = datos.subcategorias || [];
   estado.ubicaciones = datos.ubicaciones || [];
+  estado.metas = datos.metas || [];
   estado.tareas = datos.tareas || [];
   await persistirYNotificar();
 }

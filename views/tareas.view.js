@@ -293,6 +293,7 @@ function renderTarea(tarea) {
       <div class="contenedor-panel-dependencias" hidden></div>
       <div class="contenedor-panel-mejora" hidden></div>
       <div class="contenedor-panel-editar" hidden></div>
+      <div class="contenedor-panel-metas" hidden></div>
     </div>
     <div class="item-tarea-acciones">
       <select data-accion="cambiar-estado">
@@ -300,6 +301,7 @@ function renderTarea(tarea) {
       </select>
       <button type="button" data-accion="posponer">Posponer</button>
       <button type="button" data-accion="dependencias">Dependencias</button>
+      <button type="button" data-accion="metas">Metas</button>
       <button type="button" data-accion="editar">Editar</button>
       <button type="button" data-accion="eliminar">Eliminar</button>
     </div>
@@ -372,6 +374,17 @@ function renderTarea(tarea) {
 
     contenedorDependencias.appendChild(crearPanelDependencias(tarea));
     contenedorDependencias.hidden = false;
+  });
+
+  const contenedorMetas = li.querySelector('.contenedor-panel-metas');
+  li.querySelector('[data-accion="metas"]').addEventListener('click', () => {
+    const yaAbierto = !contenedorMetas.hidden;
+    contenedorMetas.innerHTML = '';
+    contenedorMetas.hidden = true;
+    if (yaAbierto) return;
+
+    contenedorMetas.appendChild(crearPanelMetas(tarea));
+    contenedorMetas.hidden = false;
   });
 
   const contenedorEditar = li.querySelector('.contenedor-panel-editar');
@@ -535,6 +548,47 @@ function crearPanelDependencias(tarea) {
         tarea.dependencias = [...(tarea.dependencias || []), candidatoId];
       } else {
         tarea.dependencias = (tarea.dependencias || []).filter((id) => id !== candidatoId);
+      }
+      await persistirYNotificar();
+    });
+  });
+
+  return panel;
+}
+
+function crearPanelMetas(tarea) {
+  const panel = document.createElement('div');
+  panel.className = 'panel-dependencias';
+
+  if (estado.metas.length === 0) {
+    panel.innerHTML = '<p class="mensaje-vacio">Todavía no creaste ninguna meta. Andá a la vista "Metas" para crear una.</p>';
+    return panel;
+  }
+
+  panel.innerHTML = `
+    <p class="panel-reprogramar-etiqueta">Esta tarea aporta a:</p>
+    <ul class="checklist-dependencias">
+      ${estado.metas
+        .map(
+          (meta) => `
+            <li>
+              <label>
+                <input type="checkbox" value="${meta.id}" ${(tarea.metas_ids || []).includes(meta.id) ? 'checked' : ''} />
+                ${escaparHtml(meta.nombre)}
+              </label>
+            </li>`
+        )
+        .join('')}
+    </ul>
+  `;
+
+  panel.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+    checkbox.addEventListener('change', async () => {
+      const metaId = checkbox.value;
+      if (checkbox.checked) {
+        tarea.metas_ids = [...(tarea.metas_ids || []), metaId];
+      } else {
+        tarea.metas_ids = (tarea.metas_ids || []).filter((id) => id !== metaId);
       }
       await persistirYNotificar();
     });

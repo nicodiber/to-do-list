@@ -31,6 +31,18 @@
         "longitud": { "type": "number", "minimum": -180, "maximum": 180 }
       }
     },
+    "meta": {
+      "type": "object",
+      "required": ["id", "nombre", "plazo", "creada_en"],
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "plazo": { "type": "string", "enum": ["corto", "mediano", "largo"] },
+        "descripcion": { "type": "string" },
+        "fecha_objetivo": { "type": "string" },
+        "creada_en": { "type": "string" }
+      }
+    },
     "tarea": {
       "type": "object",
       "required": ["id", "nombre", "estado", "creada_en"],
@@ -69,6 +81,10 @@
         },
         "ubicacion_id": { "type": ["string", "null"] },
         "requiere_clima_bueno": { "type": "boolean" },
+        "metas_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }
@@ -87,6 +103,10 @@
     "ubicaciones": {
       "type": "array",
       "items": { "$ref": "#/definitions/ubicacion" }
+    },
+    "metas": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/meta" }
     },
     "tareas": {
       "type": "array",

@@ -2,6 +2,13 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.12.0] - 2026-09-12
+
+### Agregado
+
+- Nueva entidad **Meta** (`{ id, nombre, plazo, descripcion, fecha_objetivo }`) con su propio ABM (vista "Metas"). Cada meta muestra su progreso (tareas completadas / tareas asociadas, con barra simple) y la lista de tareas asociadas con su estado.
+- Las tareas ahora pueden aportar a una o varias metas (`metas_ids`): nuevo botón "Metas" en la vista Tareas con un panel checklist (mismo patrón que "Dependencias"). Al eliminar una meta, las tareas que la referenciaban quedan sin esa entrada.
+
 ## [v0.11.0] - 2026-09-11
 
 ### Agregado

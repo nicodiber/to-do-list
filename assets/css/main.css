@@ -178,6 +178,20 @@ h1, h2, h3 {
   gap: 0.3rem;
 }
 
+.barra-progreso {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-fondo);
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+.barra-progreso-relleno {
+  height: 100%;
+  background: var(--color-primario);
+  border-radius: 999px;
+}
+
 .acciones-prioridad button:disabled {
   opacity: 0.3;
   cursor: default;

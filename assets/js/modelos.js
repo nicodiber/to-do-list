@@ -21,6 +21,18 @@ export function crearUbicacion({ nombre, latitud, longitud }) {
   return { id: generarId(), nombre, latitud, longitud };
 }
 
+export const PLAZOS_META = ['corto', 'mediano', 'largo'];
+
+export const ETIQUETAS_PLAZO = {
+  corto: 'Corto plazo',
+  mediano: 'Mediano plazo',
+  largo: 'Largo plazo',
+};
+
+export function crearMeta({ nombre, plazo = 'mediano', descripcion = '', fecha_objetivo = '' }) {
+  return { id: generarId(), nombre, plazo, descripcion, fecha_objetivo, creada_en: ahoraISO() };
+}
+
 export const UNIDADES_MANTENIMIENTO = ['dias', 'semanas', 'meses'];
 
 export const ETIQUETAS_UNIDAD_MANTENIMIENTO = {
@@ -46,6 +58,7 @@ export function crearTarea({
   dias_habiles = [],
   ubicacion_id = null,
   requiere_clima_bueno = false,
+  metas_ids = [],
 }) {
   return {
     id: generarId(),
@@ -67,6 +80,7 @@ export function crearTarea({
     dias_habiles,
     ubicacion_id: ubicacion_id || null,
     requiere_clima_bueno,
+    metas_ids,
     creada_en: ahoraISO(),
     completada_en: null,
   };
