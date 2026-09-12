@@ -58,6 +58,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [ ] Recordatorio de sociabilización: hace cuánto no te reunís con determinada persona (familiares, amigos), ordenado de mayor a menor tiempo
 - [x] Recompensa asociada a cada tarea: campo de texto libre opcional, badge "🎁" en los listados, y aviso al completar la tarea (en los 3 caminos existentes) reforzando el principio de Premack. Se conserva al clonarse una instancia de mantenimiento
 - [x] Colores por categoría/subcategoría: las subcategorías ahora tienen su propio color (hereda el de la categoría por defecto, se puede cambiar al crearla); los badges de tareas usan el color de la subcategoría cuando la tarea tiene una asignada
+- [ ] Atributo de "disfrute" por categoría (ej. escala 1-5 de cuánto te gusta hacer sus tareas), para analizar patrones y planificar auto-recompensas: al completar una tarea de una categoría de bajo disfrute, sugerir como recompensa una tarea de una categoría de alto disfrute — aplica el principio de Premack a nivel categoría, complementando la `recompensa` por tarea individual de v0.15.0
 
 ## Fase 5 — Móvil y UX avanzada
 
