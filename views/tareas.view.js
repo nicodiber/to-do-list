@@ -10,6 +10,8 @@ import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 let filtroCategoria = '';
 let filtroEstado = '';
 let filtroUbicacion = '';
+let filtroSoloMultitasking = false;
+let agruparPorCategoria = false;
 
 function htmlDiasHabiles(seleccionados = []) {
   return DIAS_SEMANA.map(
@@ -85,6 +87,10 @@ export function renderVistaTareas(contenedor) {
         <input type="checkbox" name="divisible" />
         Se puede pausar y retomar (divisible)
       </label>
+      <label class="opcion-mantenimiento">
+        <input type="checkbox" name="multitasking" />
+        🎧 Se puede hacer mientras hacés otra cosa (multitasking)
+      </label>
       <fieldset class="dias-habiles">
         <legend>Días hábiles (vacío = cualquier día)</legend>
         ${htmlDiasHabiles()}
@@ -116,6 +122,14 @@ export function renderVistaTareas(contenedor) {
             .map((u) => `<option value="${u.id}" ${filtroUbicacion === u.id ? 'selected' : ''}>${escaparHtml(u.nombre)}</option>`)
             .join('')}
         </select>
+      </label>
+      <label class="opcion-mantenimiento">
+        <input type="checkbox" id="filtro-multitasking" ${filtroSoloMultitasking ? 'checked' : ''} />
+        🎧 Solo multitasking
+      </label>
+      <label class="opcion-mantenimiento">
+        <input type="checkbox" id="toggle-agrupar-categoria" ${agruparPorCategoria ? 'checked' : ''} />
+        Agrupar por categoría
       </label>
     </div>
 
@@ -158,6 +172,7 @@ export function renderVistaTareas(contenedor) {
       formulario.mantenimiento_unidad.value = coincidencia.mantenimiento.unidad;
     }
     formulario.divisible.checked = !!coincidencia.divisible;
+    formulario.multitasking.checked = !!coincidencia.multitasking;
     const diasSeleccionados = coincidencia.dias_habiles || [];
     formulario.querySelectorAll('input[name="dias_habiles"]').forEach((checkbox) => {
       checkbox.checked = diasSeleccionados.includes(Number(checkbox.value));
@@ -200,6 +215,7 @@ export function renderVistaTareas(contenedor) {
             }
           : null,
         divisible: datos.get('divisible') === 'on',
+        multitasking: datos.get('multitasking') === 'on',
         dias_habiles: datos.getAll('dias_habiles').map(Number),
         ubicacion_id: datos.get('ubicacion_id') || null,
         requiere_clima_bueno: datos.get('requiere_clima_bueno') === 'on',
@@ -221,12 +237,21 @@ export function renderVistaTareas(contenedor) {
     filtroUbicacion = evento.target.value;
     renderVistaTareas(contenedor);
   });
+  contenedor.querySelector('#filtro-multitasking').addEventListener('change', (evento) => {
+    filtroSoloMultitasking = evento.target.checked;
+    renderVistaTareas(contenedor);
+  });
+  contenedor.querySelector('#toggle-agrupar-categoria').addEventListener('change', (evento) => {
+    agruparPorCategoria = evento.target.checked;
+    renderVistaTareas(contenedor);
+  });
 
   const listaTareas = contenedor.querySelector('#lista-tareas');
   const tareasFiltradas = estado.tareas
     .filter((t) => !filtroCategoria || t.categoria_id === filtroCategoria)
     .filter((t) => !filtroEstado || t.estado === filtroEstado)
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
+    .filter((t) => !filtroSoloMultitasking || t.multitasking)
     .slice()
     .sort(
       (a, b) =>
@@ -239,7 +264,31 @@ export function renderVistaTareas(contenedor) {
     return;
   }
 
-  tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+  if (!agruparPorCategoria) {
+    tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+    return;
+  }
+
+  const categoriasOrdenadas = estado.categorias.slice().sort((a, b) => a.orden - b.orden);
+  categoriasOrdenadas.forEach((categoria) => {
+    const tareasDeCategoria = tareasFiltradas.filter((t) => t.categoria_id === categoria.id);
+    if (tareasDeCategoria.length === 0) return;
+    listaTareas.appendChild(crearSeparadorCategoria(categoria.nombre, categoria.color));
+    tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+  });
+  const tareasSinCategoria = tareasFiltradas.filter((t) => !t.categoria_id);
+  if (tareasSinCategoria.length > 0) {
+    listaTareas.appendChild(crearSeparadorCategoria('Sin categoría'));
+    tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+  }
+}
+
+function crearSeparadorCategoria(nombre, color) {
+  const li = document.createElement('li');
+  li.className = 'separador-categoria';
+  li.style.setProperty('--color-separador', color || '#888');
+  li.textContent = nombre;
+  return li;
 }
 
 function renderTarea(tarea) {
@@ -276,6 +325,7 @@ function renderTarea(tarea) {
             : ''
         }
         ${tarea.divisible ? `<span class="etiqueta-fecha">⏸ Divisible</span>` : ''}
+        ${tarea.multitasking ? `<span class="etiqueta-fecha">🎧 Multitasking</span>` : ''}
         ${
           tarea.dias_habiles && tarea.dias_habiles.length > 0
             ? `<span class="etiqueta-fecha">📅 ${tarea.dias_habiles
@@ -467,6 +517,10 @@ function crearPanelEditar(tarea) {
       <input type="checkbox" name="divisible" ${tarea.divisible ? 'checked' : ''} />
       Se puede pausar y retomar (divisible)
     </label>
+    <label class="opcion-mantenimiento">
+      <input type="checkbox" name="multitasking" ${tarea.multitasking ? 'checked' : ''} />
+      🎧 Se puede hacer mientras hacés otra cosa (multitasking)
+    </label>
     <fieldset class="dias-habiles">
       <legend>Días hábiles (vacío = cualquier día)</legend>
       ${htmlDiasHabiles(tarea.dias_habiles || [])}
@@ -509,6 +563,7 @@ function crearPanelEditar(tarea) {
         ? { cantidad: Number(datos.get('mantenimiento_cantidad')) || 1, unidad: datos.get('mantenimiento_unidad') }
         : null;
     tarea.divisible = datos.get('divisible') === 'on';
+    tarea.multitasking = datos.get('multitasking') === 'on';
     tarea.dias_habiles = datos.getAll('dias_habiles').map(Number);
     tarea.ubicacion_id = datos.get('ubicacion_id') || null;
     tarea.requiere_clima_bueno = datos.get('requiere_clima_bueno') === 'on';

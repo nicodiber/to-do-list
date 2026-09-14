@@ -283,6 +283,21 @@ h1, h2, h3 {
   opacity: 0.6;
 }
 
+.separador-categoria {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-texto-suave);
+  border-left: 4px solid var(--color-separador, var(--color-borde));
+  padding: 0.3rem 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.separador-categoria:first-child {
+  margin-top: 0;
+}
+
 .etiqueta-agendada {
   background: #eef2ff;
   color: var(--color-primario);
