@@ -636,3 +636,82 @@ section h3 {
   font-weight: 400;
   color: var(--color-texto-suave);
 }
+
+.grilla-semana-contenedor {
+  overflow-x: auto;
+}
+
+.grilla-semana {
+  display: grid;
+  grid-template-columns: 4rem repeat(7, minmax(9rem, 1fr));
+  gap: 0.4rem;
+  min-width: 68rem;
+}
+
+.dia-semana-encabezado {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.3rem 0.2rem;
+  text-align: center;
+}
+
+.columna-horas-semana .etiqueta-hora-semana {
+  height: var(--alto-hora, 48px);
+  font-size: 0.72rem;
+  color: var(--color-texto-suave);
+  text-align: right;
+  padding-right: 0.4rem;
+  box-sizing: border-box;
+  border-top: 1px solid var(--color-borde);
+}
+
+.dia-semana {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+
+.dia-semana.es-hoy {
+  border-left: 4px solid var(--color-primario);
+}
+
+.dia-semana-cuerpo {
+  position: relative;
+  border-top: 1px solid var(--color-borde);
+}
+
+.mensaje-vacio-semana {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-texto-suave);
+}
+
+.bloque-tarea-semana {
+  position: absolute;
+  left: 0.25rem;
+  right: 0.25rem;
+  border: 2px solid;
+  border-radius: 6px;
+  padding: 0.15rem 0.35rem;
+  overflow: hidden;
+  cursor: pointer;
+  color: white;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.bloque-tarea-semana.proyectada {
+  border-style: dashed;
+  color: var(--color-texto);
+  opacity: 0.85;
+}
+
+.bloque-tarea-semana-nombre {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

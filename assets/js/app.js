@@ -11,6 +11,7 @@ import {
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaTresDias } from '../../views/tres-dias.view.js';
 import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
+import { renderVistaSemana } from '../../views/semana.view.js';
 import { renderVistaTareas } from '../../views/tareas.view.js';
 import { renderVistaCategorias } from '../../views/categorias.view.js';
 import { renderVistaUbicaciones } from '../../views/ubicaciones.view.js';
@@ -25,6 +26,7 @@ const VISTAS = {
   hoy: { etiqueta: 'Hoy', render: renderVistaHoy },
   'tres-dias': { etiqueta: '3 días', render: renderVistaTresDias },
   'ocho-dias': { etiqueta: '8 días', render: renderVistaOchoDias },
+  semana: { etiqueta: 'Semana', render: renderVistaSemana },
   tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
   categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
   ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },

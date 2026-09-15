@@ -22,6 +22,11 @@ let filtroUbicacion = '';
 let filtroSoloMultitasking = false;
 let filtroImportancia = '';
 let agruparPorCategoria = false;
+let idAAbrirAlEntrar = null;
+
+export function abrirEdicionAlEntrar(id) {
+  idAAbrirAlEntrar = id;
+}
 
 function htmlOpcionesImportancia(seleccionada = 'media') {
   return NIVELES_IMPORTANCIA.map(
@@ -297,25 +302,31 @@ export function renderVistaTareas(contenedor) {
 
   if (tareasFiltradas.length === 0) {
     listaTareas.innerHTML = '<p class="mensaje-vacio">No hay tareas que coincidan con el filtro.</p>';
-    return;
-  }
-
-  if (!agruparPorCategoria) {
+  } else if (!agruparPorCategoria) {
     tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
-    return;
+  } else {
+    const categoriasOrdenadas = estado.categorias.slice().sort((a, b) => a.orden - b.orden);
+    categoriasOrdenadas.forEach((categoria) => {
+      const tareasDeCategoria = tareasFiltradas.filter((t) => t.categoria_id === categoria.id);
+      if (tareasDeCategoria.length === 0) return;
+      listaTareas.appendChild(crearSeparadorCategoria(categoria.nombre, categoria.color));
+      tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+    });
+    const tareasSinCategoria = tareasFiltradas.filter((t) => !t.categoria_id);
+    if (tareasSinCategoria.length > 0) {
+      listaTareas.appendChild(crearSeparadorCategoria('Sin categoría'));
+      tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+    }
   }
 
-  const categoriasOrdenadas = estado.categorias.slice().sort((a, b) => a.orden - b.orden);
-  categoriasOrdenadas.forEach((categoria) => {
-    const tareasDeCategoria = tareasFiltradas.filter((t) => t.categoria_id === categoria.id);
-    if (tareasDeCategoria.length === 0) return;
-    listaTareas.appendChild(crearSeparadorCategoria(categoria.nombre, categoria.color));
-    tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
-  });
-  const tareasSinCategoria = tareasFiltradas.filter((t) => !t.categoria_id);
-  if (tareasSinCategoria.length > 0) {
-    listaTareas.appendChild(crearSeparadorCategoria('Sin categoría'));
-    tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+  if (idAAbrirAlEntrar) {
+    const id = idAAbrirAlEntrar;
+    idAAbrirAlEntrar = null;
+    const li = listaTareas.querySelector(`[data-id="${id}"]`);
+    if (li) {
+      li.scrollIntoView({ block: 'center' });
+      li.querySelector('[data-accion="editar"]')?.click();
+    }
   }
 }
 
@@ -339,6 +350,7 @@ function renderTarea(tarea) {
   if (noPuedeEmpezarTodavia(tarea.fecha_inicio_posible)) clases.push('aun-no-disponible');
   if (bloqueada) clases.push('bloqueada');
   li.className = clases.join(' ');
+  li.dataset.id = tarea.id;
   li.innerHTML = `
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.nombre)}</strong>

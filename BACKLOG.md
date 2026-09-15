@@ -75,7 +75,8 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Diferenciar niveles de importancia más allá del estado (ej. súper importante como un examen vs. importante como una entrega vs. menor impacto): atributo `importancia` (baja/media/alta, default media) por tarea, usado como primer criterio de orden en Tareas/Hoy/3-8 días (antes que la prioridad de categoría), con badge e ícono en las 3 vistas y filtro en Tareas
 - [ ] Aplicar la regla 80/20 para resaltar qué tareas conviene priorizar
 - [ ] Vista de diagrama de Gantt: evaluar cómo aplicarla como herramienta para la definición de tareas/procesos, construyendo un "sistema a objetivos" (visualizar de punta a punta qué tareas llevan a una meta y en qué orden/tiempo)
-- [ ] Vista semanal estilo Google Calendar: tareas pendientes en formato de 7 días para visualizar rápido las tareas fijas (eventos con duración fija que no se pueden posponer) de la semana, y proyectar en esa grilla las tareas pendientes con fecha de inicio/fin según su duración estimada y fecha sugerida. Debe permitir editar: clic en una tarea lleva a su edición, y arrastrar los extremos superior/inferior de una tarea permite modificar su horario de inicio/fin directamente desde la grilla
+- [x] Vista semanal estilo Google Calendar — primer paso: nueva vista "Semana" (7 días empezando hoy, grilla de 07:00 a 23:00) con las tareas fijas (con `fecha_hora_agendada`) ubicadas en su horario exacto, y las tareas pendientes con fecha sugerida/límite proyectadas apiladas por prioridad. Clic en cualquier bloque lleva a la vista Tareas con esa tarea ya abierta para editar
+- [ ] Vista semanal — arrastrar para reprogramar: sobre la vista "Semana" (ver ítem de arriba), agregar poder arrastrar los extremos superior/inferior de un bloque para modificar el horario de inicio/fin de una tarea directamente desde la grilla, sin pasar por el panel de edición
 
 ## Sync — opciones a evaluar (Fase 3+)
 
