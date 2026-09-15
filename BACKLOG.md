@@ -76,7 +76,8 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [ ] Aplicar la regla 80/20 para resaltar qué tareas conviene priorizar
 - [ ] Vista de diagrama de Gantt: evaluar cómo aplicarla como herramienta para la definición de tareas/procesos, construyendo un "sistema a objetivos" (visualizar de punta a punta qué tareas llevan a una meta y en qué orden/tiempo)
 - [x] Vista semanal estilo Google Calendar — primer paso: nueva vista "Semana" (7 días empezando hoy, grilla de 07:00 a 23:00) con las tareas fijas (con `fecha_hora_agendada`) ubicadas en su horario exacto, y las tareas pendientes con fecha sugerida/límite proyectadas apiladas por prioridad. Clic en cualquier bloque lleva a la vista Tareas con esa tarea ya abierta para editar
-- [ ] Vista semanal — arrastrar para reprogramar: sobre la vista "Semana" (ver ítem de arriba), agregar poder arrastrar los extremos superior/inferior de un bloque para modificar el horario de inicio/fin de una tarea directamente desde la grilla, sin pasar por el panel de edición
+- [x] Vista semanal — arrastrar para reprogramar: en la vista "Semana", los bloques de tareas fijas (con horario agendado) tienen asas arrastrables en el borde superior/inferior para modificar `fecha_hora_agendada`/`duracion_estimada_min` directamente desde la grilla (pasos de 15 min), sin pasar por el panel de edición
+- [ ] Vista semanal — arrastrar una tarea proyectada la agenda: al arrastrar el borde de un bloque proyectado (sin horario propio, hoy solo clic-para-editar), asignarle un `fecha_hora_agendada` real acorde a la posición soltada, convirtiéndola en una tarea fija
 
 ## Sync — opciones a evaluar (Fase 3+)
 
