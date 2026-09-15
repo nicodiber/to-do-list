@@ -1,7 +1,47 @@
 const CACHE_NAME = 'super-todo-list-v1';
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
+// Archivos del app shell para que la primera carga offline (sin visitas
+// previas) también funcione. Si agregás un archivo assets/js/*.js o
+// views/*.js nuevo, sumalo también acá (ver AGENTS.md).
+const ARCHIVOS_PRECACHE = [
+  '.',
+  'index.html',
+  'manifest.json',
+  'assets/css/main.css',
+  'assets/icons/icon.svg',
+  'assets/js/app.js',
+  'assets/js/almacenamiento.js',
+  'assets/js/modelos.js',
+  'assets/js/utilidades.js',
+  'assets/js/reprogramar.js',
+  'assets/js/tareas-logica.js',
+  'assets/js/revision-dia.js',
+  'assets/js/exportar-calendar.js',
+  'assets/js/clima.js',
+  'assets/js/recompensa.js',
+  'assets/js/disfrute.js',
+  'assets/js/vista-agenda.js',
+  'views/hoy.view.js',
+  'views/tres-dias.view.js',
+  'views/ocho-dias.view.js',
+  'views/semana.view.js',
+  'views/tareas.view.js',
+  'views/categorias.view.js',
+  'views/ubicaciones.view.js',
+  'views/metas.view.js',
+  'views/gantt.view.js',
+  'views/personas.view.js',
+  'views/informes.view.js',
+];
+
+self.addEventListener('install', (evento) => {
+  evento.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(ARCHIVOS_PRECACHE.map((url) => new Request(url, { cache: 'reload' }))))
+      .catch((error) => console.warn('No se pudo precachear todo el app shell:', error))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (evento) => {

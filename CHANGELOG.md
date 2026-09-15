@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.29.0] - 2026-09-15
+
+### Agregado
+
+- PWA — precachear el app shell: `sw.js` ahora precachea en `install` el app shell completo (`ARCHIVOS_PRECACHE`), usando `cache: 'reload'` para saltear la caché HTTP del navegador al precachear. La primera carga sin conexión y sin visitas previas ahora también funciona (antes el caché arrancaba vacío). `AGENTS.md` documenta mantener esa lista al agregar archivos nuevos.
+
 ## [v0.28.0] - 2026-09-15
 
 ### Agregado

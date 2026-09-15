@@ -24,6 +24,7 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 
 - **Nuevo campo al modelo de datos:** actualizarlo en `assets/js/modelos.js` (factory correspondiente), en `datos/esquema.json`, y documentarlo en `DICCIONARIO_DE_DATOS.md` con la fase a la que pertenece.
 - **Nueva vista:** crear `views/nombre.view.js` exportando `renderVistaNombre(contenedor)`, registrarla en el objeto `VISTAS` de `assets/js/app.js`.
+- **Archivo nuevo en `assets/js/` o `views/`:** sumarlo también a `ARCHIVOS_PRECACHE` en `sw.js`, para que la primera carga offline (sin visitas previas) lo incluya.
 - **Nueva funcionalidad grande:** primero registrarla como ítem en `BACKLOG.md` bajo la fase que corresponda (ver `SPEC.md` para la definición de fases), salvo que el usuario ya la haya pedido explícitamente para la iteración actual.
 
 ## Versionado
