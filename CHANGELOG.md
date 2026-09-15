@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.28.0] - 2026-09-15
+
+### Agregado
+
+- PWA — primer paso: `manifest.json` (instalable, con ícono `assets/icons/icon.svg`) y `sw.js` (service worker registrado desde `assets/js/app.js`). Estrategia network-first: intenta red primero y cae a caché solo sin conexión, para no interferir con la caché agresiva del navegador que ya afecta el desarrollo de este proyecto. No precachea un app shell fijo — el caché se va poblando con el uso normal.
+
 ## [v0.27.0] - 2026-09-15
 
 ### Agregado

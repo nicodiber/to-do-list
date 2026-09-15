@@ -1,0 +1,18 @@
+{
+  "name": "Super To-Do List",
+  "short_name": "To-Do List",
+  "description": "Gestor de tareas personal: categorías, dependencias, mantenimiento cíclico, vistas Hoy/Semana/Gantt y más.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#4f7cff",
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

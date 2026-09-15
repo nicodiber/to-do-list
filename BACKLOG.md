@@ -62,7 +62,9 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 
 ## Fase 5 — Móvil y UX avanzada
 
-- [ ] Versión PWA para uso desde el celular
+- [x] Versión PWA — primer paso: `manifest.json` + ícono SVG (instalable como app) y `sw.js` (service worker con estrategia network-first, cae a caché solo sin conexión — deliberadamente no cache-first para no interferir con el desarrollo activo)
+- [ ] PWA — íconos PNG reales para mejor soporte en iOS (el ícono SVG actual puede no tomarse en "agregar a inicio" de Safari)
+- [ ] PWA — precachear el app shell explícitamente (hoy el caché se puebla recién con el uso; la primera carga offline sin visitas previas no funciona)
 - [ ] Notificaciones push
 - [ ] Evaluar si conviene convertir el sistema en un integrador más amplio: calendario propio (+ conexión opcional a Google Calendar) y administración económica personal (gastos, movimientos, inversiones, saldos, metas de ahorro, cheques) — solo si tiene sentido una vez validado el core de tareas
 
