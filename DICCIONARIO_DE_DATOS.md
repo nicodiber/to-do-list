@@ -50,6 +50,7 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `costo` | number | Fase 3 | Costo monetario estimado o real asociado |
 | `metas_ids` | array de `Meta.id`, default `[]` | MVP | Metas/propósitos de vida a los que aporta esta tarea. Se edita desde el panel "Metas" en la vista Tareas |
 | `recompensa` | string, default `""` | MVP | Texto libre y opcional (ej. "10 min de redes"). Badge "🎁" en los listados; al completar la tarea desde cualquiera de los 3 caminos se muestra un aviso con la recompensa. Se copia a la instancia clonada si la tarea es de mantenimiento |
+| `importancia` | enum: `baja` \| `media` \| `alta`, default `media` | MVP | Nivel de importancia de la tarea, más allá de fechas y estado (ej. un examen es más importante que un trámite menor aunque venzan el mismo día). Se usa como primer criterio de `compararPorPrioridad` (antes que la prioridad de categoría) para ordenar Tareas, Hoy y las vistas de 3/8 días; badge con ícono (🔴/🟡/🟢) en las 3 vistas, y filtro en Tareas |
 
 ## Ubicacion
 

@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
+import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from './modelos.js';
 import { hoyISO, fechaISOMasDias, formatearFecha, formatearFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { reprogramarTareaConCascada, tareaEstaBloqueada, compararPorPrioridad } from './tareas-logica.js';
@@ -82,6 +82,9 @@ function renderTarjetaTarea(tarea) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.nombre)}</strong>
       <span class="etiquetas">
+        <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.importancia] || ICONOS_IMPORTANCIA.media} ${
+          ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media
+        }</span>
         ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}

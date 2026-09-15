@@ -2,6 +2,13 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.18.0] - 2026-09-15
+
+### Agregado
+
+- Campo `importancia` (enum `baja`/`media`/`alta`, default `media`) por tarea: select en el alta y en editar, badge con ícono (🔴/🟡/🟢) en Tareas, Hoy y las vistas de 3/8 días, y filtro "Importancia" en Tareas.
+- `compararPorPrioridad` (usada por Tareas, Hoy y 3/8 días) ahora ordena primero por importancia y recién después por la prioridad de categoría, permitiendo destacar una tarea puntual por encima de otras de la misma categoría/fecha.
+
 ## [v0.17.0] - 2026-09-14
 
 ### Agregado

@@ -89,6 +89,7 @@
           "items": { "type": "string" }
         },
         "recompensa": { "type": "string" },
+        "importancia": { "type": "string", "enum": ["baja", "media", "alta"] },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }

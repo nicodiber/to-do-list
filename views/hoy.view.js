@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
+import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, compararPorPrioridad } from '../assets/js/tareas-logica.js';
@@ -131,6 +131,9 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.nombre)}</strong>
       <span class="etiquetas">
+        <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.importancia] || ICONOS_IMPORTANCIA.media} ${
+          ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media
+        }</span>
         ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
         ${tarea.fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.fecha_inicio_posible)}</span>` : ''}
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}

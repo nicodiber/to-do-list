@@ -9,6 +9,22 @@ export const ETIQUETAS_ESTADO = {
   completada: 'Completada',
 };
 
+export const NIVELES_IMPORTANCIA = ['baja', 'media', 'alta'];
+
+export const ETIQUETAS_IMPORTANCIA = {
+  baja: 'Baja',
+  media: 'Media',
+  alta: 'Alta',
+};
+
+export const ICONOS_IMPORTANCIA = {
+  baja: '🟢',
+  media: '🟡',
+  alta: '🔴',
+};
+
+export const ORDEN_IMPORTANCIA = { alta: 0, media: 1, baja: 2 };
+
 export function crearCategoria({ nombre, color = '#4f7cff', orden = 0, disfrute = 3 }) {
   return { id: generarId(), nombre, color, orden, disfrute };
 }
@@ -56,6 +72,7 @@ export function crearTarea({
   mantenimiento = null,
   divisible = false,
   multitasking = false,
+  importancia = 'media',
   dias_habiles = [],
   ubicacion_id = null,
   requiere_clima_bueno = false,
@@ -80,6 +97,7 @@ export function crearTarea({
     mantenimiento,
     divisible,
     multitasking,
+    importancia,
     dias_habiles,
     ubicacion_id: ubicacion_id || null,
     requiere_clima_bueno,

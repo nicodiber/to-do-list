@@ -1,5 +1,14 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { crearTarea, ESTADOS_TAREA, ETIQUETAS_ESTADO, UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
+import {
+  crearTarea,
+  ESTADOS_TAREA,
+  ETIQUETAS_ESTADO,
+  UNIDADES_MANTENIMIENTO,
+  ETIQUETAS_UNIDAD_MANTENIMIENTO,
+  NIVELES_IMPORTANCIA,
+  ETIQUETAS_IMPORTANCIA,
+  ICONOS_IMPORTANCIA,
+} from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia, compararPorPrioridad } from '../assets/js/tareas-logica.js';
@@ -11,7 +20,15 @@ let filtroCategoria = '';
 let filtroEstado = '';
 let filtroUbicacion = '';
 let filtroSoloMultitasking = false;
+let filtroImportancia = '';
 let agruparPorCategoria = false;
+
+function htmlOpcionesImportancia(seleccionada = 'media') {
+  return NIVELES_IMPORTANCIA.map(
+    (nivel) =>
+      `<option value="${nivel}" ${nivel === seleccionada ? 'selected' : ''}>${ICONOS_IMPORTANCIA[nivel]} ${ETIQUETAS_IMPORTANCIA[nivel]}</option>`
+  ).join('');
+}
 
 function htmlDiasHabiles(seleccionados = []) {
   return DIAS_SEMANA.map(
@@ -57,6 +74,9 @@ export function renderVistaTareas(contenedor) {
       </select>
       <select name="estado">
         ${ESTADOS_TAREA.map((e) => `<option value="${e}">${ETIQUETAS_ESTADO[e]}</option>`).join('')}
+      </select>
+      <select name="importancia">
+        ${htmlOpcionesImportancia()}
       </select>
       <label>Desde <input type="date" name="fecha_inicio_posible" /></label>
       <label>Límite <input type="date" name="fecha_limite" /></label>
@@ -123,6 +143,15 @@ export function renderVistaTareas(contenedor) {
             .join('')}
         </select>
       </label>
+      <label>Importancia
+        <select id="filtro-importancia">
+          <option value="">Todas</option>
+          ${NIVELES_IMPORTANCIA.map(
+            (nivel) =>
+              `<option value="${nivel}" ${filtroImportancia === nivel ? 'selected' : ''}>${ICONOS_IMPORTANCIA[nivel]} ${ETIQUETAS_IMPORTANCIA[nivel]}</option>`
+          ).join('')}
+        </select>
+      </label>
       <label class="opcion-mantenimiento">
         <input type="checkbox" id="filtro-multitasking" ${filtroSoloMultitasking ? 'checked' : ''} />
         🎧 Solo multitasking
@@ -173,6 +202,7 @@ export function renderVistaTareas(contenedor) {
     }
     formulario.divisible.checked = !!coincidencia.divisible;
     formulario.multitasking.checked = !!coincidencia.multitasking;
+    formulario.importancia.value = coincidencia.importancia || 'media';
     const diasSeleccionados = coincidencia.dias_habiles || [];
     formulario.querySelectorAll('input[name="dias_habiles"]').forEach((checkbox) => {
       checkbox.checked = diasSeleccionados.includes(Number(checkbox.value));
@@ -203,6 +233,7 @@ export function renderVistaTareas(contenedor) {
         categoria_id: datos.get('categoria_id') || null,
         subcategoria_id: datos.get('subcategoria_id') || null,
         estado: datos.get('estado'),
+        importancia: datos.get('importancia') || 'media',
         fecha_inicio_posible: datos.get('fecha_inicio_posible'),
         fecha_limite: datos.get('fecha_limite'),
         fecha_sugerida: datos.get('fecha_sugerida'),
@@ -241,6 +272,10 @@ export function renderVistaTareas(contenedor) {
     filtroSoloMultitasking = evento.target.checked;
     renderVistaTareas(contenedor);
   });
+  contenedor.querySelector('#filtro-importancia').addEventListener('change', (evento) => {
+    filtroImportancia = evento.target.value;
+    renderVistaTareas(contenedor);
+  });
   contenedor.querySelector('#toggle-agrupar-categoria').addEventListener('change', (evento) => {
     agruparPorCategoria = evento.target.checked;
     renderVistaTareas(contenedor);
@@ -252,6 +287,7 @@ export function renderVistaTareas(contenedor) {
     .filter((t) => !filtroEstado || t.estado === filtroEstado)
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
     .filter((t) => !filtroSoloMultitasking || t.multitasking)
+    .filter((t) => !filtroImportancia || (t.importancia || 'media') === filtroImportancia)
     .slice()
     .sort(
       (a, b) =>
@@ -307,6 +343,9 @@ function renderTarea(tarea) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.nombre)}</strong>
       <span class="etiquetas">
+        <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.importancia] || ICONOS_IMPORTANCIA.media} ${
+          ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media
+        }</span>
         ${
           categoria
             ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}${
@@ -484,6 +523,9 @@ function crearPanelEditar(tarea) {
     <select name="subcategoria_id">
       <option value="">Sin subcategoría</option>
     </select>
+    <select name="importancia">
+      ${htmlOpcionesImportancia(tarea.importancia || 'media')}
+    </select>
     <label>Desde <input type="date" name="fecha_inicio_posible" value="${tarea.fecha_inicio_posible || ''}" /></label>
     <label>Límite <input type="date" name="fecha_limite" value="${tarea.fecha_limite || ''}" /></label>
     <label>Sugerida <input type="date" name="fecha_sugerida" value="${tarea.fecha_sugerida || ''}" /></label>
@@ -553,6 +595,7 @@ function crearPanelEditar(tarea) {
     tarea.nombre = nombre;
     tarea.categoria_id = datos.get('categoria_id') || null;
     tarea.subcategoria_id = datos.get('subcategoria_id') || null;
+    tarea.importancia = datos.get('importancia') || 'media';
     tarea.fecha_inicio_posible = datos.get('fecha_inicio_posible');
     tarea.fecha_limite = datos.get('fecha_limite');
     tarea.fecha_sugerida = datos.get('fecha_sugerida');

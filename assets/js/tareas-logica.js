@@ -1,4 +1,4 @@
-import { crearTarea } from './modelos.js';
+import { crearTarea, ORDEN_IMPORTANCIA } from './modelos.js';
 import { ahoraISO } from './utilidades.js';
 
 /**
@@ -109,11 +109,16 @@ export function tareaEstaBloqueada(tarea, listaTareas) {
 }
 
 /**
- * Compara dos tareas por prioridad de categoría (`Categoria.orden`, menor =
- * más prioritaria). Tareas sin categoría, o cuya categoría ya no existe,
- * quedan siempre al final.
+ * Compara dos tareas por prioridad: primero por `importancia` (alta antes
+ * que media antes que baja), y como desempate por prioridad de categoría
+ * (`Categoria.orden`, menor = más prioritaria). Tareas sin categoría, o cuya
+ * categoría ya no existe, quedan siempre al final.
  */
 export function compararPorPrioridad(a, b, categorias) {
+  const importanciaA = ORDEN_IMPORTANCIA[a.importancia] ?? ORDEN_IMPORTANCIA.media;
+  const importanciaB = ORDEN_IMPORTANCIA[b.importancia] ?? ORDEN_IMPORTANCIA.media;
+  if (importanciaA !== importanciaB) return importanciaA - importanciaB;
+
   const ordenA = categorias.find((c) => c.id === a.categoria_id)?.orden ?? Infinity;
   const ordenB = categorias.find((c) => c.id === b.categoria_id)?.orden ?? Infinity;
   return ordenA - ordenB;
