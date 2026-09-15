@@ -68,7 +68,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 
 ## Ideas sin fase asignada todavía (evaluar al planificar)
 
-- [ ] Costo monetario estimado/real por tarea, para proyectar cuánto dinero se va a necesitar en un período futuro
+- [x] Costo monetario estimado/real por tarea, para proyectar cuánto dinero se va a necesitar en un período futuro: campos `costo_estimado`/`costo_real` (mismo patrón que duración estimada/real), badge "💰" en Tareas/Hoy/3-8 días, captura de costo real al completar desde Hoy o "Revisar mi día", y nueva sección "Costos" en Informes con la proyección de pendientes y la comparación estimado vs. real
 - [ ] Rutina diaria configurable (higiene del sueño, horarios, hábitos) como conjunto de tareas recurrentes
 - [ ] Al finalizar el día, revisar eventos del calendario y preguntar si generaron alguna tarea de continuidad
 - [ ] Tras el cursado de una materia, preguntar si surgieron tareas nuevas a agregar

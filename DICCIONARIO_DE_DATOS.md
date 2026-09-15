@@ -47,10 +47,11 @@ Referencia 1:1 con [datos/esquema.json](datos/esquema.json) y con las factories 
 | `ubicacion_id` | string \| null | MVP | Referencia a `Ubicacion.id` (ver más abajo). Sin GPS: se elige a mano del ABM de Ubicaciones. Se usa para el badge, el filtro manual en Tareas/Hoy, y para resolver lat/lon al chequear `requiere_clima_bueno` |
 | `requiere_clima_bueno` | boolean (default `false`) | MVP | Si está en `true` y la tarea tiene `ubicacion_id` con coordenadas y una fecha resoluble dentro de los próximos 16 días, en Hoy y en las vistas de 3/8 días se consulta el pronóstico real (Open-Meteo) y se avisa si la probabilidad de lluvia es alta |
 | `multitasking` | boolean (default `false`) | MVP | Si se puede hacer en simultáneo con otra actividad de baja atención (ej. escuchar un podcast mientras se plancha). Checkbox en el alta y en editar, badge "🎧 Multitasking" y filtro "Solo multitasking" en la vista Tareas |
-| `costo` | number | Fase 3 | Costo monetario estimado o real asociado |
 | `metas_ids` | array de `Meta.id`, default `[]` | MVP | Metas/propósitos de vida a los que aporta esta tarea. Se edita desde el panel "Metas" en la vista Tareas |
 | `recompensa` | string, default `""` | MVP | Texto libre y opcional (ej. "10 min de redes"). Badge "🎁" en los listados; al completar la tarea desde cualquiera de los 3 caminos se muestra un aviso con la recompensa. Se copia a la instancia clonada si la tarea es de mantenimiento |
 | `importancia` | enum: `baja` \| `media` \| `alta`, default `media` | MVP | Nivel de importancia de la tarea, más allá de fechas y estado (ej. un examen es más importante que un trámite menor aunque venzan el mismo día). Se usa como primer criterio de `compararPorPrioridad` (antes que la prioridad de categoría) para ordenar Tareas, Hoy y las vistas de 3/8 días; badge con ícono (🔴/🟡/🟢) en las 3 vistas, y filtro en Tareas |
+| `costo_estimado` | number, default `0` | MVP | Costo monetario estimado, opcional. Badge "💰" en Tareas/Hoy/3-8 días; se suma en Informes para proyectar el costo de las tareas pendientes. Se copia a la instancia clonada si la tarea es de mantenimiento |
+| `costo_real` | number \| null, default `null` | MVP | Costo real, cargado opcionalmente al completar la tarea desde Hoy o "Revisar mi día" (mismo momento que `duracion_real_min`). Se usa en Informes para comparar contra `costo_estimado` |
 
 ## Ubicacion
 

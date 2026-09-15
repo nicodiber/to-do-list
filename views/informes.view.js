@@ -53,6 +53,25 @@ function calcularDuraciones() {
   };
 }
 
+function calcularProyeccionCostos() {
+  const pendientesConCosto = estado.tareas.filter((t) => ESTADOS_ACTIVOS.includes(t.estado) && t.costo_estimado);
+  const total = pendientesConCosto.reduce((suma, t) => suma + t.costo_estimado, 0);
+  return { cantidad: pendientesConCosto.length, total };
+}
+
+function calcularCostosRealVsEstimado() {
+  const conAmbosCostos = estado.tareas.filter(
+    (t) => t.estado === 'completada' && t.costo_estimado && t.costo_real != null
+  );
+  if (conAmbosCostos.length === 0) return null;
+
+  const totalEstimado = conAmbosCostos.reduce((suma, t) => suma + t.costo_estimado, 0);
+  const totalReal = conAmbosCostos.reduce((suma, t) => suma + t.costo_real, 0);
+  const diferenciaPorcentual = Math.round(((totalReal - totalEstimado) / totalEstimado) * 100);
+
+  return { cantidad: conAmbosCostos.length, totalEstimado, totalReal, diferenciaPorcentual };
+}
+
 function calcularIndiceProcrastinacion(desde) {
   const procrastinadas = estado.tareas.filter(
     (t) => ESTADOS_ACTIVOS.includes(t.estado) && t.motivo_incumplimiento
@@ -69,6 +88,8 @@ export function renderVistaInformes(contenedor) {
   const duraciones = calcularDuraciones();
   const procrastinacion = calcularIndiceProcrastinacion(desde);
   const enfoque8020 = calcularEnfoque8020(estado.tareas, estado.categorias);
+  const proyeccionCostos = calcularProyeccionCostos();
+  const costos = calcularCostosRealVsEstimado();
 
   contenedor.innerHTML = `
     <h2>Informes</h2>
@@ -142,6 +163,27 @@ export function renderVistaInformes(contenedor) {
                   })
                   .join('')}
               </ol>`
+      }
+    </section>
+
+    <section>
+      <h3>Costos</h3>
+      ${
+        proyeccionCostos.cantidad === 0
+          ? '<p class="mensaje-vacio">No hay tareas pendientes con costo estimado cargado.</p>'
+          : `<p class="notas-tarea">
+              Costo estimado de tus tareas pendientes: <strong>$${proyeccionCostos.total}</strong>
+              (sobre ${proyeccionCostos.cantidad} tarea(s) con costo cargado).
+            </p>`
+      }
+      ${
+        costos === null
+          ? ''
+          : `<p class="notas-tarea">
+              Sobre ${costos.cantidad} tarea(s) completada(s) con ambos costos: total estimado
+              <strong>$${costos.totalEstimado}</strong>, total real <strong>$${costos.totalReal}</strong>
+              (${costos.diferenciaPorcentual > 0 ? '+' : ''}${costos.diferenciaPorcentual}% respecto a lo estimado).
+            </p>`
       }
     </section>
   `;

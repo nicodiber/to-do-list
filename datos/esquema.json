@@ -90,6 +90,8 @@
         },
         "recompensa": { "type": "string" },
         "importancia": { "type": "string", "enum": ["baja", "media", "alta"] },
+        "costo_estimado": { "type": "number", "minimum": 0 },
+        "costo_real": { "type": ["number", "null"], "minimum": 0 },
         "creada_en": { "type": "string" },
         "completada_en": { "type": ["string", "null"] }
       }

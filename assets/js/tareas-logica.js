@@ -24,11 +24,12 @@ export function calcularProximaFechaMantenimiento(desdeISODatetime, mantenimient
  * la fecha real de finalización, dejando la instancia actual como historial.
  * Devuelve la nueva tarea clonada, o null si no aplica mantenimiento.
  */
-export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMejora = '' } = {}) {
+export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMejora = '', costoReal = null } = {}) {
   const ahora = ahoraISO();
   tarea.estado = 'completada';
   tarea.completada_en = ahora;
   if (duracionReal != null) tarea.duracion_real_min = duracionReal;
+  if (costoReal != null) tarea.costo_real = costoReal;
 
   if (!tarea.mantenimiento) return null;
 
@@ -46,6 +47,7 @@ export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMe
     notas,
     mantenimiento: tarea.mantenimiento,
     recompensa: tarea.recompensa,
+    costo_estimado: tarea.costo_estimado,
   });
   listaTareas.push(nueva);
   return nueva;

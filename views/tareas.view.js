@@ -94,6 +94,7 @@ export function renderVistaTareas(contenedor) {
       <label>Límite <input type="date" name="fecha_limite" /></label>
       <label>Sugerida <input type="date" name="fecha_sugerida" /></label>
       <label>Duración (min) <input type="number" name="duracion_estimada_min" value="30" min="0" step="15" /></label>
+      <input type="number" name="costo_estimado" min="0" placeholder="Costo estimado ($)" />
       <input type="text" name="notas" placeholder="Notas / recursos" />
       <select name="ubicacion_id">
         <option value="">Sin ubicación</option>
@@ -205,6 +206,7 @@ export function renderVistaTareas(contenedor) {
     actualizarSubcategoriasFormulario();
     formulario.subcategoria_id.value = coincidencia.subcategoria_id || '';
     formulario.duracion_estimada_min.value = coincidencia.duracion_estimada_min || 30;
+    formulario.costo_estimado.value = coincidencia.costo_estimado || '';
     formulario.notas.value = coincidencia.notas || '';
     checkboxMantenimiento.checked = !!coincidencia.mantenimiento;
     camposMantenimiento.hidden = !coincidencia.mantenimiento;
@@ -250,6 +252,7 @@ export function renderVistaTareas(contenedor) {
         fecha_limite: datos.get('fecha_limite'),
         fecha_sugerida: datos.get('fecha_sugerida'),
         duracion_estimada_min: Number(datos.get('duracion_estimada_min')) || 0,
+        costo_estimado: Number(datos.get('costo_estimado')) || 0,
         notas: String(datos.get('notas') || '').trim(),
         mantenimiento: esMantenimiento
           ? {
@@ -379,6 +382,7 @@ function renderTarea(tarea, enfoqueIds) {
         ${tarea.fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFecha(tarea.fecha_sugerida)}</span>` : ''}
         ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
         ${tarea.duracion_estimada_min ? `<span class="etiqueta-fecha">${tarea.duracion_estimada_min} min</span>` : ''}
+        ${tarea.costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.costo_estimado}</span>` : ''}
         ${
           tarea.mantenimiento
             ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.mantenimiento.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.mantenimiento.unidad]}</span>`
@@ -551,6 +555,7 @@ function crearPanelEditar(tarea) {
     <label>Límite <input type="date" name="fecha_limite" value="${tarea.fecha_limite || ''}" /></label>
     <label>Sugerida <input type="date" name="fecha_sugerida" value="${tarea.fecha_sugerida || ''}" /></label>
     <label>Duración (min) <input type="number" name="duracion_estimada_min" value="${tarea.duracion_estimada_min || 0}" min="0" step="15" /></label>
+    <input type="number" name="costo_estimado" min="0" placeholder="Costo estimado ($)" value="${tarea.costo_estimado || ''}" />
     <input type="text" name="notas" placeholder="Notas / recursos" value="${escaparHtml(tarea.notas || '')}" />
     <select name="ubicacion_id">
       <option value="">Sin ubicación</option>
@@ -621,6 +626,7 @@ function crearPanelEditar(tarea) {
     tarea.fecha_limite = datos.get('fecha_limite');
     tarea.fecha_sugerida = datos.get('fecha_sugerida');
     tarea.duracion_estimada_min = Number(datos.get('duracion_estimada_min')) || 0;
+    tarea.costo_estimado = Number(datos.get('costo_estimado')) || 0;
     tarea.notas = String(datos.get('notas') || '').trim();
     tarea.mantenimiento =
       datos.get('es_mantenimiento') === 'on'

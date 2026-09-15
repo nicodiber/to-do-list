@@ -151,6 +151,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.estado]}</span>
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
         ${tarea.recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.recompensa)}</span>` : ''}
+        ${tarea.costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.costo_estimado}</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
       ${
@@ -191,6 +192,9 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
         <label>Duración real (min)
           <input type="number" min="0" step="5" value="${tarea.duracion_estimada_min || 30}" data-campo="duracion-real" />
         </label>
+        <label>Costo real ($) (opcional)
+          <input type="number" min="0" data-campo="costo-real" />
+        </label>
         ${
           tarea.mantenimiento
             ? `<label>¿Qué podrías mejorar la próxima vez? (opcional)
@@ -206,9 +210,11 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
 
     contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
       const duracionReal = Number(contenedorCierre.querySelector('[data-campo="duracion-real"]').value) || 0;
+      const valorCostoReal = contenedorCierre.querySelector('[data-campo="costo-real"]').value;
+      const costoReal = valorCostoReal === '' ? null : Number(valorCostoReal);
       const campoMejora = contenedorCierre.querySelector('[data-campo="mejora"]');
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
-      completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
+      completarTarea(tarea, estado.tareas, { duracionReal, notaMejora, costoReal });
       await persistirYNotificar();
       mostrarRecompensaSiCorresponde(tarea);
       sugerirTareaDeAltoDisfrute(tarea);

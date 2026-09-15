@@ -78,6 +78,9 @@ function renderPaso() {
       <label>Duración real (min)
         <input type="number" min="0" step="5" value="${tarea.duracion_estimada_min || 30}" data-campo="duracion-real" />
       </label>
+      <label>Costo real ($) (opcional)
+        <input type="number" min="0" data-campo="costo-real" />
+      </label>
       ${
         tarea.mantenimiento
           ? `<label>¿Qué podrías mejorar la próxima vez? (opcional)
@@ -89,9 +92,11 @@ function renderPaso() {
     `;
     contenedorPaso.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
       const duracionReal = Number(contenedorPaso.querySelector('[data-campo="duracion-real"]').value) || 0;
+      const valorCostoReal = contenedorPaso.querySelector('[data-campo="costo-real"]').value;
+      const costoReal = valorCostoReal === '' ? null : Number(valorCostoReal);
       const campoMejora = contenedorPaso.querySelector('[data-campo="mejora"]');
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
-      completarTarea(tarea, estado.tareas, { duracionReal, notaMejora });
+      completarTarea(tarea, estado.tareas, { duracionReal, notaMejora, costoReal });
       await persistirYNotificar();
       mostrarRecompensaSiCorresponde(tarea);
       sugerirTareaDeAltoDisfrute(tarea);

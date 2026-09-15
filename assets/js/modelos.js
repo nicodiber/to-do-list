@@ -78,6 +78,8 @@ export function crearTarea({
   requiere_clima_bueno = false,
   metas_ids = [],
   recompensa = '',
+  costo_estimado = 0,
+  costo_real = null,
 }) {
   return {
     id: generarId(),
@@ -103,6 +105,8 @@ export function crearTarea({
     requiere_clima_bueno,
     metas_ids,
     recompensa,
+    costo_estimado,
+    costo_real,
     creada_en: ahoraISO(),
     completada_en: null,
   };
