@@ -16,6 +16,7 @@ import { renderVistaTareas } from '../../views/tareas.view.js';
 import { renderVistaCategorias } from '../../views/categorias.view.js';
 import { renderVistaUbicaciones } from '../../views/ubicaciones.view.js';
 import { renderVistaMetas } from '../../views/metas.view.js';
+import { renderVistaGantt } from '../../views/gantt.view.js';
 import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
@@ -32,6 +33,7 @@ const VISTAS = {
   categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
   ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },
   metas: { etiqueta: 'Metas', render: renderVistaMetas },
+  gantt: { etiqueta: 'Gantt', render: renderVistaGantt },
   personas: { etiqueta: 'Personas', render: renderVistaPersonas },
   informes: { etiqueta: 'Informes', render: renderVistaInformes },
 };

@@ -65,3 +65,9 @@ export function noPuedeEmpezarTodavia(fechaInicioPosibleISO) {
   if (!fechaInicioPosibleISO) return false;
   return fechaInicioPosibleISO > hoyISO();
 }
+
+export function diasEntreFechas(fechaISO1, fechaISO2) {
+  const fecha1 = new Date(fechaISO1 + 'T00:00:00');
+  const fecha2 = new Date(fechaISO2 + 'T00:00:00');
+  return Math.round((fecha2 - fecha1) / (24 * 60 * 60 * 1000));
+}

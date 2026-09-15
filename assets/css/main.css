@@ -740,3 +740,84 @@ section h3 {
 .asa-arrastre.inferior {
   bottom: 0;
 }
+
+.grilla-gantt-contenedor {
+  overflow-x: auto;
+}
+
+.grilla-gantt {
+  min-width: 50rem;
+}
+
+.encabezado-gantt,
+.fila-gantt {
+  display: flex;
+  align-items: stretch;
+}
+
+.fila-gantt-info {
+  flex: 0 0 12rem;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+}
+
+.fila-gantt-pista {
+  flex: 1;
+  position: relative;
+  min-height: 2.5rem;
+}
+
+.encabezado-gantt .fila-gantt-pista {
+  min-height: 1.4rem;
+  border-bottom: 1px solid var(--color-borde);
+  margin-bottom: 0.4rem;
+}
+
+.marca-fecha-gantt {
+  position: absolute;
+  top: 0;
+  font-size: 0.7rem;
+  color: var(--color-texto-suave);
+  white-space: nowrap;
+  transform: translateX(-2px);
+}
+
+.filas-gantt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.separador-meta-gantt {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-texto-suave);
+  padding: 0.3rem 0;
+  border-top: 1px solid var(--color-borde);
+}
+
+.separador-meta-gantt:first-child {
+  border-top: none;
+}
+
+.barra-gantt {
+  position: absolute;
+  top: 0.3rem;
+  min-width: 1.5rem;
+  height: 1.9rem;
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  overflow: hidden;
+  cursor: pointer;
+  color: white;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.barra-gantt-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

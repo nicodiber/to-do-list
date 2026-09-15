@@ -1,12 +1,10 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { crearPersona } from '../assets/js/modelos.js';
-import { escaparHtml, formatearFecha, hoyISO } from '../assets/js/utilidades.js';
+import { escaparHtml, formatearFecha, hoyISO, diasEntreFechas } from '../assets/js/utilidades.js';
 
 function diasDesdeContacto(persona) {
   if (!persona.ultimo_contacto) return Infinity;
-  const fecha = new Date(persona.ultimo_contacto + 'T00:00:00');
-  const hoy = new Date(hoyISO() + 'T00:00:00');
-  return Math.round((hoy - fecha) / (24 * 60 * 60 * 1000));
+  return diasEntreFechas(persona.ultimo_contacto, hoyISO());
 }
 
 export function renderVistaPersonas(contenedor) {
