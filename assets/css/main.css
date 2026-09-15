@@ -232,6 +232,44 @@ h1, h2, h3 {
   margin-bottom: 0.4rem;
 }
 
+.throughput-semanal {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  height: 8rem;
+  padding-top: 1.2rem;
+}
+
+.barra-throughput-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  height: 100%;
+}
+
+.barra-throughput {
+  width: 100%;
+  max-width: 2rem;
+  background: var(--color-primario);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+
+.barra-throughput-valor {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.barra-throughput-etiqueta {
+  font-size: 0.65rem;
+  color: var(--color-texto-suave);
+  margin-top: 0.3rem;
+  white-space: nowrap;
+}
+
 .lista-subcategorias {
   list-style: none;
   padding: 0;

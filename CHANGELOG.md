@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.30.0] - 2026-09-15
+
+### Agregado
+
+- Nueva sección "Throughput semanal" en Informes: gráfico de barras con la cantidad de tareas completadas por semana (últimas 8 semanas, buckets de 7 días) y el promedio semanal en esa ventana. Calculado al vuelo sobre `completada_en`, sin campos ni entidades nuevas.
+
 ## [v0.29.0] - 2026-09-15
 
 ### Agregado

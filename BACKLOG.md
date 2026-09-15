@@ -52,7 +52,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [ ] Chatbot para dialogar y definir metas/objetivos de vida
 - [x] Informes básicos: nueva vista "Informes" con tabla de completadas (últimos 7 días) vs. pendientes actuales por categoría, y promedio de duración estimada vs. real
 - [x] Índice de procrastinación — versión proxy: tareas actualmente pospuestas al menos una vez (`motivo_incumplimiento` cargado y sin completar) contra completadas en los últimos 7 días. No es un histórico real de reprogramaciones (el modelo no guarda ese log todavía); si hace falta más precisión, una ronda futura puede sumar un registro de eventos
-- [ ] Métrica de throughput (capacidad de trabajo, estilo Kanban)
+- [x] Métrica de throughput (capacidad de trabajo, estilo Kanban): nueva sección "Throughput semanal" en Informes — gráfico de barras con tareas completadas por semana (últimas 8 semanas) y el promedio semanal, calculado al vuelo sobre `completada_en`
 - [ ] KPIs y OKRs personales
 - [ ] Comparación de throughput con amigos (diaria/semanal/mensual)
 - [x] Recordatorio de sociabilización: nueva entidad Persona (nombre, último contacto opcional, notas) con ABM en la vista "Personas"; la lista se ordena de mayor a menor tiempo sin contacto (sin registro = primero), con botón "Marcar contacto hoy" para un clic sin fricción

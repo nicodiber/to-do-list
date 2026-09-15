@@ -1,5 +1,5 @@
 import { estado } from '../assets/js/almacenamiento.js';
-import { hoyISO, fechaISOMasDias, escaparHtml } from '../assets/js/utilidades.js';
+import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml } from '../assets/js/utilidades.js';
 import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
 import { calcularEnfoque8020 } from '../assets/js/tareas-logica.js';
 
@@ -72,6 +72,26 @@ function calcularCostosRealVsEstimado() {
   return { cantidad: conAmbosCostos.length, totalEstimado, totalReal, diferenciaPorcentual };
 }
 
+const SEMANAS_THROUGHPUT = 8;
+
+function calcularThroughputSemanal() {
+  const hoy = hoyISO();
+  const semanas = [];
+  for (let i = SEMANAS_THROUGHPUT - 1; i >= 0; i--) {
+    const fin = fechaISOMasDias(-7 * i, hoy);
+    const inicio = fechaISOMasDias(-7 * i - 6, hoy);
+    const cantidad = estado.tareas.filter(
+      (t) =>
+        t.estado === 'completada' &&
+        t.completada_en &&
+        t.completada_en.slice(0, 10) >= inicio &&
+        t.completada_en.slice(0, 10) <= fin
+    ).length;
+    semanas.push({ inicio, fin, cantidad });
+  }
+  return semanas;
+}
+
 function calcularIndiceProcrastinacion(desde) {
   const procrastinadas = estado.tareas.filter(
     (t) => ESTADOS_ACTIVOS.includes(t.estado) && t.motivo_incumplimiento
@@ -90,6 +110,9 @@ export function renderVistaInformes(contenedor) {
   const enfoque8020 = calcularEnfoque8020(estado.tareas, estado.categorias);
   const proyeccionCostos = calcularProyeccionCostos();
   const costos = calcularCostosRealVsEstimado();
+  const throughput = calcularThroughputSemanal();
+  const maxThroughput = Math.max(1, ...throughput.map((s) => s.cantidad));
+  const totalThroughput = throughput.reduce((suma, s) => suma + s.cantidad, 0);
 
   contenedor.innerHTML = `
     <h2>Informes</h2>
@@ -184,6 +207,27 @@ export function renderVistaInformes(contenedor) {
               <strong>$${costos.totalEstimado}</strong>, total real <strong>$${costos.totalReal}</strong>
               (${costos.diferenciaPorcentual > 0 ? '+' : ''}${costos.diferenciaPorcentual}% respecto a lo estimado).
             </p>`
+      }
+    </section>
+
+    <section>
+      <h3>Throughput semanal</h3>
+      ${
+        totalThroughput === 0
+          ? '<p class="mensaje-vacio">Todavía no hay tareas completadas para mostrar una tendencia.</p>'
+          : `<div class="throughput-semanal">
+              ${throughput
+                .map(
+                  (s) => `
+                    <div class="barra-throughput-item">
+                      <span class="barra-throughput-valor">${s.cantidad}</span>
+                      <div class="barra-throughput" style="height:${(s.cantidad / maxThroughput) * 100}%"></div>
+                      <span class="barra-throughput-etiqueta">${formatearFecha(s.inicio)}</span>
+                    </div>`
+                )
+                .join('')}
+            </div>
+            <p class="ayuda">Promedio: ${(totalThroughput / SEMANAS_THROUGHPUT).toFixed(1)} tarea(s)/semana en las últimas ${SEMANAS_THROUGHPUT} semanas.</p>`
       }
     </section>
   `;
