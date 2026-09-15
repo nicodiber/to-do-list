@@ -821,3 +821,20 @@ section h3 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.asa-gantt {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.asa-gantt.izquierda {
+  left: 0;
+}
+
+.asa-gantt.derecha {
+  right: 0;
+}

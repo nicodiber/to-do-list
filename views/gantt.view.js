@@ -1,4 +1,4 @@
-import { estado } from '../assets/js/almacenamiento.js';
+import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas } from '../assets/js/utilidades.js';
 import { tareaEstaBloqueada, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { abrirEdicionAlEntrar } from './tareas.view.js';
@@ -129,9 +129,87 @@ function renderGrillaGantt(filas) {
         abrirEdicionAlEntrar(f.tarea.id);
         location.hash = '#/tareas';
       });
+
+      const inicio = fechaInicioTarea(f.tarea);
+      const fin = fechaFinTarea(f.tarea);
+      const offsetDias = diasEntreFechas(minFecha, inicio);
+      const spanDias = diasEntreFechas(inicio, fin) + 1;
+      agregarAsasGantt(bloque, f.tarea, minFecha, totalDias, offsetDias, spanDias, bloque.parentElement);
     });
 
   return grilla;
+}
+
+function agregarAsaGantt(barraEl, posicion) {
+  const asa = document.createElement('div');
+  asa.className = `asa-gantt ${posicion}`;
+  asa.addEventListener('click', (evento) => evento.stopPropagation());
+  barraEl.appendChild(asa);
+  return asa;
+}
+
+function agregarAsasGantt(barraEl, tarea, minFecha, totalDias, offsetDiasInicial, spanDiasInicial, pistaEl) {
+  const asaIzquierda = agregarAsaGantt(barraEl, 'izquierda');
+  const asaDerecha = agregarAsaGantt(barraEl, 'derecha');
+
+  function iniciarArrastre(asa, esIzquierda) {
+    asa.addEventListener('pointerdown', (evento) => {
+      evento.stopPropagation();
+      evento.preventDefault();
+      asa.setPointerCapture(evento.pointerId);
+
+      const xInicial = evento.clientX;
+      const anchoPistaPx = pistaEl.getBoundingClientRect().width;
+      const anchoDiaPx = anchoPistaPx / totalDias;
+      const offsetInicial = offsetDiasInicial;
+      const spanInicial = spanDiasInicial;
+      const finFijo = offsetInicial + spanInicial;
+
+      function onMove(eventoMove) {
+        const deltaPx = eventoMove.clientX - xInicial;
+        const deltaDias = Math.round(deltaPx / anchoDiaPx);
+
+        let nuevoOffset = offsetInicial;
+        let nuevoSpan = spanInicial;
+
+        if (esIzquierda) {
+          nuevoOffset = Math.max(0, Math.min(offsetInicial + deltaDias, finFijo - 1));
+          nuevoSpan = finFijo - nuevoOffset;
+        } else {
+          nuevoSpan = Math.max(1, Math.min(spanInicial + deltaDias, totalDias - offsetInicial));
+        }
+
+        barraEl.style.left = `${(nuevoOffset / totalDias) * 100}%`;
+        barraEl.style.width = `${(nuevoSpan / totalDias) * 100}%`;
+        barraEl.dataset.offsetPendiente = String(nuevoOffset);
+        barraEl.dataset.spanPendiente = String(nuevoSpan);
+      }
+
+      async function onUp(eventoUp) {
+        asa.releasePointerCapture(eventoUp.pointerId);
+        asa.removeEventListener('pointermove', onMove);
+        asa.removeEventListener('pointerup', onUp);
+
+        const nuevoOffset = barraEl.dataset.offsetPendiente != null ? Number(barraEl.dataset.offsetPendiente) : offsetInicial;
+        const nuevoSpan = barraEl.dataset.spanPendiente != null ? Number(barraEl.dataset.spanPendiente) : spanInicial;
+        delete barraEl.dataset.offsetPendiente;
+        delete barraEl.dataset.spanPendiente;
+
+        if (esIzquierda) {
+          tarea.fecha_inicio_posible = fechaISOMasDias(nuevoOffset, minFecha);
+        } else {
+          tarea.fecha_limite = fechaISOMasDias(nuevoOffset + nuevoSpan - 1, minFecha);
+        }
+        await persistirYNotificar();
+      }
+
+      asa.addEventListener('pointermove', onMove);
+      asa.addEventListener('pointerup', onUp);
+    });
+  }
+
+  iniciarArrastre(asaIzquierda, true);
+  iniciarArrastre(asaDerecha, false);
 }
 
 function renderFilaGanttHtml(tarea, minFecha, totalDias) {

@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.26.0] - 2026-09-15
+
+### Agregado
+
+- Vista "Gantt": cada barra ahora tiene asas de arrastre en el borde izquierdo/derecho (Pointer Events, mismo mecanismo que la vista Semana) para reprogramar `fecha_inicio_posible` (asa izquierda, mueve el inicio manteniendo el final) o `fecha_limite` (asa derecha, mueve el final manteniendo el inicio) directamente desde el Gantt, en pasos de un día.
+
 ## [v0.25.0] - 2026-09-15
 
 ### Agregado
