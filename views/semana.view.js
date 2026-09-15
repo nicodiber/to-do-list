@@ -121,9 +121,7 @@ function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, f
     location.hash = '#/tareas';
   });
 
-  if (!proyectada) {
-    agregarAsasArrastre(bloque, tarea, fechaDia, offsetMin, alturaMin);
-  }
+  agregarAsasArrastre(bloque, tarea, fechaDia, offsetMin, alturaMin, proyectada);
 
   return bloque;
 }
@@ -143,7 +141,7 @@ function minutosAHoraHHMM(minutosDesdeInicio) {
   return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
 }
 
-function agregarAsasArrastre(bloque, tarea, fechaDia, offsetMinInicial, alturaMinInicial) {
+function agregarAsasArrastre(bloque, tarea, fechaDia, offsetMinInicial, alturaMinInicial, proyectada) {
   const asaSuperior = agregarAsa(bloque, 'superior');
   const asaInferior = agregarAsa(bloque, 'inferior');
 
@@ -189,7 +187,7 @@ function agregarAsasArrastre(bloque, tarea, fechaDia, offsetMinInicial, alturaMi
         delete bloque.dataset.topPendiente;
         delete bloque.dataset.alturaPendiente;
 
-        if (esSuperior) {
+        if (esSuperior || proyectada) {
           tarea.fecha_hora_agendada = combinarFechaYHora(fechaDia, minutosAHoraHHMM(nuevoTop));
         }
         tarea.duracion_estimada_min = nuevaAltura;

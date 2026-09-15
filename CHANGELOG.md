@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.21.0] - 2026-09-15
+
+### Agregado
+
+- Vista "Semana": las asas de arrastre (ya existentes para tareas fijas desde v0.20.0) ahora también funcionan sobre bloques proyectados. Arrastrar cualquiera de las dos asas de un bloque proyectado le asigna `fecha_hora_agendada` según la posición soltada — la tarea pasa a listarse como fija en el siguiente render, sin pasar por el panel de edición. Completa la idea original de la vista semanal.
+
 ## [v0.20.0] - 2026-09-15
 
 ### Agregado
