@@ -77,9 +77,21 @@ Se administra desde el ABM en la vista "Ubicaciones" (igual que Categorías, per
 
 Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas / tareas asociadas) se calcula al vuelo filtrando `estado.tareas` por `metas_ids`, no se guarda como campo. Al eliminar una meta, las tareas que la referenciaban quedan sin esa entrada en `metas_ids`.
 
+## Persona
+
+| Campo | Tipo | Fase | Descripción |
+|---|---|---|---|
+| `id` | string (UUID) | MVP | Identificador único |
+| `nombre` | string | MVP | Nombre de la persona (ej. "Mamá", "Juan") |
+| `ultimo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha del último encuentro/contacto registrado. Vacío = nunca registrado |
+| `notas` | string, default `""` | MVP | Texto libre opcional (ej. "hermana", "amigo de la facu") |
+| `creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
+
+Se administra desde el ABM en la vista "Personas", sin relación con Tareas por ahora. La lista se ordena de mayor a menor tiempo sin contacto (las sin `ultimo_contacto` registrado quedan primero); el botón "Marcar contacto hoy" actualiza `ultimo_contacto` a la fecha actual.
+
 ## Estructura de los archivos de datos
 
-- `datos/categorias.json` → `{ "categorias": Categoria[], "subcategorias": Subcategoria[], "ubicaciones": Ubicacion[], "metas": Meta[] }`
+- `datos/categorias.json` → `{ "categorias": Categoria[], "subcategorias": Subcategoria[], "ubicaciones": Ubicacion[], "metas": Meta[], "personas": Persona[] }`
 - `datos/tareas.json` → `{ "tareas": Tarea[] }`
 
 Los archivos reales con datos personales **no se versionan** (ver `.gitignore`); solo se versionan `datos/categorias.ejemplo.json`, `datos/tareas.ejemplo.json` y `datos/esquema.json`.

@@ -55,7 +55,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [ ] Métrica de throughput (capacidad de trabajo, estilo Kanban)
 - [ ] KPIs y OKRs personales
 - [ ] Comparación de throughput con amigos (diaria/semanal/mensual)
-- [ ] Recordatorio de sociabilización: hace cuánto no te reunís con determinada persona (familiares, amigos), ordenado de mayor a menor tiempo
+- [x] Recordatorio de sociabilización: nueva entidad Persona (nombre, último contacto opcional, notas) con ABM en la vista "Personas"; la lista se ordena de mayor a menor tiempo sin contacto (sin registro = primero), con botón "Marcar contacto hoy" para un clic sin fricción
 - [x] Recompensa asociada a cada tarea: campo de texto libre opcional, badge "🎁" en los listados, y aviso al completar la tarea (en los 3 caminos existentes) reforzando el principio de Premack. Se conserva al clonarse una instancia de mantenimiento
 - [x] Colores por categoría/subcategoría: las subcategorías ahora tienen su propio color (hereda el de la categoría por defecto, se puede cambiar al crearla); los badges de tareas usan el color de la subcategoría cuando la tarea tiene una asignada
 - [x] Atributo de "disfrute" por categoría (escala 1-5, default 3, se define al crearla): al completar una tarea de una categoría de bajo disfrute (1-2), se sugiere automáticamente continuar con una tarea accionable de una categoría de alto disfrute (4-5) — Premack a nivel categoría, complementa la `recompensa` por tarea individual de v0.15.0
@@ -69,7 +69,7 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 ## Ideas sin fase asignada todavía (evaluar al planificar)
 
 - [x] Costo monetario estimado/real por tarea, para proyectar cuánto dinero se va a necesitar en un período futuro: campos `costo_estimado`/`costo_real` (mismo patrón que duración estimada/real), badge "💰" en Tareas/Hoy/3-8 días, captura de costo real al completar desde Hoy o "Revisar mi día", y nueva sección "Costos" en Informes con la proyección de pendientes y la comparación estimado vs. real
-- [ ] Rutina diaria configurable (higiene del sueño, horarios, hábitos) como conjunto de tareas recurrentes
+- [x] Rutina diaria configurable (higiene del sueño, horarios, hábitos) como conjunto de tareas recurrentes — **descartada como ítem aparte**: ya se resuelve con el campo `mantenimiento` existente (`cantidad: 1, unidad: 'dias'` sobre una tarea individual), no hace falta una entidad nueva
 - [ ] Al finalizar el día, revisar eventos del calendario y preguntar si generaron alguna tarea de continuidad
 - [ ] Tras el cursado de una materia, preguntar si surgieron tareas nuevas a agregar
 - [x] Diferenciar niveles de importancia más allá del estado (ej. súper importante como un examen vs. importante como una entrega vs. menor impacto): atributo `importancia` (baja/media/alta, default media) por tarea, usado como primer criterio de orden en Tareas/Hoy/3-8 días (antes que la prioridad de categoría), con badge e ícono en las 3 vistas y filtro en Tareas

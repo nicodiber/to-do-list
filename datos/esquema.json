@@ -45,6 +45,17 @@
         "creada_en": { "type": "string" }
       }
     },
+    "persona": {
+      "type": "object",
+      "required": ["id", "nombre", "creada_en"],
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "ultimo_contacto": { "type": "string" },
+        "notas": { "type": "string" },
+        "creada_en": { "type": "string" }
+      }
+    },
     "tarea": {
       "type": "object",
       "required": ["id", "nombre", "estado", "creada_en"],
@@ -114,6 +125,10 @@
     "metas": {
       "type": "array",
       "items": { "$ref": "#/definitions/meta" }
+    },
+    "personas": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/persona" }
     },
     "tareas": {
       "type": "array",

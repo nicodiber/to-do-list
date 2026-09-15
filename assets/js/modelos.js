@@ -37,6 +37,10 @@ export function crearUbicacion({ nombre, latitud, longitud }) {
   return { id: generarId(), nombre, latitud, longitud };
 }
 
+export function crearPersona({ nombre, ultimo_contacto = '', notas = '' }) {
+  return { id: generarId(), nombre, ultimo_contacto, notas, creada_en: ahoraISO() };
+}
+
 export const PLAZOS_META = ['corto', 'mediano', 'largo'];
 
 export const ETIQUETAS_PLAZO = {
