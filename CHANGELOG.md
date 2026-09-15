@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.27.0] - 2026-09-15
+
+### Agregado
+
+- Vista "Gantt": las tareas bloqueadas ahora muestran una flecha SVG que conecta el final de la barra bloqueante con el inicio de la bloqueada, cuando ambas están visibles en el filtro actual (se recalcula en cada render, incluido tras un arrastre). El texto "Bloqueada por..." se mantiene como respaldo para cuando la bloqueante no está visible. Con esto queda cerrada la idea de la vista Gantt (grilla v0.25.0, arrastre v0.26.0, flechas v0.27.0).
+
 ## [v0.26.0] - 2026-09-15
 
 ### Agregado

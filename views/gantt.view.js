@@ -62,7 +62,10 @@ export function renderVistaGantt(contenedor) {
         '<p class="mensaje-vacio">Esta meta todavía no tiene tareas asociadas. Sumale tareas desde el panel "Metas" en la vista Tareas.</p>';
       return;
     }
-    contenido.appendChild(renderGrillaGantt(tareas.map((tarea) => ({ tarea }))));
+    const filasMeta = tareas.map((tarea) => ({ tarea }));
+    const grillaMeta = renderGrillaGantt(filasMeta);
+    contenido.appendChild(grillaMeta);
+    renderFlechasDependencia(grillaMeta, filasMeta);
     return;
   }
 
@@ -80,7 +83,9 @@ export function renderVistaGantt(contenedor) {
     return;
   }
 
-  contenido.appendChild(renderGrillaGantt(filas));
+  const grilla = renderGrillaGantt(filas);
+  contenido.appendChild(grilla);
+  renderFlechasDependencia(grilla, filas);
 }
 
 function renderGrillaGantt(filas) {
@@ -138,6 +143,63 @@ function renderGrillaGantt(filas) {
     });
 
   return grilla;
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function renderFlechasDependencia(grilla, filas) {
+  const tareasVisibles = filas.filter((f) => f.tarea).map((f) => f.tarea);
+  const idsVisibles = new Set(tareasVisibles.map((t) => t.id));
+
+  const conexiones = [];
+  tareasVisibles.forEach((tarea) => {
+    const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
+    if (!bloqueada) return;
+    bloqueantes.forEach((bloqueante) => {
+      if (idsVisibles.has(bloqueante.id)) {
+        conexiones.push({ desde: bloqueante.id, hasta: tarea.id });
+      }
+    });
+  });
+
+  if (conexiones.length === 0) return;
+
+  const contenedorFilas = grilla.querySelector('.filas-gantt');
+  const rectFilas = contenedorFilas.getBoundingClientRect();
+
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.classList.add('flechas-gantt');
+  svg.setAttribute('width', rectFilas.width);
+  svg.setAttribute('height', rectFilas.height);
+  svg.innerHTML = `
+    <defs>
+      <marker id="flecha-gantt-punta" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path class="flecha-gantt-punta" d="M0,0 L6,3 L0,6 Z" />
+      </marker>
+    </defs>
+  `;
+
+  conexiones.forEach(({ desde, hasta }) => {
+    const origenEl = contenedorFilas.querySelector(`[data-tarea-id="${desde}"]`);
+    const destinoEl = contenedorFilas.querySelector(`[data-tarea-id="${hasta}"]`);
+    if (!origenEl || !destinoEl) return;
+
+    const r1 = origenEl.getBoundingClientRect();
+    const r2 = destinoEl.getBoundingClientRect();
+    const x1 = r1.right - rectFilas.left;
+    const y1 = r1.top + r1.height / 2 - rectFilas.top;
+    const x2 = r2.left - rectFilas.left;
+    const y2 = r2.top + r2.height / 2 - rectFilas.top;
+    const curva = Math.max(20, Math.abs(x2 - x1) / 2);
+
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', `M${x1},${y1} C${x1 + curva},${y1} ${x2 - curva},${y2} ${x2},${y2}`);
+    path.setAttribute('class', 'flecha-gantt');
+    path.setAttribute('marker-end', 'url(#flecha-gantt-punta)');
+    svg.appendChild(path);
+  });
+
+  contenedorFilas.appendChild(svg);
 }
 
 function agregarAsaGantt(barraEl, posicion) {
