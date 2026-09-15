@@ -1,5 +1,7 @@
 import { estado } from '../assets/js/almacenamiento.js';
 import { hoyISO, fechaISOMasDias, escaparHtml } from '../assets/js/utilidades.js';
+import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
+import { calcularEnfoque8020 } from '../assets/js/tareas-logica.js';
 
 const DIAS_VENTANA = 7;
 const ESTADOS_ACTIVOS = ['a_confirmar', 'pendiente', 'en_progreso'];
@@ -66,6 +68,7 @@ export function renderVistaInformes(contenedor) {
   const porCategoria = calcularPorCategoria(desde);
   const duraciones = calcularDuraciones();
   const procrastinacion = calcularIndiceProcrastinacion(desde);
+  const enfoque8020 = calcularEnfoque8020(estado.tareas, estado.categorias);
 
   contenedor.innerHTML = `
     <h2>Informes</h2>
@@ -120,6 +123,26 @@ export function renderVistaInformes(contenedor) {
             </p>`
       }
       <p class="ayuda">Es un proxy sobre el estado actual (no se guarda un historial de cuántas veces se pospuso cada tarea todavía).</p>
+    </section>
+
+    <section>
+      <h3>Enfoque 80/20 (Pareto)</h3>
+      ${
+        enfoque8020.length === 0
+          ? '<p class="mensaje-vacio">No hay tareas pendientes accionables para priorizar.</p>'
+          : `<p class="ayuda">El ~20% de tus tareas pendientes accionables que más conviene priorizar ahora, según importancia y prioridad de categoría.</p>
+              <ol class="lista-enfoque-8020">
+                ${enfoque8020
+                  .map((t) => {
+                    const categoria = estado.categorias.find((c) => c.id === t.categoria_id);
+                    return `<li>
+                        ${categoria ? `<span class="punto-color" style="background:${categoria.color}"></span>` : ''}
+                        ${ICONOS_IMPORTANCIA[t.importancia] || ICONOS_IMPORTANCIA.media} ${escaparHtml(t.nombre)}
+                      </li>`;
+                  })
+                  .join('')}
+              </ol>`
+      }
     </section>
   `;
 }

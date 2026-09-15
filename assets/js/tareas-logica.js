@@ -1,5 +1,5 @@
 import { crearTarea, ORDEN_IMPORTANCIA } from './modelos.js';
-import { ahoraISO } from './utilidades.js';
+import { ahoraISO, noPuedeEmpezarTodavia } from './utilidades.js';
 
 /**
  * Calcula la próxima fecha límite (YYYY-MM-DD) de una tarea de mantenimiento,
@@ -144,4 +144,33 @@ function existeCaminoDeDependencias(desdeId, hastaId, listaTareas, visitados) {
   return (tarea.dependencias || []).some((depId) =>
     existeCaminoDeDependencias(depId, hastaId, listaTareas, visitados)
   );
+}
+
+/**
+ * Indica si una tarea está en condiciones de actuarse ahora: no completada,
+ * con fecha de inicio ya alcanzada (si tiene una), y sin dependencias
+ * pendientes que la bloqueen.
+ */
+export function esTareaAccionable(tarea, listaTareas) {
+  if (tarea.estado === 'completada') return false;
+  if (noPuedeEmpezarTodavia(tarea.fecha_inicio_posible)) return false;
+  return !tareaEstaBloqueada(tarea, listaTareas).bloqueada;
+}
+
+/**
+ * Regla 80/20 (Pareto): de las tareas accionables, devuelve el 20% superior
+ * (redondeado hacia arriba) según el orden de prioridad ya usado en la app
+ * (compararPorPrioridad, con la fecha límite como desempate final) — las
+ * "pocas vitales" en las que más conviene enfocarse ahora.
+ */
+export function calcularEnfoque8020(tareas, categorias) {
+  const accionables = tareas
+    .filter((t) => esTareaAccionable(t, tareas))
+    .sort(
+      (a, b) =>
+        compararPorPrioridad(a, b, categorias) ||
+        (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99')
+    );
+  const cantidad = Math.ceil(accionables.length * 0.2);
+  return accionables.slice(0, cantidad);
 }

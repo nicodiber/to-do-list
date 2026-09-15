@@ -1,16 +1,8 @@
 import { estado } from './almacenamiento.js';
-import { noPuedeEmpezarTodavia } from './utilidades.js';
-import { tareaEstaBloqueada } from './tareas-logica.js';
+import { esTareaAccionable } from './tareas-logica.js';
 
-const ESTADOS_ACCIONABLES = ['a_confirmar', 'pendiente', 'en_progreso'];
 const UMBRAL_BAJO = 2;
 const UMBRAL_ALTO = 4;
-
-function esAccionable(tarea) {
-  if (!ESTADOS_ACCIONABLES.includes(tarea.estado)) return false;
-  if (noPuedeEmpezarTodavia(tarea.fecha_inicio_posible)) return false;
-  return !tareaEstaBloqueada(tarea, estado.tareas).bloqueada;
-}
 
 /**
  * Si la tarea recién completada pertenece a una categoría de bajo disfrute,
@@ -24,7 +16,7 @@ export function sugerirTareaDeAltoDisfrute(tareaCompletada) {
   if (!categoriaCompletada || categoriaCompletada.disfrute > UMBRAL_BAJO) return;
 
   const candidata = estado.tareas.find((t) => {
-    if (t.id === tareaCompletada.id || !esAccionable(t)) return false;
+    if (t.id === tareaCompletada.id || !esTareaAccionable(t, estado.tareas)) return false;
     const categoria = estado.categorias.find((c) => c.id === t.categoria_id);
     return categoria && categoria.disfrute >= UMBRAL_ALTO;
   });

@@ -11,7 +11,14 @@ import {
 } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, puedeAgregarDependencia, compararPorPrioridad } from '../assets/js/tareas-logica.js';
+import {
+  completarTarea,
+  reprogramarTareaConCascada,
+  tareaEstaBloqueada,
+  puedeAgregarDependencia,
+  compararPorPrioridad,
+  calcularEnfoque8020,
+} from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
 import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
@@ -287,6 +294,7 @@ export function renderVistaTareas(contenedor) {
   });
 
   const listaTareas = contenedor.querySelector('#lista-tareas');
+  const enfoqueIds = new Set(calcularEnfoque8020(estado.tareas, estado.categorias).map((t) => t.id));
   const tareasFiltradas = estado.tareas
     .filter((t) => !filtroCategoria || t.categoria_id === filtroCategoria)
     .filter((t) => !filtroEstado || t.estado === filtroEstado)
@@ -303,19 +311,19 @@ export function renderVistaTareas(contenedor) {
   if (tareasFiltradas.length === 0) {
     listaTareas.innerHTML = '<p class="mensaje-vacio">No hay tareas que coincidan con el filtro.</p>';
   } else if (!agruparPorCategoria) {
-    tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+    tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
   } else {
     const categoriasOrdenadas = estado.categorias.slice().sort((a, b) => a.orden - b.orden);
     categoriasOrdenadas.forEach((categoria) => {
       const tareasDeCategoria = tareasFiltradas.filter((t) => t.categoria_id === categoria.id);
       if (tareasDeCategoria.length === 0) return;
       listaTareas.appendChild(crearSeparadorCategoria(categoria.nombre, categoria.color));
-      tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+      tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
     });
     const tareasSinCategoria = tareasFiltradas.filter((t) => !t.categoria_id);
     if (tareasSinCategoria.length > 0) {
       listaTareas.appendChild(crearSeparadorCategoria('Sin categoría'));
-      tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+      tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
     }
   }
 
@@ -338,7 +346,7 @@ function crearSeparadorCategoria(nombre, color) {
   return li;
 }
 
-function renderTarea(tarea) {
+function renderTarea(tarea, enfoqueIds) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
   const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
@@ -358,6 +366,7 @@ function renderTarea(tarea) {
         <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.importancia] || ICONOS_IMPORTANCIA.media} ${
           ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media
         }</span>
+        ${enfoqueIds && enfoqueIds.has(tarea.id) ? `<span class="etiqueta-fecha etiqueta-enfoque">🎯 Foco 80/20</span>` : ''}
         ${
           categoria
             ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}${

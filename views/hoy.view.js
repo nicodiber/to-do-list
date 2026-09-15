@@ -2,7 +2,13 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
 import { formatearFecha, formatearFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, tareaEstaBloqueada, compararPorPrioridad } from '../assets/js/tareas-logica.js';
+import {
+  completarTarea,
+  reprogramarTareaConCascada,
+  tareaEstaBloqueada,
+  compararPorPrioridad,
+  calcularEnfoque8020,
+} from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
@@ -12,6 +18,7 @@ import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 let filtroUbicacion = '';
 
 export function renderVistaHoy(contenedor) {
+  const enfoqueIds = new Set(calcularEnfoque8020(estado.tareas, estado.categorias).map((t) => t.id));
   const pendientesActivas = estado.tareas
     .filter((t) => t.estado !== 'completada')
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion);
@@ -96,32 +103,34 @@ export function renderVistaHoy(contenedor) {
   if (urgentes.length === 0) {
     listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas vencidas ni con fecha límite hoy.</p>';
   } else {
-    urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
+    urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { enfoqueIds })));
   }
 
   const listaResto = contenedor.querySelector('#lista-resto');
   if (resto.length === 0) {
     listaResto.innerHTML = '<p class="mensaje-vacio">No hay más tareas pendientes disponibles.</p>';
   } else {
-    resto.forEach((tarea) => listaResto.appendChild(renderItem(tarea)));
+    resto.forEach((tarea) => listaResto.appendChild(renderItem(tarea, { enfoqueIds })));
   }
 
   const listaNoDisponibles = contenedor.querySelector('#lista-no-disponibles');
   if (listaNoDisponibles) {
     aunNoDisponibles
       .sort((a, b) => a.fecha_inicio_posible.localeCompare(b.fecha_inicio_posible))
-      .forEach((tarea) => listaNoDisponibles.appendChild(renderItem(tarea, { soloInfo: true })));
+      .forEach((tarea) => listaNoDisponibles.appendChild(renderItem(tarea, { soloInfo: true, enfoqueIds })));
   }
 
   const listaBloqueadas = contenedor.querySelector('#lista-bloqueadas');
   if (listaBloqueadas) {
     bloqueadas.forEach((tarea) =>
-      listaBloqueadas.appendChild(renderItem(tarea, { soloInfo: true, bloqueantes: infoPorTarea.get(tarea.id).bloqueantes }))
+      listaBloqueadas.appendChild(
+        renderItem(tarea, { soloInfo: true, bloqueantes: infoPorTarea.get(tarea.id).bloqueantes, enfoqueIds })
+      )
     );
   }
 }
 
-function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
+function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = null } = {}) {
   const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
   const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
@@ -134,6 +143,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null } = {}) {
         <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.importancia] || ICONOS_IMPORTANCIA.media} ${
           ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media
         }</span>
+        ${enfoqueIds && enfoqueIds.has(tarea.id) ? `<span class="etiqueta-fecha etiqueta-enfoque">🎯 Foco 80/20</span>` : ''}
         ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
         ${tarea.fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.fecha_inicio_posible)}</span>` : ''}
         ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}

@@ -1,13 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import {
-  hoyISO,
-  fechaISOMasDias,
-  formatearFecha,
-  noPuedeEmpezarTodavia,
-  escaparHtml,
-  combinarFechaYHora,
-} from '../assets/js/utilidades.js';
-import { tareaEstaBloqueada, compararPorPrioridad } from '../assets/js/tareas-logica.js';
+import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml, combinarFechaYHora } from '../assets/js/utilidades.js';
+import { esTareaAccionable, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { abrirEdicionAlEntrar } from './tareas.view.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -19,12 +12,6 @@ const MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
 
 function fechaDeReferenciaProyectada(tarea) {
   return tarea.fecha_sugerida || tarea.fecha_limite || null;
-}
-
-function esAccionable(tarea) {
-  if (tarea.estado === 'completada') return false;
-  if (noPuedeEmpezarTodavia(tarea.fecha_inicio_posible)) return false;
-  return !tareaEstaBloqueada(tarea, estado.tareas).bloqueada;
 }
 
 export function renderVistaSemana(contenedor) {
@@ -81,7 +68,7 @@ function renderColumnaDia(fechaDia, hoy) {
   });
 
   const proyectadas = pendientesActivas
-    .filter((t) => !t.fecha_hora_agendada && esAccionable(t))
+    .filter((t) => !t.fecha_hora_agendada && esTareaAccionable(t, estado.tareas))
     .filter((t) => fechaDeReferenciaProyectada(t) === fechaDia)
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
 
