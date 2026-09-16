@@ -1,5 +1,10 @@
 import { crearTarea, ORDEN_IMPORTANCIA } from './modelos.js';
-import { ahoraISO, noPuedeEmpezarTodavia } from './utilidades.js';
+import { ahoraISO, noPuedeEmpezarTodavia, combinarFechaYHora } from './utilidades.js';
+
+function horaHHMM(fechaHoraISO) {
+  const fecha = new Date(fechaHoraISO);
+  return `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
+}
 
 /**
  * Calcula la próxima fecha límite (YYYY-MM-DD) de una tarea de mantenimiento,
@@ -37,17 +42,28 @@ export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMe
     ? `${tarea.notas ? tarea.notas + '\n\n' : ''}Mejora sugerida la vez anterior: ${notaMejora}`
     : tarea.notas;
 
+  const proximaFecha = calcularProximaFechaMantenimiento(ahora, tarea.mantenimiento);
+
   const nueva = crearTarea({
     nombre: tarea.nombre,
     categoria_id: tarea.categoria_id,
     subcategoria_id: tarea.subcategoria_id,
     estado: 'pendiente',
-    fecha_limite: calcularProximaFechaMantenimiento(ahora, tarea.mantenimiento),
+    fecha_limite: proximaFecha,
+    fecha_hora_agendada: tarea.fecha_hora_agendada
+      ? combinarFechaYHora(proximaFecha, horaHHMM(tarea.fecha_hora_agendada))
+      : '',
     duracion_estimada_min: tarea.duracion_estimada_min,
     notas,
     mantenimiento: tarea.mantenimiento,
     recompensa: tarea.recompensa,
     costo_estimado: tarea.costo_estimado,
+    ubicacion_id: tarea.ubicacion_id,
+    importancia: tarea.importancia,
+    dias_habiles: tarea.dias_habiles,
+    multitasking: tarea.multitasking,
+    divisible: tarea.divisible,
+    requiere_clima_bueno: tarea.requiere_clima_bueno,
   });
   listaTareas.push(nueva);
   return nueva;
