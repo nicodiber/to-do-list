@@ -1,4 +1,3 @@
-import { crearCategoria, crearSubcategoria, crearTarea } from './modelos.js';
 import {
   soportaGoogleDrive,
   hayConexionDrive,
@@ -246,42 +245,6 @@ export async function conectarDrive() {
   notificar();
 }
 
-function sembrarDatosDeEjemplo() {
-  const personal = crearCategoria({ nombre: 'Personal', color: '#4f7cff', orden: 1 });
-  const facultad = crearCategoria({ nombre: 'Facultad', color: '#22c55e', orden: 2 });
-  const trabajo = crearCategoria({ nombre: 'Trabajo', color: '#f59e0b', orden: 3 });
-
-  const hobbies = crearSubcategoria({ nombre: 'Hobbies', categoria_id: personal.id });
-  const examenes = crearSubcategoria({ nombre: 'Exámenes', categoria_id: facultad.id });
-
-  estado.categorias = [personal, facultad, trabajo];
-  estado.subcategorias = [hobbies, examenes];
-  estado.tareas = [
-    crearTarea({
-      nombre: 'Elegir carpeta de datos en Google Drive',
-      categoria_id: personal.id,
-      estado: 'pendiente',
-      duracion_estimada_min: 15,
-      notas: 'Usá el botón "Elegir carpeta de datos" para que esta lista se guarde y sincronice.',
-    }),
-    crearTarea({
-      nombre: 'Estudiar para el próximo examen',
-      categoria_id: facultad.id,
-      subcategoria_id: examenes.id,
-      estado: 'pendiente',
-      duracion_estimada_min: 90,
-    }),
-    crearTarea({
-      nombre: 'Salir a andar en moto',
-      categoria_id: personal.id,
-      subcategoria_id: hobbies.id,
-      estado: 'a_confirmar',
-      duracion_estimada_min: 120,
-      notas: 'Solo posible los fines de semana.',
-    }),
-  ];
-}
-
 export async function inicializarAlmacenamiento() {
   cargarDeLocalStorage();
 
@@ -295,11 +258,6 @@ export async function inicializarAlmacenamiento() {
     } catch (error) {
       console.warn('No se pudo recuperar la carpeta de datos guardada:', error);
     }
-  }
-
-  if (estado.categorias.length === 0 && estado.tareas.length === 0) {
-    sembrarDatosDeEjemplo();
-    await guardarTodo();
   }
 
   notificar();

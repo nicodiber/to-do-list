@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.39.0] - 2026-09-16
+
+### Quitado
+
+- Datos de ejemplo al primer arranque: `sembrarDatosDeEjemplo()` (categorías y tareas de prueba) ya no se ejecuta en `inicializarAlmacenamiento()`. Ahora que el usuario va a usar la app con datos reales sincronizados entre varios dispositivos vía Google Drive, un dispositivo nuevo arranca vacío en vez de con contenido de muestra que después hay que borrar a mano.
+
 ## [v0.38.0] - 2026-09-16
 
 ### Agregado
