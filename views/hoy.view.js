@@ -21,10 +21,10 @@ import {
   obtenerEventosDeHoy,
   calcularSolapamiento,
 } from '../assets/js/google-calendar.js';
-
-let filtroUbicacion = '';
+import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
 export function renderVistaHoy(contenedor) {
+  const filtroUbicacion = obtenerUbicacionActual();
   const enfoqueIds = new Set(calcularEnfoque8020(estado.tareas, estado.categorias).map((t) => t.id));
   const pendientesActivas = estado.tareas
     .filter((t) => t.estado !== 'completada')
@@ -120,7 +120,7 @@ export function renderVistaHoy(contenedor) {
   const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-hoy');
   if (selectFiltroUbicacion) {
     selectFiltroUbicacion.addEventListener('change', (evento) => {
-      filtroUbicacion = evento.target.value;
+      establecerUbicacionActual(evento.target.value);
       renderVistaHoy(contenedor);
     });
   }

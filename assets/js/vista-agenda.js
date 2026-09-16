@@ -4,6 +4,7 @@ import { hoyISO, fechaISOMasDias, formatearFecha, formatearFechaHora, escaparHtm
 import { crearPanelReprogramar } from './reprogramar.js';
 import { reprogramarTareaConCascada, tareaEstaBloqueada, compararPorPrioridad } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
+import { obtenerUbicacionActual, establecerUbicacionActual } from './ubicacion-actual.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -23,8 +24,11 @@ function fechaDeReferencia(tarea) {
 export function renderVistaAgenda(contenedor, cantidadDias) {
   const hoy = hoyISO();
   const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(i, hoy));
+  const filtroUbicacion = obtenerUbicacionActual();
 
-  const pendientesActivas = estado.tareas.filter((t) => t.estado !== 'completada');
+  const pendientesActivas = estado.tareas
+    .filter((t) => t.estado !== 'completada')
+    .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion);
   const porDia = new Map(dias.map((d) => [d, []]));
   pendientesActivas.forEach((tarea) => {
     const fecha = fechaDeReferencia(tarea);
@@ -34,8 +38,28 @@ export function renderVistaAgenda(contenedor, cantidadDias) {
   contenedor.innerHTML = `
     <h2>Próximos ${cantidadDias} días</h2>
     <p class="ayuda">Tareas agendadas, con fecha límite o sugerida en este período — para anticipar cuellos de botella antes de que se conviertan en urgencias.</p>
+    ${
+      estado.ubicaciones.length > 0
+        ? `<label class="filtro-ubicacion-hoy">¿Dónde estás?
+            <select id="filtro-ubicacion-agenda">
+              <option value="">Cualquier ubicación</option>
+              ${estado.ubicaciones
+                .map((u) => `<option value="${u.id}" ${filtroUbicacion === u.id ? 'selected' : ''}>${escaparHtml(u.nombre)}</option>`)
+                .join('')}
+            </select>
+          </label>`
+        : ''
+    }
     <div class="agenda"></div>
   `;
+
+  const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-agenda');
+  if (selectFiltroUbicacion) {
+    selectFiltroUbicacion.addEventListener('change', (evento) => {
+      establecerUbicacionActual(evento.target.value);
+      renderVistaAgenda(contenedor, cantidadDias);
+    });
+  }
 
   const contenedorAgenda = contenedor.querySelector('.agenda');
   dias.forEach((fechaDia) => {

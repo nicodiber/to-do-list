@@ -24,10 +24,10 @@ import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
 import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
+import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
-let filtroUbicacion = '';
 let filtroSoloMultitasking = false;
 let filtroImportancia = '';
 let agruparPorCategoria = false;
@@ -67,6 +67,7 @@ function tareasUnicasPorNombre() {
 }
 
 export function renderVistaTareas(contenedor) {
+  const filtroUbicacion = obtenerUbicacionActual();
   contenedor.innerHTML = `
     <h2>Tareas</h2>
     <form id="form-alta-rapida" class="formulario-en-linea">
@@ -285,7 +286,7 @@ export function renderVistaTareas(contenedor) {
     renderVistaTareas(contenedor);
   });
   contenedor.querySelector('#filtro-ubicacion').addEventListener('change', (evento) => {
-    filtroUbicacion = evento.target.value;
+    establecerUbicacionActual(evento.target.value);
     renderVistaTareas(contenedor);
   });
   contenedor.querySelector('#filtro-multitasking').addEventListener('change', (evento) => {

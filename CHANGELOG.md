@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.41.0] - 2026-09-16
+
+### Agregado
+
+- Filtro de "ubicación actual" unificado: nuevo módulo `assets/js/ubicacion-actual.js` (clave propia de `localStorage`, mismo patrón que el tema claro/oscuro) reemplaza las dos variables de filtro de ubicación que existían por separado en Hoy y Tareas. Ahora Hoy, Tareas y 3/8 días comparten la misma "ubicación actual": elegirla desde cualquiera de esas vistas se refleja en las otras sin recargar, y persiste entre recargas de página. Nuevo selector "¿Dónde estás?" agregado a `assets/js/vista-agenda.js` (3/8 días), que antes no tenía ningún filtro de ubicación.
+
 ## [v0.40.0] - 2026-09-16
 
 ### Agregado
