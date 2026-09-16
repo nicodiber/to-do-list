@@ -7,14 +7,14 @@ const UMBRAL_PROBABILIDAD_LLUVIA = 50;
 const cachePronosticos = new Map();
 
 function fechaDeReferencia(tarea) {
-  if (tarea.fecha_hora_agendada) {
+  if (tarea.tarea_fecha_hora_agendada) {
     return {
-      fecha: tarea.fecha_hora_agendada.slice(0, 10),
-      hora: new Date(tarea.fecha_hora_agendada).getHours(),
+      fecha: tarea.tarea_fecha_hora_agendada.slice(0, 10),
+      hora: new Date(tarea.tarea_fecha_hora_agendada).getHours(),
     };
   }
-  if (tarea.fecha_limite) return { fecha: tarea.fecha_limite, hora: 12 };
-  if (tarea.fecha_sugerida) return { fecha: tarea.fecha_sugerida, hora: 12 };
+  if (tarea.tarea_fecha_limite) return { fecha: tarea.tarea_fecha_limite, hora: 12 };
+  if (tarea.tarea_fecha_sugerida) return { fecha: tarea.tarea_fecha_sugerida, hora: 12 };
   return null;
 }
 
@@ -40,10 +40,10 @@ async function obtenerPronosticoUbicacion(latitud, longitud) {
  * Si hay datos, devuelve { favorable, probabilidadLluvia }.
  */
 export async function evaluarClimaTarea(tarea) {
-  if (!tarea.requiere_clima_bueno) return null;
+  if (!tarea.tarea_requiere_clima_bueno) return null;
 
-  const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
-  if (!ubicacion || ubicacion.latitud == null || ubicacion.longitud == null) return null;
+  const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
+  if (!ubicacion || ubicacion.ubicacion_latitud == null || ubicacion.ubicacion_longitud == null) return null;
 
   const referencia = fechaDeReferencia(tarea);
   if (!referencia) return null;
@@ -52,7 +52,7 @@ export async function evaluarClimaTarea(tarea) {
   const limite = fechaISOMasDias(DIAS_MAX_PRONOSTICO - 1, hoy);
   if (referencia.fecha < hoy || referencia.fecha > limite) return null;
 
-  const datos = await obtenerPronosticoUbicacion(ubicacion.latitud, ubicacion.longitud);
+  const datos = await obtenerPronosticoUbicacion(ubicacion.ubicacion_latitud, ubicacion.ubicacion_longitud);
   if (!datos || !datos.hourly) return null;
 
   const indice = datos.hourly.time.findIndex((t) => t.startsWith(`${referencia.fecha}T${String(referencia.hora).padStart(2, '0')}:00`));

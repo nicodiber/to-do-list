@@ -31,6 +31,118 @@ export const estado = {
 let carpetaDatosHandle = null;
 const listeners = [];
 
+/**
+ * Migración retrocompatible del formato viejo de campos (ej. `Tarea.nombre`)
+ * al patrón `entidad_atributo` (ej. `tarea_nombre`), aplicada a datos leídos
+ * de localStorage, carpeta local, Google Drive o un JSON importado que
+ * todavía puedan tener el formato anterior. Se detecta el formato viejo por
+ * la presencia de la clave `id` a secas (ninguna entidad en el formato nuevo
+ * ya usa esa clave). `motivo_incumplimiento` se descarta durante la
+ * migración porque el campo se eliminó del modelo.
+ */
+function migrarCategoria(c) {
+  if (!('id' in c)) return c;
+  const { id, nombre, color, orden, disfrute } = c;
+  return { categoria_id: id, categoria_nombre: nombre, categoria_color: color, categoria_orden: orden, categoria_disfrute: disfrute };
+}
+
+function migrarSubcategoria(s) {
+  if (!('id' in s)) return s;
+  const { id, nombre, categoria_id, color } = s;
+  return { subcategoria_id: id, subcategoria_nombre: nombre, categoria_id, subcategoria_color: color };
+}
+
+function migrarUbicacion(u) {
+  if (!('id' in u)) return u;
+  const { id, nombre, latitud, longitud } = u;
+  return { ubicacion_id: id, ubicacion_nombre: nombre, ubicacion_latitud: latitud, ubicacion_longitud: longitud };
+}
+
+function migrarMeta(m) {
+  if (!('id' in m)) return m;
+  const { id, nombre, plazo, descripcion, fecha_objetivo, creada_en } = m;
+  return { meta_id: id, meta_nombre: nombre, meta_plazo: plazo, meta_descripcion: descripcion, meta_fecha_objetivo: fecha_objetivo, meta_creada_en: creada_en };
+}
+
+function migrarPersona(p) {
+  if (!('id' in p)) return p;
+  const { id, nombre, ultimo_contacto, notas, creada_en } = p;
+  return { persona_id: id, persona_nombre: nombre, persona_ultimo_contacto: ultimo_contacto, persona_notas: notas, persona_creada_en: creada_en };
+}
+
+function migrarTarea(t) {
+  if (!('id' in t)) return t;
+  const {
+    id,
+    nombre,
+    categoria_id,
+    subcategoria_id,
+    estado,
+    fecha_inicio_posible,
+    fecha_limite,
+    fecha_sugerida,
+    fecha_hora_agendada,
+    duracion_estimada_min,
+    duracion_real_min,
+    notas,
+    notificada_en_para,
+    dependencias,
+    mantenimiento,
+    divisible,
+    multitasking,
+    importancia,
+    dias_habiles,
+    ubicacion_id,
+    requiere_clima_bueno,
+    metas_ids,
+    recompensa,
+    costo_estimado,
+    costo_real,
+    creada_en,
+    completada_en,
+  } = t;
+  return {
+    tarea_id: id,
+    tarea_nombre: nombre,
+    categoria_id,
+    subcategoria_id,
+    tarea_estado: estado,
+    tarea_fecha_inicio_posible: fecha_inicio_posible,
+    tarea_fecha_limite: fecha_limite,
+    tarea_fecha_sugerida: fecha_sugerida,
+    tarea_fecha_hora_agendada: fecha_hora_agendada,
+    tarea_duracion_estimada_min: duracion_estimada_min,
+    tarea_duracion_real_min: duracion_real_min,
+    tarea_notas: notas,
+    tarea_notificada_en_para: notificada_en_para,
+    dependencias,
+    tarea_mantenimiento: mantenimiento,
+    tarea_divisible: divisible,
+    tarea_multitasking: multitasking,
+    tarea_importancia: importancia,
+    tarea_dias_habiles: dias_habiles,
+    ubicacion_id,
+    tarea_requiere_clima_bueno: requiere_clima_bueno,
+    metas_ids,
+    tarea_recompensa: recompensa,
+    tarea_costo_estimado: costo_estimado,
+    tarea_costo_real: costo_real,
+    tarea_creada_en: creada_en,
+    tarea_completada_en: completada_en,
+  };
+}
+
+function normalizarDatosCrudos(datos) {
+  return {
+    categorias: (datos.categorias || []).map(migrarCategoria),
+    subcategorias: (datos.subcategorias || []).map(migrarSubcategoria),
+    ubicaciones: (datos.ubicaciones || []).map(migrarUbicacion),
+    metas: (datos.metas || []).map(migrarMeta),
+    personas: (datos.personas || []).map(migrarPersona),
+    tareas: (datos.tareas || []).map(migrarTarea),
+  };
+}
+
 export function suscribir(fn) {
   listeners.push(fn);
 }
@@ -83,12 +195,7 @@ function cargarDeLocalStorage() {
   if (!crudo) return false;
   try {
     const datos = JSON.parse(crudo);
-    estado.categorias = datos.categorias || [];
-    estado.subcategorias = datos.subcategorias || [];
-    estado.ubicaciones = datos.ubicaciones || [];
-    estado.metas = datos.metas || [];
-    estado.personas = datos.personas || [];
-    estado.tareas = datos.tareas || [];
+    Object.assign(estado, normalizarDatosCrudos(datos));
     return true;
   } catch (error) {
     console.warn('No se pudo leer localStorage:', error);
@@ -180,12 +287,14 @@ export async function cargarDesdeCarpeta() {
   const datosTareas = await leerArchivo(ARCHIVO_TAREAS);
 
   if (datosCategorias || datosTareas) {
-    estado.categorias = (datosCategorias && datosCategorias.categorias) || [];
-    estado.subcategorias = (datosCategorias && datosCategorias.subcategorias) || [];
-    estado.ubicaciones = (datosCategorias && datosCategorias.ubicaciones) || [];
-    estado.metas = (datosCategorias && datosCategorias.metas) || [];
-    estado.personas = (datosCategorias && datosCategorias.personas) || [];
-    estado.tareas = (datosTareas && datosTareas.tareas) || [];
+    const normalizadosCategorias = normalizarDatosCrudos(datosCategorias || {});
+    const normalizadosTareas = normalizarDatosCrudos(datosTareas || {});
+    estado.categorias = normalizadosCategorias.categorias;
+    estado.subcategorias = normalizadosCategorias.subcategorias;
+    estado.ubicaciones = normalizadosCategorias.ubicaciones;
+    estado.metas = normalizadosCategorias.metas;
+    estado.personas = normalizadosCategorias.personas;
+    estado.tareas = normalizadosTareas.tareas;
     guardarEnLocalStorage();
   } else {
     // Carpeta nueva y vacía: la sembramos con lo que ya haya en memoria/localStorage.
@@ -228,12 +337,7 @@ export async function conectarDrive() {
 
     if (usarDrive) {
       const datosRemotos = await leerArchivoRemoto(archivoRemoto.id);
-      estado.categorias = datosRemotos.categorias || [];
-      estado.subcategorias = datosRemotos.subcategorias || [];
-      estado.ubicaciones = datosRemotos.ubicaciones || [];
-      estado.metas = datosRemotos.metas || [];
-      estado.personas = datosRemotos.personas || [];
-      estado.tareas = datosRemotos.tareas || [];
+      Object.assign(estado, normalizarDatosCrudos(datosRemotos));
       guardarEnLocalStorage();
       recordarUltimoModifiedTimeDrive(archivoRemoto.modifiedTime);
     } else {
@@ -278,11 +382,6 @@ export function exportarJSON() {
 export async function importarJSON(archivo) {
   const texto = await archivo.text();
   const datos = JSON.parse(texto);
-  estado.categorias = datos.categorias || [];
-  estado.subcategorias = datos.subcategorias || [];
-  estado.ubicaciones = datos.ubicaciones || [];
-  estado.metas = datos.metas || [];
-  estado.personas = datos.personas || [];
-  estado.tareas = datos.tareas || [];
+  Object.assign(estado, normalizarDatosCrudos(datos));
   await persistirYNotificar();
 }

@@ -20,7 +20,7 @@ function formatearDias(dias) {
 export function renderVistaTabla(contenedor) {
   const hoy = hoyISO();
   const filas = estado.tareas
-    .filter((t) => t.estado !== 'completada')
+    .filter((t) => t.tarea_estado !== 'completada')
     .map((tarea) => ({ tarea, fechaRef: fechaDeReferencia(tarea) }))
     .sort((a, b) => (a.fechaRef || '9999-99-99').localeCompare(b.fechaRef || '9999-99-99'));
 
@@ -52,28 +52,28 @@ export function renderVistaTabla(contenedor) {
   }
 
   filas.forEach(({ tarea, fechaRef }) => {
-    const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
-    const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
+    const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
+    const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
     const dias = fechaRef ? diasEntreFechas(hoy, fechaRef) : null;
 
     const fila = document.createElement('tr');
     fila.className = 'fila-tabla-tarea';
     fila.innerHTML = `
-      <td>${escaparHtml(tarea.nombre)}</td>
+      <td>${escaparHtml(tarea.tarea_nombre)}</td>
       <td>${
         categoria
-          ? escaparHtml(categoria.nombre) + (subcategoria ? ` / ${escaparHtml(subcategoria.nombre)}` : '')
+          ? escaparHtml(categoria.categoria_nombre) + (subcategoria ? ` / ${escaparHtml(subcategoria.subcategoria_nombre)}` : '')
           : ''
       }</td>
-      <td>${ICONOS_IMPORTANCIA[tarea.importancia] || ICONOS_IMPORTANCIA.media} ${
-        ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media
+      <td>${ICONOS_IMPORTANCIA[tarea.tarea_importancia] || ICONOS_IMPORTANCIA.media} ${
+        ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia] || ETIQUETAS_IMPORTANCIA.media
       }</td>
-      <td>${ETIQUETAS_ESTADO[tarea.estado]}</td>
+      <td>${ETIQUETAS_ESTADO[tarea.tarea_estado]}</td>
       <td>${fechaRef ? formatearFecha(fechaRef) : 'Sin fecha'}</td>
       <td>${dias === null ? '—' : formatearDias(dias)}</td>
     `;
     fila.addEventListener('click', () => {
-      abrirEdicionAlEntrar(tarea.id);
+      abrirEdicionAlEntrar(tarea.tarea_id);
       location.hash = '#/tareas';
     });
     cuerpo.appendChild(fila);

@@ -25,30 +25,30 @@ import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/
 
 export function renderVistaHoy(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
-  const enfoqueIds = new Set(calcularEnfoque8020(estado.tareas, estado.categorias).map((t) => t.id));
+  const enfoqueIds = new Set(calcularEnfoque8020(estado.tareas, estado.categorias).map((t) => t.tarea_id));
   const pendientesActivas = estado.tareas
-    .filter((t) => t.estado !== 'completada')
+    .filter((t) => t.tarea_estado !== 'completada')
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion);
 
   const infoPorTarea = new Map(
-    pendientesActivas.map((tarea) => [tarea.id, tareaEstaBloqueada(tarea, estado.tareas)])
+    pendientesActivas.map((tarea) => [tarea.tarea_id, tareaEstaBloqueada(tarea, estado.tareas)])
   );
-  const bloqueadas = pendientesActivas.filter((t) => infoPorTarea.get(t.id).bloqueada);
-  const idsBloqueadas = new Set(bloqueadas.map((t) => t.id));
+  const bloqueadas = pendientesActivas.filter((t) => infoPorTarea.get(t.tarea_id).bloqueada);
+  const idsBloqueadas = new Set(bloqueadas.map((t) => t.tarea_id));
 
-  const accionables = pendientesActivas.filter((t) => !idsBloqueadas.has(t.id));
-  const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.fecha_inicio_posible));
-  const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.fecha_inicio_posible));
+  const accionables = pendientesActivas.filter((t) => !idsBloqueadas.has(t.tarea_id));
+  const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.tarea_fecha_inicio_posible));
+  const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.tarea_fecha_inicio_posible));
 
   const urgentes = disponibles
-    .filter((t) => esVencida(t.fecha_limite) || esHoy(t.fecha_limite))
+    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite))
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
-  const idsUrgentes = new Set(urgentes.map((t) => t.id));
+  const idsUrgentes = new Set(urgentes.map((t) => t.tarea_id));
   const resto = disponibles
-    .filter((t) => !idsUrgentes.has(t.id))
+    .filter((t) => !idsUrgentes.has(t.tarea_id))
     .sort(
       (a, b) =>
-        (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99') ||
+        (a.tarea_fecha_limite || '9999-99-99').localeCompare(b.tarea_fecha_limite || '9999-99-99') ||
         compararPorPrioridad(a, b, estado.categorias)
     );
 
@@ -61,7 +61,7 @@ export function renderVistaHoy(contenedor) {
             <select id="filtro-ubicacion-hoy">
               <option value="">Cualquier ubicación</option>
               ${estado.ubicaciones
-                .map((u) => `<option value="${u.id}" ${filtroUbicacion === u.id ? 'selected' : ''}>${escaparHtml(u.nombre)}</option>`)
+                .map((u) => `<option value="${u.ubicacion_id}" ${filtroUbicacion === u.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.ubicacion_nombre)}</option>`)
                 .join('')}
             </select>
           </label>`
@@ -142,7 +142,7 @@ export function renderVistaHoy(contenedor) {
   const listaNoDisponibles = contenedor.querySelector('#lista-no-disponibles');
   if (listaNoDisponibles) {
     aunNoDisponibles
-      .sort((a, b) => a.fecha_inicio_posible.localeCompare(b.fecha_inicio_posible))
+      .sort((a, b) => a.tarea_fecha_inicio_posible.localeCompare(b.tarea_fecha_inicio_posible))
       .forEach((tarea) => listaNoDisponibles.appendChild(renderItem(tarea, { soloInfo: true, enfoqueIds })));
   }
 
@@ -150,40 +150,40 @@ export function renderVistaHoy(contenedor) {
   if (listaBloqueadas) {
     bloqueadas.forEach((tarea) =>
       listaBloqueadas.appendChild(
-        renderItem(tarea, { soloInfo: true, bloqueantes: infoPorTarea.get(tarea.id).bloqueantes, enfoqueIds })
+        renderItem(tarea, { soloInfo: true, bloqueantes: infoPorTarea.get(tarea.tarea_id).bloqueantes, enfoqueIds })
       )
     );
   }
 }
 
 function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = null } = {}) {
-  const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
-  const ubicacion = estado.ubicaciones.find((u) => u.id === tarea.ubicacion_id);
+  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
+  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
+  const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
   const li = document.createElement('li');
-  li.className = 'item-tarea' + (esVencida(tarea.fecha_limite) ? ' vencida' : '');
+  li.className = 'item-tarea' + (esVencida(tarea.tarea_fecha_limite) ? ' vencida' : '');
   li.innerHTML = `
     <div class="item-tarea-info">
-      <strong>${escaparHtml(tarea.nombre)}</strong>
+      <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
-        <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.importancia] || ICONOS_IMPORTANCIA.media} ${
-          ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media
+        <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia] || ICONOS_IMPORTANCIA.media} ${
+          ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia] || ETIQUETAS_IMPORTANCIA.media
         }</span>
-        ${enfoqueIds && enfoqueIds.has(tarea.id) ? `<span class="etiqueta-fecha etiqueta-enfoque">🎯 Foco 80/20</span>` : ''}
-        ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.color ?? categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
-        ${tarea.fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.fecha_inicio_posible)}</span>` : ''}
-        ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
-        ${tarea.fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.fecha_hora_agendada)}</span>` : ''}
-        <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.estado]}</span>
-        ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.nombre)}</span>` : ''}
-        ${tarea.recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.recompensa)}</span>` : ''}
-        ${tarea.costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.costo_estimado}</span>` : ''}
+        ${enfoqueIds && enfoqueIds.has(tarea.tarea_id) ? `<span class="etiqueta-fecha etiqueta-enfoque">🎯 Foco 80/20</span>` : ''}
+        ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.subcategoria_color ?? categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
+        ${tarea.tarea_fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.tarea_fecha_inicio_posible)}</span>` : ''}
+        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.tarea_fecha_limite)}</span>` : ''}
+        ${tarea.tarea_fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.tarea_fecha_hora_agendada)}</span>` : ''}
+        <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.tarea_estado]}</span>
+        ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
+        ${tarea.tarea_recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.tarea_recompensa)}</span>` : ''}
+        ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
         <span class="etiqueta-fecha etiqueta-solapamiento-calendar" hidden></span>
       </span>
       ${
         bloqueantes
-          ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.nombre)).join(', ')}</p>`
+          ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.tarea_nombre)).join(', ')}</p>`
           : ''
       }
       <div class="contenedor-cierre" hidden></div>
@@ -206,7 +206,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
     etiquetaClima.hidden = false;
   });
 
-  if (hayConexionGoogleCalendar() && tarea.fecha_hora_agendada) {
+  if (hayConexionGoogleCalendar() && tarea.tarea_fecha_hora_agendada) {
     const etiquetaCalendar = li.querySelector('.etiqueta-solapamiento-calendar');
     obtenerEventosDeHoy()
       .then((eventos) => {
@@ -233,13 +233,13 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
     contenedorCierre.innerHTML = `
       <div class="panel-cierre">
         <label>Duración real (min)
-          <input type="number" min="0" step="5" value="${tarea.duracion_estimada_min || 30}" data-campo="duracion-real" />
+          <input type="number" min="0" step="5" value="${tarea.tarea_duracion_estimada_min || 30}" data-campo="duracion-real" />
         </label>
         <label>Costo real ($) (opcional)
           <input type="number" min="0" data-campo="costo-real" />
         </label>
         ${
-          tarea.mantenimiento
+          tarea.tarea_mantenimiento
             ? `<label>¿Qué podrías mejorar la próxima vez? (opcional)
                 <input type="text" data-campo="mejora" />
               </label>`
@@ -274,9 +274,6 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
     contenedorPanel.innerHTML = '';
     contenedorCierre.innerHTML = `
       <div class="panel-cierre">
-        <label>¿Por qué no se cumplió?
-          <input type="text" placeholder="Motivo (opcional)" data-campo="motivo" />
-        </label>
         <button type="button" data-accion="continuar-reprogramar" class="boton-primario">Reprogramar</button>
         <button type="button" data-accion="cancelar-cierre">Cancelar</button>
       </div>
@@ -289,16 +286,14 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
     });
 
     contenedorCierre.querySelector('[data-accion="continuar-reprogramar"]').addEventListener('click', () => {
-      const motivo = contenedorCierre.querySelector('[data-campo="motivo"]').value.trim();
       contenedorCierre.hidden = true;
       contenedorCierre.innerHTML = '';
 
       const panel = crearPanelReprogramar({
-        diasHabiles: tarea.dias_habiles,
+        diasHabiles: tarea.tarea_dias_habiles,
         onConfirmar: async (fechaHoraISO) => {
-          tarea.motivo_incumplimiento = motivo;
           reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
-          if (tarea.estado === 'a_confirmar' || tarea.estado === 'en_progreso') tarea.estado = 'pendiente';
+          if (tarea.tarea_estado === 'a_confirmar' || tarea.tarea_estado === 'en_progreso') tarea.tarea_estado = 'pendiente';
           contenedorPanel.hidden = true;
           contenedorPanel.innerHTML = '';
           await persistirYNotificar();

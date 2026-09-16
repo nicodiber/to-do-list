@@ -3,8 +3,8 @@ import { crearPersona } from '../assets/js/modelos.js';
 import { escaparHtml, formatearFecha, hoyISO, diasEntreFechas } from '../assets/js/utilidades.js';
 
 function diasDesdeContacto(persona) {
-  if (!persona.ultimo_contacto) return Infinity;
-  return diasEntreFechas(persona.ultimo_contacto, hoyISO());
+  if (!persona.persona_ultimo_contacto) return Infinity;
+  return diasEntreFechas(persona.persona_ultimo_contacto, hoyISO());
 }
 
 export function renderVistaPersonas(contenedor) {
@@ -12,9 +12,9 @@ export function renderVistaPersonas(contenedor) {
     <h2>Personas</h2>
     <p class="ayuda">Hace cuánto no te reunís con cada persona, ordenado de mayor a menor tiempo — para no perder el contacto con quienes importan.</p>
     <form id="form-nueva-persona" class="formulario-en-linea">
-      <input type="text" name="nombre" placeholder="Nombre" required />
-      <label>Último contacto <input type="date" name="ultimo_contacto" /></label>
-      <input type="text" name="notas" placeholder="Notas (opcional, ej. hermana)" />
+      <input type="text" name="persona_nombre" placeholder="Nombre" required />
+      <label>Último contacto <input type="date" name="persona_ultimo_contacto" /></label>
+      <input type="text" name="persona_notas" placeholder="Notas (opcional, ej. hermana)" />
       <button type="submit">Agregar persona</button>
     </form>
     <div id="lista-personas" class="lista-categorias"></div>
@@ -23,13 +23,13 @@ export function renderVistaPersonas(contenedor) {
   contenedor.querySelector('#form-nueva-persona').addEventListener('submit', async (evento) => {
     evento.preventDefault();
     const formulario = evento.target;
-    const nombre = formulario.nombre.value.trim();
+    const nombre = formulario.persona_nombre.value.trim();
     if (!nombre) return;
     estado.personas.push(
       crearPersona({
-        nombre,
-        ultimo_contacto: formulario.ultimo_contacto.value,
-        notas: formulario.notas.value.trim(),
+        persona_nombre: nombre,
+        persona_ultimo_contacto: formulario.persona_ultimo_contacto.value,
+        persona_notas: formulario.persona_notas.value.trim(),
       })
     );
     await persistirYNotificar();
@@ -54,27 +54,27 @@ function renderPersona(persona) {
   tarjeta.className = 'tarjeta-categoria';
   tarjeta.innerHTML = `
     <div class="encabezado-categoria">
-      <strong>${escaparHtml(persona.nombre)}</strong>
+      <strong>${escaparHtml(persona.persona_nombre)}</strong>
       <button type="button" data-accion="eliminar-persona" title="Eliminar persona">✕</button>
     </div>
     <span class="etiquetas">
       <span class="etiqueta-fecha">
         ${dias === Infinity ? 'Todavía no registraste un contacto' : `Hace ${dias} día(s)`}
       </span>
-      ${persona.ultimo_contacto ? `<span class="etiqueta-fecha">Último: ${formatearFecha(persona.ultimo_contacto)}</span>` : ''}
+      ${persona.persona_ultimo_contacto ? `<span class="etiqueta-fecha">Último: ${formatearFecha(persona.persona_ultimo_contacto)}</span>` : ''}
     </span>
-    ${persona.notas ? `<p class="notas-tarea">${escaparHtml(persona.notas)}</p>` : ''}
+    ${persona.persona_notas ? `<p class="notas-tarea">${escaparHtml(persona.persona_notas)}</p>` : ''}
     <button type="button" data-accion="marcar-contacto" class="boton-primario">Marcar contacto hoy</button>
   `;
 
   tarjeta.querySelector('[data-accion="marcar-contacto"]').addEventListener('click', async () => {
-    persona.ultimo_contacto = hoyISO();
+    persona.persona_ultimo_contacto = hoyISO();
     await persistirYNotificar();
   });
 
   tarjeta.querySelector('[data-accion="eliminar-persona"]').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar a "${persona.nombre}"?`)) return;
-    estado.personas = estado.personas.filter((p) => p.id !== persona.id);
+    if (!confirm(`¿Eliminar a "${persona.persona_nombre}"?`)) return;
+    estado.personas = estado.personas.filter((p) => p.persona_id !== persona.persona_id);
     await persistirYNotificar();
   });
 

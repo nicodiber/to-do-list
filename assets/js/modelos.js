@@ -25,20 +25,32 @@ export const ICONOS_IMPORTANCIA = {
 
 export const ORDEN_IMPORTANCIA = { alta: 0, media: 1, baja: 2 };
 
-export function crearCategoria({ nombre, color = '#4f7cff', orden = 0, disfrute = 3 }) {
-  return { id: generarId(), nombre, color, orden, disfrute };
+export function crearCategoria({ categoria_nombre, categoria_color = '#4f7cff', categoria_orden = 0, categoria_disfrute = 3 }) {
+  return {
+    categoria_id: generarId(),
+    categoria_nombre,
+    categoria_color,
+    categoria_orden,
+    categoria_disfrute,
+  };
 }
 
-export function crearSubcategoria({ nombre, categoria_id, color = '#4f7cff' }) {
-  return { id: generarId(), nombre, categoria_id, color };
+export function crearSubcategoria({ subcategoria_nombre, categoria_id, subcategoria_color = '#4f7cff' }) {
+  return { subcategoria_id: generarId(), subcategoria_nombre, categoria_id, subcategoria_color };
 }
 
-export function crearUbicacion({ nombre, latitud, longitud }) {
-  return { id: generarId(), nombre, latitud, longitud };
+export function crearUbicacion({ ubicacion_nombre, ubicacion_latitud, ubicacion_longitud }) {
+  return { ubicacion_id: generarId(), ubicacion_nombre, ubicacion_latitud, ubicacion_longitud };
 }
 
-export function crearPersona({ nombre, ultimo_contacto = '', notas = '' }) {
-  return { id: generarId(), nombre, ultimo_contacto, notas, creada_en: ahoraISO() };
+export function crearPersona({ persona_nombre, persona_ultimo_contacto = '', persona_notas = '' }) {
+  return {
+    persona_id: generarId(),
+    persona_nombre,
+    persona_ultimo_contacto,
+    persona_notas,
+    persona_creada_en: ahoraISO(),
+  };
 }
 
 export const PLAZOS_META = ['corto', 'mediano', 'largo'];
@@ -49,8 +61,15 @@ export const ETIQUETAS_PLAZO = {
   largo: 'Largo plazo',
 };
 
-export function crearMeta({ nombre, plazo = 'mediano', descripcion = '', fecha_objetivo = '' }) {
-  return { id: generarId(), nombre, plazo, descripcion, fecha_objetivo, creada_en: ahoraISO() };
+export function crearMeta({ meta_nombre, meta_plazo = 'mediano', meta_descripcion = '', meta_fecha_objetivo = '' }) {
+  return {
+    meta_id: generarId(),
+    meta_nombre,
+    meta_plazo,
+    meta_descripcion,
+    meta_fecha_objetivo,
+    meta_creada_en: ahoraISO(),
+  };
 }
 
 export const UNIDADES_MANTENIMIENTO = ['dias', 'semanas', 'meses'];
@@ -62,57 +81,56 @@ export const ETIQUETAS_UNIDAD_MANTENIMIENTO = {
 };
 
 export function crearTarea({
-  nombre,
+  tarea_nombre,
   categoria_id = null,
   subcategoria_id = null,
-  estado = 'pendiente',
-  fecha_inicio_posible = '',
-  fecha_limite = '',
-  fecha_sugerida = '',
-  fecha_hora_agendada = '',
-  duracion_estimada_min = 30,
-  notas = '',
+  tarea_estado = 'pendiente',
+  tarea_fecha_inicio_posible = '',
+  tarea_fecha_limite = '',
+  tarea_fecha_sugerida = '',
+  tarea_fecha_hora_agendada = '',
+  tarea_duracion_estimada_min = 30,
+  tarea_notas = '',
   dependencias = [],
-  mantenimiento = null,
-  divisible = false,
-  multitasking = false,
-  importancia = 'media',
-  dias_habiles = [],
+  tarea_mantenimiento = null,
+  tarea_divisible = false,
+  tarea_multitasking = false,
+  tarea_importancia = 'media',
+  tarea_dias_habiles = [],
   ubicacion_id = null,
-  requiere_clima_bueno = false,
+  tarea_requiere_clima_bueno = false,
   metas_ids = [],
-  recompensa = '',
-  costo_estimado = 0,
-  costo_real = null,
+  tarea_recompensa = '',
+  tarea_costo_estimado = 0,
+  tarea_costo_real = null,
 }) {
   return {
-    id: generarId(),
-    nombre,
+    tarea_id: generarId(),
+    tarea_nombre,
     categoria_id: categoria_id || null,
     subcategoria_id: subcategoria_id || null,
-    estado,
-    fecha_inicio_posible,
-    fecha_limite,
-    fecha_sugerida,
-    fecha_hora_agendada,
-    duracion_estimada_min,
-    duracion_real_min: null,
-    notas,
-    motivo_incumplimiento: '',
-    notificada_en_para: '',
+    tarea_estado,
+    tarea_fecha_inicio_posible,
+    tarea_fecha_limite,
+    tarea_fecha_sugerida,
+    tarea_fecha_hora_agendada,
+    tarea_duracion_estimada_min,
+    tarea_duracion_real_min: null,
+    tarea_notas,
+    tarea_notificada_en_para: '',
     dependencias,
-    mantenimiento,
-    divisible,
-    multitasking,
-    importancia,
-    dias_habiles,
+    tarea_mantenimiento,
+    tarea_divisible,
+    tarea_multitasking,
+    tarea_importancia,
+    tarea_dias_habiles,
     ubicacion_id: ubicacion_id || null,
-    requiere_clima_bueno,
+    tarea_requiere_clima_bueno,
     metas_ids,
-    recompensa,
-    costo_estimado,
-    costo_real,
-    creada_en: ahoraISO(),
-    completada_en: null,
+    tarea_recompensa,
+    tarea_costo_estimado,
+    tarea_costo_real,
+    tarea_creada_en: ahoraISO(),
+    tarea_completada_en: null,
   };
 }

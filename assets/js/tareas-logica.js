@@ -26,28 +26,28 @@ export function calcularProximaFechaMantenimiento(desdeISODatetime, mantenimient
  */
 export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMejora = '', costoReal = null } = {}) {
   const ahora = ahoraISO();
-  tarea.estado = 'completada';
-  tarea.completada_en = ahora;
-  if (duracionReal != null) tarea.duracion_real_min = duracionReal;
-  if (costoReal != null) tarea.costo_real = costoReal;
+  tarea.tarea_estado = 'completada';
+  tarea.tarea_completada_en = ahora;
+  if (duracionReal != null) tarea.tarea_duracion_real_min = duracionReal;
+  if (costoReal != null) tarea.tarea_costo_real = costoReal;
 
-  if (!tarea.mantenimiento) return null;
+  if (!tarea.tarea_mantenimiento) return null;
 
   const notas = notaMejora
-    ? `${tarea.notas ? tarea.notas + '\n\n' : ''}Mejora sugerida la vez anterior: ${notaMejora}`
-    : tarea.notas;
+    ? `${tarea.tarea_notas ? tarea.tarea_notas + '\n\n' : ''}Mejora sugerida la vez anterior: ${notaMejora}`
+    : tarea.tarea_notas;
 
   const nueva = crearTarea({
-    nombre: tarea.nombre,
+    tarea_nombre: tarea.tarea_nombre,
     categoria_id: tarea.categoria_id,
     subcategoria_id: tarea.subcategoria_id,
-    estado: 'pendiente',
-    fecha_limite: calcularProximaFechaMantenimiento(ahora, tarea.mantenimiento),
-    duracion_estimada_min: tarea.duracion_estimada_min,
-    notas,
-    mantenimiento: tarea.mantenimiento,
-    recompensa: tarea.recompensa,
-    costo_estimado: tarea.costo_estimado,
+    tarea_estado: 'pendiente',
+    tarea_fecha_limite: calcularProximaFechaMantenimiento(ahora, tarea.tarea_mantenimiento),
+    tarea_duracion_estimada_min: tarea.tarea_duracion_estimada_min,
+    tarea_notas: notas,
+    tarea_mantenimiento: tarea.tarea_mantenimiento,
+    tarea_recompensa: tarea.tarea_recompensa,
+    tarea_costo_estimado: tarea.tarea_costo_estimado,
   });
   listaTareas.push(nueva);
   return nueva;
@@ -59,38 +59,38 @@ export function completarTarea(tarea, listaTareas, { duracionReal = null, notaMe
  * tenía una fecha previa agendada, no hay delta que propagar.
  */
 export function reprogramarTareaConCascada(tarea, nuevaFechaHoraISO, listaTareas) {
-  const anteriorISO = tarea.fecha_hora_agendada;
-  tarea.fecha_hora_agendada = nuevaFechaHoraISO;
+  const anteriorISO = tarea.tarea_fecha_hora_agendada;
+  tarea.tarea_fecha_hora_agendada = nuevaFechaHoraISO;
 
   if (!anteriorISO) return;
 
   const deltaMs = new Date(nuevaFechaHoraISO).getTime() - new Date(anteriorISO).getTime();
   if (!deltaMs) return;
 
-  desplazarDependientes(tarea.id, deltaMs, listaTareas, new Set([tarea.id]));
+  desplazarDependientes(tarea.tarea_id, deltaMs, listaTareas, new Set([tarea.tarea_id]));
 }
 
 function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados) {
   const deltaDias = Math.round(deltaMs / (24 * 60 * 60 * 1000));
 
   listaTareas
-    .filter((t) => (t.dependencias || []).includes(idTarea) && !visitados.has(t.id))
+    .filter((t) => (t.dependencias || []).includes(idTarea) && !visitados.has(t.tarea_id))
     .forEach((dependiente) => {
-      visitados.add(dependiente.id);
+      visitados.add(dependiente.tarea_id);
 
-      if (dependiente.fecha_hora_agendada) {
-        dependiente.fecha_hora_agendada = new Date(
-          new Date(dependiente.fecha_hora_agendada).getTime() + deltaMs
+      if (dependiente.tarea_fecha_hora_agendada) {
+        dependiente.tarea_fecha_hora_agendada = new Date(
+          new Date(dependiente.tarea_fecha_hora_agendada).getTime() + deltaMs
         ).toISOString();
       }
-      if (dependiente.fecha_limite) {
-        dependiente.fecha_limite = sumarDiasAFecha(dependiente.fecha_limite, deltaDias);
+      if (dependiente.tarea_fecha_limite) {
+        dependiente.tarea_fecha_limite = sumarDiasAFecha(dependiente.tarea_fecha_limite, deltaDias);
       }
-      if (dependiente.fecha_sugerida) {
-        dependiente.fecha_sugerida = sumarDiasAFecha(dependiente.fecha_sugerida, deltaDias);
+      if (dependiente.tarea_fecha_sugerida) {
+        dependiente.tarea_fecha_sugerida = sumarDiasAFecha(dependiente.tarea_fecha_sugerida, deltaDias);
       }
 
-      desplazarDependientes(dependiente.id, deltaMs, listaTareas, visitados);
+      desplazarDependientes(dependiente.tarea_id, deltaMs, listaTareas, visitados);
     });
 }
 
@@ -105,24 +105,24 @@ function sumarDiasAFecha(fechaISODate, dias) {
  */
 export function tareaEstaBloqueada(tarea, listaTareas) {
   const bloqueantes = (tarea.dependencias || [])
-    .map((id) => listaTareas.find((t) => t.id === id))
-    .filter((dependencia) => dependencia && dependencia.estado !== 'completada');
+    .map((id) => listaTareas.find((t) => t.tarea_id === id))
+    .filter((dependencia) => dependencia && dependencia.tarea_estado !== 'completada');
   return { bloqueada: bloqueantes.length > 0, bloqueantes };
 }
 
 /**
- * Compara dos tareas por prioridad: primero por `importancia` (alta antes
+ * Compara dos tareas por prioridad: primero por `tarea_importancia` (alta antes
  * que media antes que baja), y como desempate por prioridad de categoría
- * (`Categoria.orden`, menor = más prioritaria). Tareas sin categoría, o cuya
+ * (`Categoria.categoria_orden`, menor = más prioritaria). Tareas sin categoría, o cuya
  * categoría ya no existe, quedan siempre al final.
  */
 export function compararPorPrioridad(a, b, categorias) {
-  const importanciaA = ORDEN_IMPORTANCIA[a.importancia] ?? ORDEN_IMPORTANCIA.media;
-  const importanciaB = ORDEN_IMPORTANCIA[b.importancia] ?? ORDEN_IMPORTANCIA.media;
+  const importanciaA = ORDEN_IMPORTANCIA[a.tarea_importancia] ?? ORDEN_IMPORTANCIA.media;
+  const importanciaB = ORDEN_IMPORTANCIA[b.tarea_importancia] ?? ORDEN_IMPORTANCIA.media;
   if (importanciaA !== importanciaB) return importanciaA - importanciaB;
 
-  const ordenA = categorias.find((c) => c.id === a.categoria_id)?.orden ?? Infinity;
-  const ordenB = categorias.find((c) => c.id === b.categoria_id)?.orden ?? Infinity;
+  const ordenA = categorias.find((c) => c.categoria_id === a.categoria_id)?.categoria_orden ?? Infinity;
+  const ordenB = categorias.find((c) => c.categoria_id === b.categoria_id)?.categoria_orden ?? Infinity;
   return ordenA - ordenB;
 }
 
@@ -141,7 +141,7 @@ function existeCaminoDeDependencias(desdeId, hastaId, listaTareas, visitados) {
   if (desdeId === hastaId) return true;
   if (visitados.has(desdeId)) return false;
   visitados.add(desdeId);
-  const tarea = listaTareas.find((t) => t.id === desdeId);
+  const tarea = listaTareas.find((t) => t.tarea_id === desdeId);
   if (!tarea) return false;
   return (tarea.dependencias || []).some((depId) =>
     existeCaminoDeDependencias(depId, hastaId, listaTareas, visitados)
@@ -154,8 +154,8 @@ function existeCaminoDeDependencias(desdeId, hastaId, listaTareas, visitados) {
  * pendientes que la bloqueen.
  */
 export function esTareaAccionable(tarea, listaTareas) {
-  if (tarea.estado === 'completada') return false;
-  if (noPuedeEmpezarTodavia(tarea.fecha_inicio_posible)) return false;
+  if (tarea.tarea_estado === 'completada') return false;
+  if (noPuedeEmpezarTodavia(tarea.tarea_fecha_inicio_posible)) return false;
   return !tareaEstaBloqueada(tarea, listaTareas).bloqueada;
 }
 
@@ -171,7 +171,7 @@ export function calcularEnfoque8020(tareas, categorias) {
     .sort(
       (a, b) =>
         compararPorPrioridad(a, b, categorias) ||
-        (a.fecha_limite || '9999-99-99').localeCompare(b.fecha_limite || '9999-99-99')
+        (a.tarea_fecha_limite || '9999-99-99').localeCompare(b.tarea_fecha_limite || '9999-99-99')
     );
   const cantidad = Math.ceil(accionables.length * 0.2);
   return accionables.slice(0, cantidad);

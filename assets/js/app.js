@@ -32,7 +32,7 @@ import {
 } from './notificaciones.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.42.0';
+const VERSION = 'v0.43.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');

@@ -1,14 +1,14 @@
 {
   "categorias": [
-    { "id": "cat-personal", "nombre": "Personal", "color": "#4f7cff", "orden": 1 },
-    { "id": "cat-facultad", "nombre": "Facultad", "color": "#22c55e", "orden": 2 },
-    { "id": "cat-trabajo", "nombre": "Trabajo", "color": "#f59e0b", "orden": 3 }
+    { "categoria_id": "cat-personal", "categoria_nombre": "Personal", "categoria_color": "#4f7cff", "categoria_orden": 1 },
+    { "categoria_id": "cat-facultad", "categoria_nombre": "Facultad", "categoria_color": "#22c55e", "categoria_orden": 2 },
+    { "categoria_id": "cat-trabajo", "categoria_nombre": "Trabajo", "categoria_color": "#f59e0b", "categoria_orden": 3 }
   ],
   "subcategorias": [
-    { "id": "sub-hobbies", "categoria_id": "cat-personal", "nombre": "Hobbies" },
-    { "id": "sub-examenes", "categoria_id": "cat-facultad", "nombre": "Exámenes" }
+    { "subcategoria_id": "sub-hobbies", "categoria_id": "cat-personal", "subcategoria_nombre": "Hobbies" },
+    { "subcategoria_id": "sub-examenes", "categoria_id": "cat-facultad", "subcategoria_nombre": "Exámenes" }
   ],
   "ubicaciones": [
-    { "id": "ubi-casa", "nombre": "Casa", "latitud": -34.6037, "longitud": -58.3816 }
+    { "ubicacion_id": "ubi-casa", "ubicacion_nombre": "Casa", "ubicacion_latitud": -34.6037, "ubicacion_longitud": -58.3816 }
   ]
 }

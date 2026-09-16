@@ -30,32 +30,32 @@ async function revisarTareasProximas(estado, registroSW) {
   if (!permisoNotificacionesConcedido()) return;
 
   const candidatas = estado.tareas.filter((tarea) => {
-    if (tarea.estado === 'completada') return false;
-    if (!tarea.fecha_hora_agendada) return false;
-    if (tarea.notificada_en_para === tarea.fecha_hora_agendada) return false;
-    const minutos = minutosHasta(tarea.fecha_hora_agendada);
+    if (tarea.tarea_estado === 'completada') return false;
+    if (!tarea.tarea_fecha_hora_agendada) return false;
+    if (tarea.tarea_notificada_en_para === tarea.tarea_fecha_hora_agendada) return false;
+    const minutos = minutosHasta(tarea.tarea_fecha_hora_agendada);
     return minutos <= VENTANA_AVISO_MIN && minutos >= -TOLERANCIA_ATRASO_MIN;
   });
 
   if (candidatas.length === 0) return;
 
   candidatas.forEach((tarea) => {
-    const hora = new Date(tarea.fecha_hora_agendada).toLocaleTimeString('es-AR', {
+    const hora = new Date(tarea.tarea_fecha_hora_agendada).toLocaleTimeString('es-AR', {
       hour: '2-digit',
       minute: '2-digit',
     });
     const opciones = {
       body: `Agendada para las ${hora}`,
-      tag: `tarea-${tarea.id}`,
+      tag: `tarea-${tarea.tarea_id}`,
       icon: 'assets/icons/icon.svg',
       data: { url: './#/tareas' },
     };
     if (registroSW) {
-      registroSW.showNotification(tarea.nombre, opciones);
+      registroSW.showNotification(tarea.tarea_nombre, opciones);
     } else {
-      new Notification(tarea.nombre, opciones);
+      new Notification(tarea.tarea_nombre, opciones);
     }
-    tarea.notificada_en_para = tarea.fecha_hora_agendada;
+    tarea.tarea_notificada_en_para = tarea.tarea_fecha_hora_agendada;
   });
 
   await persistirYNotificar();

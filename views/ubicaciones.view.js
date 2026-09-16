@@ -7,9 +7,9 @@ export function renderVistaUbicaciones(contenedor) {
     <h2>Ubicaciones</h2>
     <p class="ayuda">Cada ubicación tiene una latitud/longitud asociada, para poder chequear el clima real de las tareas que la usan (ej. "Casa", "Facultad").</p>
     <form id="form-nueva-ubicacion" class="formulario-en-linea">
-      <input type="text" name="nombre" placeholder="Nombre (ej. Casa)" required />
-      <input type="number" name="latitud" placeholder="Latitud" step="any" min="-90" max="90" required />
-      <input type="number" name="longitud" placeholder="Longitud" step="any" min="-180" max="180" required />
+      <input type="text" name="ubicacion_nombre" placeholder="Nombre (ej. Casa)" required />
+      <input type="number" name="ubicacion_latitud" placeholder="Latitud" step="any" min="-90" max="90" required />
+      <input type="number" name="ubicacion_longitud" placeholder="Longitud" step="any" min="-180" max="180" required />
       <button type="submit">Agregar ubicación</button>
     </form>
     <div id="lista-ubicaciones" class="lista-categorias"></div>
@@ -18,11 +18,11 @@ export function renderVistaUbicaciones(contenedor) {
   contenedor.querySelector('#form-nueva-ubicacion').addEventListener('submit', async (evento) => {
     evento.preventDefault();
     const formulario = evento.target;
-    const nombre = formulario.nombre.value.trim();
-    const latitud = Number(formulario.latitud.value);
-    const longitud = Number(formulario.longitud.value);
+    const nombre = formulario.ubicacion_nombre.value.trim();
+    const latitud = Number(formulario.ubicacion_latitud.value);
+    const longitud = Number(formulario.ubicacion_longitud.value);
     if (!nombre || Number.isNaN(latitud) || Number.isNaN(longitud)) return;
-    estado.ubicaciones.push(crearUbicacion({ nombre, latitud, longitud }));
+    estado.ubicaciones.push(crearUbicacion({ ubicacion_nombre: nombre, ubicacion_latitud: latitud, ubicacion_longitud: longitud }));
     await persistirYNotificar();
   });
 
@@ -40,18 +40,18 @@ function renderUbicacion(ubicacion) {
   tarjeta.className = 'tarjeta-categoria';
   tarjeta.innerHTML = `
     <div class="encabezado-categoria">
-      <strong>${escaparHtml(ubicacion.nombre)}</strong>
+      <strong>${escaparHtml(ubicacion.ubicacion_nombre)}</strong>
       <button type="button" data-accion="eliminar-ubicacion" title="Eliminar ubicación">✕</button>
     </div>
-    <p class="notas-tarea">Lat: ${ubicacion.latitud}, Lon: ${ubicacion.longitud}</p>
+    <p class="notas-tarea">Lat: ${ubicacion.ubicacion_latitud}, Lon: ${ubicacion.ubicacion_longitud}</p>
   `;
 
   tarjeta.querySelector('[data-accion="eliminar-ubicacion"]').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar la ubicación "${ubicacion.nombre}"? Las tareas asociadas quedan sin ubicación.`)) return;
+    if (!confirm(`¿Eliminar la ubicación "${ubicacion.ubicacion_nombre}"? Las tareas asociadas quedan sin ubicación.`)) return;
     estado.tareas.forEach((tarea) => {
-      if (tarea.ubicacion_id === ubicacion.id) tarea.ubicacion_id = null;
+      if (tarea.ubicacion_id === ubicacion.ubicacion_id) tarea.ubicacion_id = null;
     });
-    estado.ubicaciones = estado.ubicaciones.filter((u) => u.id !== ubicacion.id);
+    estado.ubicaciones = estado.ubicaciones.filter((u) => u.ubicacion_id !== ubicacion.ubicacion_id);
     await persistirYNotificar();
   });
 

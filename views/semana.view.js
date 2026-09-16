@@ -11,7 +11,7 @@ const ALTO_HORA_PX = 48;
 const MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
 
 function fechaDeReferenciaProyectada(tarea) {
-  return tarea.fecha_sugerida || tarea.fecha_limite || null;
+  return tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || null;
 }
 
 export function renderVistaSemana(contenedor) {
@@ -56,25 +56,25 @@ function renderColumnaDia(fechaDia, hoy) {
 
   const cuerpo = columna.querySelector('.dia-semana-cuerpo');
 
-  const pendientesActivas = estado.tareas.filter((t) => t.estado !== 'completada');
+  const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
 
   const fijas = pendientesActivas.filter(
-    (t) => t.fecha_hora_agendada && t.fecha_hora_agendada.slice(0, 10) === fechaDia
+    (t) => t.tarea_fecha_hora_agendada && t.tarea_fecha_hora_agendada.slice(0, 10) === fechaDia
   );
   fijas.forEach((tarea) => {
-    const fecha = new Date(tarea.fecha_hora_agendada);
+    const fecha = new Date(tarea.tarea_fecha_hora_agendada);
     const minutosDesdeInicio = (fecha.getHours() - HORA_INICIO) * 60 + fecha.getMinutes();
-    cuerpo.appendChild(renderBloqueTarea(tarea, minutosDesdeInicio, tarea.duracion_estimada_min || 30, false, fechaDia));
+    cuerpo.appendChild(renderBloqueTarea(tarea, minutosDesdeInicio, tarea.tarea_duracion_estimada_min || 30, false, fechaDia));
   });
 
   const proyectadas = pendientesActivas
-    .filter((t) => !t.fecha_hora_agendada && esTareaAccionable(t, estado.tareas))
+    .filter((t) => !t.tarea_fecha_hora_agendada && esTareaAccionable(t, estado.tareas))
     .filter((t) => fechaDeReferenciaProyectada(t) === fechaDia)
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
 
   let cursorMinutos = 0;
   proyectadas.forEach((tarea) => {
-    const duracion = tarea.duracion_estimada_min || 30;
+    const duracion = tarea.tarea_duracion_estimada_min || 30;
     cuerpo.appendChild(renderBloqueTarea(tarea, cursorMinutos, duracion, true, fechaDia));
     cursorMinutos += duracion;
   });
@@ -87,9 +87,9 @@ function renderColumnaDia(fechaDia, hoy) {
 }
 
 function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, fechaDia) {
-  const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
-  const color = subcategoria?.color ?? categoria?.color ?? '#9ca3af';
+  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
+  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
+  const color = subcategoria?.subcategoria_color ?? categoria?.categoria_color ?? '#9ca3af';
 
   const offsetMin = Math.max(0, Math.min(minutosDesdeInicio, MINUTOS_VISIBLES));
   const alturaMin = Math.max(15, Math.min(duracionMin, MINUTOS_VISIBLES - offsetMin || duracionMin));
@@ -100,11 +100,11 @@ function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, f
   bloque.style.height = `${(alturaMin / 60) * ALTO_HORA_PX}px`;
   bloque.style.borderColor = color;
   bloque.style.background = proyectada ? 'transparent' : color;
-  bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${escaparHtml(tarea.nombre)}</span>`;
-  bloque.title = `${tarea.nombre} (${duracionMin} min)`;
+  bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${escaparHtml(tarea.tarea_nombre)}</span>`;
+  bloque.title = `${tarea.tarea_nombre} (${duracionMin} min)`;
 
   bloque.addEventListener('click', () => {
-    abrirEdicionAlEntrar(tarea.id);
+    abrirEdicionAlEntrar(tarea.tarea_id);
     location.hash = '#/tareas';
   });
 
@@ -175,9 +175,9 @@ function agregarAsasArrastre(bloque, tarea, fechaDia, offsetMinInicial, alturaMi
         delete bloque.dataset.alturaPendiente;
 
         if (esSuperior || proyectada) {
-          tarea.fecha_hora_agendada = combinarFechaYHora(fechaDia, minutosAHoraHHMM(nuevoTop));
+          tarea.tarea_fecha_hora_agendada = combinarFechaYHora(fechaDia, minutosAHoraHHMM(nuevoTop));
         }
-        tarea.duracion_estimada_min = nuevaAltura;
+        tarea.tarea_duracion_estimada_min = nuevaAltura;
         await persistirYNotificar();
       }
 

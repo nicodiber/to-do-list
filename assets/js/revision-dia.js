@@ -32,7 +32,7 @@ function asegurarDialogo() {
 }
 
 export function iniciarRevisionDia(tareas) {
-  cola = tareas.filter((t) => t.estado !== 'completada');
+  cola = tareas.filter((t) => t.tarea_estado !== 'completada');
   indice = 0;
   const dlg = asegurarDialogo();
   renderPaso();
@@ -53,14 +53,14 @@ function renderPaso() {
   }
 
   const tarea = cola[indice];
-  const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
+  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
 
   dlg.innerHTML = `
     <p class="progreso-revision">Tarea ${indice + 1} de ${cola.length}</p>
-    <h3>${escaparHtml(tarea.nombre)}</h3>
+    <h3>${escaparHtml(tarea.tarea_nombre)}</h3>
     <span class="etiquetas">
-      ${categoria ? `<span class="etiqueta" style="background:${categoria.color}">${escaparHtml(categoria.nombre)}</span>` : ''}
-      ${tarea.fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.fecha_limite)}</span>` : ''}
+      ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
+      ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.tarea_fecha_limite)}</span>` : ''}
     </span>
     <div class="acciones-revision">
       <button type="button" data-accion="cumplida" class="boton-primario">Cumplida ✓</button>
@@ -79,13 +79,13 @@ function renderPaso() {
   dlg.querySelector('[data-accion="cumplida"]').addEventListener('click', () => {
     contenedorPaso.innerHTML = `
       <label>Duración real (min)
-        <input type="number" min="0" step="5" value="${tarea.duracion_estimada_min || 30}" data-campo="duracion-real" />
+        <input type="number" min="0" step="5" value="${tarea.tarea_duracion_estimada_min || 30}" data-campo="duracion-real" />
       </label>
       <label>Costo real ($) (opcional)
         <input type="number" min="0" data-campo="costo-real" />
       </label>
       ${
-        tarea.mantenimiento
+        tarea.tarea_mantenimiento
           ? `<label>¿Qué podrías mejorar la próxima vez? (opcional)
               <input type="text" data-campo="mejora" />
             </label>`
@@ -110,21 +110,16 @@ function renderPaso() {
 
   dlg.querySelector('[data-accion="no-cumplida"]').addEventListener('click', () => {
     contenedorPaso.innerHTML = `
-      <label>¿Por qué no se cumplió?
-        <input type="text" placeholder="Motivo (opcional)" data-campo="motivo" />
-      </label>
       <button type="button" data-accion="continuar-reprogramar" class="boton-primario">Reprogramar</button>
     `;
     contenedorPaso.querySelector('[data-accion="continuar-reprogramar"]').addEventListener('click', () => {
-      const motivo = contenedorPaso.querySelector('[data-campo="motivo"]').value.trim();
       contenedorPaso.innerHTML = '';
 
       const panel = crearPanelReprogramar({
-        diasHabiles: tarea.dias_habiles,
+        diasHabiles: tarea.tarea_dias_habiles,
         onConfirmar: async (fechaHoraISO) => {
-          tarea.motivo_incumplimiento = motivo;
           reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
-          if (tarea.estado === 'a_confirmar' || tarea.estado === 'en_progreso') tarea.estado = 'pendiente';
+          if (tarea.tarea_estado === 'a_confirmar' || tarea.tarea_estado === 'en_progreso') tarea.tarea_estado = 'pendiente';
           await persistirYNotificar();
           avanzar();
         },
@@ -152,7 +147,7 @@ function renderHtmlPreguntaContinuidad() {
   return `
     <p class="panel-reprogramar-etiqueta">¿Alguno de estos generó una tarea nueva para vos?</p>
     <form class="formulario-en-linea" data-form="tarea-continuidad">
-      <input type="text" name="nombre" placeholder="Nombre de la tarea nueva" />
+      <input type="text" name="tarea_nombre" placeholder="Nombre de la tarea nueva" />
       <button type="submit">Agregar</button>
     </form>
     <ul class="lista-tareas-agregadas"></ul>
@@ -165,9 +160,9 @@ function wirePreguntaContinuidad(contenedor) {
 
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
-    const nombre = String(new FormData(formulario).get('nombre') || '').trim();
+    const nombre = String(new FormData(formulario).get('tarea_nombre') || '').trim();
     if (!nombre) return;
-    estado.tareas.push(crearTarea({ nombre }));
+    estado.tareas.push(crearTarea({ tarea_nombre: nombre }));
     await persistirYNotificar();
     const item = document.createElement('li');
     item.textContent = `✓ ${nombre}`;

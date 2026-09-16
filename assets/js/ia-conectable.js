@@ -9,11 +9,11 @@ import { formatearFecha } from './utilidades.js';
  */
 export function construirPromptSubtareas(meta) {
   const partes = [
-    `Estoy planificando cómo lograr el siguiente objetivo personal: "${meta.nombre}".`,
-    `Plazo: ${ETIQUETAS_PLAZO[meta.plazo] || meta.plazo}.`,
+    `Estoy planificando cómo lograr el siguiente objetivo personal: "${meta.meta_nombre}".`,
+    `Plazo: ${ETIQUETAS_PLAZO[meta.meta_plazo] || meta.meta_plazo}.`,
   ];
-  if (meta.fecha_objetivo) partes.push(`Fecha objetivo: ${formatearFecha(meta.fecha_objetivo)}.`);
-  if (meta.descripcion) partes.push(`Descripción: ${meta.descripcion}`);
+  if (meta.meta_fecha_objetivo) partes.push(`Fecha objetivo: ${formatearFecha(meta.meta_fecha_objetivo)}.`);
+  if (meta.meta_descripcion) partes.push(`Descripción: ${meta.meta_descripcion}`);
 
   partes.push(
     '',
@@ -21,12 +21,12 @@ export function construirPromptSubtareas(meta) {
     'Devolveme SOLO un JSON (sin texto adicional antes ni después) con este formato exacto:',
     '',
     '[',
-    '  { "nombre": "...", "duracion_estimada_min": 30, "dias_desde_hoy": 3, "notas": "..." }',
+    '  { "tarea_nombre": "...", "tarea_duracion_estimada_min": 30, "dias_desde_hoy": 3, "tarea_notas": "..." }',
     ']',
     '',
-    '- "duracion_estimada_min": duración estimada en minutos, múltiplo de 15.',
+    '- "tarea_duracion_estimada_min": duración estimada en minutos, múltiplo de 15.',
     '- "dias_desde_hoy": en cuántos días conviene hacer esta tarea a partir de hoy (0 = hoy).',
-    '- "notas": opcional, breve.'
+    '- "tarea_notas": opcional, breve.'
   );
 
   return partes.join('\n');
@@ -50,16 +50,16 @@ export function parsearRespuestaSubtareas(texto) {
   }
 
   const normalizadas = datos
-    .filter((item) => item && typeof item.nombre === 'string' && item.nombre.trim())
+    .filter((item) => item && typeof item.tarea_nombre === 'string' && item.tarea_nombre.trim())
     .map((item) => ({
-      nombre: item.nombre.trim(),
-      duracion_estimada_min: Number.isFinite(item.duracion_estimada_min) ? item.duracion_estimada_min : 30,
+      tarea_nombre: item.tarea_nombre.trim(),
+      tarea_duracion_estimada_min: Number.isFinite(item.tarea_duracion_estimada_min) ? item.tarea_duracion_estimada_min : 30,
       dias_desde_hoy: Number.isFinite(item.dias_desde_hoy) ? item.dias_desde_hoy : 0,
-      notas: typeof item.notas === 'string' ? item.notas.trim() : '',
+      tarea_notas: typeof item.tarea_notas === 'string' ? item.tarea_notas.trim() : '',
     }));
 
   if (normalizadas.length === 0) {
-    throw new Error('No se encontró ninguna tarea válida (con "nombre") en el JSON.');
+    throw new Error('No se encontró ninguna tarea válida (con "tarea_nombre") en el JSON.');
   }
 
   return normalizadas;
@@ -72,13 +72,13 @@ export function parsearRespuestaSubtareas(texto) {
  */
 export function construirPromptPrioridades(tareas, categorias) {
   const filas = tareas.map((tarea) => {
-    const categoria = categorias.find((c) => c.id === tarea.categoria_id);
+    const categoria = categorias.find((c) => c.categoria_id === tarea.categoria_id);
     return [
-      `id: ${tarea.id}`,
-      `nombre: ${tarea.nombre}`,
-      `categoría: ${categoria ? categoria.nombre : 'sin categoría'}`,
-      `fecha límite: ${tarea.fecha_limite ? formatearFecha(tarea.fecha_limite) : 'sin fecha'}`,
-      `importancia actual: ${ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media}`,
+      `id: ${tarea.tarea_id}`,
+      `nombre: ${tarea.tarea_nombre}`,
+      `categoría: ${categoria ? categoria.categoria_nombre : 'sin categoría'}`,
+      `fecha límite: ${tarea.tarea_fecha_limite ? formatearFecha(tarea.tarea_fecha_limite) : 'sin fecha'}`,
+      `importancia actual: ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia] || ETIQUETAS_IMPORTANCIA.media}`,
     ].join(', ');
   });
 
@@ -88,10 +88,10 @@ export function construirPromptPrioridades(tareas, categorias) {
     ...filas.map((f) => `- ${f}`),
     '',
     'Revisala y sugerime una importancia (baja, media o alta) para cada una, según qué tan urgente/impactante te parece cada tarea (podés dejar la misma importancia si ya te parece correcta).',
-    'Devolveme SOLO un JSON (sin texto adicional antes ni después) con este formato exacto, usando el "id" de cada tarea:',
+    'Devolveme SOLO un JSON (sin texto adicional antes ni después) con este formato exacto, usando el "tarea_id" de cada tarea:',
     '',
     '[',
-    '  { "id": "...", "importancia": "alta" }',
+    '  { "tarea_id": "...", "tarea_importancia": "alta" }',
     ']',
   ].join('\n');
 }
@@ -116,15 +116,15 @@ export function parsearRespuestaPrioridades(texto, tareasDisponibles) {
 
   const cambios = [];
   datos.forEach((item) => {
-    if (!item || typeof item.id !== 'string' || !NIVELES_IMPORTANCIA.includes(item.importancia)) return;
-    const tarea = tareasDisponibles.find((t) => t.id === item.id);
+    if (!item || typeof item.tarea_id !== 'string' || !NIVELES_IMPORTANCIA.includes(item.tarea_importancia)) return;
+    const tarea = tareasDisponibles.find((t) => t.tarea_id === item.tarea_id);
     if (!tarea) return;
-    if (tarea.importancia === item.importancia) return;
-    cambios.push({ tarea, importanciaSugerida: item.importancia });
+    if (tarea.tarea_importancia === item.tarea_importancia) return;
+    cambios.push({ tarea, importanciaSugerida: item.tarea_importancia });
   });
 
   if (cambios.length === 0) {
-    throw new Error('No se encontró ningún cambio de importancia válido (revisá los "id" y que "importancia" sea baja/media/alta).');
+    throw new Error('No se encontró ningún cambio de importancia válido (revisá los "tarea_id" y que "tarea_importancia" sea baja/media/alta).');
   }
 
   return cambios;
@@ -178,15 +178,15 @@ export function construirPromptFinalizarMeta(historial) {
     'Devolveme SOLO un JSON (sin texto adicional antes ni después) con la meta final, en este formato exacto:',
     '',
     '{',
-    '  "nombre": "...",',
-    '  "plazo": "corto",',
-    '  "fecha_objetivo": "YYYY-MM-DD",',
-    '  "descripcion": "..."',
+    '  "meta_nombre": "...",',
+    '  "meta_plazo": "corto",',
+    '  "meta_fecha_objetivo": "YYYY-MM-DD",',
+    '  "meta_descripcion": "..."',
     '}',
     '',
-    '- "plazo": "corto", "mediano" o "largo".',
-    '- "fecha_objetivo": opcional, dejalo como cadena vacía "" si no aplica.',
-    '- "descripcion": opcional, breve.',
+    '- "meta_plazo": "corto", "mediano" o "largo".',
+    '- "meta_fecha_objetivo": opcional, dejalo como cadena vacía "" si no aplica.',
+    '- "meta_descripcion": opcional, breve.',
   ].join('\n');
 }
 
@@ -207,14 +207,14 @@ export function parsearRespuestaFinalizarMeta(texto) {
     throw new Error('El JSON debe ser un objeto (no una lista) con los datos de la meta.');
   }
 
-  if (typeof datos.nombre !== 'string' || !datos.nombre.trim()) {
-    throw new Error('El JSON debe incluir un "nombre" para la meta.');
+  if (typeof datos.meta_nombre !== 'string' || !datos.meta_nombre.trim()) {
+    throw new Error('El JSON debe incluir un "meta_nombre" para la meta.');
   }
 
   return {
-    nombre: datos.nombre.trim(),
-    plazo: PLAZOS_META.includes(datos.plazo) ? datos.plazo : 'mediano',
-    fecha_objetivo: typeof datos.fecha_objetivo === 'string' ? datos.fecha_objetivo.trim() : '',
-    descripcion: typeof datos.descripcion === 'string' ? datos.descripcion.trim() : '',
+    meta_nombre: datos.meta_nombre.trim(),
+    meta_plazo: PLAZOS_META.includes(datos.meta_plazo) ? datos.meta_plazo : 'mediano',
+    meta_fecha_objetivo: typeof datos.meta_fecha_objetivo === 'string' ? datos.meta_fecha_objetivo.trim() : '',
+    meta_descripcion: typeof datos.meta_descripcion === 'string' ? datos.meta_descripcion.trim() : '',
   };
 }

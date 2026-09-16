@@ -6,6 +6,7 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 
 - Documentación, UI y textos visibles: **español**.
 - Nombres de campos de datos (JSON), variables y funciones en el código JS: **español**, para minimizar la fricción de traducción cuando el usuario lea o edite el código directamente. Excepción: palabras reservadas/API del navegador (`addEventListener`, `fetch`, etc.) se mantienen en inglés porque son parte del lenguaje/plataforma.
+- Campos propios de una entidad siguen el patrón `entidad_atributo` (ej. `Tarea.nombre` → `tarea_nombre`, `Categoria.color` → `categoria_color`), para evitar ambigüedad entre entidades. Los campos que ya son una referencia a otra entidad (`categoria_id`, `subcategoria_id`, `ubicacion_id`, `dependencias`, `metas_ids`) quedan sin ese prefijo, porque ya son inequívocos.
 
 ## Arquitectura
 

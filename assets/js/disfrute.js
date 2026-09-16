@@ -12,18 +12,18 @@ const UMBRAL_ALTO = 4;
  * ninguna candidata disponible — para no generar ruido innecesario.
  */
 export function sugerirTareaDeAltoDisfrute(tareaCompletada) {
-  const categoriaCompletada = estado.categorias.find((c) => c.id === tareaCompletada.categoria_id);
-  if (!categoriaCompletada || categoriaCompletada.disfrute > UMBRAL_BAJO) return;
+  const categoriaCompletada = estado.categorias.find((c) => c.categoria_id === tareaCompletada.categoria_id);
+  if (!categoriaCompletada || categoriaCompletada.categoria_disfrute > UMBRAL_BAJO) return;
 
   const candidata = estado.tareas.find((t) => {
-    if (t.id === tareaCompletada.id || !esTareaAccionable(t, estado.tareas)) return false;
-    const categoria = estado.categorias.find((c) => c.id === t.categoria_id);
-    return categoria && categoria.disfrute >= UMBRAL_ALTO;
+    if (t.tarea_id === tareaCompletada.tarea_id || !esTareaAccionable(t, estado.tareas)) return false;
+    const categoria = estado.categorias.find((c) => c.categoria_id === t.categoria_id);
+    return categoria && categoria.categoria_disfrute >= UMBRAL_ALTO;
   });
   if (!candidata) return;
 
-  const categoriaCandidata = estado.categorias.find((c) => c.id === candidata.categoria_id);
+  const categoriaCandidata = estado.categorias.find((c) => c.categoria_id === candidata.categoria_id);
   alert(
-    `🙂 Ya que cumpliste algo que no disfrutás tanto, ¿por qué no seguís con "${candidata.nombre}" (${categoriaCandidata.nombre}), que sí te gusta?`
+    `🙂 Ya que cumpliste algo que no disfrutás tanto, ¿por qué no seguís con "${candidata.tarea_nombre}" (${categoriaCandidata.categoria_nombre}), que sí te gusta?`
   );
 }

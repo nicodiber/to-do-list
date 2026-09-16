@@ -112,10 +112,10 @@ export async function obtenerEventosDeHoy() {
  * superpone, o null. Función pura, sin llamadas de red.
  */
 export function calcularSolapamiento(tarea, eventos) {
-  if (!tarea.fecha_hora_agendada) return null;
+  if (!tarea.tarea_fecha_hora_agendada) return null;
 
-  const inicioTarea = new Date(tarea.fecha_hora_agendada).getTime();
-  const finTarea = inicioTarea + (tarea.duracion_estimada_min || 30) * 60000;
+  const inicioTarea = new Date(tarea.tarea_fecha_hora_agendada).getTime();
+  const finTarea = inicioTarea + (tarea.tarea_duracion_estimada_min || 30) * 60000;
 
   return (
     eventos.find((evento) => {

@@ -6,12 +6,12 @@ import { abrirEdicionAlEntrar } from './tareas.view.js';
 let metaSeleccionada = '';
 
 function fechaInicioTarea(tarea) {
-  return tarea.fecha_inicio_posible || tarea.fecha_sugerida || tarea.fecha_limite || tarea.creada_en.slice(0, 10);
+  return tarea.tarea_fecha_inicio_posible || tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || tarea.tarea_creada_en.slice(0, 10);
 }
 
 function fechaFinTarea(tarea) {
   const inicio = fechaInicioTarea(tarea);
-  const fin = tarea.fecha_limite || (tarea.fecha_hora_agendada ? tarea.fecha_hora_agendada.slice(0, 10) : '') || tarea.fecha_sugerida || inicio;
+  const fin = tarea.tarea_fecha_limite || (tarea.tarea_fecha_hora_agendada ? tarea.tarea_fecha_hora_agendada.slice(0, 10) : '') || tarea.tarea_fecha_sugerida || inicio;
   return fin < inicio ? inicio : fin;
 }
 
@@ -37,7 +37,7 @@ export function renderVistaGantt(contenedor) {
     <label>Meta
       <select id="filtro-meta-gantt">
         <option value="">Todas las metas</option>
-        ${estado.metas.map((m) => `<option value="${m.id}" ${metaSeleccionada === m.id ? 'selected' : ''}>${escaparHtml(m.nombre)}</option>`).join('')}
+        ${estado.metas.map((m) => `<option value="${m.meta_id}" ${metaSeleccionada === m.meta_id ? 'selected' : ''}>${escaparHtml(m.meta_nombre)}</option>`).join('')}
       </select>
     </label>
     <div id="contenido-gantt"></div>
@@ -71,9 +71,9 @@ export function renderVistaGantt(contenedor) {
 
   const filas = [];
   estado.metas.forEach((meta) => {
-    const tareas = ordenarTareas(tareasDeMeta(meta.id));
+    const tareas = ordenarTareas(tareasDeMeta(meta.meta_id));
     if (tareas.length === 0) return;
-    filas.push({ separador: meta.nombre });
+    filas.push({ separador: meta.meta_nombre });
     tareas.forEach((tarea) => filas.push({ tarea }));
   });
 
@@ -128,10 +128,10 @@ function renderGrillaGantt(filas) {
   filas
     .filter((f) => f.tarea)
     .forEach((f) => {
-      const bloque = grilla.querySelector(`[data-tarea-id="${f.tarea.id}"]`);
+      const bloque = grilla.querySelector(`[data-tarea-id="${f.tarea.tarea_id}"]`);
       if (!bloque) return;
       bloque.addEventListener('click', () => {
-        abrirEdicionAlEntrar(f.tarea.id);
+        abrirEdicionAlEntrar(f.tarea.tarea_id);
         location.hash = '#/tareas';
       });
 
@@ -149,15 +149,15 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function renderFlechasDependencia(grilla, filas) {
   const tareasVisibles = filas.filter((f) => f.tarea).map((f) => f.tarea);
-  const idsVisibles = new Set(tareasVisibles.map((t) => t.id));
+  const idsVisibles = new Set(tareasVisibles.map((t) => t.tarea_id));
 
   const conexiones = [];
   tareasVisibles.forEach((tarea) => {
     const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
     if (!bloqueada) return;
     bloqueantes.forEach((bloqueante) => {
-      if (idsVisibles.has(bloqueante.id)) {
-        conexiones.push({ desde: bloqueante.id, hasta: tarea.id });
+      if (idsVisibles.has(bloqueante.tarea_id)) {
+        conexiones.push({ desde: bloqueante.tarea_id, hasta: tarea.tarea_id });
       }
     });
   });
@@ -258,9 +258,9 @@ function agregarAsasGantt(barraEl, tarea, minFecha, totalDias, offsetDiasInicial
         delete barraEl.dataset.spanPendiente;
 
         if (esIzquierda) {
-          tarea.fecha_inicio_posible = fechaISOMasDias(nuevoOffset, minFecha);
+          tarea.tarea_fecha_inicio_posible = fechaISOMasDias(nuevoOffset, minFecha);
         } else {
-          tarea.fecha_limite = fechaISOMasDias(nuevoOffset + nuevoSpan - 1, minFecha);
+          tarea.tarea_fecha_limite = fechaISOMasDias(nuevoOffset + nuevoSpan - 1, minFecha);
         }
         await persistirYNotificar();
       }
@@ -275,9 +275,9 @@ function agregarAsasGantt(barraEl, tarea, minFecha, totalDias, offsetDiasInicial
 }
 
 function renderFilaGanttHtml(tarea, minFecha, totalDias) {
-  const categoria = estado.categorias.find((c) => c.id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.id === tarea.subcategoria_id);
-  const color = subcategoria?.color ?? categoria?.color ?? '#9ca3af';
+  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
+  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
+  const color = subcategoria?.subcategoria_color ?? categoria?.categoria_color ?? '#9ca3af';
 
   const inicio = fechaInicioTarea(tarea);
   const fin = fechaFinTarea(tarea);
@@ -289,14 +289,14 @@ function renderFilaGanttHtml(tarea, minFecha, totalDias) {
   return `
     <div class="fila-gantt">
       <div class="fila-gantt-info">
-        <strong>${escaparHtml(tarea.nombre)}</strong>
-        ${bloqueada ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.nombre)).join(', ')}</p>` : ''}
+        <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
+        ${bloqueada ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.tarea_nombre)).join(', ')}</p>` : ''}
       </div>
       <div class="fila-gantt-pista">
-        <div class="barra-gantt" data-tarea-id="${tarea.id}"
+        <div class="barra-gantt" data-tarea-id="${tarea.tarea_id}"
           style="left:${(offsetDias / totalDias) * 100}%; width:${(spanDias / totalDias) * 100}%; background:${color};"
-          title="${escaparHtml(tarea.nombre)} (${formatearFecha(inicio)} - ${formatearFecha(fin)})">
-          <span class="barra-gantt-nombre">${escaparHtml(tarea.nombre)}</span>
+          title="${escaparHtml(tarea.tarea_nombre)} (${formatearFecha(inicio)} - ${formatearFecha(fin)})">
+          <span class="barra-gantt-nombre">${escaparHtml(tarea.tarea_nombre)}</span>
         </div>
       </div>
     </div>

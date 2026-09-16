@@ -2,6 +2,17 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.43.0] - 2026-09-16
+
+### Cambiado
+
+- Renombrado masivo de campos al patrón `entidad_atributo`: cada campo propio de una entidad se prefija con el nombre de la entidad (ej. `Tarea.nombre` → `tarea_nombre`, `Categoria.color` → `categoria_color`), para evitar ambigüedad cuando una entidad usa atributos de otra. Los campos que ya son una referencia a otra entidad (`categoria_id`, `subcategoria_id`, `ubicacion_id`, `dependencias`, `metas_ids`) quedan sin cambios. Afecta `assets/js/modelos.js`, todas las vistas, `datos/esquema.json`, `DICCIONARIO_DE_DATOS.md` y los archivos de ejemplo. Convención documentada en `AGENTS.md`.
+- Migración retrocompatible: `assets/js/almacenamiento.js` detecta y convierte automáticamente datos guardados con los nombres de campo anteriores (localStorage, carpeta local, Google Drive o JSON importado), sin pérdida de información ni acción manual del usuario. Se aplica de forma transparente en los 4 puntos de carga de datos.
+
+### Eliminado
+
+- Campo `motivo_incumplimiento` de Tarea: no aportaba valor dentro del sistema actual. Se eliminó del modelo, de la captura en el flujo "No cumplida" (Hoy y "Revisar mi día") y de la métrica "Índice de procrastinación" en Informes, que dependía enteramente de este campo y también se eliminó.
+
 ## [v0.42.0] - 2026-09-16
 
 ### Agregado
