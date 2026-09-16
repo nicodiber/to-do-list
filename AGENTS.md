@@ -30,6 +30,7 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 ## Versionado
 
 - Esquema `vMayor.Menor.Parche` (semver). Cada entrega funcional nueva suma una entrada en `CHANGELOG.md`.
+- La versión también se muestra en la cabecera de la app (constante `VERSION` en `assets/js/app.js`) — actualizarla junto con `CHANGELOG.md` en cada entrega.
 
 ## Flujo de Git
 

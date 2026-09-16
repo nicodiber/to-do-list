@@ -2,6 +2,16 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.40.0] - 2026-09-16
+
+### Agregado
+
+- Versión visible en la cabecera: nueva constante `VERSION` en `assets/js/app.js`, mostrada junto al título "Super To-Do List". `AGENTS.md` documenta mantenerla sincronizada con esta lista en cada entrega.
+
+### Cambiado
+
+- Triage del backlog abierto de cara a v1.0.0: se reemplazó la idea de notificación por GPS por un ítem más simple (filtro de "ubicación actual"); se descartaron "comparación de throughput con amigos" y "tareas nuevas tras cursada"; se eliminó "exportar/importar categoría completa"; se priorizó "lectura de eventos pasados de Calendar" para una próxima ronda; se postergó explícitamente el "integrador más amplio" a después de v1.0.0.
+
 ## [v0.39.1] - 2026-09-16
 
 ### Corregido

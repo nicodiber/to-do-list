@@ -30,6 +30,9 @@ import {
   iniciarRevisionNotificaciones,
 } from './notificaciones.js';
 
+// Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
+const VERSION = 'v0.40.0';
+
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
 const ESTADO_CONEXION = document.getElementById('estado-conexion');
@@ -93,6 +96,8 @@ function render() {
   actualizarBotonDrive();
   VISTAS[vistaActual()].render(CONTENEDOR, estado);
 }
+
+document.getElementById('version-app').textContent = VERSION;
 
 window.addEventListener('hashchange', render);
 suscribir(render);

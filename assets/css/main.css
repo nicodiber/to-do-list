@@ -75,6 +75,13 @@ h1, h2, h3 {
   margin: 0 0 0.5rem;
 }
 
+.version-app {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--color-texto-suave);
+  vertical-align: middle;
+}
+
 .cabecera {
   background: var(--color-superficie);
   border-bottom: 1px solid var(--color-borde);
