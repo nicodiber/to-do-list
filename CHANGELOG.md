@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.44.0] - 2026-09-16
+
+### Agregado
+
+- Atributo `tarea_genera_dinero` (booleano, default `false`): checkbox en el alta y edición de tarea, badge "💵 Genera ingreso" en Tareas, Hoy y 3/8 días (mismos lugares donde ya aparecen recompensa/costo estimado). Por ahora es solo informativo, sin proyección en Informes.
+- Atajo de teclado "N" (sin modificador) para crear una tarea rápido en PC: navega a Tareas y enfoca el input de alta rápida. Se ignora si el foco está en cualquier campo editable, para no interferir al escribir. `Ctrl+N` está reservado por el navegador (nueva ventana), por eso se usa la tecla sola.
+- Documentación: `REGLAS_DE_PRIORIDAD.md` (qué determina el orden/prioridad de las tareas y cómo se usa en cada vista) y `LOGICA_FUNCIONES.md` (qué hace cada función/módulo del proyecto, referenciando `DICCIONARIO_DE_DATOS.md`). Documentación viva, a actualizar junto con cada cambio funcional — convención sumada a `AGENTS.md`.
+
 ## [v0.43.0] - 2026-09-16
 
 ### Cambiado

@@ -32,7 +32,7 @@ import {
 } from './notificaciones.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.43.0';
+const VERSION = 'v0.44.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -103,6 +103,46 @@ document.getElementById('version-app').textContent = VERSION;
 
 window.addEventListener('hashchange', render);
 suscribir(render);
+
+// Atajo de teclado "N" (sin modificador) para crear una tarea rápido sin
+// usar el mouse. Ctrl+N está reservado por el navegador (nueva ventana),
+// por eso se usa la tecla sola — mismo patrón que Gmail/Linear/Notion.
+// Se ignora si el foco está en un campo editable, para no interferir al
+// escribir "n" dentro de cualquier input/textarea/select de la app.
+let enfocarAltaRapidaAlEntrar = false;
+
+function enfocarAltaRapida() {
+  const input = document.querySelector('#form-alta-rapida input[name="tarea_nombre"]');
+  if (input) input.focus();
+}
+
+window.addEventListener('hashchange', () => {
+  if (enfocarAltaRapidaAlEntrar && vistaActual() === 'tareas') {
+    enfocarAltaRapidaAlEntrar = false;
+    enfocarAltaRapida();
+  }
+});
+
+window.addEventListener('keydown', (evento) => {
+  if (evento.ctrlKey || evento.altKey || evento.metaKey) return;
+  if (evento.key !== 'n' && evento.key !== 'N') return;
+  const objetivo = evento.target;
+  const enCampo =
+    objetivo instanceof HTMLElement &&
+    (objetivo.tagName === 'INPUT' ||
+      objetivo.tagName === 'TEXTAREA' ||
+      objetivo.tagName === 'SELECT' ||
+      objetivo.isContentEditable);
+  if (enCampo) return;
+
+  evento.preventDefault();
+  if (vistaActual() === 'tareas') {
+    enfocarAltaRapida();
+  } else {
+    enfocarAltaRapidaAlEntrar = true;
+    location.hash = '#/tareas';
+  }
+});
 
 document.getElementById('boton-elegir-carpeta').addEventListener('click', async () => {
   try {

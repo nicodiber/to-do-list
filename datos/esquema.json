@@ -103,6 +103,7 @@
         "tarea_importancia": { "type": "string", "enum": ["baja", "media", "alta"] },
         "tarea_costo_estimado": { "type": "number", "minimum": 0 },
         "tarea_costo_real": { "type": ["number", "null"], "minimum": 0 },
+        "tarea_genera_dinero": { "type": "boolean" },
         "tarea_creada_en": { "type": "string" },
         "tarea_completada_en": { "type": ["string", "null"] }
       }

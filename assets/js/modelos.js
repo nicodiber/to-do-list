@@ -103,6 +103,7 @@ export function crearTarea({
   tarea_recompensa = '',
   tarea_costo_estimado = 0,
   tarea_costo_real = null,
+  tarea_genera_dinero = false,
 }) {
   return {
     tarea_id: generarId(),
@@ -130,6 +131,7 @@ export function crearTarea({
     tarea_recompensa,
     tarea_costo_estimado,
     tarea_costo_real,
+    tarea_genera_dinero,
     tarea_creada_en: ahoraISO(),
     tarea_completada_en: null,
   };

@@ -8,38 +8,41 @@ Convención de nombres: cada campo propio de una entidad se prefija con el nombr
 
 | Campo | Tipo | Fase | Descripción |
 |---|---|---|---|
-| `categoria_id` | string (UUID) | MVP | Identificador único |
-| `categoria_nombre` | string | MVP | Nombre del área de vida (ej. "Personal", "Facultad", "Trabajo") |
-| `categoria_color` | string (hex) | MVP | Color identificatorio en la UI |
-| `categoria_orden` | number | MVP | Orden de presentación / prioridad relativa entre categorías |
-| `categoria_disfrute` | number (1-5, default `3`) | MVP | Cuánto disfrutás las tareas de esta categoría. Se define al crearla (sin edición posterior, igual que `categoria_color`). Al completar una tarea de una categoría con `categoria_disfrute` bajo (1-2), se sugiere continuar con una tarea accionable de una categoría con `categoria_disfrute` alto (4-5) — principio de Premack a nivel categoría |
+| `categoria_id` | string (UUID) | MVP | Identificador único de categoría |
+| `categoria_nombre` | string | MVP | Nombre de la categoría |
+| `categoria_descripcion` | string | MVP | Descripción de la categoría |
+| `categoria_color` | string (hex) | MVP | Color único identificatorio en la UI |
+| `categoria_orden` | number | MVP | Prioridad relativa entre categorías |
+| `categoria_disfrute` | number (1-5, default `3`) | MVP | Cuánto disfrutás las tareas de esta categoría. Útil para posterior aplicación de principio de Premack |
 
 ## Subcategoria
 
 | Campo | Tipo | Fase | Descripción |
 |---|---|---|---|
-| `subcategoria_id` | string (UUID) | MVP | Identificador único |
-| `categoria_id` | string (UUID) | MVP | Referencia a `Categoria.categoria_id` |
-| `subcategoria_nombre` | string | MVP | Nombre de la subcategoría (ej. "Hobbies", "Exámenes") |
-| `subcategoria_color` | string (hex), default = color de la categoría padre al crearla | MVP | Se puede elegir distinto al de la categoría; si la tarea tiene subcategoría, su badge usa este color en vez del de la categoría |
+| `subcategoria_id` | string (UUID) | MVP | Identificador único de subcategoría |
+| `categoria_id` | string (UUID) | MVP | Referencia a qué categoría pertenece `Categoria.categoria_id` |
+| `subcategoria_nombre` | string | MVP | Nombre de la subcategoría |
+| `subcategoria_descripcion` | string | MVP | Descripción de la subcategoría |
+| `subcategoria_orden` | number | MVP | Prioridad relativa entre subcategorías dentro de la categoría |
+| `subcategoria_color` | string (hex) | MVP | Color único identificatorio en la UI. Default = color de la categoría padre al crearla. Se puede elegir distinto pero único perteneciente dentro de la subcategoría |
 
 ## Tarea
 
 | Campo | Tipo | Fase | Descripción |
 |---|---|---|---|
-| `tarea_id` | string (UUID) | MVP | Identificador único |
+| `tarea_id` | string (UUID) | MVP | Identificador único de tarea |
 | `tarea_nombre` | string | MVP | Título de la tarea |
-| `categoria_id` | string (UUID) \| null | MVP | Referencia a `Categoria.categoria_id` |
-| `subcategoria_id` | string (UUID) \| null | MVP | Referencia a `Subcategoria.subcategoria_id` |
-| `tarea_estado` | enum: `a_confirmar` \| `pendiente` \| `en_progreso` \| `completada` | MVP | Estado actual de la tarea |
-| `tarea_fecha_limite` | string (`YYYY-MM-DD`) \| "" | MVP | Fecha en la que la tarea debe estar completada sí o sí (deadline) |
-| `tarea_fecha_sugerida` | string (`YYYY-MM-DD`) \| "" | MVP | Fecha recomendada, no obligatoria |
-| `tarea_duracion_estimada_min` | number (múltiplo de 15) | MVP | Duración estimada en minutos |
+| `categoria_id` | string (UUID) | MVP | Referencia a qué categoría pertenece `Categoria.categoria_id` |
+| `subcategoria_id` | string (UUID) | MVP | Referencia a qué subcategoría pertenece `Subcategoria.subcategoria_id` |
+| `tarea_estado` | enum: `pendiente` \| `completada` | MVP | Estado actual de la tarea |
+| `tarea_fecha_limite` | string (ISO datetime) \| null | MVP | Fecha en la que la tarea debe estar completada sí o sí (deadline) |
+| `tarea_fecha_sugerida` | string (ISO datetime) \| null | MVP | Fecha recomendada, no obligatoria. Útil para planificar |
+| `tarea_duracion_estimada_min` | number (múltiplo de 15) | MVP | Duración estimada de la tarea en minutos. Útil para planificar |
 | `tarea_notas` | string | MVP | Texto libre: recursos, procedimiento, referencias |
 | `tarea_creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
 | `tarea_completada_en` | string (ISO datetime) \| null | MVP | Timestamp de finalización |
-| `tarea_fecha_inicio_posible` | string (`YYYY-MM-DD`) \| "" | MVP | A partir de cuándo se puede empezar (earliest start date). En la vista "Hoy" las tareas con esta fecha en el futuro se muestran aparte, en "Todavía no pueden empezar" |
-| `tarea_fecha_hora_agendada` | string (ISO datetime) \| "" | MVP | Cuándo se planea concretamente hacer la tarea. Se define con el botón "Posponer" (atajos de día + horario: mañana 07:00, tarde 12:00, tardecita 17:00, noche 20:00) |
+| `tarea_fecha_inicio_habilitada` | string (ISO datetime) \| "" | MVP | A partir de cuándo se puede empezar (earliest start date). Defecto = `tarea_creada_en` |
+| `tarea_fecha_hora_planeada` | string (ISO datetime) \| "" | MVP | Cuándo se planea concretamente hacer la tarea. Se define con el botón "Posponer" (atajos de día + horario: mañana 07:00, tarde 12:00, tardecita 17:00, noche 20:00) |
 | `tarea_duracion_real_min` | number \| null | MVP | Duración real registrada al marcar la tarea como cumplida desde el asistente de cierre de la vista "Hoy" |
 | `tarea_notificada_en_para` | string (ISO datetime) \| "" | MVP | Valor de `tarea_fecha_hora_agendada` para el cual ya se disparó la notificación local. Si se reprograma la tarea (cambia `tarea_fecha_hora_agendada`), deja de coincidir y vuelve a ser candidata a notificarse |
 | `dependencias` | array de `Tarea.tarea_id` | MVP | Tareas que deben estar `completada` para que esta se considere accionable. Se edita desde el panel "Dependencias" en la vista Tareas |
@@ -54,6 +57,7 @@ Convención de nombres: cada campo propio de una entidad se prefija con el nombr
 | `tarea_importancia` | enum: `baja` \| `media` \| `alta`, default `media` | MVP | Nivel de importancia de la tarea, más allá de fechas y estado (ej. un examen es más importante que un trámite menor aunque venzan el mismo día). Se usa como primer criterio de `compararPorPrioridad` (antes que la prioridad de categoría) para ordenar Tareas, Hoy y las vistas de 3/8 días; badge con ícono (🔴/🟡/🟢) en las 3 vistas, y filtro en Tareas |
 | `tarea_costo_estimado` | number, default `0` | MVP | Costo monetario estimado, opcional. Badge "💰" en Tareas/Hoy/3-8 días; se suma en Informes para proyectar el costo de las tareas pendientes. Se copia a la instancia clonada si la tarea es de mantenimiento |
 | `tarea_costo_real` | number \| null, default `null` | MVP | Costo real, cargado opcionalmente al completar la tarea desde Hoy o "Revisar mi día" (mismo momento que `tarea_duracion_real_min`). Se usa en Informes para comparar contra `tarea_costo_estimado` |
+| `tarea_genera_dinero` | boolean (default `false`) | MVP | Si la tarea genera un ingreso (en vez de solo tener un costo). Por ahora es solo informativo: checkbox en el alta/edición y badge "💵" en los listados, sin proyección propia en Informes todavía |
 
 ## Ubicacion
 
@@ -74,7 +78,7 @@ Se administra desde el ABM en la vista "Ubicaciones" (igual que Categorías, per
 | `meta_nombre` | string | MVP | Nombre del objetivo/propósito |
 | `meta_plazo` | enum: `corto` \| `mediano` \| `largo` | MVP | Horizonte temporal de la meta |
 | `meta_descripcion` | string, default `""` | MVP | Texto libre opcional |
-| `meta_fecha_objetivo` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha en la que se aspira a cumplir la meta |
+| `meta_fecha_objetivo` | string (ISO datetime) \| "", opcional | MVP | Fecha en la que se aspira a cumplir la meta |
 | `meta_creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
 
 Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas / tareas asociadas) se calcula al vuelo filtrando `estado.tareas` por `metas_ids`, no se guarda como campo. Al eliminar una meta, las tareas que la referenciaban quedan sin esa entrada en `metas_ids`.
@@ -85,7 +89,7 @@ Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas 
 |---|---|---|---|
 | `persona_id` | string (UUID) | MVP | Identificador único |
 | `persona_nombre` | string | MVP | Nombre de la persona (ej. "Mamá", "Juan") |
-| `persona_ultimo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha del último encuentro/contacto registrado. Vacío = nunca registrado |
+| `persona_ultimo_contacto` | string (ISO datetime) \| "", opcional | MVP | Fecha del último encuentro/contacto registrado. Vacío = nunca registrado |
 | `persona_notas` | string, default `""` | MVP | Texto libre opcional (ej. "hermana", "amigo de la facu") |
 | `persona_creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
 
