@@ -24,6 +24,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/ia-conectable.js',
   'assets/js/notificaciones.js',
   'assets/js/google-calendar.js',
+  'assets/js/google-drive-sync.js',
   'views/hoy.view.js',
   'views/tres-dias.view.js',
   'views/ocho-dias.view.js',

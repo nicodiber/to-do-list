@@ -1,11 +1,22 @@
 import { crearCategoria, crearSubcategoria, crearTarea } from './modelos.js';
+import {
+  soportaGoogleDrive,
+  hayConexionDrive,
+  conectarDriveOAuth,
+  buscarArchivoRemoto,
+  leerArchivoRemoto,
+  guardarArchivoRemoto,
+} from './google-drive-sync.js';
 
 const NOMBRE_BD = 'super-todo-list';
 const VERSION_BD = 1;
 const ALMACEN_HANDLES = 'handles';
 const CLAVE_LOCALSTORAGE = 'super-todo-list:datos';
+const CLAVE_LOCALSTORAGE_ULTIMA_MOD = 'super-todo-list:ultima-modificacion';
 const ARCHIVO_CATEGORIAS = 'categorias.json';
 const ARCHIVO_TAREAS = 'tareas.json';
+
+export { soportaGoogleDrive, hayConexionDrive };
 
 export const soportaFileSystemAccess = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
@@ -105,8 +116,17 @@ async function leerArchivo(nombreArchivo) {
   }
 }
 
+function recordarUltimoModifiedTimeDrive(modifiedTime) {
+  try {
+    localStorage.setItem(CLAVE_LOCALSTORAGE_ULTIMA_MOD, modifiedTime);
+  } catch (error) {
+    console.warn('No se pudo guardar la fecha de sincronización con Drive:', error);
+  }
+}
+
 export async function guardarTodo() {
   guardarEnLocalStorage();
+
   if (carpetaDatosHandle) {
     await escribirArchivo(ARCHIVO_CATEGORIAS, {
       categorias: estado.categorias,
@@ -116,6 +136,15 @@ export async function guardarTodo() {
       personas: estado.personas,
     });
     await escribirArchivo(ARCHIVO_TAREAS, { tareas: estado.tareas });
+  }
+
+  if (hayConexionDrive()) {
+    try {
+      const resultado = await guardarArchivoRemoto(estado);
+      recordarUltimoModifiedTimeDrive(resultado.modifiedTime);
+    } catch (error) {
+      console.warn('No se pudo sincronizar con Google Drive:', error.message);
+    }
   }
 }
 
@@ -166,6 +195,55 @@ export async function cargarDesdeCarpeta() {
 
   notificar();
   return true;
+}
+
+/**
+ * Conecta con Google Drive (OAuth) y sincroniza: si Drive todavía no tiene
+ * un archivo de datos, sube el `estado` actual (primera vez). Si ya existe
+ * uno y su fecha de modificación difiere de la última modificación local
+ * registrada, le pregunta al usuario cuál versión conservar antes de
+ * pisar nada — no hay merge automático, solo esta elección explícita.
+ */
+export async function conectarDrive() {
+  await conectarDriveOAuth();
+
+  const archivoRemoto = await buscarArchivoRemoto();
+
+  if (!archivoRemoto) {
+    const resultado = await guardarArchivoRemoto(estado);
+    recordarUltimoModifiedTimeDrive(resultado.modifiedTime);
+    notificar();
+    return;
+  }
+
+  const ultimaSyncConocida = localStorage.getItem(CLAVE_LOCALSTORAGE_ULTIMA_MOD);
+  const cambioPorFuera = archivoRemoto.modifiedTime !== ultimaSyncConocida;
+
+  if (cambioPorFuera) {
+    const usarDrive = confirm(
+      `Encontré datos en Google Drive (última modificación: ${new Date(archivoRemoto.modifiedTime).toLocaleString('es-AR')}) ` +
+        'que no coinciden con la última vez que este dispositivo sincronizó.\n\n' +
+        'Aceptar = usar los datos de Drive (se reemplazan los de este dispositivo).\n' +
+        'Cancelar = subir los datos de este dispositivo (se reemplazan los de Drive).'
+    );
+
+    if (usarDrive) {
+      const datosRemotos = await leerArchivoRemoto(archivoRemoto.id);
+      estado.categorias = datosRemotos.categorias || [];
+      estado.subcategorias = datosRemotos.subcategorias || [];
+      estado.ubicaciones = datosRemotos.ubicaciones || [];
+      estado.metas = datosRemotos.metas || [];
+      estado.personas = datosRemotos.personas || [];
+      estado.tareas = datosRemotos.tareas || [];
+      guardarEnLocalStorage();
+      recordarUltimoModifiedTimeDrive(archivoRemoto.modifiedTime);
+    } else {
+      const resultado = await guardarArchivoRemoto(estado);
+      recordarUltimoModifiedTimeDrive(resultado.modifiedTime);
+    }
+  }
+
+  notificar();
 }
 
 function sembrarDatosDeEjemplo() {

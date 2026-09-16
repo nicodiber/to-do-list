@@ -2,6 +2,16 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.38.0] - 2026-09-16
+
+### Agregado
+
+- Sincronización vía Google Drive API: evaluadas las 4 opciones registradas en `BACKLOG.md` ("Sync — opciones a evaluar"), se eligió Google Drive API vía OAuth por ser la única que resuelve el uso desde el celular (la carpeta local actual no funciona en navegadores móviles) sin sumar un backend. Nuevo módulo `assets/js/google-drive-sync.js`, mismo patrón que `google-calendar.js` (Google Identity Services, token en memoria) con su propio scope `drive.file` (acceso restringido, solo a archivos creados por la app). Un único archivo JSON remoto con el `estado` completo, que se actualiza automáticamente en cada guardado mientras la sesión sigue conectada. Nuevo botón "Sincronizar con Google Drive" en la cabecera. Si el archivo remoto cambió por fuera desde la última sincronización conocida de este dispositivo, se pregunta con `confirm()` cuál versión conservar antes de pisar nada (sin merge automático). El token no se persiste entre sesiones, igual que Calendar.
+
+### Corregido
+
+- Bug de reconexión colgada en `assets/js/google-calendar.js` y `assets/js/google-drive-sync.js`: el `callback` del `TokenClient` de Google (un singleton) quedaba atado al `resolve`/`reject` de la primera conexión; una reconexión posterior en la misma pestaña (token vencido) nunca resolvía su propia promesa porque el callback seguía resolviendo la de la primera llamada. Se resolvió con una indirección (`manejarRespuestaToken`) que cada conexión reasigna a su propio resolve/reject.
+
 ## [v0.37.0] - 2026-09-16
 
 ### Agregado

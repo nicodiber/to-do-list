@@ -7,6 +7,7 @@ const DURACION_CACHE_MS = 5 * 60 * 1000;
 
 let tokenActual = null;
 let clienteToken = null;
+let manejarRespuestaToken = null;
 let cacheEventos = { fecha: '', eventos: [], timestamp: 0 };
 
 export function soportaGoogleCalendar() {
@@ -22,6 +23,14 @@ export function hayConexionGoogleCalendar() {
  * Google Identity Services (popup). El token queda en memoria (no se
  * persiste): es de corta duración (~1h) y no hace falta backend para
  * refrescarlo, alcanza con volver a conectar cuando expire.
+ *
+ * El `TokenClient` de Google es un singleton (`initTokenClient` se llama
+ * una sola vez): su `callback` no puede cerrar directamente sobre el
+ * `resolve`/`reject` de ESTA promesa, porque en una reconexión posterior
+ * (mismo objeto `clienteToken` reusado) seguiría resolviendo la promesa de
+ * la primera llamada y esta nueva quedaría colgada para siempre. Por eso
+ * el `callback` real solo delega a `manejarRespuestaToken`, que cada
+ * llamada reasigna a su propio resolve/reject.
  */
 export function conectarGoogleCalendar() {
   return new Promise((resolve, reject) => {
@@ -30,18 +39,20 @@ export function conectarGoogleCalendar() {
       return;
     }
 
+    manejarRespuestaToken = (respuesta) => {
+      if (respuesta.error) {
+        reject(new Error('No se pudo conectar con Google Calendar.'));
+        return;
+      }
+      tokenActual = respuesta.access_token;
+      resolve();
+    };
+
     if (!clienteToken) {
       clienteToken = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPE,
-        callback: (respuesta) => {
-          if (respuesta.error) {
-            reject(new Error('No se pudo conectar con Google Calendar.'));
-            return;
-          }
-          tokenActual = respuesta.access_token;
-          resolve();
-        },
+        callback: (respuesta) => manejarRespuestaToken(respuesta),
       });
     }
 

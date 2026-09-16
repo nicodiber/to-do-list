@@ -7,6 +7,9 @@ import {
   importarJSON,
   soportaFileSystemAccess,
   hayCarpetaDatosElegida,
+  soportaGoogleDrive,
+  hayConexionDrive,
+  conectarDrive,
 } from './almacenamiento.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaTresDias } from '../../views/tres-dias.view.js';
@@ -32,6 +35,7 @@ const NAV = document.getElementById('nav-vistas');
 const ESTADO_CONEXION = document.getElementById('estado-conexion');
 const BOTON_NOTIFICACIONES = document.getElementById('boton-notificaciones');
 const BOTON_TEMA = document.getElementById('boton-tema');
+const BOTON_DRIVE = document.getElementById('boton-drive');
 const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 
 const VISTAS = {
@@ -75,9 +79,18 @@ function actualizarEstadoConexion() {
   }
 }
 
+function actualizarBotonDrive() {
+  if (!soportaGoogleDrive()) {
+    BOTON_DRIVE.hidden = true;
+    return;
+  }
+  BOTON_DRIVE.textContent = hayConexionDrive() ? 'Drive: sincronizado ✓' : 'Sincronizar con Google Drive';
+}
+
 function render() {
   renderNav();
   actualizarEstadoConexion();
+  actualizarBotonDrive();
   VISTAS[vistaActual()].render(CONTENEDOR, estado);
 }
 
@@ -90,6 +103,15 @@ document.getElementById('boton-elegir-carpeta').addEventListener('click', async 
   } catch (error) {
     alert(error.message);
   }
+});
+
+BOTON_DRIVE.addEventListener('click', async () => {
+  try {
+    await conectarDrive();
+  } catch (error) {
+    alert(error.message);
+  }
+  actualizarBotonDrive();
 });
 
 document.getElementById('boton-exportar').addEventListener('click', exportarJSON);
