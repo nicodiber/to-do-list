@@ -172,6 +172,19 @@ BOTON_TEMA.addEventListener('click', () => {
   aplicarTema(temaActual);
 });
 
+// El script de Google Identity Services (index.html) carga en paralelo
+// (async/defer): si todavía no terminó cuando corre el primer render(),
+// el botón de Drive queda oculto por soportaGoogleDrive() === false y
+// nada lo vuelve a mostrar. Ese script es el único <script src> externo
+// de la página, así que lo identificamos por su origen en vez de un id.
+const scriptGoogleIdentity = document.querySelector('script[src^="https://accounts.google.com/gsi/client"]');
+if (scriptGoogleIdentity) {
+  scriptGoogleIdentity.addEventListener('load', () => {
+    actualizarBotonDrive();
+    render();
+  });
+}
+
 inicializarAlmacenamiento();
 
 if ('serviceWorker' in navigator) {

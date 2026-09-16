@@ -11,6 +11,7 @@ Formato de versión: `vMayor.Menor.Parche` (semver).
 ### Corregido
 
 - Bug de reconexión colgada en `assets/js/google-calendar.js` y `assets/js/google-drive-sync.js`: el `callback` del `TokenClient` de Google (un singleton) quedaba atado al `resolve`/`reject` de la primera conexión; una reconexión posterior en la misma pestaña (token vencido) nunca resolvía su propia promesa porque el callback seguía resolviendo la de la primera llamada. Se resolvió con una indirección (`manejarRespuestaToken`) que cada conexión reasigna a su propio resolve/reject.
+- Bug de condición de carrera en `assets/js/app.js`: el script de Google Identity Services carga en paralelo (`async`/`defer`); si el primer `render()` corría antes de que terminara de cargar, el botón "Sincronizar con Google Drive" quedaba oculto para siempre (detectado en pruebas reales del usuario: el botón no aparecía tras una recarga forzada). Ahora se vuelve a evaluar su visibilidad apenas ese script termina de cargar.
 
 ## [v0.37.0] - 2026-09-16
 
