@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.33.0] - 2026-09-15
+
+### Agregado
+
+- Chatbot para definir metas — primer paso: nuevo botón "Definir meta charlando con IA" en la vista Metas. A diferencia de los paneles de IA de un solo turno (v0.31.0, v0.32.0), permite una conversación de ida y vuelta: cada mensaje se agrega a un historial en memoria que se reenvía completo en cada prompt (sin backend, el LLM externo no tiene memoria propia entre turnos). Al finalizar la charla, un último prompt le pide a la IA un JSON con los datos de la meta (nombre, plazo, fecha objetivo, descripción), que se previsualiza y crea con `crearMeta` igual que el formulario manual. Nuevas funciones en `assets/js/ia-conectable.js`: `construirPromptChatMeta`, `parsearRespuestaChatMeta`, `construirPromptFinalizarMeta`, `parsearRespuestaFinalizarMeta`.
+
 ## [v0.32.0] - 2026-09-15
 
 ### Agregado

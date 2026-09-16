@@ -426,6 +426,36 @@ h1, h2, h3 {
   font-size: 0.82rem;
 }
 
+.chat-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+}
+
+.chat-mensaje {
+  max-width: 85%;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.chat-mensaje-usuario {
+  align-self: flex-end;
+  background: var(--color-primario);
+  color: #fff;
+}
+
+.chat-mensaje-asistente {
+  align-self: flex-start;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  color: var(--color-texto);
+}
+
 .item-tarea-acciones button[data-accion="posponer"],
 .item-tarea-acciones button[data-accion="cumplida"],
 .item-tarea-acciones button[data-accion="no-cumplida"] {

@@ -1,4 +1,4 @@
-import { ETIQUETAS_PLAZO, NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA } from './modelos.js';
+import { ETIQUETAS_PLAZO, PLAZOS_META, NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA } from './modelos.js';
 import { formatearFecha } from './utilidades.js';
 
 /**
@@ -128,4 +128,93 @@ export function parsearRespuestaPrioridades(texto, tareasDisponibles) {
   }
 
   return cambios;
+}
+
+function formatearHistorial(historial) {
+  return historial.map((turno) => `${turno.rol === 'usuario' ? 'Yo' : 'Vos'}: ${turno.texto}`).join('\n');
+}
+
+/**
+ * Arma un prompt para dialogar con un LLM externo y definir una meta
+ * personal a partir de una idea vaga. Como el LLM no tiene memoria entre
+ * turnos (no hay backend ni llamadas directas), cada prompt reenvía el
+ * historial completo de la conversación hasta el momento.
+ */
+export function construirPromptChatMeta(historial) {
+  return [
+    'Actuá como un coach de objetivos personales. Te voy a contar en qué estoy pensando y quiero que me ayudes, con preguntas y sugerencias, a definir una meta clara y accionable (con un plazo: corto, mediano o largo, y opcionalmente una fecha objetivo).',
+    '',
+    'Esta es la conversación hasta ahora:',
+    '',
+    formatearHistorial(historial),
+    '',
+    'Respondé en texto plano (no uses JSON), de forma conversacional: hacé las preguntas que hagan falta para aclarar la meta, o si ya te parece que quedó lo bastante clara decímelo explícitamente para poder cerrarla.',
+  ].join('\n');
+}
+
+/**
+ * Valida el texto que el usuario pega de vuelta con la respuesta
+ * conversacional del LLM. No es JSON, es texto libre.
+ */
+export function parsearRespuestaChatMeta(texto) {
+  const limpio = (texto || '').trim();
+  if (!limpio) {
+    throw new Error('Pegá la respuesta de tu asistente de IA antes de continuar.');
+  }
+  return limpio;
+}
+
+/**
+ * Arma un prompt para pedirle al LLM que cierre la conversación con una
+ * meta concreta, devolviendo SOLO un JSON con los campos que espera
+ * `crearMeta` (assets/js/modelos.js).
+ */
+export function construirPromptFinalizarMeta(historial) {
+  return [
+    'Esta fue la conversación completa sobre mi objetivo:',
+    '',
+    formatearHistorial(historial),
+    '',
+    'Devolveme SOLO un JSON (sin texto adicional antes ni después) con la meta final, en este formato exacto:',
+    '',
+    '{',
+    '  "nombre": "...",',
+    '  "plazo": "corto",',
+    '  "fecha_objetivo": "YYYY-MM-DD",',
+    '  "descripcion": "..."',
+    '}',
+    '',
+    '- "plazo": "corto", "mediano" o "largo".',
+    '- "fecha_objetivo": opcional, dejalo como cadena vacía "" si no aplica.',
+    '- "descripcion": opcional, breve.',
+  ].join('\n');
+}
+
+/**
+ * Parsea y normaliza el JSON con la meta final propuesta por el LLM.
+ * Lanza un Error con mensaje legible si el texto no es JSON válido o
+ * no tiene un "nombre".
+ */
+export function parsearRespuestaFinalizarMeta(texto) {
+  let datos;
+  try {
+    datos = JSON.parse(texto);
+  } catch {
+    throw new Error('No se pudo interpretar como JSON válido. Revisá que hayas pegado solo el JSON de la respuesta.');
+  }
+
+  if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
+    throw new Error('El JSON debe ser un objeto (no una lista) con los datos de la meta.');
+  }
+
+  if (typeof datos.nombre !== 'string' || !datos.nombre.trim()) {
+    throw new Error('El JSON debe incluir un "nombre" para la meta.');
+  }
+
+  return {
+    nombre: datos.nombre.trim(),
+    plazo: PLAZOS_META.includes(datos.plazo) ? datos.plazo : 'mediano',
+    fecha_objetivo: typeof datos.fecha_objetivo === 'string' ? datos.fecha_objetivo.trim() : '',
+    descripcion: typeof datos.descripcion === 'string' ? datos.descripcion.trim() : '',
+  };
 }

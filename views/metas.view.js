@@ -1,7 +1,14 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { crearMeta, crearTarea, PLAZOS_META, ETIQUETAS_PLAZO, ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { escaparHtml, formatearFecha, hoyISO, fechaISOMasDias } from '../assets/js/utilidades.js';
-import { construirPromptSubtareas, parsearRespuestaSubtareas } from '../assets/js/ia-conectable.js';
+import {
+  construirPromptSubtareas,
+  parsearRespuestaSubtareas,
+  construirPromptChatMeta,
+  parsearRespuestaChatMeta,
+  construirPromptFinalizarMeta,
+  parsearRespuestaFinalizarMeta,
+} from '../assets/js/ia-conectable.js';
 
 export function renderVistaMetas(contenedor) {
   contenedor.innerHTML = `
@@ -16,6 +23,8 @@ export function renderVistaMetas(contenedor) {
       <input type="text" name="descripcion" placeholder="Descripción (opcional)" />
       <button type="submit">Agregar meta</button>
     </form>
+    <button type="button" id="boton-chat-meta">Definir meta charlando con IA</button>
+    <div id="contenedor-panel-chat-meta" hidden></div>
     <div id="lista-metas" class="lista-categorias"></div>
   `;
 
@@ -33,6 +42,17 @@ export function renderVistaMetas(contenedor) {
       })
     );
     await persistirYNotificar();
+  });
+
+  const contenedorPanelChat = contenedor.querySelector('#contenedor-panel-chat-meta');
+  contenedor.querySelector('#boton-chat-meta').addEventListener('click', () => {
+    const yaAbierto = !contenedorPanelChat.hidden;
+    contenedorPanelChat.innerHTML = '';
+    contenedorPanelChat.hidden = true;
+    if (yaAbierto) return;
+
+    contenedorPanelChat.appendChild(crearPanelChatMeta(contenedorPanelChat));
+    contenedorPanelChat.hidden = false;
   });
 
   const listaMetas = contenedor.querySelector('#lista-metas');
@@ -172,5 +192,136 @@ function crearPanelIA(meta) {
     });
   });
 
+  return panel;
+}
+
+function crearPanelChatMeta(contenedorPanel) {
+  const panel = document.createElement('div');
+  panel.className = 'panel-dependencias';
+
+  const historial = [];
+  let mostrarFinal = false;
+
+  function renderTranscripcion() {
+    if (historial.length === 0) return '<p class="mensaje-vacio">Todavía no escribiste nada.</p>';
+    return `
+      <div class="chat-historial">
+        ${historial
+          .map(
+            (turno) =>
+              `<div class="chat-mensaje ${turno.rol === 'usuario' ? 'chat-mensaje-usuario' : 'chat-mensaje-asistente'}">${escaparHtml(turno.texto)}</div>`
+          )
+          .join('')}
+      </div>
+    `;
+  }
+
+  function render() {
+    const prompt = construirPromptChatMeta(historial);
+    const promptFinal = mostrarFinal ? construirPromptFinalizarMeta(historial) : '';
+
+    panel.innerHTML = `
+      <p class="panel-reprogramar-etiqueta">Conversación:</p>
+      ${renderTranscripcion()}
+      <textarea class="textarea-ia" data-campo="mensaje" rows="3" placeholder="Contale a la IA qué querés lograr..."></textarea>
+      <button type="button" data-accion="agregar-mensaje" class="boton-primario">Agregar mensaje y armar prompt</button>
+      <p class="panel-reprogramar-etiqueta">1. Copiá este prompt y pegalo en tu asistente de IA (ChatGPT, Claude, etc.):</p>
+      <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
+      <button type="button" data-accion="copiar-prompt">Copiar prompt</button>
+      <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta que te devolvió:</p>
+      <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder="Pegá acá lo que te respondió la IA..."></textarea>
+      <button type="button" data-accion="agregar-respuesta">Agregar respuesta a la conversación</button>
+      <div class="aviso-chat-meta"></div>
+      <button type="button" data-accion="finalizar" ${historial.length === 0 ? 'disabled' : ''}>Finalizar: generar meta con estos datos</button>
+      ${
+        mostrarFinal
+          ? `
+        <hr />
+        <p class="panel-reprogramar-etiqueta">Paso final. Copiá este prompt y pegalo en tu asistente de IA:</p>
+        <textarea class="textarea-ia" readonly rows="6">${escaparHtml(promptFinal)}</textarea>
+        <button type="button" data-accion="copiar-prompt-final">Copiar prompt</button>
+        <p class="panel-reprogramar-etiqueta">Pegá acá la respuesta (el JSON) que te devolvió:</p>
+        <textarea class="textarea-ia" data-campo="respuesta-final" rows="6" placeholder='{ "nombre": "...", "plazo": "corto", "fecha_objetivo": "", "descripcion": "..." }'></textarea>
+        <button type="button" data-accion="previsualizar-meta" class="boton-primario">Previsualizar meta</button>
+        <div class="contenedor-preview-meta"></div>
+      `
+          : ''
+      }
+    `;
+
+    const aviso = panel.querySelector('.aviso-chat-meta');
+
+    panel.querySelector('[data-accion="agregar-mensaje"]').addEventListener('click', () => {
+      const texto = panel.querySelector('[data-campo="mensaje"]').value.trim();
+      if (!texto) return;
+      historial.push({ rol: 'usuario', texto });
+      render();
+    });
+
+    panel.querySelector('[data-accion="copiar-prompt"]').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(prompt);
+      } catch {
+        alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
+      }
+    });
+
+    panel.querySelector('[data-accion="agregar-respuesta"]').addEventListener('click', () => {
+      const textoRespuesta = panel.querySelector('[data-campo="respuesta"]').value;
+      let texto;
+      try {
+        texto = parsearRespuestaChatMeta(textoRespuesta);
+      } catch (error) {
+        aviso.innerHTML = `<p class="aviso-bloqueada">${escaparHtml(error.message)}</p>`;
+        return;
+      }
+      historial.push({ rol: 'asistente', texto });
+      render();
+    });
+
+    panel.querySelector('[data-accion="finalizar"]').addEventListener('click', () => {
+      mostrarFinal = true;
+      render();
+    });
+
+    if (mostrarFinal) {
+      panel.querySelector('[data-accion="copiar-prompt-final"]').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(promptFinal);
+        } catch {
+          alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
+        }
+      });
+
+      const contenedorPreviewMeta = panel.querySelector('.contenedor-preview-meta');
+      panel.querySelector('[data-accion="previsualizar-meta"]').addEventListener('click', () => {
+        const textoRespuestaFinal = panel.querySelector('[data-campo="respuesta-final"]').value;
+        let datosMeta;
+        try {
+          datosMeta = parsearRespuestaFinalizarMeta(textoRespuestaFinal);
+        } catch (error) {
+          contenedorPreviewMeta.innerHTML = `<p class="aviso-bloqueada">${escaparHtml(error.message)}</p>`;
+          return;
+        }
+
+        contenedorPreviewMeta.innerHTML = `
+          <p class="panel-reprogramar-etiqueta">Meta propuesta:</p>
+          <p><strong>${escaparHtml(datosMeta.nombre)}</strong></p>
+          <p class="notas-tarea">${ETIQUETAS_PLAZO[datosMeta.plazo]}${datosMeta.fecha_objetivo ? ` — Objetivo: ${formatearFecha(datosMeta.fecha_objetivo)}` : ''}</p>
+          ${datosMeta.descripcion ? `<p class="notas-tarea">${escaparHtml(datosMeta.descripcion)}</p>` : ''}
+          <button type="button" data-accion="crear-meta" class="boton-primario">Crear meta</button>
+        `;
+
+        contenedorPreviewMeta.querySelector('[data-accion="crear-meta"]').addEventListener('click', async () => {
+          estado.metas.push(crearMeta(datosMeta));
+          await persistirYNotificar();
+          contenedorPanel.hidden = true;
+          contenedorPanel.innerHTML = '';
+        });
+      });
+    }
+  }
+
+  render();
   return panel;
 }
