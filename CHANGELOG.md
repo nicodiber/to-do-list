@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.37.0] - 2026-09-16
+
+### Agregado
+
+- Revisar calendario al final del día — con datos reales: nuevo paso final en el asistente "Revisar mi día" (`assets/js/revision-dia.js`) que, gracias a la conexión OAuth con Google Calendar agregada en v0.35.0, muestra los eventos reales de hoy en vez de preguntar a ciegas. Si no hay conexión, ofrece conectar ahí mismo; si falla la consulta o no hay soporte, degrada a la pregunta manual. Un alta rápida permite cargar tareas de continuidad sin cerrar el diálogo, pudiendo agregar varias seguidas.
+
 ## [v0.36.0] - 2026-09-16
 
 ### Agregado

@@ -5,6 +5,13 @@ import { completarTarea, reprogramarTareaConCascada } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { mostrarRecompensaSiCorresponde } from './recompensa.js';
 import { sugerirTareaDeAltoDisfrute } from './disfrute.js';
+import { crearTarea } from './modelos.js';
+import {
+  soportaGoogleCalendar,
+  hayConexionGoogleCalendar,
+  conectarGoogleCalendar,
+  obtenerEventosDeHoy,
+} from './google-calendar.js';
 
 // El <dialog> vive en document.body (no en el contenedor de la vista) para
 // sobrevivir a los re-renders que dispara persistirYNotificar() en cada paso.
@@ -41,11 +48,7 @@ function renderPaso() {
   const dlg = asegurarDialogo();
 
   if (indice >= cola.length) {
-    dlg.innerHTML = `
-      <p>${cola.length === 0 ? 'No tenés tareas para repasar hoy.' : '¡Repasaste todas tus tareas de hoy! 🎉'}</p>
-      <button type="button" data-accion="cerrar" class="boton-primario">Cerrar</button>
-    `;
-    dlg.querySelector('[data-accion="cerrar"]').addEventListener('click', () => dlg.close());
+    renderPasoFinal(dlg);
     return;
   }
 
@@ -132,4 +135,98 @@ function renderPaso() {
       contenedorPaso.appendChild(panel);
     });
   });
+}
+
+function renderPasoFinal(dlg) {
+  dlg.innerHTML = `
+    <p>${cola.length === 0 ? 'No tenés tareas para repasar hoy.' : '¡Repasaste todas tus tareas de hoy! 🎉'}</p>
+    <div class="contenedor-calendario-revision"></div>
+    <button type="button" data-accion="cerrar" class="boton-primario">Cerrar</button>
+  `;
+  dlg.querySelector('[data-accion="cerrar"]').addEventListener('click', () => dlg.close());
+
+  renderSeccionCalendario(dlg.querySelector('.contenedor-calendario-revision'));
+}
+
+function renderHtmlPreguntaContinuidad() {
+  return `
+    <p class="panel-reprogramar-etiqueta">¿Alguno de estos generó una tarea nueva para vos?</p>
+    <form class="formulario-en-linea" data-form="tarea-continuidad">
+      <input type="text" name="nombre" placeholder="Nombre de la tarea nueva" />
+      <button type="submit">Agregar</button>
+    </form>
+    <ul class="lista-tareas-agregadas"></ul>
+  `;
+}
+
+function wirePreguntaContinuidad(contenedor) {
+  const formulario = contenedor.querySelector('[data-form="tarea-continuidad"]');
+  const lista = contenedor.querySelector('.lista-tareas-agregadas');
+
+  formulario.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const nombre = String(new FormData(formulario).get('nombre') || '').trim();
+    if (!nombre) return;
+    estado.tareas.push(crearTarea({ nombre }));
+    await persistirYNotificar();
+    const item = document.createElement('li');
+    item.textContent = `✓ ${nombre}`;
+    lista.appendChild(item);
+    formulario.reset();
+  });
+}
+
+async function renderSeccionCalendario(contenedor) {
+  if (!soportaGoogleCalendar()) {
+    contenedor.innerHTML = renderHtmlPreguntaContinuidad();
+    wirePreguntaContinuidad(contenedor);
+    return;
+  }
+
+  if (!hayConexionGoogleCalendar()) {
+    contenedor.innerHTML = `
+      <p class="panel-reprogramar-etiqueta">Conectá tu Google Calendar para ver los eventos de hoy:</p>
+      <button type="button" data-accion="conectar-calendar-revision">Conectar con Google Calendar</button>
+      ${renderHtmlPreguntaContinuidad()}
+    `;
+    contenedor.querySelector('[data-accion="conectar-calendar-revision"]').addEventListener('click', async () => {
+      try {
+        await conectarGoogleCalendar();
+        renderSeccionCalendario(contenedor);
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+    wirePreguntaContinuidad(contenedor);
+    return;
+  }
+
+  contenedor.innerHTML = '<p class="mensaje-vacio">Cargando eventos de hoy...</p>';
+
+  let eventos;
+  try {
+    eventos = await obtenerEventosDeHoy();
+  } catch {
+    contenedor.innerHTML = renderHtmlPreguntaContinuidad();
+    wirePreguntaContinuidad(contenedor);
+    return;
+  }
+
+  contenedor.innerHTML = `
+    ${
+      eventos.length === 0
+        ? '<p class="mensaje-vacio">No tuviste eventos agendados hoy.</p>'
+        : `<ul class="lista-eventos-revision">
+            ${eventos
+              .map((evento) => {
+                const inicio = new Date(evento.inicio).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                const fin = new Date(evento.fin).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                return `<li>${escaparHtml(evento.resumen)} (${inicio}–${fin})</li>`;
+              })
+              .join('')}
+          </ul>`
+    }
+    ${renderHtmlPreguntaContinuidad()}
+  `;
+  wirePreguntaContinuidad(contenedor);
 }
