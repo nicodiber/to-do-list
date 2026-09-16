@@ -31,6 +31,8 @@ const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
 const ESTADO_CONEXION = document.getElementById('estado-conexion');
 const BOTON_NOTIFICACIONES = document.getElementById('boton-notificaciones');
+const BOTON_TEMA = document.getElementById('boton-tema');
+const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 
 const VISTAS = {
   hoy: { etiqueta: 'Hoy', render: renderVistaHoy },
@@ -127,6 +129,26 @@ BOTON_NOTIFICACIONES.addEventListener('click', async () => {
 });
 
 actualizarBotonNotificaciones();
+
+function temaEfectivo() {
+  const guardado = localStorage.getItem(CLAVE_LOCALSTORAGE_TEMA);
+  if (guardado === 'claro' || guardado === 'oscuro') return guardado;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+}
+
+function aplicarTema(tema) {
+  document.documentElement.dataset.tema = tema;
+  BOTON_TEMA.textContent = tema === 'oscuro' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+}
+
+let temaActual = temaEfectivo();
+aplicarTema(temaActual);
+
+BOTON_TEMA.addEventListener('click', () => {
+  temaActual = temaActual === 'oscuro' ? 'claro' : 'oscuro';
+  localStorage.setItem(CLAVE_LOCALSTORAGE_TEMA, temaActual);
+  aplicarTema(temaActual);
+});
 
 inicializarAlmacenamiento();
 

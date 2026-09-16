@@ -2,6 +2,16 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.36.0] - 2026-09-16
+
+### Agregado
+
+- Rediseño visual + modo claro/oscuro: `assets/css/main.css` centralizaba casi todos los colores en variables CSS, así que redefinirlas alcanzó para re-temear toda la app. Nuevo botón de tema en la cabecera que alterna entre claro/oscuro, guarda la preferencia en `localStorage` (clave `super-todo-list:tema`, separada de los datos de la app) y respeta `prefers-color-scheme` del sistema como default cuando no hay preferencia guardada. Retoques de modernización: transiciones suaves en botones/tarjetas, hover con elevación en `.item-tarea`/`.tarjeta-categoria`, nav con estilo "pill".
+
+### Corregido
+
+- Bug de cascada CSS preexistente: `.etiqueta-fecha` (definida más abajo en `main.css`) le ganaba a los colores especiales de `.etiqueta-agendada`/`.etiqueta-mantenimiento`/`.etiqueta-clima`/`.etiqueta-solapamiento-calendar`, que nunca se habían mostrado con su color distintivo. Se resolvió calificando esos selectores con el tag (`span.etiqueta-agendada`, etc.) para aumentar su especificidad.
+
 ## [v0.35.0] - 2026-09-16
 
 ### Agregado
