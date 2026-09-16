@@ -30,7 +30,6 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Atributo `dias_habiles`: días de la semana en que una tarea puede realizarse; al posponerla, el panel de reprogramar salta automáticamente al próximo día hábil (aplica en los 4 puntos donde se abre ese panel: Tareas, Hoy, 3/8 días, Revisar mi día)
 - [x] Agrupar tareas por similitud, familia/jerarquía o por poder hacerse en simultáneo (multitasking vs. foco): atributo `multitasking` por tarea (checkbox, badge "🎧", filtro "Solo multitasking") + toggle "Agrupar por categoría" en la vista Tareas (agrupa el listado filtrado por categoría, en vez de similitud automática por contenido)
 - [x] Prioridad/jerarquía configurable entre categorías: botones ▲/▼ en la vista Categorías para reordenar `orden`; se usa como desempate al listar tareas en Tareas, Hoy (urgentes y resto) y las vistas de 3/8 días
-- [ ] Aplicar principios de SCRUM (sprints, planificaciones y revisiones periódicas) a nivel personal
 
 ## Fase 3 — Integraciones externas
 
@@ -54,7 +53,6 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 - [x] Informes básicos: nueva vista "Informes" con tabla de completadas (últimos 7 días) vs. pendientes actuales por categoría, y promedio de duración estimada vs. real
 - [x] Índice de procrastinación — versión proxy: tareas actualmente pospuestas al menos una vez (`motivo_incumplimiento` cargado y sin completar) contra completadas en los últimos 7 días. No es un histórico real de reprogramaciones (el modelo no guarda ese log todavía); si hace falta más precisión, una ronda futura puede sumar un registro de eventos
 - [x] Métrica de throughput (capacidad de trabajo, estilo Kanban): nueva sección "Throughput semanal" en Informes — gráfico de barras con tareas completadas por semana (últimas 8 semanas) y el promedio semanal, calculado al vuelo sobre `completada_en`
-- [ ] KPIs y OKRs personales
 - [ ] Comparación de throughput con amigos (diaria/semanal/mensual)
 - [x] Recordatorio de sociabilización: nueva entidad Persona (nombre, último contacto opcional, notas) con ABM en la vista "Personas"; la lista se ordena de mayor a menor tiempo sin contacto (sin registro = primero), con botón "Marcar contacto hoy" para un clic sin fricción
 - [x] Recompensa asociada a cada tarea: campo de texto libre opcional, badge "🎁" en los listados, y aviso al completar la tarea (en los 3 caminos existentes) reforzando el principio de Premack. Se conserva al clonarse una instancia de mantenimiento
@@ -64,7 +62,6 @@ Todas las ideas del brainstorm original ([NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.
 ## Fase 5 — Móvil y UX avanzada
 
 - [x] Versión PWA — primer paso: `manifest.json` + ícono SVG (instalable como app) y `sw.js` (service worker con estrategia network-first, cae a caché solo sin conexión — deliberadamente no cache-first para no interferir con el desarrollo activo)
-- [ ] PWA — íconos PNG reales para mejor soporte en iOS (el ícono SVG actual puede no tomarse en "agregar a inicio" de Safari)
 - [x] PWA — precachear el app shell explícitamente: `sw.js` precachea en `install` la lista `ARCHIVOS_PRECACHE` (app shell completo), así la primera carga offline sin visitas previas también funciona. La lista se mantiene a mano (sin build tools); `AGENTS.md` documenta sumar ahí cualquier archivo nuevo de `assets/js/`/`views/`
 - [x] Notificaciones — primer paso (locales, no push real): como la app no tiene backend ni servidor propio, un Web Push real (VAPID + push service, con la app cerrada) no es viable. En su lugar, `assets/js/notificaciones.js` revisa cada 60s (mientras la app está abierta, aunque sea en una pestaña de fondo) si hay tareas con `fecha_hora_agendada` a menos de 10 minutos, y dispara una notificación del navegador vía el service worker (`registration.showNotification`). Nuevo botón "Activar notificaciones" en la cabecera para pedir el permiso; nuevo campo `notificada_en_para` en Tarea para no repetir avisos; click en la notificación enfoca/abre la app (`sw.js` maneja `notificationclick`)
 - [ ] Evaluar si conviene convertir el sistema en un integrador más amplio: calendario propio (+ conexión opcional a Google Calendar) y administración económica personal (gastos, movimientos, inversiones, saldos, metas de ahorro, cheques) — solo si tiene sentido una vez validado el core de tareas
