@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.35.0] - 2026-09-16
+
+### Agregado
+
+- Google Calendar — lectura de eventos y detección de solapamientos: a diferencia de la exportación existente (sin OAuth), leer eventos reales requiere autenticarse. Se usa Google Identity Services (`accounts.google.com/gsi/client`, primera dependencia externa vía `<script>` del proyecto) con el flujo de token client de solo lectura (`calendar.readonly`); el token queda en memoria (sin backend, sin persistir nada sensible) y se renueva reconectando con un click cuando expira. Nuevo botón "Conectar con Google Calendar" en la vista Hoy (`views/hoy.view.js`) y nuevo módulo `assets/js/google-calendar.js` (`conectarGoogleCalendar`, `obtenerEventosDeHoy`, `calcularSolapamiento`). Las tareas agendadas (`fecha_hora_agendada`) que se superponen con un evento real de hoy muestran el aviso "📅 Se superpone con...", mismo patrón de badge asíncrono ya usado para el aviso de clima.
+
 ## [v0.34.0] - 2026-09-16
 
 ### Agregado

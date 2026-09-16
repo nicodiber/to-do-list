@@ -14,6 +14,13 @@ import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
 import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
+import {
+  soportaGoogleCalendar,
+  hayConexionGoogleCalendar,
+  conectarGoogleCalendar,
+  obtenerEventosDeHoy,
+  calcularSolapamiento,
+} from '../assets/js/google-calendar.js';
 
 let filtroUbicacion = '';
 
@@ -61,6 +68,13 @@ export function renderVistaHoy(contenedor) {
         : ''
     }
     <button type="button" id="boton-revisar-dia" class="boton-primario">Revisar mi día</button>
+    ${
+      soportaGoogleCalendar()
+        ? `<button type="button" id="boton-conectar-calendar">${
+            hayConexionGoogleCalendar() ? 'Conectado a Google Calendar ✓' : 'Conectar con Google Calendar'
+          }</button>`
+        : ''
+    }
     <section>
       <h3>Urgentes</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
@@ -90,6 +104,18 @@ export function renderVistaHoy(contenedor) {
   contenedor.querySelector('#boton-revisar-dia').addEventListener('click', () => {
     iniciarRevisionDia([...urgentes, ...resto]);
   });
+
+  const botonConectarCalendar = contenedor.querySelector('#boton-conectar-calendar');
+  if (botonConectarCalendar) {
+    botonConectarCalendar.addEventListener('click', async () => {
+      try {
+        await conectarGoogleCalendar();
+        renderVistaHoy(contenedor);
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
 
   const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-hoy');
   if (selectFiltroUbicacion) {
@@ -153,6 +179,7 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
         ${tarea.recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.recompensa)}</span>` : ''}
         ${tarea.costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.costo_estimado}</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
+        <span class="etiqueta-fecha etiqueta-solapamiento-calendar" hidden></span>
       </span>
       ${
         bloqueantes
@@ -178,6 +205,22 @@ function renderItem(tarea, { soloInfo = false, bloqueantes = null, enfoqueIds = 
     etiquetaClima.textContent = `🌧️ Lluvia probable (${resultado.probabilidadLluvia}%) — considerá posponer`;
     etiquetaClima.hidden = false;
   });
+
+  if (hayConexionGoogleCalendar() && tarea.fecha_hora_agendada) {
+    const etiquetaCalendar = li.querySelector('.etiqueta-solapamiento-calendar');
+    obtenerEventosDeHoy()
+      .then((eventos) => {
+        const solapamiento = calcularSolapamiento(tarea, eventos);
+        if (!solapamiento) return;
+        const horaEvento = new Date(solapamiento.inicio).toLocaleTimeString('es-AR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        etiquetaCalendar.textContent = `📅 Se superpone con "${solapamiento.resumen}" (${horaEvento})`;
+        etiquetaCalendar.hidden = false;
+      })
+      .catch((error) => console.warn(error.message));
+  }
 
   if (soloInfo) return li;
 
