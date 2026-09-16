@@ -1,4 +1,4 @@
-import { ETIQUETAS_PLAZO } from './modelos.js';
+import { ETIQUETAS_PLAZO, NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA } from './modelos.js';
 import { formatearFecha } from './utilidades.js';
 
 /**
@@ -63,4 +63,69 @@ export function parsearRespuestaSubtareas(texto) {
   }
 
   return normalizadas;
+}
+
+/**
+ * Arma un prompt para pedirle a un LLM externo que sugiera una nueva
+ * importancia (baja/media/alta) para cada tarea accionable actual, según
+ * urgencia/impacto. Mismo flujo manual de copiar/pegar que las subtareas.
+ */
+export function construirPromptPrioridades(tareas, categorias) {
+  const filas = tareas.map((tarea) => {
+    const categoria = categorias.find((c) => c.id === tarea.categoria_id);
+    return [
+      `id: ${tarea.id}`,
+      `nombre: ${tarea.nombre}`,
+      `categoría: ${categoria ? categoria.nombre : 'sin categoría'}`,
+      `fecha límite: ${tarea.fecha_limite ? formatearFecha(tarea.fecha_limite) : 'sin fecha'}`,
+      `importancia actual: ${ETIQUETAS_IMPORTANCIA[tarea.importancia] || ETIQUETAS_IMPORTANCIA.media}`,
+    ].join(', ');
+  });
+
+  return [
+    'Esta es la lista de mis tareas pendientes accionables ahora mismo:',
+    '',
+    ...filas.map((f) => `- ${f}`),
+    '',
+    'Revisala y sugerime una importancia (baja, media o alta) para cada una, según qué tan urgente/impactante te parece cada tarea (podés dejar la misma importancia si ya te parece correcta).',
+    'Devolveme SOLO un JSON (sin texto adicional antes ni después) con este formato exacto, usando el "id" de cada tarea:',
+    '',
+    '[',
+    '  { "id": "...", "importancia": "alta" }',
+    ']',
+  ].join('\n');
+}
+
+/**
+ * Parsea y normaliza el JSON con las importancias sugeridas, y devuelve
+ * solo los cambios reales (donde la sugerida difiere de la actual) contra
+ * `tareasDisponibles`. Lanza un Error con mensaje legible si el formato
+ * es inválido.
+ */
+export function parsearRespuestaPrioridades(texto, tareasDisponibles) {
+  let datos;
+  try {
+    datos = JSON.parse(texto);
+  } catch {
+    throw new Error('No se pudo interpretar como JSON válido. Revisá que hayas pegado solo el JSON de la respuesta.');
+  }
+
+  if (!Array.isArray(datos)) {
+    throw new Error('El JSON debe ser una lista (array) de sugerencias.');
+  }
+
+  const cambios = [];
+  datos.forEach((item) => {
+    if (!item || typeof item.id !== 'string' || !NIVELES_IMPORTANCIA.includes(item.importancia)) return;
+    const tarea = tareasDisponibles.find((t) => t.id === item.id);
+    if (!tarea) return;
+    if (tarea.importancia === item.importancia) return;
+    cambios.push({ tarea, importanciaSugerida: item.importancia });
+  });
+
+  if (cambios.length === 0) {
+    throw new Error('No se encontró ningún cambio de importancia válido (revisá los "id" y que "importancia" sea baja/media/alta).');
+  }
+
+  return cambios;
 }

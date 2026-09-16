@@ -18,10 +18,12 @@ import {
   puedeAgregarDependencia,
   compararPorPrioridad,
   calcularEnfoque8020,
+  esTareaAccionable,
 } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
 import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
+import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
@@ -173,7 +175,10 @@ export function renderVistaTareas(contenedor) {
         <input type="checkbox" id="toggle-agrupar-categoria" ${agruparPorCategoria ? 'checked' : ''} />
         Agrupar por categoría
       </label>
+      <button type="button" id="boton-ia-prioridades">Reestructurar prioridades con IA</button>
     </div>
+
+    <div id="contenedor-panel-ia-prioridades" hidden></div>
 
     <ul id="lista-tareas" class="lista-tareas"></ul>
   `;
@@ -294,6 +299,17 @@ export function renderVistaTareas(contenedor) {
   contenedor.querySelector('#toggle-agrupar-categoria').addEventListener('change', (evento) => {
     agruparPorCategoria = evento.target.checked;
     renderVistaTareas(contenedor);
+  });
+
+  const contenedorPanelIA = contenedor.querySelector('#contenedor-panel-ia-prioridades');
+  contenedor.querySelector('#boton-ia-prioridades').addEventListener('click', () => {
+    const yaAbierto = !contenedorPanelIA.hidden;
+    contenedorPanelIA.innerHTML = '';
+    contenedorPanelIA.hidden = true;
+    if (yaAbierto) return;
+
+    contenedorPanelIA.appendChild(crearPanelIAPrioridades());
+    contenedorPanelIA.hidden = false;
   });
 
   const listaTareas = contenedor.querySelector('#lista-tareas');
@@ -727,6 +743,80 @@ function crearPanelMetas(tarea) {
       } else {
         tarea.metas_ids = (tarea.metas_ids || []).filter((id) => id !== metaId);
       }
+      await persistirYNotificar();
+    });
+  });
+
+  return panel;
+}
+
+function crearPanelIAPrioridades() {
+  const panel = document.createElement('div');
+  panel.className = 'panel-dependencias';
+
+  const tareasAccionables = estado.tareas.filter((t) => esTareaAccionable(t, estado.tareas));
+  if (tareasAccionables.length === 0) {
+    panel.innerHTML = '<p class="mensaje-vacio">No hay tareas accionables ahora mismo para reestructurar.</p>';
+    return panel;
+  }
+
+  const prompt = construirPromptPrioridades(tareasAccionables, estado.categorias);
+
+  panel.innerHTML = `
+    <p class="panel-reprogramar-etiqueta">1. Copiá este prompt y pegalo en tu asistente de IA (ChatGPT, Claude, etc.):</p>
+    <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
+    <button type="button" data-accion="copiar-prompt">Copiar prompt</button>
+    <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta (el JSON) que te devolvió:</p>
+    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "id": "...", "importancia": "alta" }]'></textarea>
+    <button type="button" data-accion="previsualizar" class="boton-primario">Previsualizar</button>
+    <div class="contenedor-preview-ia"></div>
+  `;
+
+  panel.querySelector('[data-accion="copiar-prompt"]').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+    } catch {
+      alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
+    }
+  });
+
+  const contenedorPreview = panel.querySelector('.contenedor-preview-ia');
+  panel.querySelector('[data-accion="previsualizar"]').addEventListener('click', () => {
+    const textoRespuesta = panel.querySelector('[data-campo="respuesta"]').value;
+    let cambios;
+    try {
+      cambios = parsearRespuestaPrioridades(textoRespuesta, tareasAccionables);
+    } catch (error) {
+      contenedorPreview.innerHTML = `<p class="aviso-bloqueada">${escaparHtml(error.message)}</p>`;
+      return;
+    }
+
+    contenedorPreview.innerHTML = `
+      <p class="panel-reprogramar-etiqueta">3. Elegí qué cambios aplicar:</p>
+      <ul class="checklist-dependencias">
+        ${cambios
+          .map(
+            (c, i) => `
+              <li>
+                <label>
+                  <input type="checkbox" data-indice="${i}" checked />
+                  ${escaparHtml(c.tarea.nombre)}: ${ICONOS_IMPORTANCIA[c.tarea.importancia] || ''} ${ETIQUETAS_IMPORTANCIA[c.tarea.importancia] || ''}
+                  → ${ICONOS_IMPORTANCIA[c.importanciaSugerida]} ${ETIQUETAS_IMPORTANCIA[c.importanciaSugerida]}
+                </label>
+              </li>`
+          )
+          .join('')}
+      </ul>
+      <button type="button" data-accion="aplicar-cambios" class="boton-primario">Aplicar cambios seleccionados</button>
+    `;
+
+    contenedorPreview.querySelector('[data-accion="aplicar-cambios"]').addEventListener('click', async () => {
+      const seleccionados = [...contenedorPreview.querySelectorAll('input[type="checkbox"]:checked')].map(
+        (cb) => cambios[Number(cb.dataset.indice)]
+      );
+      seleccionados.forEach((c) => {
+        c.tarea.importancia = c.importanciaSugerida;
+      });
       await persistirYNotificar();
     });
   });

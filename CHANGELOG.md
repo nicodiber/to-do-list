@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.32.0] - 2026-09-15
+
+### Agregado
+
+- IA conectable — reestructurar prioridades: nuevo botón "Reestructurar prioridades con IA" en la vista Tareas. Arma un prompt con las tareas accionables actuales (id, nombre, categoría, fecha límite, importancia actual) pidiéndole a un asistente de IA externo que sugiera una nueva importancia para cada una; al pegar la respuesta (JSON) previsualiza solo los cambios reales (donde la sugerida difiere de la actual) con checkboxes, y aplica únicamente los seleccionados. Mismo flujo manual de copiar/pegar que la sugerencia de subtareas de v0.31.0 (`assets/js/ia-conectable.js`).
+
 ## [v0.31.0] - 2026-09-15
 
 ### Agregado
