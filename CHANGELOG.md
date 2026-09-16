@@ -2,12 +2,6 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
-## [v0.43.0] - 2026-09-16
-
-### Agregado
-
-- Mantenimiento cíclico conserva horario y atributos al clonarse: `completarTarea()` (`assets/js/tareas-logica.js`) ahora copia `fecha_hora_agendada` (misma hora del día, fecha adelantada según el intervalo, usando `combinarFechaYHora` de `assets/js/utilidades.js`), `ubicacion_id`, `importancia`, `dias_habiles`, `multitasking`, `divisible` y `requiere_clima_bueno` del original a cada instancia nueva. Detectado analizando el calendario real del usuario (rutinas diarias con horario fijo como Duolingo/Cook/Shower) vía el conector de Google Calendar.
-
 ## [v0.42.0] - 2026-09-16
 
 ### Agregado
