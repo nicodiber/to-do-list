@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v1';
+const CACHE_NAME = 'super-todo-list-v2';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (evento) => {
   if (url.origin !== self.location.origin) return;
 
   evento.respondWith(
-    fetch(evento.request)
+    fetch(evento.request, { cache: 'reload' })
       .then((respuesta) => {
         if (respuesta.ok) {
           const copia = respuesta.clone();

@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.39.1] - 2026-09-16
+
+### Corregido
+
+- Caché agresiva en producción (GitHub Pages): la CDN de GitHub Pages manda `Cache-Control: max-age=600`, cabecera que también gobernaba los `fetch()` del propio Service Worker — el navegador podía resolverlos con una copia local sin llegar a la red, aunque la estrategia se llame "network-first". Detectado en vivo: tras mergear a `main`, el sitio seguía mostrando contenido viejo pese a que la CDN ya servía el archivo correcto (confirmado con `curl`). `sw.js` ahora pasa `{ cache: 'reload' }` en el `fetch` del handler (igual que ya hacía el precache de `install`), y se bumpeó `CACHE_NAME` a `v2` para forzar la actualización inmediata en los dispositivos que ya tenían el Service Worker instalado.
+
 ## [v0.39.0] - 2026-09-16
 
 ### Quitado
