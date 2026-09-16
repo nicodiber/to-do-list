@@ -19,10 +19,18 @@ import { renderVistaMetas } from '../../views/metas.view.js';
 import { renderVistaGantt } from '../../views/gantt.view.js';
 import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
+import {
+  soportaNotificaciones,
+  permisoNotificacionesConcedido,
+  permisoNotificacionesDenegado,
+  solicitarPermisoNotificaciones,
+  iniciarRevisionNotificaciones,
+} from './notificaciones.js';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
 const ESTADO_CONEXION = document.getElementById('estado-conexion');
+const BOTON_NOTIFICACIONES = document.getElementById('boton-notificaciones');
 
 const VISTAS = {
   hoy: { etiqueta: 'Hoy', render: renderVistaHoy },
@@ -96,10 +104,40 @@ document.getElementById('input-importar').addEventListener('change', async (even
   }
 });
 
+function actualizarBotonNotificaciones() {
+  if (!soportaNotificaciones()) {
+    BOTON_NOTIFICACIONES.hidden = true;
+    return;
+  }
+  if (permisoNotificacionesConcedido()) {
+    BOTON_NOTIFICACIONES.textContent = 'Notificaciones activadas';
+    BOTON_NOTIFICACIONES.disabled = true;
+  } else if (permisoNotificacionesDenegado()) {
+    BOTON_NOTIFICACIONES.textContent = 'Notificaciones bloqueadas (activalas desde el navegador)';
+    BOTON_NOTIFICACIONES.disabled = true;
+  } else {
+    BOTON_NOTIFICACIONES.textContent = 'Activar notificaciones';
+    BOTON_NOTIFICACIONES.disabled = false;
+  }
+}
+
+BOTON_NOTIFICACIONES.addEventListener('click', async () => {
+  await solicitarPermisoNotificaciones();
+  actualizarBotonNotificaciones();
+});
+
+actualizarBotonNotificaciones();
+
 inicializarAlmacenamiento();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch((error) => {
-    console.warn('No se pudo registrar el service worker:', error);
-  });
+  navigator.serviceWorker
+    .register('sw.js')
+    .then((registro) => iniciarRevisionNotificaciones(estado, registro))
+    .catch((error) => {
+      console.warn('No se pudo registrar el service worker:', error);
+      iniciarRevisionNotificaciones(estado, null);
+    });
+} else {
+  iniciarRevisionNotificaciones(estado, null);
 }

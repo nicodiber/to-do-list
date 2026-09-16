@@ -22,6 +22,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/disfrute.js',
   'assets/js/vista-agenda.js',
   'assets/js/ia-conectable.js',
+  'assets/js/notificaciones.js',
   'views/hoy.view.js',
   'views/tres-dias.view.js',
   'views/ocho-dias.view.js',
@@ -70,5 +71,22 @@ self.addEventListener('fetch', (evento) => {
         return respuesta;
       })
       .catch(() => caches.match(evento.request))
+  );
+});
+
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close();
+  const url = (evento.notification.data && evento.notification.data.url) || './';
+
+  evento.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((listaClientes) => {
+      for (const cliente of listaClientes) {
+        if ('focus' in cliente) {
+          if ('navigate' in cliente) cliente.navigate(url);
+          return cliente.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
   );
 });

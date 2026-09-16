@@ -99,6 +99,7 @@ export function crearTarea({
     duracion_real_min: null,
     notas,
     motivo_incumplimiento: '',
+    notificada_en_para: '',
     dependencias,
     mantenimiento,
     divisible,

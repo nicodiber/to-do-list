@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.34.0] - 2026-09-16
+
+### Agregado
+
+- Notificaciones — primer paso (locales, no push real): sin backend ni servidor propio, un Web Push real (VAPID + push service) no es viable, así que se implementa una revisión periódica en el cliente. Nuevo módulo `assets/js/notificaciones.js`: cada 60s (mientras la app está abierta) revisa si hay tareas con `fecha_hora_agendada` a menos de 10 minutos y dispara una notificación del navegador vía `registration.showNotification` (con fallback a `new Notification` si no hay service worker). Nuevo botón "Activar notificaciones" en la cabecera (`index.html`) para solicitar el permiso, con estados según `Notification.permission`. Nuevo campo `notificada_en_para` en Tarea (`assets/js/modelos.js`) para no repetir el aviso de la misma tarea, que se limpia automáticamente al reprogramarla. `sw.js` ahora maneja `notificationclick` para enfocar o abrir la app al tocar la notificación.
+
 ## [v0.33.0] - 2026-09-15
 
 ### Agregado
