@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.31.0] - 2026-09-15
+
+### Agregado
+
+- Capa de IA conectable — primer paso: nuevo módulo `assets/js/ia-conectable.js` y botón "Sugerir tareas con IA" en cada meta de la vista Metas. Arma un prompt para copiar/pegar en un asistente de IA externo (ChatGPT, Claude, etc.) pidiéndole tareas concretas para esa meta; permite pegar la respuesta (JSON), previsualizar las tareas propuestas con checkboxes, y agregar las seleccionadas asociadas a la meta. Flujo 100% manual (copiar/pegar) — el core de la app nunca llama a ninguna API de LLM ni depende de tokens.
+
 ## [v0.30.0] - 2026-09-15
 
 ### Agregado

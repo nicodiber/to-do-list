@@ -1,6 +1,7 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { crearMeta, PLAZOS_META, ETIQUETAS_PLAZO, ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
-import { escaparHtml, formatearFecha } from '../assets/js/utilidades.js';
+import { crearMeta, crearTarea, PLAZOS_META, ETIQUETAS_PLAZO, ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
+import { escaparHtml, formatearFecha, hoyISO, fechaISOMasDias } from '../assets/js/utilidades.js';
+import { construirPromptSubtareas, parsearRespuestaSubtareas } from '../assets/js/ia-conectable.js';
 
 export function renderVistaMetas(contenedor) {
   contenedor.innerHTML = `
@@ -54,6 +55,7 @@ function renderMeta(meta) {
     <div class="encabezado-categoria">
       <strong>${escaparHtml(meta.nombre)}</strong>
       <span class="acciones-prioridad">
+        <button type="button" data-accion="sugerir-ia">Sugerir tareas con IA</button>
         <button type="button" data-accion="eliminar-meta" title="Eliminar meta">✕</button>
       </span>
     </div>
@@ -72,7 +74,19 @@ function renderMeta(meta) {
         )
         .join('')}
     </ul>
+    <div class="contenedor-panel-ia" hidden></div>
   `;
+
+  const contenedorIA = tarjeta.querySelector('.contenedor-panel-ia');
+  tarjeta.querySelector('[data-accion="sugerir-ia"]').addEventListener('click', () => {
+    const yaAbierto = !contenedorIA.hidden;
+    contenedorIA.innerHTML = '';
+    contenedorIA.hidden = true;
+    if (yaAbierto) return;
+
+    contenedorIA.appendChild(crearPanelIA(meta));
+    contenedorIA.hidden = false;
+  });
 
   tarjeta.querySelector('[data-accion="eliminar-meta"]').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar la meta "${meta.nombre}"? Las tareas asociadas quedan sin esta meta.`)) return;
@@ -84,4 +98,79 @@ function renderMeta(meta) {
   });
 
   return tarjeta;
+}
+
+function crearPanelIA(meta) {
+  const panel = document.createElement('div');
+  panel.className = 'panel-dependencias';
+  const prompt = construirPromptSubtareas(meta);
+
+  panel.innerHTML = `
+    <p class="panel-reprogramar-etiqueta">1. Copiá este prompt y pegalo en tu asistente de IA (ChatGPT, Claude, etc.):</p>
+    <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
+    <button type="button" data-accion="copiar-prompt">Copiar prompt</button>
+    <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta (el JSON) que te devolvió:</p>
+    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "nombre": "...", "duracion_estimada_min": 30, "dias_desde_hoy": 0 }]'></textarea>
+    <button type="button" data-accion="previsualizar" class="boton-primario">Previsualizar</button>
+    <div class="contenedor-preview-ia"></div>
+  `;
+
+  panel.querySelector('[data-accion="copiar-prompt"]').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+    } catch {
+      alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
+    }
+  });
+
+  const contenedorPreview = panel.querySelector('.contenedor-preview-ia');
+  panel.querySelector('[data-accion="previsualizar"]').addEventListener('click', () => {
+    const textoRespuesta = panel.querySelector('[data-campo="respuesta"]').value;
+    let propuestas;
+    try {
+      propuestas = parsearRespuestaSubtareas(textoRespuesta);
+    } catch (error) {
+      contenedorPreview.innerHTML = `<p class="aviso-bloqueada">${escaparHtml(error.message)}</p>`;
+      return;
+    }
+
+    contenedorPreview.innerHTML = `
+      <p class="panel-reprogramar-etiqueta">3. Elegí cuáles agregar:</p>
+      <ul class="checklist-dependencias">
+        ${propuestas
+          .map(
+            (p, i) => `
+              <li>
+                <label>
+                  <input type="checkbox" data-indice="${i}" checked />
+                  ${escaparHtml(p.nombre)} — ${p.duracion_estimada_min} min, sugerida en ${p.dias_desde_hoy} día(s)
+                  ${p.notas ? `<br /><span class="notas-tarea">${escaparHtml(p.notas)}</span>` : ''}
+                </label>
+              </li>`
+          )
+          .join('')}
+      </ul>
+      <button type="button" data-accion="agregar-seleccionadas" class="boton-primario">Agregar seleccionadas</button>
+    `;
+
+    contenedorPreview.querySelector('[data-accion="agregar-seleccionadas"]').addEventListener('click', async () => {
+      const seleccionadas = [...contenedorPreview.querySelectorAll('input[type="checkbox"]:checked')].map(
+        (cb) => propuestas[Number(cb.dataset.indice)]
+      );
+      seleccionadas.forEach((p) => {
+        estado.tareas.push(
+          crearTarea({
+            nombre: p.nombre,
+            duracion_estimada_min: p.duracion_estimada_min,
+            fecha_sugerida: fechaISOMasDias(p.dias_desde_hoy, hoyISO()),
+            notas: p.notas,
+            metas_ids: [meta.id],
+          })
+        );
+      });
+      await persistirYNotificar();
+    });
+  });
+
+  return panel;
 }

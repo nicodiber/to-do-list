@@ -21,6 +21,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/recompensa.js',
   'assets/js/disfrute.js',
   'assets/js/vista-agenda.js',
+  'assets/js/ia-conectable.js',
   'views/hoy.view.js',
   'views/tres-dias.view.js',
   'views/ocho-dias.view.js',
