@@ -16,6 +16,7 @@ import { renderVistaTresDias } from '../../views/tres-dias.view.js';
 import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
 import { renderVistaTareas } from '../../views/tareas.view.js';
+import { renderVistaTabla } from '../../views/tabla.view.js';
 import { renderVistaCategorias } from '../../views/categorias.view.js';
 import { renderVistaUbicaciones } from '../../views/ubicaciones.view.js';
 import { renderVistaMetas } from '../../views/metas.view.js';
@@ -31,7 +32,7 @@ import {
 } from './notificaciones.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.41.0';
+const VERSION = 'v0.42.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -47,6 +48,7 @@ const VISTAS = {
   'ocho-dias': { etiqueta: '8 días', render: renderVistaOchoDias },
   semana: { etiqueta: 'Semana', render: renderVistaSemana },
   tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
+  tabla: { etiqueta: 'Tabla', render: renderVistaTabla },
   categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
   ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },
   metas: { etiqueta: 'Metas', render: renderVistaMetas },

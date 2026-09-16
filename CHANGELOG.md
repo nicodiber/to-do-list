@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.42.0] - 2026-09-16
+
+### Agregado
+
+- Vista "Tabla" de tareas pendientes: nueva vista `views/tabla.view.js` con todas las tareas no completadas ordenadas por la fecha más próxima (agendada > límite > sugerida, reutilizando `fechaDeReferencia` de `assets/js/vista-agenda.js`, ahora exportada). Columnas: Nombre, Categoría/Subcategoría, Importancia, Estado, Fecha y una columna nueva "Días" (usa `diasEntreFechas` de `assets/js/utilidades.js`) que muestra "En 3 días"/"Hoy"/"Vencida hace 2 días"/"Sin fecha". Clic en una fila abre esa tarea en edición en Tareas (mismo mecanismo ya usado por Gantt/Semana). Diseñada tras investigar en vivo (vía conectores de Notion y Google Calendar) cómo el usuario organiza hoy sus tareas reales — la vista replica directamente la tabla "Completo" que ya usaba en Notion.
+
 ## [v0.41.0] - 2026-09-16
 
 ### Agregado

@@ -319,6 +319,19 @@ h1, h2, h3 {
   font-size: 0.8rem;
 }
 
+.tabla-tareas-contenedor {
+  overflow-x: auto;
+}
+
+.fila-tabla-tarea {
+  cursor: pointer;
+  transition: var(--transicion);
+}
+
+.fila-tabla-tarea:hover {
+  background: var(--color-fondo);
+}
+
 .lista-enfoque-8020 {
   padding-left: 1.4rem;
 }

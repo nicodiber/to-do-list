@@ -8,7 +8,7 @@ import { obtenerUbicacionActual, establecerUbicacionActual } from './ubicacion-a
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-function fechaDeReferencia(tarea) {
+export function fechaDeReferencia(tarea) {
   if (tarea.fecha_hora_agendada) return tarea.fecha_hora_agendada.slice(0, 10);
   if (tarea.fecha_limite) return tarea.fecha_limite;
   if (tarea.fecha_sugerida) return tarea.fecha_sugerida;
