@@ -1,25 +1,27 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from './modelos.js';
-import { hoyISO, fechaISOMasDias, formatearFecha, formatearFechaHora, escaparHtml } from './utilidades.js';
+import { hoyISO, fechaISOMasDias, formatearFecha, formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { reprogramarTareaConCascada, tareaEstaBloqueada, compararPorPrioridad } from './tareas-logica.js';
+import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from './ubicacion-actual.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
+/**
+ * Fecha (solo la parte de día) por la que se agrupa una tarea en la agenda:
+ * `tarea_fecha_sugerida` si tiene valor, si no `tarea_fecha_limite`.
+ */
 export function fechaDeReferencia(tarea) {
-  if (tarea.tarea_fecha_hora_agendada) return tarea.tarea_fecha_hora_agendada.slice(0, 10);
-  if (tarea.tarea_fecha_limite) return tarea.tarea_fecha_limite;
-  if (tarea.tarea_fecha_sugerida) return tarea.tarea_fecha_sugerida;
+  if (tarea.tarea_fecha_sugerida) return tarea.tarea_fecha_sugerida.slice(0, 10);
+  if (tarea.tarea_fecha_limite) return tarea.tarea_fecha_limite.slice(0, 10);
   return null;
 }
 
 /**
  * Vista de agenda genérica: agrupa las tareas pendientes por día (según
- * fecha_hora_agendada > fecha_limite > fecha_sugerida, en ese orden) para
- * los próximos `cantidadDias`, empezando hoy. La usan las vistas de 3 y 8
- * días para no duplicar la lógica de agrupamiento.
+ * fechaDeReferencia) para los próximos `cantidadDias`, empezando hoy. La
+ * usan las vistas de 3 y 8 días para no duplicar la lógica de agrupamiento.
  */
 export function renderVistaAgenda(contenedor, cantidadDias) {
   const hoy = hoyISO();
@@ -37,7 +39,7 @@ export function renderVistaAgenda(contenedor, cantidadDias) {
 
   contenedor.innerHTML = `
     <h2>Próximos ${cantidadDias} días</h2>
-    <p class="ayuda">Tareas agendadas, con fecha límite o sugerida en este período — para anticipar cuellos de botella antes de que se conviertan en urgencias.</p>
+    <p class="ayuda">Tareas con fecha límite o sugerida en este período — para anticipar cuellos de botella antes de que se conviertan en urgencias.</p>
     ${
       estado.ubicaciones.length > 0
         ? `<label class="filtro-ubicacion-hoy">¿Dónde estás?
@@ -85,7 +87,7 @@ function renderColumnaDia(fechaDia, hoy, tareasDelDia) {
     tareasDelDia
       .sort(
         (a, b) =>
-          (a.tarea_fecha_hora_agendada || '').localeCompare(b.tarea_fecha_hora_agendada || '') ||
+          (a.tarea_fecha_sugerida || '').localeCompare(b.tarea_fecha_sugerida || '') ||
           compararPorPrioridad(a, b, estado.categorias)
       )
       .forEach((tarea) => lista.appendChild(renderTarjetaTarea(tarea)));
@@ -96,9 +98,9 @@ function renderColumnaDia(fechaDia, hoy, tareasDelDia) {
 
 function renderTarjetaTarea(tarea) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
-  const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
+  const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
+  const bloqueada = tarea.tarea_estado === 'bloqueada';
 
   const li = document.createElement('li');
   li.className = 'item-tarea' + (bloqueada ? ' bloqueada' : '');
@@ -106,30 +108,22 @@ function renderTarjetaTarea(tarea) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
-        <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia] || ICONOS_IMPORTANCIA.media} ${
-          ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia] || ETIQUETAS_IMPORTANCIA.media
-        }</span>
-        ${categoria ? `<span class="etiqueta" style="background:${subcategoria?.subcategoria_color ?? categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
-        ${tarea.tarea_fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">${formatearFechaHora(tarea.tarea_fecha_hora_agendada)}</span>` : ''}
-        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.tarea_fecha_limite)}</span>` : ''}
-        ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFecha(tarea.tarea_fecha_sugerida)}</span>` : ''}
+        ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
+        ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
+        ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha etiqueta-agendada">Sugerida: ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}</span>` : ''}
+        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.tarea_estado]}</span>
         ${
-          tarea.tarea_mantenimiento
-            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento.unidad]}</span>`
+          tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_intervalo
+            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento_intervalo.unidad]}</span>`
             : ''
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
-        ${tarea.tarea_recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.tarea_recompensa)}</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
         ${tarea.tarea_genera_dinero ? `<span class="etiqueta-fecha">💵 Genera ingreso</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
-      ${
-        bloqueada
-          ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.tarea_nombre)).join(', ')}</p>`
-          : ''
-      }
+      ${bloqueada && dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
       <div class="contenedor-panel-reprogramar" hidden></div>
     </div>
     <div class="item-tarea-acciones">
@@ -153,8 +147,8 @@ function renderTarjetaTarea(tarea) {
 
     const panel = crearPanelReprogramar({
       diasHabiles: tarea.tarea_dias_habiles,
-      onConfirmar: async (fechaHoraISO) => {
-        reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
+      onConfirmar: async (fechaSugeridaISO) => {
+        reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
         contenedorPanel.hidden = true;
         contenedorPanel.innerHTML = '';
         await persistirYNotificar();

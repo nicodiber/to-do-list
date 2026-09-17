@@ -19,7 +19,7 @@ export function renderVistaMetas(contenedor) {
       <select name="meta_plazo">
         ${PLAZOS_META.map((p) => `<option value="${p}">${ETIQUETAS_PLAZO[p]}</option>`).join('')}
       </select>
-      <label>Fecha objetivo <input type="date" name="meta_fecha_objetivo" /></label>
+      <label>Fecha objetivo <input type="date" name="meta_fecha_estimada" /></label>
       <input type="text" name="meta_descripcion" placeholder="Descripción (opcional)" />
       <button type="submit">Agregar meta</button>
     </form>
@@ -37,7 +37,7 @@ export function renderVistaMetas(contenedor) {
       crearMeta({
         meta_nombre: nombre,
         meta_plazo: formulario.meta_plazo.value,
-        meta_fecha_objetivo: formulario.meta_fecha_objetivo.value,
+        meta_fecha_estimada: formulario.meta_fecha_estimada.value,
         meta_descripcion: formulario.meta_descripcion.value.trim(),
       })
     );
@@ -65,7 +65,7 @@ export function renderVistaMetas(contenedor) {
 }
 
 function renderMeta(meta) {
-  const tareasAsociadas = estado.tareas.filter((t) => (t.metas_ids || []).includes(meta.meta_id));
+  const tareasAsociadas = estado.tareas.filter((t) => t.meta_id === meta.meta_id);
   const completadas = tareasAsociadas.filter((t) => t.tarea_estado === 'completada');
   const porcentaje = tareasAsociadas.length === 0 ? 0 : Math.round((completadas.length / tareasAsociadas.length) * 100);
 
@@ -81,7 +81,7 @@ function renderMeta(meta) {
     </div>
     <span class="etiquetas">
       <span class="etiqueta-fecha">${ETIQUETAS_PLAZO[meta.meta_plazo]}</span>
-      ${meta.meta_fecha_objetivo ? `<span class="etiqueta-fecha">Objetivo: ${formatearFecha(meta.meta_fecha_objetivo)}</span>` : ''}
+      ${meta.meta_fecha_estimada ? `<span class="etiqueta-fecha">Objetivo: ${formatearFecha(meta.meta_fecha_estimada)}</span>` : ''}
     </span>
     ${meta.meta_descripcion ? `<p class="notas-tarea">${escaparHtml(meta.meta_descripcion)}</p>` : ''}
     <div class="barra-progreso"><div class="barra-progreso-relleno" style="width: ${porcentaje}%"></div></div>
@@ -111,7 +111,7 @@ function renderMeta(meta) {
   tarjeta.querySelector('[data-accion="eliminar-meta"]').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar la meta "${meta.meta_nombre}"? Las tareas asociadas quedan sin esta meta.`)) return;
     estado.tareas.forEach((tarea) => {
-      tarea.metas_ids = (tarea.metas_ids || []).filter((id) => id !== meta.meta_id);
+      if (tarea.meta_id === meta.meta_id) tarea.meta_id = null;
     });
     estado.metas = estado.metas.filter((m) => m.meta_id !== meta.meta_id);
     await persistirYNotificar();
@@ -130,7 +130,7 @@ function crearPanelIA(meta) {
     <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
     <button type="button" data-accion="copiar-prompt">Copiar prompt</button>
     <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta (el JSON) que te devolvió:</p>
-    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_nombre": "...", "tarea_duracion_estimada_min": 30, "dias_desde_hoy": 0 }]'></textarea>
+    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_nombre": "...", "tarea_duracion_min": 30, "dias_desde_hoy": 0 }]'></textarea>
     <button type="button" data-accion="previsualizar" class="boton-primario">Previsualizar</button>
     <div class="contenedor-preview-ia"></div>
   `;
@@ -163,8 +163,8 @@ function crearPanelIA(meta) {
               <li>
                 <label>
                   <input type="checkbox" data-indice="${i}" checked />
-                  ${escaparHtml(p.tarea_nombre)} — ${p.tarea_duracion_estimada_min} min, sugerida en ${p.dias_desde_hoy} día(s)
-                  ${p.tarea_notas ? `<br /><span class="notas-tarea">${escaparHtml(p.tarea_notas)}</span>` : ''}
+                  ${escaparHtml(p.tarea_nombre)} — ${p.tarea_duracion_min} min, sugerida en ${p.dias_desde_hoy} día(s)
+                  ${p.tarea_descripcion ? `<br /><span class="notas-tarea">${escaparHtml(p.tarea_descripcion)}</span>` : ''}
                 </label>
               </li>`
           )
@@ -181,10 +181,10 @@ function crearPanelIA(meta) {
         estado.tareas.push(
           crearTarea({
             tarea_nombre: p.tarea_nombre,
-            tarea_duracion_estimada_min: p.tarea_duracion_estimada_min,
+            tarea_duracion_min: p.tarea_duracion_min,
             tarea_fecha_sugerida: fechaISOMasDias(p.dias_desde_hoy, hoyISO()),
-            tarea_notas: p.tarea_notas,
-            metas_ids: [meta.meta_id],
+            tarea_descripcion: p.tarea_descripcion,
+            meta_id: meta.meta_id,
           })
         );
       });
@@ -241,7 +241,7 @@ function crearPanelChatMeta(contenedorPanel) {
         <textarea class="textarea-ia" readonly rows="6">${escaparHtml(promptFinal)}</textarea>
         <button type="button" data-accion="copiar-prompt-final">Copiar prompt</button>
         <p class="panel-reprogramar-etiqueta">Pegá acá la respuesta (el JSON) que te devolvió:</p>
-        <textarea class="textarea-ia" data-campo="respuesta-final" rows="6" placeholder='{ "meta_nombre": "...", "meta_plazo": "corto", "meta_fecha_objetivo": "", "meta_descripcion": "..." }'></textarea>
+        <textarea class="textarea-ia" data-campo="respuesta-final" rows="6" placeholder='{ "meta_nombre": "...", "meta_plazo": "corto", "meta_fecha_estimada": "", "meta_descripcion": "..." }'></textarea>
         <button type="button" data-accion="previsualizar-meta" class="boton-primario">Previsualizar meta</button>
         <div class="contenedor-preview-meta"></div>
       `
@@ -307,7 +307,7 @@ function crearPanelChatMeta(contenedorPanel) {
         contenedorPreviewMeta.innerHTML = `
           <p class="panel-reprogramar-etiqueta">Meta propuesta:</p>
           <p><strong>${escaparHtml(datosMeta.meta_nombre)}</strong></p>
-          <p class="notas-tarea">${ETIQUETAS_PLAZO[datosMeta.meta_plazo]}${datosMeta.meta_fecha_objetivo ? ` — Objetivo: ${formatearFecha(datosMeta.meta_fecha_objetivo)}` : ''}</p>
+          <p class="notas-tarea">${ETIQUETAS_PLAZO[datosMeta.meta_plazo]}${datosMeta.meta_fecha_estimada ? ` — Objetivo: ${formatearFecha(datosMeta.meta_fecha_estimada)}` : ''}</p>
           ${datosMeta.meta_descripcion ? `<p class="notas-tarea">${escaparHtml(datosMeta.meta_descripcion)}</p>` : ''}
           <button type="button" data-accion="crear-meta" class="boton-primario">Crear meta</button>
         `;

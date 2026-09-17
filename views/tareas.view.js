@@ -1,34 +1,43 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import {
   crearTarea,
-  ESTADOS_TAREA,
-  ETIQUETAS_ESTADO,
   UNIDADES_MANTENIMIENTO,
   ETIQUETAS_UNIDAD_MANTENIMIENTO,
   NIVELES_IMPORTANCIA,
   ETIQUETAS_IMPORTANCIA,
   ICONOS_IMPORTANCIA,
 } from '../assets/js/modelos.js';
-import { formatearFecha, formatearFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml } from '../assets/js/utilidades.js';
+import {
+  formatearFechaOFechaHora,
+  esVencida,
+  noPuedeEmpezarTodavia,
+  escaparHtml,
+  arbolCategorias,
+  caminoCategoria,
+  tieneHora,
+  combinarFechaYHora,
+} from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import {
   completarTarea,
   reprogramarTareaConCascada,
-  tareaEstaBloqueada,
+  recalcularBloqueo,
+  desbloquearDependientes,
   puedeAgregarDependencia,
   compararPorPrioridad,
   calcularEnfoque8020,
   esTareaAccionable,
 } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { mostrarRecompensaSiCorresponde } from '../assets/js/recompensa.js';
 import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
+const ESTADOS_SELECCIONABLES = ['pendiente', 'completada'];
+const ETIQUETAS_ESTADO_SELECCIONABLE = { pendiente: 'Pendiente', completada: 'Completada' };
+
 let filtroCategoria = '';
 let filtroEstado = '';
-let filtroSoloMultitasking = false;
 let filtroImportancia = '';
 let agruparPorCategoria = false;
 let idAAbrirAlEntrar = null;
@@ -37,11 +46,24 @@ export function abrirEdicionAlEntrar(id) {
   idAAbrirAlEntrar = id;
 }
 
-function htmlOpcionesImportancia(seleccionada = 'media') {
-  return NIVELES_IMPORTANCIA.map(
-    (nivel) =>
+function htmlOpcionesImportancia(seleccionada = '') {
+  const opciones = [`<option value="" ${!seleccionada ? 'selected' : ''}>Sin definir</option>`];
+  NIVELES_IMPORTANCIA.forEach((nivel) => {
+    opciones.push(
       `<option value="${nivel}" ${nivel === seleccionada ? 'selected' : ''}>${ICONOS_IMPORTANCIA[nivel]} ${ETIQUETAS_IMPORTANCIA[nivel]}</option>`
-  ).join('');
+    );
+  });
+  return opciones.join('');
+}
+
+function htmlOpcionesCategoria(seleccionada = '') {
+  const opciones = ['<option value="">Sin categoría</option>'];
+  arbolCategorias(estado.categorias).forEach(({ categoria, profundidad }) => {
+    opciones.push(
+      `<option value="${categoria.categoria_id}" ${categoria.categoria_id === seleccionada ? 'selected' : ''}>${'　'.repeat(profundidad)}${escaparHtml(categoria.categoria_nombre)}</option>`
+    );
+  });
+  return opciones.join('');
 }
 
 function htmlDiasHabiles(seleccionados = []) {
@@ -52,6 +74,32 @@ function htmlDiasHabiles(seleccionados = []) {
         ${nombre.slice(0, 3)}
       </label>`
   ).join('');
+}
+
+function partesFechaHora(valorISO) {
+  if (!valorISO) return { fecha: '', hora: '' };
+  if (!tieneHora(valorISO)) return { fecha: valorISO, hora: '' };
+  const d = new Date(valorISO);
+  const fecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const hora = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return { fecha, hora };
+}
+
+function htmlParFechaHora(nombreCampo, valorISO, etiqueta) {
+  const { fecha, hora } = partesFechaHora(valorISO);
+  return `
+    <label>${etiqueta}
+      <input type="date" name="${nombreCampo}_fecha" value="${fecha}" />
+      <input type="time" name="${nombreCampo}_hora" value="${hora}" title="Hora (opcional)" />
+    </label>
+  `;
+}
+
+function combinarCampoFechaHora(datos, nombreCampo) {
+  const fecha = datos.get(`${nombreCampo}_fecha`);
+  const hora = datos.get(`${nombreCampo}_hora`);
+  if (!fecha) return '';
+  return hora ? combinarFechaYHora(fecha, hora) : fecha;
 }
 
 function tareasUnicasPorNombre() {
@@ -81,29 +129,21 @@ export function renderVistaTareas(contenedor) {
         ${tareasUnicasPorNombre().map((t) => `<option value="${escaparHtml(t.tarea_nombre)}"></option>`).join('')}
       </datalist>
       <select name="categoria_id">
-        <option value="">Sin categoría</option>
-        ${estado.categorias.map((c) => `<option value="${c.categoria_id}">${escaparHtml(c.categoria_nombre)}</option>`).join('')}
-      </select>
-      <select name="subcategoria_id">
-        <option value="">Sin subcategoría</option>
-      </select>
-      <select name="tarea_estado">
-        ${ESTADOS_TAREA.map((e) => `<option value="${e}">${ETIQUETAS_ESTADO[e]}</option>`).join('')}
+        ${htmlOpcionesCategoria()}
       </select>
       <select name="tarea_importancia">
         ${htmlOpcionesImportancia()}
       </select>
-      <label>Desde <input type="date" name="tarea_fecha_inicio_posible" /></label>
-      <label>Límite <input type="date" name="tarea_fecha_limite" /></label>
-      <label>Sugerida <input type="date" name="tarea_fecha_sugerida" /></label>
-      <label>Duración (min) <input type="number" name="tarea_duracion_estimada_min" value="30" min="0" step="15" /></label>
+      ${htmlParFechaHora('tarea_fecha_inicio_habilitada', '', 'Habilitada desde')}
+      ${htmlParFechaHora('tarea_fecha_sugerida', '', 'Sugerida')}
+      ${htmlParFechaHora('tarea_fecha_limite', '', 'Límite')}
+      <label>Duración (min) <input type="number" name="tarea_duracion_min" value="15" min="0" step="15" /></label>
       <input type="number" name="tarea_costo_estimado" min="0" placeholder="Costo estimado ($)" />
-      <input type="text" name="tarea_notas" placeholder="Notas / recursos" />
+      <input type="text" name="tarea_descripcion" placeholder="Descripción / notas / links" />
       <select name="ubicacion_id">
         <option value="">Sin ubicación</option>
         ${estado.ubicaciones.map((u) => `<option value="${u.ubicacion_id}">${escaparHtml(u.ubicacion_nombre)}</option>`).join('')}
       </select>
-      <input type="text" name="tarea_recompensa" placeholder="Recompensa (opcional)" />
       <label class="opcion-mantenimiento">
         <input type="checkbox" name="tarea_requiere_clima_bueno" />
         Requiere buen tiempo (sin lluvia)
@@ -113,7 +153,7 @@ export function renderVistaTareas(contenedor) {
         💵 Genera ingreso
       </label>
       <label class="opcion-mantenimiento">
-        <input type="checkbox" name="es_mantenimiento" />
+        <input type="checkbox" name="tarea_mantenimiento" />
         Es tarea de mantenimiento (se renueva sola)
       </label>
       <span class="campos-mantenimiento" hidden>
@@ -123,14 +163,6 @@ export function renderVistaTareas(contenedor) {
           ${UNIDADES_MANTENIMIENTO.map((u) => `<option value="${u}">${ETIQUETAS_UNIDAD_MANTENIMIENTO[u]}</option>`).join('')}
         </select>
       </span>
-      <label class="opcion-mantenimiento">
-        <input type="checkbox" name="tarea_divisible" />
-        Se puede pausar y retomar (divisible)
-      </label>
-      <label class="opcion-mantenimiento">
-        <input type="checkbox" name="tarea_multitasking" />
-        🎧 Se puede hacer mientras hacés otra cosa (multitasking)
-      </label>
       <fieldset class="dias-habiles">
         <legend>Días hábiles (vacío = cualquier día)</legend>
         ${htmlDiasHabiles()}
@@ -142,17 +174,20 @@ export function renderVistaTareas(contenedor) {
       <label>Categoría
         <select id="filtro-categoria">
           <option value="">Todas</option>
-          ${estado.categorias
-            .map((c) => `<option value="${c.categoria_id}" ${filtroCategoria === c.categoria_id ? 'selected' : ''}>${escaparHtml(c.categoria_nombre)}</option>`)
+          ${arbolCategorias(estado.categorias)
+            .map(
+              ({ categoria, profundidad }) =>
+                `<option value="${categoria.categoria_id}" ${filtroCategoria === categoria.categoria_id ? 'selected' : ''}>${'　'.repeat(profundidad)}${escaparHtml(categoria.categoria_nombre)}</option>`
+            )
             .join('')}
         </select>
       </label>
       <label>Estado
         <select id="filtro-estado">
           <option value="">Todos</option>
-          ${ESTADOS_TAREA.map(
-            (e) => `<option value="${e}" ${filtroEstado === e ? 'selected' : ''}>${ETIQUETAS_ESTADO[e]}</option>`
-          ).join('')}
+          <option value="bloqueada" ${filtroEstado === 'bloqueada' ? 'selected' : ''}>Bloqueada</option>
+          <option value="pendiente" ${filtroEstado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+          <option value="completada" ${filtroEstado === 'completada' ? 'selected' : ''}>Completada</option>
         </select>
       </label>
       <label>Ubicación
@@ -173,10 +208,6 @@ export function renderVistaTareas(contenedor) {
         </select>
       </label>
       <label class="opcion-mantenimiento">
-        <input type="checkbox" id="filtro-multitasking" ${filtroSoloMultitasking ? 'checked' : ''} />
-        🎧 Solo multitasking
-      </label>
-      <label class="opcion-mantenimiento">
         <input type="checkbox" id="toggle-agrupar-categoria" ${agruparPorCategoria ? 'checked' : ''} />
         Agrupar por categoría
       </label>
@@ -189,19 +220,8 @@ export function renderVistaTareas(contenedor) {
   `;
 
   const formulario = contenedor.querySelector('#form-nueva-tarea');
-  const selectCategoria = formulario.categoria_id;
-  const selectSubcategoria = formulario.subcategoria_id;
 
-  function actualizarSubcategoriasFormulario() {
-    const subs = estado.subcategorias.filter((s) => s.categoria_id === selectCategoria.value);
-    selectSubcategoria.innerHTML =
-      '<option value="">Sin subcategoría</option>' +
-      subs.map((s) => `<option value="${s.subcategoria_id}">${escaparHtml(s.subcategoria_nombre)}</option>`).join('');
-  }
-  selectCategoria.addEventListener('change', actualizarSubcategoriasFormulario);
-  actualizarSubcategoriasFormulario();
-
-  const checkboxMantenimiento = formulario.es_mantenimiento;
+  const checkboxMantenimiento = formulario.tarea_mantenimiento;
   const camposMantenimiento = contenedor.querySelector('.campos-mantenimiento');
   checkboxMantenimiento.addEventListener('change', () => {
     camposMantenimiento.hidden = !checkboxMantenimiento.checked;
@@ -213,20 +233,16 @@ export function renderVistaTareas(contenedor) {
     );
     if (!coincidencia) return;
     formulario.categoria_id.value = coincidencia.categoria_id || '';
-    actualizarSubcategoriasFormulario();
-    formulario.subcategoria_id.value = coincidencia.subcategoria_id || '';
-    formulario.tarea_duracion_estimada_min.value = coincidencia.tarea_duracion_estimada_min || 30;
+    formulario.tarea_duracion_min.value = coincidencia.tarea_duracion_min || 15;
     formulario.tarea_costo_estimado.value = coincidencia.tarea_costo_estimado || '';
-    formulario.tarea_notas.value = coincidencia.tarea_notas || '';
+    formulario.tarea_descripcion.value = coincidencia.tarea_descripcion || '';
     checkboxMantenimiento.checked = !!coincidencia.tarea_mantenimiento;
     camposMantenimiento.hidden = !coincidencia.tarea_mantenimiento;
-    if (coincidencia.tarea_mantenimiento) {
-      formulario.mantenimiento_cantidad.value = coincidencia.tarea_mantenimiento.cantidad;
-      formulario.mantenimiento_unidad.value = coincidencia.tarea_mantenimiento.unidad;
+    if (coincidencia.tarea_mantenimiento_intervalo) {
+      formulario.mantenimiento_cantidad.value = coincidencia.tarea_mantenimiento_intervalo.cantidad;
+      formulario.mantenimiento_unidad.value = coincidencia.tarea_mantenimiento_intervalo.unidad;
     }
-    formulario.tarea_divisible.checked = !!coincidencia.tarea_divisible;
-    formulario.tarea_multitasking.checked = !!coincidencia.tarea_multitasking;
-    formulario.tarea_importancia.value = coincidencia.tarea_importancia || 'media';
+    formulario.tarea_importancia.value = coincidencia.tarea_importancia || '';
     const diasSeleccionados = coincidencia.tarea_dias_habiles || [];
     formulario.querySelectorAll('input[name="tarea_dias_habiles"]').forEach((checkbox) => {
       checkbox.checked = diasSeleccionados.includes(Number(checkbox.value));
@@ -234,7 +250,6 @@ export function renderVistaTareas(contenedor) {
     formulario.ubicacion_id.value = coincidencia.ubicacion_id || '';
     formulario.tarea_requiere_clima_bueno.checked = !!coincidencia.tarea_requiere_clima_bueno;
     formulario.tarea_genera_dinero.checked = !!coincidencia.tarea_genera_dinero;
-    formulario.tarea_recompensa.value = coincidencia.tarea_recompensa || '';
   });
 
   const formularioRapido = contenedor.querySelector('#form-alta-rapida');
@@ -251,33 +266,29 @@ export function renderVistaTareas(contenedor) {
     const datos = new FormData(formulario);
     const nombre = String(datos.get('tarea_nombre') || '').trim();
     if (!nombre) return;
-    const esMantenimiento = datos.get('es_mantenimiento') === 'on';
+    const esMantenimiento = datos.get('tarea_mantenimiento') === 'on';
     estado.tareas.push(
       crearTarea({
         tarea_nombre: nombre,
         categoria_id: datos.get('categoria_id') || null,
-        subcategoria_id: datos.get('subcategoria_id') || null,
-        tarea_estado: datos.get('tarea_estado'),
-        tarea_importancia: datos.get('tarea_importancia') || 'media',
-        tarea_fecha_inicio_posible: datos.get('tarea_fecha_inicio_posible'),
-        tarea_fecha_limite: datos.get('tarea_fecha_limite'),
-        tarea_fecha_sugerida: datos.get('tarea_fecha_sugerida'),
-        tarea_duracion_estimada_min: Number(datos.get('tarea_duracion_estimada_min')) || 0,
+        tarea_importancia: datos.get('tarea_importancia') || null,
+        tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
+        tarea_fecha_sugerida: combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'),
+        tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
+        tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 15,
         tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,
-        tarea_notas: String(datos.get('tarea_notas') || '').trim(),
-        tarea_mantenimiento: esMantenimiento
+        tarea_descripcion: String(datos.get('tarea_descripcion') || '').trim(),
+        tarea_mantenimiento: esMantenimiento,
+        tarea_mantenimiento_intervalo: esMantenimiento
           ? {
               cantidad: Number(datos.get('mantenimiento_cantidad')) || 1,
               unidad: datos.get('mantenimiento_unidad'),
             }
           : null,
-        tarea_divisible: datos.get('tarea_divisible') === 'on',
-        tarea_multitasking: datos.get('tarea_multitasking') === 'on',
         tarea_dias_habiles: datos.getAll('tarea_dias_habiles').map(Number),
         ubicacion_id: datos.get('ubicacion_id') || null,
         tarea_requiere_clima_bueno: datos.get('tarea_requiere_clima_bueno') === 'on',
         tarea_genera_dinero: datos.get('tarea_genera_dinero') === 'on',
-        tarea_recompensa: String(datos.get('tarea_recompensa') || '').trim(),
       })
     );
     await persistirYNotificar();
@@ -293,10 +304,6 @@ export function renderVistaTareas(contenedor) {
   });
   contenedor.querySelector('#filtro-ubicacion').addEventListener('change', (evento) => {
     establecerUbicacionActual(evento.target.value);
-    renderVistaTareas(contenedor);
-  });
-  contenedor.querySelector('#filtro-multitasking').addEventListener('change', (evento) => {
-    filtroSoloMultitasking = evento.target.checked;
     renderVistaTareas(contenedor);
   });
   contenedor.querySelector('#filtro-importancia').addEventListener('change', (evento) => {
@@ -325,8 +332,7 @@ export function renderVistaTareas(contenedor) {
     .filter((t) => !filtroCategoria || t.categoria_id === filtroCategoria)
     .filter((t) => !filtroEstado || t.tarea_estado === filtroEstado)
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
-    .filter((t) => !filtroSoloMultitasking || t.tarea_multitasking)
-    .filter((t) => !filtroImportancia || (t.tarea_importancia || 'media') === filtroImportancia)
+    .filter((t) => !filtroImportancia || t.tarea_importancia === filtroImportancia)
     .slice()
     .sort(
       (a, b) =>
@@ -339,11 +345,10 @@ export function renderVistaTareas(contenedor) {
   } else if (!agruparPorCategoria) {
     tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
   } else {
-    const categoriasOrdenadas = estado.categorias.slice().sort((a, b) => a.categoria_orden - b.categoria_orden);
-    categoriasOrdenadas.forEach((categoria) => {
+    arbolCategorias(estado.categorias).forEach(({ categoria }) => {
       const tareasDeCategoria = tareasFiltradas.filter((t) => t.categoria_id === categoria.categoria_id);
       if (tareasDeCategoria.length === 0) return;
-      listaTareas.appendChild(crearSeparadorCategoria(categoria.categoria_nombre, categoria.categoria_color));
+      listaTareas.appendChild(crearSeparadorCategoria(caminoCategoria(categoria, estado.categorias), categoria.categoria_color));
       tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
     });
     const tareasSinCategoria = tareasFiltradas.filter((t) => !t.categoria_id);
@@ -374,14 +379,14 @@ function crearSeparadorCategoria(nombre, color) {
 
 function renderTarea(tarea, enfoqueIds) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
-  const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
+  const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
+  const bloqueada = tarea.tarea_estado === 'bloqueada';
 
   const li = document.createElement('li');
   const clases = ['item-tarea'];
   if (esVencida(tarea.tarea_fecha_limite) && tarea.tarea_estado !== 'completada') clases.push('vencida');
-  if (noPuedeEmpezarTodavia(tarea.tarea_fecha_inicio_posible)) clases.push('aun-no-disponible');
+  if (noPuedeEmpezarTodavia(tarea.tarea_fecha_inicio_habilitada)) clases.push('aun-no-disponible');
   if (bloqueada) clases.push('bloqueada');
   li.className = clases.join(' ');
   li.dataset.id = tarea.tarea_id;
@@ -389,31 +394,20 @@ function renderTarea(tarea, enfoqueIds) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
-        <span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia] || ICONOS_IMPORTANCIA.media} ${
-          ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia] || ETIQUETAS_IMPORTANCIA.media
-        }</span>
+        ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
         ${enfoqueIds && enfoqueIds.has(tarea.tarea_id) ? `<span class="etiqueta-fecha etiqueta-enfoque">🎯 Foco 80/20</span>` : ''}
-        ${
-          categoria
-            ? `<span class="etiqueta" style="background:${subcategoria?.subcategoria_color ?? categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}${
-                subcategoria ? ' / ' + escaparHtml(subcategoria.subcategoria_nombre) : ''
-              }</span>`
-            : ''
-        }
-        ${tarea.tarea_fecha_inicio_posible ? `<span class="etiqueta-fecha">Desde: ${formatearFecha(tarea.tarea_fecha_inicio_posible)}</span>` : ''}
-        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.tarea_fecha_limite)}</span>` : ''}
-        ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFecha(tarea.tarea_fecha_sugerida)}</span>` : ''}
-        ${tarea.tarea_fecha_hora_agendada ? `<span class="etiqueta-fecha etiqueta-agendada">Agendada: ${formatearFechaHora(tarea.tarea_fecha_hora_agendada)}</span>` : ''}
-        ${tarea.tarea_duracion_estimada_min ? `<span class="etiqueta-fecha">${tarea.tarea_duracion_estimada_min} min</span>` : ''}
+        ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(caminoCategoria(categoria, estado.categorias))}</span>` : ''}
+        ${tarea.tarea_fecha_inicio_habilitada ? `<span class="etiqueta-fecha">Desde: ${formatearFechaOFechaHora(tarea.tarea_fecha_inicio_habilitada)}</span>` : ''}
+        ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}</span>` : ''}
+        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
+        ${tarea.tarea_duracion_min ? `<span class="etiqueta-fecha">${tarea.tarea_duracion_min} min</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
         ${tarea.tarea_genera_dinero ? `<span class="etiqueta-fecha">💵 Genera ingreso</span>` : ''}
         ${
-          tarea.tarea_mantenimiento
-            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento.unidad]}</span>`
+          tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_intervalo
+            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento_intervalo.unidad]}</span>`
             : ''
         }
-        ${tarea.tarea_divisible ? `<span class="etiqueta-fecha">⏸ Divisible</span>` : ''}
-        ${tarea.tarea_multitasking ? `<span class="etiqueta-fecha">🎧 Multitasking</span>` : ''}
         ${
           tarea.tarea_dias_habiles && tarea.tarea_dias_habiles.length > 0
             ? `<span class="etiqueta-fecha">📅 ${tarea.tarea_dias_habiles
@@ -424,34 +418,33 @@ function renderTarea(tarea, enfoqueIds) {
             : ''
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
-        ${tarea.tarea_recompensa ? `<span class="etiqueta-fecha">🎁 ${escaparHtml(tarea.tarea_recompensa)}</span>` : ''}
       </span>
-      ${
-        bloqueada
-          ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.tarea_nombre)).join(', ')}</p>`
-          : ''
-      }
-      ${tarea.tarea_notas ? `<p class="notas-tarea">${escaparHtml(tarea.tarea_notas)}</p>` : ''}
+      ${bloqueada && dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
+      ${tarea.tarea_descripcion ? `<p class="notas-tarea">${escaparHtml(tarea.tarea_descripcion)}</p>` : ''}
       <div class="contenedor-panel-reprogramar" hidden></div>
-      <div class="contenedor-panel-dependencias" hidden></div>
+      <div class="contenedor-panel-dependencia" hidden></div>
       <div class="contenedor-panel-mejora" hidden></div>
       <div class="contenedor-panel-editar" hidden></div>
-      <div class="contenedor-panel-metas" hidden></div>
+      <div class="contenedor-panel-meta" hidden></div>
     </div>
     <div class="item-tarea-acciones">
-      <select data-accion="cambiar-estado">
-        ${ESTADOS_TAREA.map((e) => `<option value="${e}" ${e === tarea.tarea_estado ? 'selected' : ''}>${ETIQUETAS_ESTADO[e]}</option>`).join('')}
-      </select>
+      ${
+        bloqueada
+          ? `<span class="etiqueta-fecha etiqueta-bloqueada">Bloqueada</span>`
+          : `<select data-accion="cambiar-estado">
+              ${ESTADOS_SELECCIONABLES.map((e) => `<option value="${e}" ${e === tarea.tarea_estado ? 'selected' : ''}>${ETIQUETAS_ESTADO_SELECCIONABLE[e]}</option>`).join('')}
+            </select>`
+      }
       <button type="button" data-accion="posponer">Posponer</button>
-      <button type="button" data-accion="dependencias">Dependencias</button>
-      <button type="button" data-accion="metas">Metas</button>
+      <button type="button" data-accion="dependencia">Dependencia</button>
+      <button type="button" data-accion="meta">Meta</button>
       <button type="button" data-accion="editar">Editar</button>
       <button type="button" data-accion="eliminar">Eliminar</button>
     </div>
   `;
 
   const contenedorMejora = li.querySelector('.contenedor-panel-mejora');
-  li.querySelector('[data-accion="cambiar-estado"]').addEventListener('change', async (evento) => {
+  li.querySelector('[data-accion="cambiar-estado"]')?.addEventListener('change', async (evento) => {
     const nuevoEstado = evento.target.value;
     if (nuevoEstado === 'completada' && tarea.tarea_mantenimiento) {
       contenedorMejora.innerHTML = `
@@ -466,10 +459,10 @@ function renderTarea(tarea, enfoqueIds) {
       contenedorMejora.querySelector('[data-accion="confirmar-mejora"]').addEventListener('click', async () => {
         const notaMejora = contenedorMejora.querySelector('[data-campo="mejora"]').value.trim();
         completarTarea(tarea, estado.tareas, { notaMejora });
+        desbloquearDependientes(tarea, estado.tareas);
         contenedorMejora.hidden = true;
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
-        mostrarRecompensaSiCorresponde(tarea);
         sugerirTareaDeAltoDisfrute(tarea);
         ofrecerExportarACalendar(tarea);
       });
@@ -477,14 +470,17 @@ function renderTarea(tarea, enfoqueIds) {
     }
     if (nuevoEstado === 'completada') {
       completarTarea(tarea, estado.tareas);
+      desbloquearDependientes(tarea, estado.tareas);
       await persistirYNotificar();
-      mostrarRecompensaSiCorresponde(tarea);
       sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
       return;
     }
-    tarea.tarea_estado = nuevoEstado;
-    tarea.tarea_completada_en = null;
+    tarea.tarea_estado = 'pendiente';
+    tarea.tarea_fecha_fin = null;
+    estado.tareas
+      .filter((t) => t.tarea_dependiente === tarea.tarea_id)
+      .forEach((dependiente) => recalcularBloqueo(dependiente, estado.tareas));
     await persistirYNotificar();
   });
 
@@ -497,8 +493,8 @@ function renderTarea(tarea, enfoqueIds) {
 
     const panel = crearPanelReprogramar({
       diasHabiles: tarea.tarea_dias_habiles,
-      onConfirmar: async (fechaHoraISO) => {
-        reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
+      onConfirmar: async (fechaSugeridaISO) => {
+        reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
         contenedorPanel.hidden = true;
         contenedorPanel.innerHTML = '';
         await persistirYNotificar();
@@ -512,26 +508,26 @@ function renderTarea(tarea, enfoqueIds) {
     contenedorPanel.hidden = false;
   });
 
-  const contenedorDependencias = li.querySelector('.contenedor-panel-dependencias');
-  li.querySelector('[data-accion="dependencias"]').addEventListener('click', () => {
-    const yaAbierto = !contenedorDependencias.hidden;
-    contenedorDependencias.innerHTML = '';
-    contenedorDependencias.hidden = true;
+  const contenedorDependencia = li.querySelector('.contenedor-panel-dependencia');
+  li.querySelector('[data-accion="dependencia"]').addEventListener('click', () => {
+    const yaAbierto = !contenedorDependencia.hidden;
+    contenedorDependencia.innerHTML = '';
+    contenedorDependencia.hidden = true;
     if (yaAbierto) return;
 
-    contenedorDependencias.appendChild(crearPanelDependencias(tarea));
-    contenedorDependencias.hidden = false;
+    contenedorDependencia.appendChild(crearPanelDependencia(tarea));
+    contenedorDependencia.hidden = false;
   });
 
-  const contenedorMetas = li.querySelector('.contenedor-panel-metas');
-  li.querySelector('[data-accion="metas"]').addEventListener('click', () => {
-    const yaAbierto = !contenedorMetas.hidden;
-    contenedorMetas.innerHTML = '';
-    contenedorMetas.hidden = true;
+  const contenedorMeta = li.querySelector('.contenedor-panel-meta');
+  li.querySelector('[data-accion="meta"]').addEventListener('click', () => {
+    const yaAbierto = !contenedorMeta.hidden;
+    contenedorMeta.innerHTML = '';
+    contenedorMeta.hidden = true;
     if (yaAbierto) return;
 
-    contenedorMetas.appendChild(crearPanelMetas(tarea));
-    contenedorMetas.hidden = false;
+    contenedorMeta.appendChild(crearPanelMeta(tarea));
+    contenedorMeta.hidden = false;
   });
 
   const contenedorEditar = li.querySelector('.contenedor-panel-editar');
@@ -549,7 +545,10 @@ function renderTarea(tarea, enfoqueIds) {
     if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;
     estado.tareas = estado.tareas.filter((t) => t.tarea_id !== tarea.tarea_id);
     estado.tareas.forEach((t) => {
-      t.dependencias = (t.dependencias || []).filter((id) => id !== tarea.tarea_id);
+      if (t.tarea_dependiente === tarea.tarea_id) {
+        t.tarea_dependiente = null;
+        recalcularBloqueo(t, estado.tareas);
+      }
     });
     await persistirYNotificar();
   });
@@ -563,30 +562,23 @@ function crearPanelEditar(tarea) {
   panel.innerHTML = `
     <input type="text" name="tarea_nombre" value="${escaparHtml(tarea.tarea_nombre)}" required />
     <select name="categoria_id">
-      <option value="">Sin categoría</option>
-      ${estado.categorias
-        .map((c) => `<option value="${c.categoria_id}" ${c.categoria_id === tarea.categoria_id ? 'selected' : ''}>${escaparHtml(c.categoria_nombre)}</option>`)
-        .join('')}
-    </select>
-    <select name="subcategoria_id">
-      <option value="">Sin subcategoría</option>
+      ${htmlOpcionesCategoria(tarea.categoria_id)}
     </select>
     <select name="tarea_importancia">
-      ${htmlOpcionesImportancia(tarea.tarea_importancia || 'media')}
+      ${htmlOpcionesImportancia(tarea.tarea_importancia || '')}
     </select>
-    <label>Desde <input type="date" name="tarea_fecha_inicio_posible" value="${tarea.tarea_fecha_inicio_posible || ''}" /></label>
-    <label>Límite <input type="date" name="tarea_fecha_limite" value="${tarea.tarea_fecha_limite || ''}" /></label>
-    <label>Sugerida <input type="date" name="tarea_fecha_sugerida" value="${tarea.tarea_fecha_sugerida || ''}" /></label>
-    <label>Duración (min) <input type="number" name="tarea_duracion_estimada_min" value="${tarea.tarea_duracion_estimada_min || 0}" min="0" step="15" /></label>
+    ${htmlParFechaHora('tarea_fecha_inicio_habilitada', tarea.tarea_fecha_inicio_habilitada, 'Habilitada desde')}
+    ${htmlParFechaHora('tarea_fecha_sugerida', tarea.tarea_fecha_sugerida, 'Sugerida')}
+    ${htmlParFechaHora('tarea_fecha_limite', tarea.tarea_fecha_limite, 'Límite')}
+    <label>Duración (min) <input type="number" name="tarea_duracion_min" value="${tarea.tarea_duracion_min || 15}" min="0" step="15" /></label>
     <input type="number" name="tarea_costo_estimado" min="0" placeholder="Costo estimado ($)" value="${tarea.tarea_costo_estimado || ''}" />
-    <input type="text" name="tarea_notas" placeholder="Notas / recursos" value="${escaparHtml(tarea.tarea_notas || '')}" />
+    <input type="text" name="tarea_descripcion" placeholder="Descripción / notas / links" value="${escaparHtml(tarea.tarea_descripcion || '')}" />
     <select name="ubicacion_id">
       <option value="">Sin ubicación</option>
       ${estado.ubicaciones
         .map((u) => `<option value="${u.ubicacion_id}" ${u.ubicacion_id === tarea.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.ubicacion_nombre)}</option>`)
         .join('')}
     </select>
-    <input type="text" name="tarea_recompensa" placeholder="Recompensa (opcional)" value="${escaparHtml(tarea.tarea_recompensa || '')}" />
     <label class="opcion-mantenimiento">
       <input type="checkbox" name="tarea_requiere_clima_bueno" ${tarea.tarea_requiere_clima_bueno ? 'checked' : ''} />
       Requiere buen tiempo (sin lluvia)
@@ -596,26 +588,18 @@ function crearPanelEditar(tarea) {
       💵 Genera ingreso
     </label>
     <label class="opcion-mantenimiento">
-      <input type="checkbox" name="es_mantenimiento" ${tarea.tarea_mantenimiento ? 'checked' : ''} />
+      <input type="checkbox" name="tarea_mantenimiento" ${tarea.tarea_mantenimiento ? 'checked' : ''} />
       Es tarea de mantenimiento (se renueva sola)
     </label>
     <span class="campos-mantenimiento" ${tarea.tarea_mantenimiento ? '' : 'hidden'}>
       cada
-      <input type="number" name="mantenimiento_cantidad" value="${tarea.tarea_mantenimiento ? tarea.tarea_mantenimiento.cantidad : 1}" min="1" style="width: 3.5rem" />
+      <input type="number" name="mantenimiento_cantidad" value="${tarea.tarea_mantenimiento_intervalo ? tarea.tarea_mantenimiento_intervalo.cantidad : 1}" min="1" style="width: 3.5rem" />
       <select name="mantenimiento_unidad">
         ${UNIDADES_MANTENIMIENTO.map(
-          (u) => `<option value="${u}" ${tarea.tarea_mantenimiento && tarea.tarea_mantenimiento.unidad === u ? 'selected' : ''}>${ETIQUETAS_UNIDAD_MANTENIMIENTO[u]}</option>`
+          (u) => `<option value="${u}" ${tarea.tarea_mantenimiento_intervalo && tarea.tarea_mantenimiento_intervalo.unidad === u ? 'selected' : ''}>${ETIQUETAS_UNIDAD_MANTENIMIENTO[u]}</option>`
         ).join('')}
       </select>
     </span>
-    <label class="opcion-mantenimiento">
-      <input type="checkbox" name="tarea_divisible" ${tarea.tarea_divisible ? 'checked' : ''} />
-      Se puede pausar y retomar (divisible)
-    </label>
-    <label class="opcion-mantenimiento">
-      <input type="checkbox" name="tarea_multitasking" ${tarea.tarea_multitasking ? 'checked' : ''} />
-      🎧 Se puede hacer mientras hacés otra cosa (multitasking)
-    </label>
     <fieldset class="dias-habiles">
       <legend>Días hábiles (vacío = cualquier día)</legend>
       ${htmlDiasHabiles(tarea.tarea_dias_habiles || [])}
@@ -623,18 +607,7 @@ function crearPanelEditar(tarea) {
     <button type="submit" class="boton-primario">Guardar cambios</button>
   `;
 
-  const selectCategoria = panel.categoria_id;
-  const selectSubcategoria = panel.subcategoria_id;
-  function actualizarSubcategoriasPanel(valorSeleccionado) {
-    const subs = estado.subcategorias.filter((s) => s.categoria_id === selectCategoria.value);
-    selectSubcategoria.innerHTML =
-      '<option value="">Sin subcategoría</option>' +
-      subs.map((s) => `<option value="${s.subcategoria_id}" ${s.subcategoria_id === valorSeleccionado ? 'selected' : ''}>${escaparHtml(s.subcategoria_nombre)}</option>`).join('');
-  }
-  actualizarSubcategoriasPanel(tarea.subcategoria_id);
-  selectCategoria.addEventListener('change', () => actualizarSubcategoriasPanel(null));
-
-  const checkboxMantenimiento = panel.es_mantenimiento;
+  const checkboxMantenimiento = panel.tarea_mantenimiento;
   const camposMantenimiento = panel.querySelector('.campos-mantenimiento');
   checkboxMantenimiento.addEventListener('change', () => {
     camposMantenimiento.hidden = !checkboxMantenimiento.checked;
@@ -647,32 +620,28 @@ function crearPanelEditar(tarea) {
     if (!nombre) return;
     tarea.tarea_nombre = nombre;
     tarea.categoria_id = datos.get('categoria_id') || null;
-    tarea.subcategoria_id = datos.get('subcategoria_id') || null;
-    tarea.tarea_importancia = datos.get('tarea_importancia') || 'media';
-    tarea.tarea_fecha_inicio_posible = datos.get('tarea_fecha_inicio_posible');
-    tarea.tarea_fecha_limite = datos.get('tarea_fecha_limite');
-    tarea.tarea_fecha_sugerida = datos.get('tarea_fecha_sugerida');
-    tarea.tarea_duracion_estimada_min = Number(datos.get('tarea_duracion_estimada_min')) || 0;
+    tarea.tarea_importancia = datos.get('tarea_importancia') || null;
+    tarea.tarea_fecha_inicio_habilitada = combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada');
+    tarea.tarea_fecha_sugerida = combinarCampoFechaHora(datos, 'tarea_fecha_sugerida');
+    tarea.tarea_fecha_limite = combinarCampoFechaHora(datos, 'tarea_fecha_limite');
+    tarea.tarea_duracion_min = Number(datos.get('tarea_duracion_min')) || 15;
     tarea.tarea_costo_estimado = Number(datos.get('tarea_costo_estimado')) || 0;
-    tarea.tarea_notas = String(datos.get('tarea_notas') || '').trim();
-    tarea.tarea_mantenimiento =
-      datos.get('es_mantenimiento') === 'on'
-        ? { cantidad: Number(datos.get('mantenimiento_cantidad')) || 1, unidad: datos.get('mantenimiento_unidad') }
-        : null;
-    tarea.tarea_divisible = datos.get('tarea_divisible') === 'on';
-    tarea.tarea_multitasking = datos.get('tarea_multitasking') === 'on';
+    tarea.tarea_descripcion = String(datos.get('tarea_descripcion') || '').trim();
+    tarea.tarea_mantenimiento = datos.get('tarea_mantenimiento') === 'on';
+    tarea.tarea_mantenimiento_intervalo = tarea.tarea_mantenimiento
+      ? { cantidad: Number(datos.get('mantenimiento_cantidad')) || 1, unidad: datos.get('mantenimiento_unidad') }
+      : null;
     tarea.tarea_dias_habiles = datos.getAll('tarea_dias_habiles').map(Number);
     tarea.ubicacion_id = datos.get('ubicacion_id') || null;
     tarea.tarea_requiere_clima_bueno = datos.get('tarea_requiere_clima_bueno') === 'on';
     tarea.tarea_genera_dinero = datos.get('tarea_genera_dinero') === 'on';
-    tarea.tarea_recompensa = String(datos.get('tarea_recompensa') || '').trim();
     await persistirYNotificar();
   });
 
   return panel;
 }
 
-function crearPanelDependencias(tarea) {
+function crearPanelDependencia(tarea) {
   const panel = document.createElement('div');
   panel.className = 'panel-dependencias';
 
@@ -684,44 +653,35 @@ function crearPanelDependencias(tarea) {
 
   panel.innerHTML = `
     <p class="panel-reprogramar-etiqueta">Esta tarea depende de:</p>
-    <ul class="checklist-dependencias">
+    <select data-campo="dependencia">
+      <option value="">Sin dependencia</option>
       ${candidatas
         .map(
-          (candidata) => `
-            <li>
-              <label>
-                <input type="checkbox" value="${candidata.tarea_id}" ${
-                  (tarea.dependencias || []).includes(candidata.tarea_id) ? 'checked' : ''
-                } />
-                ${escaparHtml(candidata.tarea_nombre)} ${candidata.tarea_estado === 'completada' ? '(completada)' : ''}
-              </label>
-            </li>`
+          (c) =>
+            `<option value="${c.tarea_id}" ${c.tarea_id === tarea.tarea_dependiente ? 'selected' : ''}>${escaparHtml(c.tarea_nombre)}${c.tarea_estado === 'completada' ? ' (completada)' : ''}</option>`
         )
         .join('')}
-    </ul>
+    </select>
   `;
 
-  panel.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-    checkbox.addEventListener('change', async () => {
-      const candidatoId = checkbox.value;
-      if (checkbox.checked) {
-        if (!puedeAgregarDependencia(tarea.tarea_id, candidatoId, estado.tareas)) {
-          checkbox.checked = false;
-          alert('No se puede agregar esa dependencia: crearía un ciclo (directo o indirecto) entre tareas.');
-          return;
-        }
-        tarea.dependencias = [...(tarea.dependencias || []), candidatoId];
-      } else {
-        tarea.dependencias = (tarea.dependencias || []).filter((id) => id !== candidatoId);
-      }
-      await persistirYNotificar();
-    });
+  const select = panel.querySelector('[data-campo="dependencia"]');
+  const valorAnterior = tarea.tarea_dependiente || '';
+  select.addEventListener('change', async () => {
+    const nuevoValor = select.value;
+    if (nuevoValor && !puedeAgregarDependencia(tarea.tarea_id, nuevoValor, estado.tareas)) {
+      select.value = valorAnterior;
+      alert('No se puede agregar esa dependencia: crearía un ciclo (directo o indirecto) entre tareas.');
+      return;
+    }
+    tarea.tarea_dependiente = nuevoValor || null;
+    recalcularBloqueo(tarea, estado.tareas);
+    await persistirYNotificar();
   });
 
   return panel;
 }
 
-function crearPanelMetas(tarea) {
+function crearPanelMeta(tarea) {
   const panel = document.createElement('div');
   panel.className = 'panel-dependencias';
 
@@ -732,31 +692,15 @@ function crearPanelMetas(tarea) {
 
   panel.innerHTML = `
     <p class="panel-reprogramar-etiqueta">Esta tarea aporta a:</p>
-    <ul class="checklist-dependencias">
-      ${estado.metas
-        .map(
-          (meta) => `
-            <li>
-              <label>
-                <input type="checkbox" value="${meta.meta_id}" ${(tarea.metas_ids || []).includes(meta.meta_id) ? 'checked' : ''} />
-                ${escaparHtml(meta.meta_nombre)}
-              </label>
-            </li>`
-        )
-        .join('')}
-    </ul>
+    <select data-campo="meta">
+      <option value="">Sin meta</option>
+      ${estado.metas.map((m) => `<option value="${m.meta_id}" ${m.meta_id === tarea.meta_id ? 'selected' : ''}>${escaparHtml(m.meta_nombre)}</option>`).join('')}
+    </select>
   `;
 
-  panel.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-    checkbox.addEventListener('change', async () => {
-      const metaId = checkbox.value;
-      if (checkbox.checked) {
-        tarea.metas_ids = [...(tarea.metas_ids || []), metaId];
-      } else {
-        tarea.metas_ids = (tarea.metas_ids || []).filter((id) => id !== metaId);
-      }
-      await persistirYNotificar();
-    });
+  panel.querySelector('[data-campo="meta"]').addEventListener('change', async (evento) => {
+    tarea.meta_id = evento.target.value || null;
+    await persistirYNotificar();
   });
 
   return panel;
@@ -766,7 +710,7 @@ function crearPanelIAPrioridades() {
   const panel = document.createElement('div');
   panel.className = 'panel-dependencias';
 
-  const tareasAccionables = estado.tareas.filter((t) => esTareaAccionable(t, estado.tareas));
+  const tareasAccionables = estado.tareas.filter((t) => esTareaAccionable(t));
   if (tareasAccionables.length === 0) {
     panel.innerHTML = '<p class="mensaje-vacio">No hay tareas accionables ahora mismo para reestructurar.</p>';
     return panel;
@@ -779,7 +723,7 @@ function crearPanelIAPrioridades() {
     <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
     <button type="button" data-accion="copiar-prompt">Copiar prompt</button>
     <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta (el JSON) que te devolvió:</p>
-    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_id": "...", "tarea_importancia": "alta" }]'></textarea>
+    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_id": "...", "tarea_importancia": "urgente" }]'></textarea>
     <button type="button" data-accion="previsualizar" class="boton-primario">Previsualizar</button>
     <div class="contenedor-preview-ia"></div>
   `;
@@ -812,7 +756,7 @@ function crearPanelIAPrioridades() {
               <li>
                 <label>
                   <input type="checkbox" data-indice="${i}" checked />
-                  ${escaparHtml(c.tarea.tarea_nombre)}: ${ICONOS_IMPORTANCIA[c.tarea.tarea_importancia] || ''} ${ETIQUETAS_IMPORTANCIA[c.tarea.tarea_importancia] || ''}
+                  ${escaparHtml(c.tarea.tarea_nombre)}: ${c.tarea.tarea_importancia ? `${ICONOS_IMPORTANCIA[c.tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[c.tarea.tarea_importancia]}` : 'Sin definir'}
                   → ${ICONOS_IMPORTANCIA[c.importanciaSugerida]} ${ETIQUETAS_IMPORTANCIA[c.importanciaSugerida]}
                 </label>
               </li>`

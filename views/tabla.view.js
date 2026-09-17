@@ -53,21 +53,14 @@ export function renderVistaTabla(contenedor) {
 
   filas.forEach(({ tarea, fechaRef }) => {
     const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-    const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
     const dias = fechaRef ? diasEntreFechas(hoy, fechaRef) : null;
 
     const fila = document.createElement('tr');
     fila.className = 'fila-tabla-tarea';
     fila.innerHTML = `
       <td>${escaparHtml(tarea.tarea_nombre)}</td>
-      <td>${
-        categoria
-          ? escaparHtml(categoria.categoria_nombre) + (subcategoria ? ` / ${escaparHtml(subcategoria.subcategoria_nombre)}` : '')
-          : ''
-      }</td>
-      <td>${ICONOS_IMPORTANCIA[tarea.tarea_importancia] || ICONOS_IMPORTANCIA.media} ${
-        ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia] || ETIQUETAS_IMPORTANCIA.media
-      }</td>
+      <td>${categoria ? escaparHtml(categoria.categoria_nombre) : ''}</td>
+      <td>${tarea.tarea_importancia ? `${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}` : ''}</td>
       <td>${ETIQUETAS_ESTADO[tarea.tarea_estado]}</td>
       <td>${fechaRef ? formatearFecha(fechaRef) : 'Sin fecha'}</td>
       <td>${dias === null ? '—' : formatearDias(dias)}</td>

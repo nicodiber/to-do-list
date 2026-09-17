@@ -4,11 +4,11 @@ import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
 import { calcularEnfoque8020 } from '../assets/js/tareas-logica.js';
 
 const DIAS_VENTANA = 7;
-const ESTADOS_ACTIVOS = ['a_confirmar', 'pendiente', 'en_progreso'];
+const ESTADOS_ACTIVOS = ['bloqueada', 'pendiente'];
 
 function seCompletoEnVentana(tarea, desde) {
-  if (tarea.tarea_estado !== 'completada' || !tarea.tarea_completada_en) return false;
-  return tarea.tarea_completada_en.slice(0, 10) >= desde;
+  if (tarea.tarea_estado !== 'completada' || !tarea.tarea_fecha_fin) return false;
+  return tarea.tarea_fecha_fin.slice(0, 10) >= desde;
 }
 
 function calcularPorCategoria(desde) {
@@ -33,43 +33,10 @@ function calcularPorCategoria(desde) {
   return filas.filter((f) => f.completadas > 0 || f.pendientes > 0);
 }
 
-function calcularDuraciones() {
-  const conAmbasDuraciones = estado.tareas.filter(
-    (t) => t.tarea_estado === 'completada' && t.tarea_duracion_estimada_min && t.tarea_duracion_real_min != null
-  );
-  if (conAmbasDuraciones.length === 0) return null;
-
-  const totalEstimado = conAmbasDuraciones.reduce((suma, t) => suma + t.tarea_duracion_estimada_min, 0);
-  const totalReal = conAmbasDuraciones.reduce((suma, t) => suma + t.tarea_duracion_real_min, 0);
-  const promedioEstimado = totalEstimado / conAmbasDuraciones.length;
-  const promedioReal = totalReal / conAmbasDuraciones.length;
-  const diferenciaPorcentual = ((promedioReal - promedioEstimado) / promedioEstimado) * 100;
-
-  return {
-    cantidad: conAmbasDuraciones.length,
-    promedioEstimado: Math.round(promedioEstimado),
-    promedioReal: Math.round(promedioReal),
-    diferenciaPorcentual: Math.round(diferenciaPorcentual),
-  };
-}
-
 function calcularProyeccionCostos() {
   const pendientesConCosto = estado.tareas.filter((t) => ESTADOS_ACTIVOS.includes(t.tarea_estado) && t.tarea_costo_estimado);
   const total = pendientesConCosto.reduce((suma, t) => suma + t.tarea_costo_estimado, 0);
   return { cantidad: pendientesConCosto.length, total };
-}
-
-function calcularCostosRealVsEstimado() {
-  const conAmbosCostos = estado.tareas.filter(
-    (t) => t.tarea_estado === 'completada' && t.tarea_costo_estimado && t.tarea_costo_real != null
-  );
-  if (conAmbosCostos.length === 0) return null;
-
-  const totalEstimado = conAmbosCostos.reduce((suma, t) => suma + t.tarea_costo_estimado, 0);
-  const totalReal = conAmbosCostos.reduce((suma, t) => suma + t.tarea_costo_real, 0);
-  const diferenciaPorcentual = Math.round(((totalReal - totalEstimado) / totalEstimado) * 100);
-
-  return { cantidad: conAmbosCostos.length, totalEstimado, totalReal, diferenciaPorcentual };
 }
 
 const SEMANAS_THROUGHPUT = 8;
@@ -83,9 +50,9 @@ function calcularThroughputSemanal() {
     const cantidad = estado.tareas.filter(
       (t) =>
         t.tarea_estado === 'completada' &&
-        t.tarea_completada_en &&
-        t.tarea_completada_en.slice(0, 10) >= inicio &&
-        t.tarea_completada_en.slice(0, 10) <= fin
+        t.tarea_fecha_fin &&
+        t.tarea_fecha_fin.slice(0, 10) >= inicio &&
+        t.tarea_fecha_fin.slice(0, 10) <= fin
     ).length;
     semanas.push({ inicio, fin, cantidad });
   }
@@ -95,10 +62,8 @@ function calcularThroughputSemanal() {
 export function renderVistaInformes(contenedor) {
   const desde = fechaISOMasDias(-(DIAS_VENTANA - 1), hoyISO());
   const porCategoria = calcularPorCategoria(desde);
-  const duraciones = calcularDuraciones();
   const enfoque8020 = calcularEnfoque8020(estado.tareas, estado.categorias);
   const proyeccionCostos = calcularProyeccionCostos();
-  const costos = calcularCostosRealVsEstimado();
   const throughput = calcularThroughputSemanal();
   const maxThroughput = Math.max(1, ...throughput.map((s) => s.cantidad));
   const totalThroughput = throughput.reduce((suma, s) => suma + s.cantidad, 0);
@@ -133,19 +98,6 @@ export function renderVistaInformes(contenedor) {
     </section>
 
     <section>
-      <h3>Duración estimada vs. real</h3>
-      ${
-        duraciones === null
-          ? '<p class="mensaje-vacio">Todavía no hay tareas completadas con duración real cargada.</p>'
-          : `<p class="notas-tarea">
-              Sobre ${duraciones.cantidad} tarea(s) completada(s) con ambos datos: promedio estimado
-              <strong>${duraciones.promedioEstimado} min</strong>, promedio real <strong>${duraciones.promedioReal} min</strong>
-              (${duraciones.diferenciaPorcentual > 0 ? '+' : ''}${duraciones.diferenciaPorcentual}% respecto a lo estimado).
-            </p>`
-      }
-    </section>
-
-    <section>
       <h3>Enfoque 80/20 (Pareto)</h3>
       ${
         enfoque8020.length === 0
@@ -157,7 +109,7 @@ export function renderVistaInformes(contenedor) {
                     const categoria = estado.categorias.find((c) => c.categoria_id === t.categoria_id);
                     return `<li>
                         ${categoria ? `<span class="punto-color" style="background:${categoria.categoria_color}"></span>` : ''}
-                        ${ICONOS_IMPORTANCIA[t.tarea_importancia] || ICONOS_IMPORTANCIA.media} ${escaparHtml(t.tarea_nombre)}
+                        ${t.tarea_importancia ? ICONOS_IMPORTANCIA[t.tarea_importancia] + ' ' : ''}${escaparHtml(t.tarea_nombre)}
                       </li>`;
                   })
                   .join('')}
@@ -173,15 +125,6 @@ export function renderVistaInformes(contenedor) {
           : `<p class="notas-tarea">
               Costo estimado de tus tareas pendientes: <strong>$${proyeccionCostos.total}</strong>
               (sobre ${proyeccionCostos.cantidad} tarea(s) con costo cargado).
-            </p>`
-      }
-      ${
-        costos === null
-          ? ''
-          : `<p class="notas-tarea">
-              Sobre ${costos.cantidad} tarea(s) completada(s) con ambos costos: total estimado
-              <strong>$${costos.totalEstimado}</strong>, total real <strong>$${costos.totalReal}</strong>
-              (${costos.diferenciaPorcentual > 0 ? '+' : ''}${costos.diferenciaPorcentual}% respecto a lo estimado).
             </p>`
       }
     </section>

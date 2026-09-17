@@ -2,6 +2,27 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.45.0] - 2026-09-17
+
+### Cambiado
+
+- **Rediseño grande del modelo de datos**, definido en conjunto con el usuario tras revisar a fondo `DICCIONARIO_DE_DATOS.md`:
+  - **Subcategoria desaparece como entidad**: Categoria pasa a auto-referenciarse (`categoria_padre_id`), permitiendo jerarquías de profundidad libre. La vista Categorías pasa de lista con subcategorías anidadas a un árbol recursivo (reordenamiento ▲/▼ ahora acotado a categorías hermanas). Los badges de tareas muestran el camino completo hasta la raíz (ej. "Facultad / IR").
+  - `tarea_estado` pasa a `bloqueada`/`pendiente`/`completada`, donde `bloqueada` es ahora un valor persistido (antes se calculaba al vuelo). Se sincroniza automáticamente al crear una tarea, al editar su dependencia, y en cascada al completarse la tarea de la que depende (que además le transfiere su fecha de finalización como nueva fecha de inicio habilitada).
+  - `dependencias` (array) pasa a `tarea_dependiente` (una sola referencia) y `metas_ids` (array) pasa a `meta_id` (una sola referencia) — los paneles correspondientes en Tareas pasan de checklist a selección única.
+  - Las fechas de Tarea (`tarea_fecha_inicio_habilitada`, `tarea_fecha_sugerida`, `tarea_fecha_limite`) admiten hora opcional en el mismo campo — se fusiona el viejo campo separado `fecha_hora_agendada` dentro de `tarea_fecha_sugerida`. El panel de "Posponer" deja de exigir horario.
+  - `tarea_mantenimiento` pasa a booleano simple; el intervalo (`{cantidad, unidad}`) se guarda aparte en `tarea_mantenimiento_intervalo`.
+  - `tarea_notas` se renombra a `tarea_descripcion`; se agrega `categoria_descripcion`.
+  - Migración retrocompatible automática (incluida la fusión Subcategoria→Categoria) para los datos reales del usuario, guardados en el formato de la ronda anterior.
+
+### Eliminado
+
+- `tarea_divisible`, `tarea_multitasking`, `tarea_recompensa`, duración/costo real (`tarea_duracion_real_min`, `tarea_costo_real`), `persona_notas`, y toda la función de notificaciones locales (`assets/js/notificaciones.js`, botón, campo de control) — todo por decisión del usuario, algunos anotados en `BACKLOG.md` para reevaluar más adelante.
+
+### Nota
+
+- `REGLAS_DE_PRIORIDAD.md` queda con un criterio provisorio y simple (solo `categoria_prioridad`) — el algoritmo real de prioridad se define en una ronda aparte.
+
 ## [v0.44.0] - 2026-09-16
 
 ### Agregado

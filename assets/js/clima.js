@@ -1,5 +1,5 @@
 import { estado } from './almacenamiento.js';
-import { hoyISO, fechaISOMasDias } from './utilidades.js';
+import { hoyISO, fechaISOMasDias, tieneHora } from './utilidades.js';
 
 const DIAS_MAX_PRONOSTICO = 16;
 const UMBRAL_PROBABILIDAD_LLUVIA = 50;
@@ -7,14 +7,16 @@ const UMBRAL_PROBABILIDAD_LLUVIA = 50;
 const cachePronosticos = new Map();
 
 function fechaDeReferencia(tarea) {
-  if (tarea.tarea_fecha_hora_agendada) {
-    return {
-      fecha: tarea.tarea_fecha_hora_agendada.slice(0, 10),
-      hora: new Date(tarea.tarea_fecha_hora_agendada).getHours(),
-    };
+  if (tarea.tarea_fecha_sugerida) {
+    return tieneHora(tarea.tarea_fecha_sugerida)
+      ? { fecha: tarea.tarea_fecha_sugerida.slice(0, 10), hora: new Date(tarea.tarea_fecha_sugerida).getHours() }
+      : { fecha: tarea.tarea_fecha_sugerida, hora: 12 };
   }
-  if (tarea.tarea_fecha_limite) return { fecha: tarea.tarea_fecha_limite, hora: 12 };
-  if (tarea.tarea_fecha_sugerida) return { fecha: tarea.tarea_fecha_sugerida, hora: 12 };
+  if (tarea.tarea_fecha_limite) {
+    return tieneHora(tarea.tarea_fecha_limite)
+      ? { fecha: tarea.tarea_fecha_limite.slice(0, 10), hora: new Date(tarea.tarea_fecha_limite).getHours() }
+      : { fecha: tarea.tarea_fecha_limite, hora: 12 };
+  }
   return null;
 }
 

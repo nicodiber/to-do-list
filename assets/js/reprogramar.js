@@ -42,8 +42,9 @@ function siguienteDiaHabil(fechaISODate, diasHabiles) {
 }
 
 /**
- * Panel inline con atajos de día + horario para reprogramar una tarea.
- * onConfirmar recibe la fecha/hora elegida en formato ISO datetime.
+ * Panel inline con atajos de día + horario (opcional) para reprogramar una
+ * tarea. onConfirmar recibe la fecha elegida — sola (`YYYY-MM-DD`) si no se
+ * eligió horario, o datetime ISO completo si sí.
  */
 export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [] }) {
   const panel = document.createElement('div');
@@ -71,7 +72,7 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [
       <button type="button" data-accion="primer-dia-proximo-mes">del próximo mes</button>
     </div>
     <div class="panel-reprogramar-fila">
-      <span class="panel-reprogramar-etiqueta">Horario:</span>
+      <span class="panel-reprogramar-etiqueta">Horario (opcional):</span>
       ${ATAJOS_HORARIO.map((a) => `<button type="button" data-hora="${a.hora}">${a.etiqueta} (${a.hora})</button>`).join('')}
       <input type="time" data-campo="hora" />
     </div>
@@ -109,11 +110,11 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [
   });
 
   panel.querySelector('[data-accion="confirmar"]').addEventListener('click', () => {
-    if (!campoFecha.value || !campoHora.value) {
-      alert('Elegí un día y un horario (con los atajos o a mano).');
+    if (!campoFecha.value) {
+      alert('Elegí un día (con los atajos o a mano).');
       return;
     }
-    onConfirmar(combinarFechaYHora(campoFecha.value, campoHora.value));
+    onConfirmar(campoHora.value ? combinarFechaYHora(campoFecha.value, campoHora.value) : campoFecha.value);
   });
   panel.querySelector('[data-accion="cancelar"]').addEventListener('click', () => onCancelar());
 

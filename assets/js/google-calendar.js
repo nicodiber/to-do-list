@@ -107,15 +107,15 @@ export async function obtenerEventosDeHoy() {
 }
 
 /**
- * Compara la ventana [fecha_hora_agendada, +duracion_estimada_min] de la
- * tarea contra el rango de cada evento y devuelve el primero que se
+ * Compara la ventana [tarea_fecha_sugerida (con hora), +tarea_duracion_min]
+ * de la tarea contra el rango de cada evento y devuelve el primero que se
  * superpone, o null. Función pura, sin llamadas de red.
  */
 export function calcularSolapamiento(tarea, eventos) {
-  if (!tarea.tarea_fecha_hora_agendada) return null;
+  if (!tarea.tarea_fecha_sugerida) return null;
 
-  const inicioTarea = new Date(tarea.tarea_fecha_hora_agendada).getTime();
-  const finTarea = inicioTarea + (tarea.tarea_duracion_estimada_min || 30) * 60000;
+  const inicioTarea = new Date(tarea.tarea_fecha_sugerida).getTime();
+  const finTarea = inicioTarea + (tarea.tarea_duracion_min || 15) * 60000;
 
   return (
     eventos.find((evento) => {

@@ -1,30 +1,29 @@
 # Reglas de prioridad
 
-Documento de referencia sobre qué determina el orden/prioridad de las tareas en la app, y cómo se usa ese criterio en cada vista. Complementa a [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md) (nombres de campo) y a [LOGICA_FUNCIONES.md](LOGICA_FUNCIONES.md) (qué hace cada función). La lógica central vive en `assets/js/tareas-logica.js`; este archivo la explica en lenguaje natural, sin repetir el código.
+Documento de referencia sobre qué determina el orden/prioridad de las tareas en la app. Complementa a [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md) (nombres de campo) y a [LOGICA_FUNCIONES.md](LOGICA_FUNCIONES.md) (qué hace cada función). La lógica vive en `assets/js/tareas-logica.js`.
 
-## Qué determina la prioridad de una tarea
+## Estado actual: versión provisoria (Ronda 1 del rediseño de datos)
 
-`compararPorPrioridad(a, b, categorias)` es el criterio base que usa el resto de la app para decidir "cuál tarea va primero". Compara dos tareas en dos pasos, en este orden:
+`compararPorPrioridad(a, b, categorias)` ordena **solo por `categoria_prioridad`** de la categoría directa de cada tarea (menor número = más prioritaria). Una tarea sin categoría, o cuya categoría ya no existe, queda siempre al final.
 
-1. **`tarea_importancia`** (`alta` > `media` > `baja`): si difiere entre las dos tareas, gana la de mayor importancia. Es el primer criterio a propósito — una tarea marcada `alta` siempre se antepone a una `media`/`baja`, sin importar fechas.
-2. **`categoria_orden`** de la categoría de cada tarea (vía `categoria_id`): si la importancia es igual, gana la de menor `categoria_orden` (menor número = más prioritaria). Se reordena manualmente con los botones ▲/▼ en la vista Categorías. Una tarea sin categoría, o cuya categoría ya no existe, queda siempre al final (`categoria_orden` efectivo = infinito).
+Esto es deliberadamente simple: el rediseño del modelo de datos (Categoria con jerarquía, `tarea_importancia` como `urgente`/`importante`, `tarea_genera_dinero`) se hizo en una ronda separada de definir el algoritmo real de prioridad. Mientras tanto, para que la app no quede sin ningún criterio de orden, alcanza con reordenar las categorías manualmente (▲/▼ en la vista Categorías) para reflejar lo que más importa — por ejemplo, poniendo arriba de todo la categoría "Facultad".
 
-Este criterio por sí solo **no mira fechas** — las fechas se suman como desempate adicional en cada vista (ver más abajo), no dentro de `compararPorPrioridad`.
+**El algoritmo real queda pendiente de definir en una Ronda 2**, con la idea de fondo del usuario como punto de partida: primero las tareas de la categoría que representa "aprobar los exámenes de la universidad" (obligatorias y no obligatorias por igual), segundo las que generan dinero (`tarea_genera_dinero`, sin importar la categoría), y el resto intercalado entre categorías para avanzar parejo en todas en vez de vaciar una por vez. Ahí también hay que resolver: qué rol cumple `tarea_importancia` (`urgente`/`importante`) en esa jerarquía, y cómo se relaciona con las fechas (`tarea_fecha_limite`) que hoy siguen siendo el criterio principal de orden en la mayoría de las vistas.
 
 ## Tareas bloqueadas y accionables
 
-- **Bloqueada** (`tareaEstaBloqueada`): una tarea está bloqueada si tiene al menos una entrada en `dependencias` que apunta a otra tarea que todavía no está `tarea_estado: 'completada'`. Se recalcula al vuelo, no se guarda como campo.
-- **Accionable** (`esTareaAccionable`): una tarea es accionable si no está completada, si su `tarea_fecha_inicio_posible` ya llegó (o no tiene una), y si no está bloqueada. Es el filtro base que usan el Enfoque 80/20, el panel "Reestructurar prioridades con IA" y la proyección de tareas en la vista Semana.
+- **Bloqueada**: `tarea_estado === 'bloqueada'` — es un valor persistido, no calculado (ver `DICCIONARIO_DE_DATOS.md`, campo `tarea_dependiente`).
+- **Accionable** (`esTareaAccionable`): una tarea es accionable si está `pendiente` (ni bloqueada ni completada) y su `tarea_fecha_inicio_habilitada` ya llegó. Es el filtro base que usan el Enfoque 80/20, el panel "Reestructurar prioridades con IA" y la proyección de tareas en la vista Semana.
 
-## Cómo se usa este criterio en cada vista
+## Cómo se usa el criterio actual en cada vista
 
-- **Hoy — "Urgentes"**: tareas accionables y ya disponibles (`tarea_fecha_inicio_posible` alcanzada) cuya `tarea_fecha_limite` está vencida o es hoy, ordenadas solo por `compararPorPrioridad` (sin desempate de fecha adicional, porque todas comparten la urgencia de "hoy o antes").
-- **Hoy — "Resto de tus pendientes"** y **Tareas — listado general**: el resto de las tareas disponibles, ordenadas primero por `tarea_fecha_limite` (las sin fecha van al final) y recién como desempate por `compararPorPrioridad`. Acá la fecha manda porque no todas comparten la misma urgencia.
-- **3 días / 8 días** (`assets/js/vista-agenda.js`): las tareas se agrupan por día según `fechaDeReferencia` (`tarea_fecha_hora_agendada` > `tarea_fecha_limite` > `tarea_fecha_sugerida`, la primera que tenga valor). Dentro de cada día, se ordenan por `tarea_fecha_hora_agendada` y luego por `compararPorPrioridad`.
-- **Semana**: las tareas "fijas" (con `tarea_fecha_hora_agendada` dentro del día) se ubican en su horario exacto sin competir por orden. Las tareas "proyectadas" (sin horario agendado, cuya `tarea_fecha_sugerida` o `tarea_fecha_limite` cae ese día) se ordenan por `compararPorPrioridad` y se apilan una detrás de otra, cada una ocupando su `tarea_duracion_estimada_min` a partir de donde terminó la anterior — así la tarea más prioritaria del día siempre queda primera en la grilla.
-- **Tabla**: ordenada solo por `fechaDeReferencia` (la misma función que agenda/3-8 días), sin usar `compararPorPrioridad` — es una vista de referencia tipo planilla, no de triage.
-- **Gantt**: ordenada por fecha de inicio de la tarea (`tarea_fecha_inicio_posible` > `tarea_fecha_sugerida` > `tarea_fecha_limite` > `tarea_creada_en`) y luego por `compararPorPrioridad`, dentro de cada meta.
+- **Hoy — "Urgentes"**: tareas accionables cuya `tarea_fecha_limite` está vencida o es hoy, ordenadas por `compararPorPrioridad`.
+- **Hoy — "Resto de tus pendientes"** y **Tareas — listado general**: ordenadas primero por `tarea_fecha_limite` (las sin fecha van al final) y como desempate por `compararPorPrioridad`.
+- **3 días / 8 días** (`assets/js/vista-agenda.js`): agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`, la primera con valor). Dentro de cada día, por `tarea_fecha_sugerida` y luego `compararPorPrioridad`.
+- **Semana**: las tareas con horario puntual (`tarea_fecha_sugerida` con hora) se ubican en su horario exacto. Las proyectadas (sin hora, cuya fecha de referencia cae ese día) se ordenan por `compararPorPrioridad` y se apilan una detrás de otra según su `tarea_duracion_min`.
+- **Tabla**: ordenada solo por `fechaDeReferencia`, sin `compararPorPrioridad` — es una vista de referencia tipo planilla, no de triage.
+- **Gantt**: ordenada por fecha de inicio de la tarea y luego por `compararPorPrioridad`, dentro de cada meta.
 
 ## Regla 80/20 (Pareto)
 
-`calcularEnfoque8020(tareas, categorias)`: de todas las tareas **accionables**, ordena por `compararPorPrioridad` con `tarea_fecha_limite` como desempate final, y devuelve el 20% superior (redondeado hacia arriba). Es "el puñado de tareas en las que más conviene enfocarse ahora". Se muestra como badge "🎯 Foco 80/20" en Tareas y Hoy, y como lista en la sección "Enfoque 80/20 (Pareto)" de Informes.
+`calcularEnfoque8020(tareas, categorias)`: de todas las tareas accionables, ordena por `compararPorPrioridad` con `tarea_fecha_limite` como desempate final, y devuelve el 20% superior (redondeado hacia arriba). Se muestra como badge "🎯 Foco 80/20" en Tareas y Hoy, y como lista en Informes.

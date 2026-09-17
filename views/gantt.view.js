@@ -1,26 +1,25 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas } from '../assets/js/utilidades.js';
-import { tareaEstaBloqueada, compararPorPrioridad } from '../assets/js/tareas-logica.js';
+import { compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { abrirEdicionAlEntrar } from './tareas.view.js';
 
 let metaSeleccionada = '';
 
 function fechaInicioTarea(tarea) {
-  return tarea.tarea_fecha_inicio_posible || tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || tarea.tarea_creada_en.slice(0, 10);
+  const fecha =
+    tarea.tarea_fecha_inicio_habilitada || tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || tarea.tarea_creada_en;
+  return fecha.slice(0, 10);
 }
 
 function fechaFinTarea(tarea) {
   const inicio = fechaInicioTarea(tarea);
-  const fin = tarea.tarea_fecha_limite || (tarea.tarea_fecha_hora_agendada ? tarea.tarea_fecha_hora_agendada.slice(0, 10) : '') || tarea.tarea_fecha_sugerida || inicio;
-  return fin < inicio ? inicio : fin;
-}
-
-function tareasConMeta() {
-  return estado.tareas.filter((t) => (t.metas_ids || []).length > 0);
+  const fin = tarea.tarea_fecha_limite || tarea.tarea_fecha_sugerida || inicio;
+  const finDia = fin.slice(0, 10);
+  return finDia < inicio ? inicio : finDia;
 }
 
 function tareasDeMeta(metaId) {
-  return estado.tareas.filter((t) => (t.metas_ids || []).includes(metaId));
+  return estado.tareas.filter((t) => t.meta_id === metaId);
 }
 
 function ordenarTareas(tareas) {
@@ -153,13 +152,8 @@ function renderFlechasDependencia(grilla, filas) {
 
   const conexiones = [];
   tareasVisibles.forEach((tarea) => {
-    const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
-    if (!bloqueada) return;
-    bloqueantes.forEach((bloqueante) => {
-      if (idsVisibles.has(bloqueante.tarea_id)) {
-        conexiones.push({ desde: bloqueante.tarea_id, hasta: tarea.tarea_id });
-      }
-    });
+    if (!tarea.tarea_dependiente || !idsVisibles.has(tarea.tarea_dependiente)) return;
+    conexiones.push({ desde: tarea.tarea_dependiente, hasta: tarea.tarea_id });
   });
 
   if (conexiones.length === 0) return;
@@ -258,7 +252,7 @@ function agregarAsasGantt(barraEl, tarea, minFecha, totalDias, offsetDiasInicial
         delete barraEl.dataset.spanPendiente;
 
         if (esIzquierda) {
-          tarea.tarea_fecha_inicio_posible = fechaISOMasDias(nuevoOffset, minFecha);
+          tarea.tarea_fecha_inicio_habilitada = fechaISOMasDias(nuevoOffset, minFecha);
         } else {
           tarea.tarea_fecha_limite = fechaISOMasDias(nuevoOffset + nuevoSpan - 1, minFecha);
         }
@@ -276,21 +270,20 @@ function agregarAsasGantt(barraEl, tarea, minFecha, totalDias, offsetDiasInicial
 
 function renderFilaGanttHtml(tarea, minFecha, totalDias) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
-  const color = subcategoria?.subcategoria_color ?? categoria?.categoria_color ?? '#9ca3af';
+  const color = categoria?.categoria_color ?? '#9ca3af';
 
   const inicio = fechaInicioTarea(tarea);
   const fin = fechaFinTarea(tarea);
   const offsetDias = diasEntreFechas(minFecha, inicio);
   const spanDias = diasEntreFechas(inicio, fin) + 1;
 
-  const { bloqueada, bloqueantes } = tareaEstaBloqueada(tarea, estado.tareas);
+  const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
 
   return `
     <div class="fila-gantt">
       <div class="fila-gantt-info">
         <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
-        ${bloqueada ? `<p class="aviso-bloqueada">Bloqueada por: ${bloqueantes.map((b) => escaparHtml(b.tarea_nombre)).join(', ')}</p>` : ''}
+        ${tarea.tarea_estado === 'bloqueada' && dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
       </div>
       <div class="fila-gantt-pista">
         <div class="barra-gantt" data-tarea-id="${tarea.tarea_id}"

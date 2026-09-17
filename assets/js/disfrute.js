@@ -16,7 +16,7 @@ export function sugerirTareaDeAltoDisfrute(tareaCompletada) {
   if (!categoriaCompletada || categoriaCompletada.categoria_disfrute > UMBRAL_BAJO) return;
 
   const candidata = estado.tareas.find((t) => {
-    if (t.tarea_id === tareaCompletada.tarea_id || !esTareaAccionable(t, estado.tareas)) return false;
+    if (t.tarea_id === tareaCompletada.tarea_id || !esTareaAccionable(t)) return false;
     const categoria = estado.categorias.find((c) => c.categoria_id === t.categoria_id);
     return categoria && categoria.categoria_disfrute >= UMBRAL_ALTO;
   });

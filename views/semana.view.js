@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml, combinarFechaYHora } from '../assets/js/utilidades.js';
+import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
 import { esTareaAccionable, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { abrirEdicionAlEntrar } from './tareas.view.js';
 
@@ -11,7 +11,8 @@ const ALTO_HORA_PX = 48;
 const MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
 
 function fechaDeReferenciaProyectada(tarea) {
-  return tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || null;
+  const fecha = tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || null;
+  return fecha ? fecha.slice(0, 10) : null;
 }
 
 export function renderVistaSemana(contenedor) {
@@ -59,22 +60,22 @@ function renderColumnaDia(fechaDia, hoy) {
   const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
 
   const fijas = pendientesActivas.filter(
-    (t) => t.tarea_fecha_hora_agendada && t.tarea_fecha_hora_agendada.slice(0, 10) === fechaDia
+    (t) => tieneHora(t.tarea_fecha_sugerida) && t.tarea_fecha_sugerida.slice(0, 10) === fechaDia
   );
   fijas.forEach((tarea) => {
-    const fecha = new Date(tarea.tarea_fecha_hora_agendada);
+    const fecha = new Date(tarea.tarea_fecha_sugerida);
     const minutosDesdeInicio = (fecha.getHours() - HORA_INICIO) * 60 + fecha.getMinutes();
-    cuerpo.appendChild(renderBloqueTarea(tarea, minutosDesdeInicio, tarea.tarea_duracion_estimada_min || 30, false, fechaDia));
+    cuerpo.appendChild(renderBloqueTarea(tarea, minutosDesdeInicio, tarea.tarea_duracion_min || 15, false, fechaDia));
   });
 
   const proyectadas = pendientesActivas
-    .filter((t) => !t.tarea_fecha_hora_agendada && esTareaAccionable(t, estado.tareas))
+    .filter((t) => !tieneHora(t.tarea_fecha_sugerida) && esTareaAccionable(t))
     .filter((t) => fechaDeReferenciaProyectada(t) === fechaDia)
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
 
   let cursorMinutos = 0;
   proyectadas.forEach((tarea) => {
-    const duracion = tarea.tarea_duracion_estimada_min || 30;
+    const duracion = tarea.tarea_duracion_min || 15;
     cuerpo.appendChild(renderBloqueTarea(tarea, cursorMinutos, duracion, true, fechaDia));
     cursorMinutos += duracion;
   });
@@ -88,8 +89,7 @@ function renderColumnaDia(fechaDia, hoy) {
 
 function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, fechaDia) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
-  const color = subcategoria?.subcategoria_color ?? categoria?.categoria_color ?? '#9ca3af';
+  const color = categoria?.categoria_color ?? '#9ca3af';
 
   const offsetMin = Math.max(0, Math.min(minutosDesdeInicio, MINUTOS_VISIBLES));
   const alturaMin = Math.max(15, Math.min(duracionMin, MINUTOS_VISIBLES - offsetMin || duracionMin));
@@ -175,9 +175,9 @@ function agregarAsasArrastre(bloque, tarea, fechaDia, offsetMinInicial, alturaMi
         delete bloque.dataset.alturaPendiente;
 
         if (esSuperior || proyectada) {
-          tarea.tarea_fecha_hora_agendada = combinarFechaYHora(fechaDia, minutosAHoraHHMM(nuevoTop));
+          tarea.tarea_fecha_sugerida = combinarFechaYHora(fechaDia, minutosAHoraHHMM(nuevoTop));
         }
-        tarea.tarea_duracion_estimada_min = nuevaAltura;
+        tarea.tarea_duracion_min = nuevaAltura;
         await persistirYNotificar();
       }
 

@@ -6,6 +6,7 @@ import {
   leerArchivoRemoto,
   guardarArchivoRemoto,
 } from './google-drive-sync.js';
+import { recalcularBloqueo } from './tareas-logica.js';
 
 const NOMBRE_BD = 'super-todo-list';
 const VERSION_BD = 1;
@@ -21,7 +22,6 @@ export const soportaFileSystemAccess = typeof window !== 'undefined' && 'showDir
 
 export const estado = {
   categorias: [],
-  subcategorias: [],
   ubicaciones: [],
   metas: [],
   personas: [],
@@ -32,24 +32,68 @@ let carpetaDatosHandle = null;
 const listeners = [];
 
 /**
- * Migración retrocompatible del formato viejo de campos (ej. `Tarea.nombre`)
- * al patrón `entidad_atributo` (ej. `tarea_nombre`), aplicada a datos leídos
- * de localStorage, carpeta local, Google Drive o un JSON importado que
- * todavía puedan tener el formato anterior. Se detecta el formato viejo por
- * la presencia de la clave `id` a secas (ninguna entidad en el formato nuevo
- * ya usa esa clave). `motivo_incumplimiento` se descarta durante la
- * migración porque el campo se eliminó del modelo.
+ * Migración retrocompatible del modelo de datos. Tolera 3 generaciones de
+ * datos guardados: el formato original (clave `id` a secas), el patrón
+ * `entidad_atributo` de la ronda anterior (con `Subcategoria` como entidad
+ * separada), y el formato actual. Se aplica a datos leídos de localStorage,
+ * carpeta local, Google Drive o un JSON importado.
  */
-function migrarCategoria(c) {
-  if (!('id' in c)) return c;
-  const { id, nombre, color, orden, disfrute } = c;
-  return { categoria_id: id, categoria_nombre: nombre, categoria_color: color, categoria_orden: orden, categoria_disfrute: disfrute };
+
+/**
+ * Subcategoria desapareció como entidad — se fusiona dentro de Categoria
+ * vía `categoria_padre_id`. Reusa el mismo id (`subcategoria_id` pasa a ser
+ * el `categoria_id` de la categoría hija) para no tener que remapear
+ * referencias. Cualquier `tarea.subcategoria_id` truthy pisa a
+ * `tarea.categoria_id` (la subcategoría era más específica) y se descarta.
+ */
+function fusionarSubcategoriasEnCategorias(datosCrudos) {
+  const subcategorias = datosCrudos.subcategorias;
+  if (!subcategorias || subcategorias.length === 0) return datosCrudos;
+
+  const categoriasFusionadas = subcategorias.map((s) => ({
+    categoria_id: s.subcategoria_id,
+    categoria_nombre: s.subcategoria_nombre,
+    categoria_color: s.subcategoria_color,
+    categoria_padre_id: s.categoria_id || null,
+  }));
+
+  const tareas = (datosCrudos.tareas || []).map((t) => {
+    if (!t.subcategoria_id) return t;
+    const { subcategoria_id, ...resto } = t;
+    return { ...resto, categoria_id: subcategoria_id };
+  });
+
+  return {
+    ...datosCrudos,
+    categorias: [...(datosCrudos.categorias || []), ...categoriasFusionadas],
+    tareas,
+    subcategorias: undefined,
+  };
 }
 
-function migrarSubcategoria(s) {
-  if (!('id' in s)) return s;
-  const { id, nombre, categoria_id, color } = s;
-  return { subcategoria_id: id, subcategoria_nombre: nombre, categoria_id, subcategoria_color: color };
+function migrarCategoria(c) {
+  if ('categoria_prioridad' in c) return c;
+  if ('id' in c) {
+    const { id, nombre, color, orden, disfrute } = c;
+    return {
+      categoria_id: id,
+      categoria_nombre: nombre,
+      categoria_descripcion: '',
+      categoria_color: color,
+      categoria_prioridad: orden ?? 0,
+      categoria_disfrute: disfrute ?? 3,
+      categoria_padre_id: null,
+    };
+  }
+  return {
+    categoria_id: c.categoria_id,
+    categoria_nombre: c.categoria_nombre,
+    categoria_descripcion: c.categoria_descripcion ?? '',
+    categoria_color: c.categoria_color,
+    categoria_prioridad: c.categoria_orden ?? 0,
+    categoria_disfrute: c.categoria_disfrute ?? 3,
+    categoria_padre_id: c.categoria_padre_id ?? null,
+  };
 }
 
 function migrarUbicacion(u) {
@@ -59,88 +103,89 @@ function migrarUbicacion(u) {
 }
 
 function migrarMeta(m) {
-  if (!('id' in m)) return m;
-  const { id, nombre, plazo, descripcion, fecha_objetivo, creada_en } = m;
-  return { meta_id: id, meta_nombre: nombre, meta_plazo: plazo, meta_descripcion: descripcion, meta_fecha_objetivo: fecha_objetivo, meta_creada_en: creada_en };
+  if ('meta_fecha_estimada' in m) return m;
+  if ('id' in m) {
+    const { id, nombre, plazo, descripcion, fecha_objetivo, creada_en } = m;
+    return {
+      meta_id: id,
+      meta_nombre: nombre,
+      meta_plazo: plazo,
+      meta_descripcion: descripcion,
+      meta_fecha_estimada: fecha_objetivo,
+      meta_creada_en: creada_en,
+    };
+  }
+  const { meta_fecha_objetivo, ...resto } = m;
+  return { ...resto, meta_fecha_estimada: meta_fecha_objetivo };
 }
 
 function migrarPersona(p) {
-  if (!('id' in p)) return p;
-  const { id, nombre, ultimo_contacto, notas, creada_en } = p;
-  return { persona_id: id, persona_nombre: nombre, persona_ultimo_contacto: ultimo_contacto, persona_notas: notas, persona_creada_en: creada_en };
+  if ('id' in p) {
+    const { id, nombre, ultimo_contacto, creada_en } = p;
+    return { persona_id: id, persona_nombre: nombre, persona_ultimo_contacto: ultimo_contacto, persona_creada_en: creada_en };
+  }
+  // `persona_notas` se eliminó del modelo: si el objeto la trae de una
+  // versión anterior, se descarta acá (destructuring sin volver a usarla).
+  const { persona_notas, ...resto } = p;
+  return resto;
 }
 
 function migrarTarea(t) {
-  if (!('id' in t)) return t;
-  const {
-    id,
-    nombre,
-    categoria_id,
-    subcategoria_id,
-    estado,
-    fecha_inicio_posible,
-    fecha_limite,
-    fecha_sugerida,
-    fecha_hora_agendada,
-    duracion_estimada_min,
-    duracion_real_min,
-    notas,
-    notificada_en_para,
-    dependencias,
-    mantenimiento,
-    divisible,
-    multitasking,
-    importancia,
-    dias_habiles,
-    ubicacion_id,
-    requiere_clima_bueno,
-    metas_ids,
-    recompensa,
-    costo_estimado,
-    costo_real,
-    creada_en,
-    completada_en,
-  } = t;
+  if ('tarea_dependiente' in t) return t;
+
+  const esFormatoMuyViejo = 'id' in t;
+  const id = esFormatoMuyViejo ? t.id : t.tarea_id;
+  const nombre = esFormatoMuyViejo ? t.nombre : t.tarea_nombre;
+  const estadoViejo = esFormatoMuyViejo ? t.estado : t.tarea_estado;
+  const fechaInicioVieja = esFormatoMuyViejo ? t.fecha_inicio_posible : t.tarea_fecha_inicio_posible;
+  const fechaLimiteVieja = esFormatoMuyViejo ? t.fecha_limite : t.tarea_fecha_limite;
+  const fechaSugeridaVieja = esFormatoMuyViejo ? t.fecha_sugerida : t.tarea_fecha_sugerida;
+  const fechaHoraAgendadaVieja = esFormatoMuyViejo ? t.fecha_hora_agendada : t.tarea_fecha_hora_agendada;
+  const duracionVieja = esFormatoMuyViejo ? t.duracion_estimada_min : t.tarea_duracion_estimada_min;
+  const notasViejas = esFormatoMuyViejo ? t.notas : t.tarea_notas;
+  const dependenciasViejas = esFormatoMuyViejo ? t.dependencias : t.dependencias;
+  const mantenimientoViejo = esFormatoMuyViejo ? t.mantenimiento : t.tarea_mantenimiento;
+  const diasHabilesViejos = esFormatoMuyViejo ? t.dias_habiles : t.tarea_dias_habiles;
+  const requiereClimaViejo = esFormatoMuyViejo ? t.requiere_clima_bueno : t.tarea_requiere_clima_bueno;
+  const metasIdsViejas = esFormatoMuyViejo ? t.metas_ids : t.metas_ids;
+  const costoEstimadoViejo = esFormatoMuyViejo ? t.costo_estimado : t.tarea_costo_estimado;
+  const creadaEnVieja = esFormatoMuyViejo ? t.creada_en : t.tarea_creada_en;
+  const completadaEnVieja = esFormatoMuyViejo ? t.completada_en : t.tarea_completada_en;
+
   return {
     tarea_id: id,
     tarea_nombre: nombre,
-    categoria_id,
-    subcategoria_id,
-    tarea_estado: estado,
-    tarea_fecha_inicio_posible: fecha_inicio_posible,
-    tarea_fecha_limite: fecha_limite,
-    tarea_fecha_sugerida: fecha_sugerida,
-    tarea_fecha_hora_agendada: fecha_hora_agendada,
-    tarea_duracion_estimada_min: duracion_estimada_min,
-    tarea_duracion_real_min: duracion_real_min,
-    tarea_notas: notas,
-    tarea_notificada_en_para: notificada_en_para,
-    dependencias,
-    tarea_mantenimiento: mantenimiento,
-    tarea_divisible: divisible,
-    tarea_multitasking: multitasking,
-    tarea_importancia: importancia,
-    tarea_dias_habiles: dias_habiles,
-    ubicacion_id,
-    tarea_requiere_clima_bueno: requiere_clima_bueno,
-    metas_ids,
-    tarea_recompensa: recompensa,
-    tarea_costo_estimado: costo_estimado,
-    tarea_costo_real: costo_real,
-    tarea_creada_en: creada_en,
-    tarea_completada_en: completada_en,
+    categoria_id: t.categoria_id || null,
+    tarea_estado: estadoViejo === 'completada' ? 'completada' : 'pendiente',
+    tarea_fecha_inicio_habilitada: fechaInicioVieja || creadaEnVieja,
+    tarea_fecha_sugerida: fechaHoraAgendadaVieja || fechaSugeridaVieja || '',
+    tarea_fecha_limite: fechaLimiteVieja || '',
+    tarea_fecha_fin: completadaEnVieja || null,
+    tarea_importancia: null,
+    tarea_mantenimiento: !!mantenimientoViejo,
+    tarea_mantenimiento_intervalo: mantenimientoViejo || null,
+    tarea_dias_habiles: diasHabilesViejos || [],
+    tarea_duracion_min: duracionVieja || 15,
+    tarea_descripcion: notasViejas || '',
+    tarea_creada_en: creadaEnVieja,
+    tarea_dependiente: (dependenciasViejas && dependenciasViejas[0]) || null,
+    ubicacion_id: t.ubicacion_id || null,
+    tarea_requiere_clima_bueno: !!requiereClimaViejo,
+    tarea_costo_estimado: costoEstimadoViejo || 0,
+    tarea_genera_dinero: !!t.tarea_genera_dinero,
+    meta_id: (metasIdsViejas && metasIdsViejas[0]) || null,
   };
 }
 
-function normalizarDatosCrudos(datos) {
-  return {
-    categorias: (datos.categorias || []).map(migrarCategoria),
-    subcategorias: (datos.subcategorias || []).map(migrarSubcategoria),
-    ubicaciones: (datos.ubicaciones || []).map(migrarUbicacion),
-    metas: (datos.metas || []).map(migrarMeta),
-    personas: (datos.personas || []).map(migrarPersona),
-    tareas: (datos.tareas || []).map(migrarTarea),
-  };
+function normalizarDatosCrudos(datosOriginal) {
+  const datos = fusionarSubcategoriasEnCategorias(datosOriginal);
+  const categorias = (datos.categorias || []).map(migrarCategoria);
+  const ubicaciones = (datos.ubicaciones || []).map(migrarUbicacion);
+  const metas = (datos.metas || []).map(migrarMeta);
+  const personas = (datos.personas || []).map(migrarPersona);
+  const tareas = (datos.tareas || []).map(migrarTarea);
+  tareas.forEach((t) => recalcularBloqueo(t, tareas));
+  return { categorias, ubicaciones, metas, personas, tareas };
 }
 
 export function suscribir(fn) {
@@ -236,7 +281,6 @@ export async function guardarTodo() {
   if (carpetaDatosHandle) {
     await escribirArchivo(ARCHIVO_CATEGORIAS, {
       categorias: estado.categorias,
-      subcategorias: estado.subcategorias,
       ubicaciones: estado.ubicaciones,
       metas: estado.metas,
       personas: estado.personas,
@@ -287,14 +331,15 @@ export async function cargarDesdeCarpeta() {
   const datosTareas = await leerArchivo(ARCHIVO_TAREAS);
 
   if (datosCategorias || datosTareas) {
-    const normalizadosCategorias = normalizarDatosCrudos(datosCategorias || {});
-    const normalizadosTareas = normalizarDatosCrudos(datosTareas || {});
-    estado.categorias = normalizadosCategorias.categorias;
-    estado.subcategorias = normalizadosCategorias.subcategorias;
-    estado.ubicaciones = normalizadosCategorias.ubicaciones;
-    estado.metas = normalizadosCategorias.metas;
-    estado.personas = normalizadosCategorias.personas;
-    estado.tareas = normalizadosTareas.tareas;
+    // Se combinan ambos archivos antes de normalizar: la fusión de
+    // Subcategoria (vive en categorias.json) necesita ver las tareas (viven
+    // en tareas.json) para reasignar `categoria_id` correctamente.
+    const normalizados = normalizarDatosCrudos({ ...(datosCategorias || {}), ...(datosTareas || {}) });
+    estado.categorias = normalizados.categorias;
+    estado.ubicaciones = normalizados.ubicaciones;
+    estado.metas = normalizados.metas;
+    estado.personas = normalizados.personas;
+    estado.tareas = normalizados.tareas;
     guardarEnLocalStorage();
   } else {
     // Carpeta nueva y vacía: la sembramos con lo que ya haya en memoria/localStorage.

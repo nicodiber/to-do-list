@@ -10,19 +10,18 @@ function formatoUTCGoogleCalendar(fecha) {
  * un clic desde su sesión de Google ya logueada. No requiere OAuth ni API key.
  */
 export function construirUrlExportarGoogleCalendar(tarea) {
-  const duracionMin = tarea.tarea_duracion_real_min ?? tarea.tarea_duracion_estimada_min ?? 30;
-  const fin = new Date(tarea.tarea_completada_en || Date.now());
+  const duracionMin = tarea.tarea_duracion_min || 30;
+  const fin = new Date(tarea.tarea_fecha_fin || Date.now());
   const inicio = new Date(fin.getTime() - duracionMin * 60000);
 
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  const subcategoria = estado.subcategorias.find((s) => s.subcategoria_id === tarea.subcategoria_id);
 
   let detalles = '';
   if (categoria) {
-    detalles += `Categoría: ${categoria.categoria_nombre}${subcategoria ? ' / ' + subcategoria.subcategoria_nombre : ''}\n`;
+    detalles += `Categoría: ${categoria.categoria_nombre}\n`;
   }
-  detalles += `Duración real: ${duracionMin} min`;
-  if (tarea.tarea_notas) detalles += `\n\n${tarea.tarea_notas}`;
+  detalles += `Duración: ${duracionMin} min`;
+  if (tarea.tarea_descripcion) detalles += `\n\n${tarea.tarea_descripcion}`;
   detalles += '\n\nCreada con Super To-Do List';
 
   const parametros = new URLSearchParams({

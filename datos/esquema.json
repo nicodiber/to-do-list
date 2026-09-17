@@ -4,23 +4,15 @@
   "definitions": {
     "categoria": {
       "type": "object",
-      "required": ["categoria_id", "categoria_nombre", "categoria_color", "categoria_orden"],
+      "required": ["categoria_id", "categoria_nombre", "categoria_color", "categoria_prioridad"],
       "properties": {
         "categoria_id": { "type": "string" },
         "categoria_nombre": { "type": "string", "minLength": 1 },
+        "categoria_descripcion": { "type": "string" },
         "categoria_color": { "type": "string" },
-        "categoria_orden": { "type": "number" },
-        "categoria_disfrute": { "type": "number", "minimum": 1, "maximum": 5 }
-      }
-    },
-    "subcategoria": {
-      "type": "object",
-      "required": ["subcategoria_id", "categoria_id", "subcategoria_nombre", "subcategoria_color"],
-      "properties": {
-        "subcategoria_id": { "type": "string" },
-        "categoria_id": { "type": "string" },
-        "subcategoria_nombre": { "type": "string", "minLength": 1 },
-        "subcategoria_color": { "type": "string" }
+        "categoria_prioridad": { "type": "number" },
+        "categoria_disfrute": { "type": "number", "minimum": 1, "maximum": 5 },
+        "categoria_padre_id": { "type": ["string", "null"] }
       }
     },
     "ubicacion": {
@@ -41,7 +33,7 @@
         "meta_nombre": { "type": "string", "minLength": 1 },
         "meta_plazo": { "type": "string", "enum": ["corto", "mediano", "largo"] },
         "meta_descripcion": { "type": "string" },
-        "meta_fecha_objetivo": { "type": "string" },
+        "meta_fecha_estimada": { "type": "string" },
         "meta_creada_en": { "type": "string" }
       }
     },
@@ -52,7 +44,6 @@
         "persona_id": { "type": "string" },
         "persona_nombre": { "type": "string", "minLength": 1 },
         "persona_ultimo_contacto": { "type": "string" },
-        "persona_notas": { "type": "string" },
         "persona_creada_en": { "type": "string" }
       }
     },
@@ -63,49 +54,36 @@
         "tarea_id": { "type": "string" },
         "tarea_nombre": { "type": "string", "minLength": 1 },
         "categoria_id": { "type": ["string", "null"] },
-        "subcategoria_id": { "type": ["string", "null"] },
         "tarea_estado": {
           "type": "string",
-          "enum": ["a_confirmar", "pendiente", "en_progreso", "completada"]
+          "enum": ["bloqueada", "pendiente", "completada"]
         },
-        "tarea_fecha_inicio_posible": { "type": "string" },
-        "tarea_fecha_limite": { "type": "string" },
-        "tarea_fecha_sugerida": { "type": "string" },
-        "tarea_fecha_hora_agendada": { "type": "string" },
-        "tarea_duracion_estimada_min": { "type": "number", "minimum": 0 },
-        "tarea_duracion_real_min": { "type": ["number", "null"], "minimum": 0 },
-        "tarea_notas": { "type": "string" },
-        "tarea_notificada_en_para": { "type": "string" },
-        "dependencias": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "tarea_mantenimiento": {
+        "tarea_fecha_inicio_habilitada": { "type": ["string", "null"] },
+        "tarea_fecha_sugerida": { "type": ["string", "null"] },
+        "tarea_fecha_limite": { "type": ["string", "null"] },
+        "tarea_fecha_fin": { "type": ["string", "null"] },
+        "tarea_importancia": { "type": ["string", "null"], "enum": ["urgente", "importante", null] },
+        "tarea_mantenimiento": { "type": "boolean" },
+        "tarea_mantenimiento_intervalo": {
           "type": ["object", "null"],
           "properties": {
             "cantidad": { "type": "number", "minimum": 1 },
             "unidad": { "type": "string", "enum": ["dias", "semanas", "meses"] }
           }
         },
-        "tarea_divisible": { "type": "boolean" },
-        "tarea_multitasking": { "type": "boolean" },
         "tarea_dias_habiles": {
           "type": "array",
           "items": { "type": "number", "minimum": 0, "maximum": 6 }
         },
+        "tarea_duracion_min": { "type": "number", "minimum": 0 },
+        "tarea_descripcion": { "type": "string" },
+        "tarea_creada_en": { "type": "string" },
+        "tarea_dependiente": { "type": ["string", "null"] },
         "ubicacion_id": { "type": ["string", "null"] },
         "tarea_requiere_clima_bueno": { "type": "boolean" },
-        "metas_ids": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "tarea_recompensa": { "type": "string" },
-        "tarea_importancia": { "type": "string", "enum": ["baja", "media", "alta"] },
         "tarea_costo_estimado": { "type": "number", "minimum": 0 },
-        "tarea_costo_real": { "type": ["number", "null"], "minimum": 0 },
         "tarea_genera_dinero": { "type": "boolean" },
-        "tarea_creada_en": { "type": "string" },
-        "tarea_completada_en": { "type": ["string", "null"] }
+        "meta_id": { "type": ["string", "null"] }
       }
     }
   },
@@ -114,10 +92,6 @@
     "categorias": {
       "type": "array",
       "items": { "$ref": "#/definitions/categoria" }
-    },
-    "subcategorias": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/subcategoria" }
     },
     "ubicaciones": {
       "type": "array",

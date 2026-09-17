@@ -14,7 +14,6 @@ export function renderVistaPersonas(contenedor) {
     <form id="form-nueva-persona" class="formulario-en-linea">
       <input type="text" name="persona_nombre" placeholder="Nombre" required />
       <label>Último contacto <input type="date" name="persona_ultimo_contacto" /></label>
-      <input type="text" name="persona_notas" placeholder="Notas (opcional, ej. hermana)" />
       <button type="submit">Agregar persona</button>
     </form>
     <div id="lista-personas" class="lista-categorias"></div>
@@ -29,7 +28,6 @@ export function renderVistaPersonas(contenedor) {
       crearPersona({
         persona_nombre: nombre,
         persona_ultimo_contacto: formulario.persona_ultimo_contacto.value,
-        persona_notas: formulario.persona_notas.value.trim(),
       })
     );
     await persistirYNotificar();
@@ -63,7 +61,6 @@ function renderPersona(persona) {
       </span>
       ${persona.persona_ultimo_contacto ? `<span class="etiqueta-fecha">Último: ${formatearFecha(persona.persona_ultimo_contacto)}</span>` : ''}
     </span>
-    ${persona.persona_notas ? `<p class="notas-tarea">${escaparHtml(persona.persona_notas)}</p>` : ''}
     <button type="button" data-accion="marcar-contacto" class="boton-primario">Marcar contacto hoy</button>
   `;
 

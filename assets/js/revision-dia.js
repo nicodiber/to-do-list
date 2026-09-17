@@ -1,9 +1,8 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { formatearFecha, escaparHtml } from './utilidades.js';
+import { formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada } from './tareas-logica.js';
+import { completarTarea, reprogramarTareaConCascada, desbloquearDependientes } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
-import { mostrarRecompensaSiCorresponde } from './recompensa.js';
 import { sugerirTareaDeAltoDisfrute } from './disfrute.js';
 import { crearTarea } from './modelos.js';
 import {
@@ -60,7 +59,7 @@ function renderPaso() {
     <h3>${escaparHtml(tarea.tarea_nombre)}</h3>
     <span class="etiquetas">
       ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
-      ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFecha(tarea.tarea_fecha_limite)}</span>` : ''}
+      ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
     </span>
     <div class="acciones-revision">
       <button type="button" data-accion="cumplida" class="boton-primario">Cumplida ✓</button>
@@ -78,12 +77,6 @@ function renderPaso() {
 
   dlg.querySelector('[data-accion="cumplida"]').addEventListener('click', () => {
     contenedorPaso.innerHTML = `
-      <label>Duración real (min)
-        <input type="number" min="0" step="5" value="${tarea.tarea_duracion_estimada_min || 30}" data-campo="duracion-real" />
-      </label>
-      <label>Costo real ($) (opcional)
-        <input type="number" min="0" data-campo="costo-real" />
-      </label>
       ${
         tarea.tarea_mantenimiento
           ? `<label>¿Qué podrías mejorar la próxima vez? (opcional)
@@ -94,14 +87,11 @@ function renderPaso() {
       <button type="button" data-accion="confirmar-cumplida" class="boton-primario">Confirmar</button>
     `;
     contenedorPaso.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
-      const duracionReal = Number(contenedorPaso.querySelector('[data-campo="duracion-real"]').value) || 0;
-      const valorCostoReal = contenedorPaso.querySelector('[data-campo="costo-real"]').value;
-      const costoReal = valorCostoReal === '' ? null : Number(valorCostoReal);
       const campoMejora = contenedorPaso.querySelector('[data-campo="mejora"]');
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
-      completarTarea(tarea, estado.tareas, { duracionReal, notaMejora, costoReal });
+      completarTarea(tarea, estado.tareas, { notaMejora });
+      desbloquearDependientes(tarea, estado.tareas);
       await persistirYNotificar();
-      mostrarRecompensaSiCorresponde(tarea);
       sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
       avanzar();
@@ -117,9 +107,8 @@ function renderPaso() {
 
       const panel = crearPanelReprogramar({
         diasHabiles: tarea.tarea_dias_habiles,
-        onConfirmar: async (fechaHoraISO) => {
-          reprogramarTareaConCascada(tarea, fechaHoraISO, estado.tareas);
-          if (tarea.tarea_estado === 'a_confirmar' || tarea.tarea_estado === 'en_progreso') tarea.tarea_estado = 'pendiente';
+        onConfirmar: async (fechaSugeridaISO) => {
+          reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
           await persistirYNotificar();
           avanzar();
         },
