@@ -59,6 +59,7 @@ Helpers puros de fecha/formato/id, sin dependencias de `estado`. Reutilizados po
 - **`arbolCategorias(categorias, padreId, profundidad)`**: aplana el árbol de categorías (vía `categoria_padre_id`) en orden DFS, cada entrada con su nivel de profundidad — para selects/listas indentadas.
 - **`caminoCategoria(categoria, todasLasCategorias)`**: arma el "camino" de nombres de una categoría hasta su raíz (ej. "Facultad / IR"), recorriendo `categoria_padre_id`.
 - **`categoriaRaiz(categoria, todasLasCategorias)`**: sube por `categoria_padre_id` hasta la categoría sin padre. Usado por `compararPorPrioridad` para comparar tareas por la prioridad de su categoría raíz, no de la categoría directa.
+- **`textoHolgura(dias)`**: texto legible de una holgura ya calculada (ver `calcularHolguraDias` en `tareas-logica.js`) — "Vencida hace N días" / "Vence hoy" / "Quedan N días". Compartido entre `views/hoy.view.js` y `views/todas.view.js`.
 - **`escaparHtml(texto)`**: sanitiza texto libre antes de insertarlo en `innerHTML`.
 
 ## `assets/js/tareas-logica.js`
@@ -114,7 +115,7 @@ Consulta de pronóstico real (Open-Meteo, sin API key) para tareas con `tarea_re
 
 Motor compartido de las vistas "3 días" y "8 días" (ambas son wrappers triviales).
 
-- **`fechaDeReferencia(tarea)`** (exportada): resuelve la fecha (solo el día) por la que se agrupa una tarea — `tarea_fecha_sugerida` si tiene valor, si no `tarea_fecha_limite`. También la usa `views/tabla.view.js`.
+- **`fechaDeReferencia(tarea)`** (exportada): resuelve la fecha (solo el día) por la que se agrupa una tarea — `tarea_fecha_sugerida` si tiene valor, si no `tarea_fecha_limite`. También la usa `views/todas.view.js`.
 - **`renderVistaAgenda(contenedor, cantidadDias)`**: agrupa las tareas pendientes (filtradas por la "ubicación actual") por día, para los próximos `cantidadDias` empezando hoy.
 - **`renderTarjetaTarea(tarea)`**: arma la tarjeta de una tarea (badges, aviso de bloqueo con la tarea de la que depende, aviso de clima) con un botón "Posponer" que reprograma vía `reprogramarTareaConCascada`.
 
@@ -179,10 +180,12 @@ La vista más grande: ABM completo de tareas, filtros, y los paneles de dependen
 - **`crearPanelDependencia(tarea)` / `crearPanelMeta(tarea)`**: paneles con un `<select>` único (ya no checklist, porque `tarea_dependiente`/`meta_id` son referencias singulares) para editar la dependencia (validando ciclos vía `puedeAgregarDependencia` y recalculando bloqueo) y la meta.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
-## `views/tabla.view.js`
+## `views/todas.view.js`
 
-- **`renderVistaTabla(contenedor)`**: todas las tareas no completadas en formato tabla, ordenadas por `fechaDeReferencia`. Clic en una fila abre esa tarea en edición en Tareas.
-- **`formatearDias(dias)`**: texto relativo ("Hoy"/"En 3 días"/"Vencida hace 2 días").
+Vista de referencia y auditoría: todas las tareas (de cualquier estado), con filtros y orden por columna.
+
+- **`renderVistaTodas(contenedor)`**: por defecto ordena por `compararPorPrioridad` (el orden real de la app), para detectar de un vistazo si algo quedó mal priorizado. Filtros de categoría (inclusivo de descendientes, vía `idsCategoriaYDescendientes`), estado, importancia y buscador por nombre. Clic en un header de columna cambia el orden a esa columna sola (`COMPARADORES`), con toggle asc/desc y un botón "↺ Prioridad" para volver al orden por defecto. Clic en una fila abre esa tarea en edición en Tareas.
+- **`idsCategoriaYDescendientes(categoriaId, categorias)`**: IDs de una categoría y todas sus descendientes, recorriendo `categoria_padre_id` hacia abajo — a diferencia del filtro de categoría de Tareas (que compara `categoria_id` exacto), este es inclusivo de descendientes.
 
 ## `views/categorias.view.js`
 

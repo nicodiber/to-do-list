@@ -147,6 +147,18 @@ export function categoriaRaiz(categoria, todasLasCategorias) {
   return actual;
 }
 
+/**
+ * Texto legible de una holgura en días (ver `calcularHolguraDias` en
+ * tareas-logica.js): cuánto margen queda antes de vencer, o hace cuánto que
+ * venció. Recibe el número ya calculado, no la tarea.
+ */
+export function textoHolgura(dias) {
+  if (dias === Infinity) return '';
+  if (dias < 0) return `Vencida hace ${Math.abs(dias)} día${Math.abs(dias) === 1 ? '' : 's'}`;
+  if (dias === 0) return 'Vence hoy';
+  return `Quedan ${dias} día${dias === 1 ? '' : 's'}`;
+}
+
 export function caminoCategoria(categoria, todasLasCategorias) {
   if (!categoria) return '';
   const nombres = [];

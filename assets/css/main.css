@@ -323,6 +323,20 @@ h1, h2, h3 {
   overflow-x: auto;
 }
 
+.th-ordenable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.th-ordenable:hover {
+  color: var(--color-texto);
+}
+
+.th-ordenable.activa {
+  color: var(--color-primario);
+}
+
 .fila-tabla-tarea {
   cursor: pointer;
   transition: var(--transicion);

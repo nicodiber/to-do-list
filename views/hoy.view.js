@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
-import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora } from '../assets/js/utilidades.js';
+import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
   completarTarea,
@@ -164,10 +164,7 @@ export function renderVistaHoy(contenedor) {
  */
 function etiquetaHolgura(tarea) {
   if (!tarea.tarea_fecha_limite) return '';
-  const dias = calcularHolguraDias(tarea);
-  if (dias < 0) return `Vencida hace ${Math.abs(dias)} día${Math.abs(dias) === 1 ? '' : 's'}`;
-  if (dias === 0) return 'Vence hoy';
-  return `Quedan ${dias} día${dias === 1 ? '' : 's'}`;
+  return textoHolgura(calcularHolguraDias(tarea));
 }
 
 function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {

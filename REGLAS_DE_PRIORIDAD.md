@@ -52,7 +52,7 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 - **Hoy — "Elegí por categoría"**: `mejorTareaPorCategoria` sobre las tareas de "Resto".
 - **3 días / 8 días** (`assets/js/vista-agenda.js`): agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`, la primera con valor). Dentro de cada día, por `tarea_fecha_sugerida` (hora concreta del día) y luego `compararPorPrioridad` como desempate — esto no cambia, porque ahí se ordena por horario del día, no por urgencia de vencimiento.
 - **Semana**: las tareas con horario puntual (`tarea_fecha_sugerida` con hora) se ubican en su horario exacto. Las proyectadas se ordenan por `compararPorPrioridad` y se apilan una detrás de otra según su `tarea_duracion_min`.
-- **Tabla**: ordenada solo por `fechaDeReferencia`, sin `compararPorPrioridad` — es una vista de referencia tipo planilla, no de triage.
+- **Todas**: por defecto ordenada por `compararPorPrioridad` — es la vista pensada para auditar el orden real de la app y detectar rápido si algo quedó mal priorizado. Clickear el header de una columna cambia a un orden simple por esa columna sola (asc/desc); un botón "↺ Prioridad" vuelve al orden por defecto. Filtros de categoría (inclusivo de descendientes), estado, importancia y buscador por nombre.
 - **Gantt**: ordenada por fecha de inicio de la tarea y luego por `compararPorPrioridad`, dentro de cada meta — tampoco cambia, ahí se ordena por posición cronológica en el diagrama.
 
 ## Regla 80/20 (Pareto)
@@ -61,8 +61,7 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 
 ## Pendiente para próximas rondas
 
-Ideas ya charladas y acordadas con el usuario, deliberadamente fuera del alcance de esta ronda:
+Ideas ya charladas y acordadas con el usuario, deliberadamente fuera del alcance de esta ronda (la vista "Todas" de la Ronda 3 ya está implementada, ver más arriba):
 
-- **Ronda 3**: vista "Todas" (rename de Tabla) con filtros (categoría con árbol/descendientes, estado, importancia), buscador por nombre y headers ordenables por columna.
 - **Ronda 4**: herramienta "Versus" para desempates manuales — compara de a 2 tareas empatadas en todo (misma banda, misma categoría, misma importancia), el usuario elige cuál prefiere antes (o "omitir"), y eso ajusta un nuevo campo `tarea_prioridad_manual` (mismo patrón que `categoria_prioridad`) que se sumaría como Nivel 4.5 del comparador, antes del FIFO final. También cubre la idea de "vincular una tarea a otra sin que la bloquee, porque conviene hacerla antes" — es la misma herramienta.
 - **Ronda 5**: reprogramado de fechas vencidas — automático con aviso para `tarea_fecha_sugerida`, siempre consultado al usuario para `tarea_fecha_limite` (reusando/extendiendo `assets/js/reprogramar.js`). (Gantt ya muestra las conexiones de dependencia — `renderFlechasDependencia` — de una ronda anterior, no hace falta agregarlo de nuevo.)

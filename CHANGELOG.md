@@ -2,6 +2,13 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.47.0] - 2026-09-18
+
+### Cambiado
+
+- **Vista "Todas"** (Ronda 3 del algoritmo de prioridad), rename de la vista "Tabla" (`views/tabla.view.js` → `views/todas.view.js`, ruta `#/todas`): ya no excluye tareas completadas por defecto — se acota con el nuevo filtro de Estado. Se suman filtros de categoría (árbol, inclusivo de descendientes), importancia y un buscador por nombre. El orden por defecto pasa a ser `compararPorPrioridad` (el orden real de prioridad de la app), pensado para auditar de un vistazo si algo quedó mal priorizado; clic en el header de una columna (Nombre/Categoría/Importancia/Estado/Fecha/Holgura) cambia a un orden simple por esa columna con toggle asc/desc, y un botón "↺ Prioridad" vuelve al orden por defecto. Nueva columna "Holgura".
+- `textoHolgura(dias)` (antes lógica duplicada dentro de Hoy) se extrajo a `assets/js/utilidades.js`, compartida entre Hoy y Todas.
+
 ## [v0.46.0] - 2026-09-18
 
 ### Cambiado
