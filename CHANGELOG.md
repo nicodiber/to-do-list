@@ -2,6 +2,13 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.48.0] - 2026-09-19
+
+### Agregado
+
+- **Herramienta "Versus"** (Ronda 4 del algoritmo de prioridad), botón "⚔️ Versus" en la vista Todas: agrupa las tareas accionables en clusters mutuamente empatados en prioridad (nuevo `tareasEmpatadas`/`compararEstructural` en `assets/js/tareas-logica.js`, los niveles 1-4 ya existentes de `compararPorPrioridad`) y ofrece pares adyacentes de a uno para que el usuario elija cuál conviene antes, o "Da igual / Omitir". Elegir asigna el nuevo campo `tarea_prioridad_manual` (número \| `null`) a ambas tareas del par vía un contador global creciente; a partir de ahí ya no vuelven a ofrecerse (dejan de estar "empatadas"). Omitir no asigna nada — siguen genuinamente empatadas, solo se evita re-ofrecer el mismo par en la sesión actual.
+- `tarea_prioridad_manual` se suma como **Nivel 5** de `compararPorPrioridad`, entre `tarea_importancia` y el FIFO final (`tarea_creada_en`, que pasa a Nivel 6).
+
 ## [v0.47.0] - 2026-09-18
 
 ### Cambiado

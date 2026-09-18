@@ -337,6 +337,36 @@ h1, h2, h3 {
   color: var(--color-primario);
 }
 
+.panel-versus {
+  margin: 0.5rem 0 1rem;
+  padding: 0.6rem;
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.versus-tarjetas {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.versus-tarjeta {
+  flex: 1 1 220px;
+  padding: 0.6rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.versus-acciones {
+  margin-top: 0.6rem;
+  text-align: center;
+}
+
 .fila-tabla-tarea {
   cursor: pointer;
   transition: var(--transicion);

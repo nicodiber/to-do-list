@@ -44,6 +44,7 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `tarea_requiere_clima_bueno` | boolean (default `false`) | MVP | Si está en `true` y la tarea tiene `ubicacion_id` con coordenadas y una fecha resoluble dentro de los próximos 16 días, se consulta el pronóstico real (Open-Meteo) y se avisa si la probabilidad de lluvia es alta |
 | `tarea_costo_estimado` | number, default `0` | MVP | Costo monetario estimado, opcional. Se suma en Informes para proyectar el costo de las tareas pendientes. Se copia a la instancia clonada si la tarea es de mantenimiento |
 | `meta_id` | string (UUID) \| null | MVP | Meta a la que aporta esta tarea (una sola). El progreso de la meta se calcula al vuelo filtrando por este campo |
+| `tarea_prioridad_manual` | number \| null, default `null` | MVP | Desempate manual de prioridad (menor = más prioritaria), asignado por la herramienta "Versus" (vista Todas) al comparar 2 tareas empatadas. `null` = sin preferencia manual. Ver `REGLAS_DE_PRIORIDAD.md` |
 
 ## Ubicacion
 

@@ -1,8 +1,8 @@
-import { estado } from '../assets/js/almacenamiento.js';
+import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, NIVELES_IMPORTANCIA, ORDEN_IMPORTANCIA, ESTADOS_TAREA } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, escaparHtml } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias } from '../assets/js/tareas-logica.js';
+import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable } from '../assets/js/tareas-logica.js';
 import { abrirEdicionAlEntrar } from './tareas.view.js';
 
 let filtroCategoria = '';
@@ -11,6 +11,8 @@ let filtroImportancia = '';
 let textoBusqueda = '';
 let columnaOrden = null; // null = orden de prioridad real de la app; o 'nombre'|'categoria'|'importancia'|'estado'|'fecha'|'holgura'
 let direccionOrden = 'asc';
+let paresOmitidos = new Set(); // claves "idA|idB" (ordenados) omitidas en esta sesión de Versus, para no re-ofrecer el mismo par
+let panelVersusAbierto = false;
 
 const COLUMNAS = [
   { clave: 'nombre', etiqueta: 'Nombre' },
@@ -120,7 +122,9 @@ export function renderVistaTodas(contenedor) {
         <input type="search" id="buscador-nombre-todas" placeholder="Nombre de la tarea..." value="${escaparHtml(textoBusqueda)}" />
       </label>
       <button type="button" id="boton-reset-orden-todas">↺ Prioridad</button>
+      <button type="button" id="boton-versus-todas">⚔️ Versus</button>
     </div>
+    <div id="contenedor-panel-versus" hidden></div>
     <div class="tabla-tareas-contenedor">
       <table class="tabla-informe">
         <thead>
@@ -157,6 +161,17 @@ export function renderVistaTodas(contenedor) {
     columnaOrden = null;
     renderVistaTodas(contenedor);
   });
+  const contenedorPanelVersus = contenedor.querySelector('#contenedor-panel-versus');
+  contenedor.querySelector('#boton-versus-todas').addEventListener('click', () => {
+    panelVersusAbierto = !panelVersusAbierto;
+    contenedorPanelVersus.innerHTML = '';
+    contenedorPanelVersus.hidden = !panelVersusAbierto;
+    if (panelVersusAbierto) contenedorPanelVersus.appendChild(crearPanelVersus(contenedor));
+  });
+  if (panelVersusAbierto) {
+    contenedorPanelVersus.appendChild(crearPanelVersus(contenedor));
+    contenedorPanelVersus.hidden = false;
+  }
   contenedor.querySelectorAll('.th-ordenable').forEach((th) => {
     th.addEventListener('click', () => {
       const clave = th.dataset.columna;
@@ -200,4 +215,113 @@ function renderFila(tarea) {
     location.hash = '#/tareas';
   });
   return fila;
+}
+
+/**
+ * Agrupa las tareas accionables en clusters de tareas mutuamente empatadas
+ * (`tareasEmpatadas`, transitiva porque compara claves numéricas), para la
+ * herramienta "Versus". Clusters de una sola tarea se descartan.
+ */
+function construirClusteres(tareas, categorias) {
+  const restantes = [...tareas];
+  const clusters = [];
+  while (restantes.length > 0) {
+    const base = restantes.shift();
+    const grupo = [base];
+    for (let i = restantes.length - 1; i >= 0; i--) {
+      if (tareasEmpatadas(base, restantes[i], categorias)) {
+        grupo.push(restantes.splice(i, 1)[0]);
+      }
+    }
+    if (grupo.length >= 2) clusters.push(grupo);
+  }
+  return clusters;
+}
+
+function claveDePar(a, b) {
+  return [a.tarea_id, b.tarea_id].sort().join('|');
+}
+
+/**
+ * Próximo par sin resolver a ofrecer en "Versus": primer par adyacente,
+ * dentro del primer cluster con pares disponibles, que no haya sido
+ * omitido ya en esta sesión.
+ */
+function proximoParVersus() {
+  const accionables = estado.tareas.filter((t) => esTareaAccionable(t));
+  const clusters = construirClusteres(accionables, estado.categorias);
+  for (const grupo of clusters) {
+    for (let i = 0; i < grupo.length - 1; i++) {
+      const [a, b] = [grupo[i], grupo[i + 1]];
+      if (!paresOmitidos.has(claveDePar(a, b))) return [a, b];
+    }
+  }
+  return null;
+}
+
+function infoBreveTarea(tarea) {
+  const categoria = categoriaDe(tarea);
+  const holgura = calcularHolguraDias(tarea);
+  return `
+    <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
+    <span class="etiquetas">
+      ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(caminoCategoria(categoria, estado.categorias))}</span>` : ''}
+      ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
+      ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}${holgura !== Infinity ? ` · ${textoHolgura(holgura)}` : ''}</span>` : ''}
+    </span>
+  `;
+}
+
+/**
+ * Panel "Versus": compara de a 2 tareas accionables empatadas en prioridad
+ * (ver `construirClusteres`/`proximoParVersus`) y deja elegir cuál conviene
+ * antes, o "Da igual / Omitir". Elegir asigna `tarea_prioridad_manual` a
+ * ambas (un valor global creciente, ganadora < perdedora) — a partir de ahí
+ * dejan de estar empatadas y no se vuelven a ofrecer. Omitir no asigna nada
+ * (siguen empatadas), solo evita re-ofrecer el mismo par en esta sesión.
+ */
+function crearPanelVersus(contenedorVista) {
+  const panel = document.createElement('div');
+  panel.className = 'panel-versus';
+
+  const par = proximoParVersus();
+  if (!par) {
+    panel.innerHTML = '<p class="mensaje-vacio">No hay tareas empatadas en prioridad para comparar ahora mismo.</p>';
+    return panel;
+  }
+
+  const [a, b] = par;
+  panel.innerHTML = `
+    <p class="ayuda">¿Cuál de estas dos conviene hacer antes?</p>
+    <div class="versus-tarjetas">
+      <div class="versus-tarjeta">
+        ${infoBreveTarea(a)}
+        <button type="button" data-accion="elegir-a" class="boton-primario">Elegir esta ▸</button>
+      </div>
+      <div class="versus-tarjeta">
+        ${infoBreveTarea(b)}
+        <button type="button" data-accion="elegir-b" class="boton-primario">Elegir esta ▸</button>
+      </div>
+    </div>
+    <div class="versus-acciones">
+      <button type="button" data-accion="omitir">Da igual / Omitir</button>
+    </div>
+  `;
+
+  async function elegir(preferida, otra) {
+    const siguienteValor = 1 + Math.max(-1, ...estado.tareas.map((t) => t.tarea_prioridad_manual).filter((v) => v != null));
+    preferida.tarea_prioridad_manual = siguienteValor;
+    otra.tarea_prioridad_manual = siguienteValor + 1;
+    await persistirYNotificar();
+    renderVistaTodas(contenedorVista);
+  }
+
+  panel.querySelector('[data-accion="elegir-a"]').addEventListener('click', () => elegir(a, b));
+  panel.querySelector('[data-accion="elegir-b"]').addEventListener('click', () => elegir(b, a));
+  panel.querySelector('[data-accion="omitir"]').addEventListener('click', () => {
+    paresOmitidos.add(claveDePar(a, b));
+    renderVistaTodas(contenedorVista);
+  });
+
+  return panel;
 }

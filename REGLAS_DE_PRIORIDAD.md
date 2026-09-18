@@ -32,9 +32,21 @@ La holgura se agrupa en bandas, para que una diferencia de pocos días no tape l
 2. **Categoría raíz**: dentro de la misma banda, se compara la `categoria_prioridad` de la categoría **raíz** de cada tarea (recorriendo `categoria_padre_id` hasta el final con `categoriaRaiz`, en `utilidades.js`). Así, una tarea de una materia de Facultad compite con la prioridad de "Facultad" entre las categorías raíz, no con la de la materia en sí. Sin categoría, o categoría inexistente, queda al final.
 3. **Categoría directa**: desempate entre tareas de distinta categoría pero la misma raíz (ej. dos materias de Facultad) — se usa la `categoria_prioridad` de la categoría propia de cada tarea, entre sus hermanas.
 4. **`tarea_importancia`**: urgente > importante > sin definir.
-5. **`tarea_creada_en`** ascendente (FIFO) — último recurso, para que el orden sea siempre determinístico (no queden empates verdaderos).
+5. **`tarea_prioridad_manual`** (`?? Infinity`, menor = más prioritaria) — resultado de la herramienta "Versus" (ver más abajo). `null` = sin preferencia manual, no participa.
+6. **`tarea_creada_en`** ascendente (FIFO) — último recurso, para que el orden sea siempre determinístico (no queden empates verdaderos).
+
+Los niveles 1-4 se conocen internamente como `compararEstructural` — es lo que determina si 2 tareas están "empatadas" para la herramienta Versus (ver abajo), independientemente de si ya tienen o no un `tarea_prioridad_manual` asignado.
 
 Ejemplo: con "Facultad" arriba de "Trabajo" entre las categorías raíz (reordenables con ▲/▼ en Categorías), una tarea de Facultad sin apuro (banda 5) sigue perdiendo contra una tarea de Trabajo que vence en 2 días (banda 1) — la banda de holgura pesa más que la categoría. Pero entre dos tareas que vencen ambas "esta semana" (banda 1 o 2), gana la de Facultad.
+
+## Herramienta "Versus" (desempate manual)
+
+Dentro de un mismo grupo empatado en los niveles 1-4, el desempate hoy sería FIFO (arbitrario). "Versus" (botón en la vista Todas) deja resolverlo a mano: agrupa las tareas accionables en clusters mutuamente empatados (`tareasEmpatadas`, transitiva), ofrece pares adyacentes de a uno, y el usuario elige cuál prefiere (o "Da igual / Omitir").
+
+- **Elegir una**: se le asigna `tarea_prioridad_manual` a las 2 tareas del par, usando un contador global creciente (`1 + máximo tarea_prioridad_manual existente`) — la elegida recibe el valor más bajo (más prioritaria), la otra el siguiente. A partir de ahí, esa tarea ya no vuelve a estar "empatada" con nadie (`tareasEmpatadas` descarta cualquier tarea con `tarea_prioridad_manual` ya asignado), así que no se vuelve a ofrecer.
+- **Omitir**: no asigna nada — ambas tareas siguen en `null`, genuinamente empatadas. Solo se recuerda (en memoria, mientras se navega la vista) para no volver a ofrecer el mismo par en la misma sesión.
+- No es un torneo todos-contra-todos: se ofrecen pares adyacentes dentro de cada cluster, una sola pasada — suficiente para reducir la mayoría de los empates sin pedir demasiadas comparaciones.
+- El alcance es global (todas las tareas accionables de la app), no se acota a los filtros activos de la vista Todas.
 
 ## `mejorTareaPorCategoria(tareas, categorias)`
 
@@ -61,7 +73,6 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 
 ## Pendiente para próximas rondas
 
-Ideas ya charladas y acordadas con el usuario, deliberadamente fuera del alcance de esta ronda (la vista "Todas" de la Ronda 3 ya está implementada, ver más arriba):
+Ideas ya charladas y acordadas con el usuario, deliberadamente fuera del alcance de esta ronda (la vista "Todas" de la Ronda 3 y la herramienta "Versus" de la Ronda 4 ya están implementadas, ver más arriba):
 
-- **Ronda 4**: herramienta "Versus" para desempates manuales — compara de a 2 tareas empatadas en todo (misma banda, misma categoría, misma importancia), el usuario elige cuál prefiere antes (o "omitir"), y eso ajusta un nuevo campo `tarea_prioridad_manual` (mismo patrón que `categoria_prioridad`) que se sumaría como Nivel 4.5 del comparador, antes del FIFO final. También cubre la idea de "vincular una tarea a otra sin que la bloquee, porque conviene hacerla antes" — es la misma herramienta.
 - **Ronda 5**: reprogramado de fechas vencidas — automático con aviso para `tarea_fecha_sugerida`, siempre consultado al usuario para `tarea_fecha_limite` (reusando/extendiendo `assets/js/reprogramar.js`). (Gantt ya muestra las conexiones de dependencia — `renderFlechasDependencia` — de una ronda anterior, no hace falta agregarlo de nuevo.)

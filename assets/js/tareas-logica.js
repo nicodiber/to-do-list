@@ -159,17 +159,17 @@ function bandaHolgura(dias) {
 }
 
 /**
- * Compara dos tareas por prioridad, en 5 niveles (ver REGLAS_DE_PRIORIDAD.md
- * para el detalle y los ejemplos): 1) banda de holgura (`calcularHolguraDias`)
- * — el criterio dominante; 2) `categoria_prioridad` de la categoría raíz de
- * cada tarea (`categoriaRaiz`); 3) `categoria_prioridad` de la categoría
- * directa, como desempate entre categorías con la misma raíz; 4)
- * `tarea_importancia` (urgente > importante > sin definir); 5)
- * `tarea_creada_en` ascendente (FIFO), como último recurso para que el orden
- * sea siempre determinístico. Sin categoría, o categoría inexistente, queda
- * siempre al final en los niveles 2 y 3.
+ * Compara dos tareas por los niveles 1-4 de prioridad (ver
+ * REGLAS_DE_PRIORIDAD.md para el detalle y los ejemplos): 1) banda de
+ * holgura (`calcularHolguraDias`) — el criterio dominante; 2)
+ * `categoria_prioridad` de la categoría raíz de cada tarea (`categoriaRaiz`);
+ * 3) `categoria_prioridad` de la categoría directa, como desempate entre
+ * categorías con la misma raíz; 4) `tarea_importancia` (urgente > importante
+ * > sin definir). Sin categoría, o categoría inexistente, queda siempre al
+ * final en los niveles 2 y 3. Devuelve 0 si empatan en los 4 niveles —
+ * usado tanto por `compararPorPrioridad` como por `tareasEmpatadas`.
  */
-export function compararPorPrioridad(a, b, categorias) {
+function compararEstructural(a, b, categorias) {
   const bandaA = bandaHolgura(calcularHolguraDias(a));
   const bandaB = bandaHolgura(calcularHolguraDias(b));
   if (bandaA !== bandaB) return bandaA - bandaB;
@@ -187,9 +187,37 @@ export function compararPorPrioridad(a, b, categorias) {
 
   const importanciaA = ORDEN_IMPORTANCIA[a.tarea_importancia] ?? 2;
   const importanciaB = ORDEN_IMPORTANCIA[b.tarea_importancia] ?? 2;
-  if (importanciaA !== importanciaB) return importanciaA - importanciaB;
+  return importanciaA - importanciaB;
+}
+
+/**
+ * Compara dos tareas por prioridad, en 6 niveles (ver REGLAS_DE_PRIORIDAD.md):
+ * los 4 de `compararEstructural`, después 5) `tarea_prioridad_manual`
+ * (`?? Infinity`, menor = más prioritaria — resultado de la herramienta
+ * "Versus"), y por último 6) `tarea_creada_en` ascendente (FIFO), para que
+ * el orden sea siempre determinístico.
+ */
+export function compararPorPrioridad(a, b, categorias) {
+  const estructural = compararEstructural(a, b, categorias);
+  if (estructural !== 0) return estructural;
+
+  const manualA = a.tarea_prioridad_manual ?? Infinity;
+  const manualB = b.tarea_prioridad_manual ?? Infinity;
+  if (manualA !== manualB) return manualA - manualB;
 
   return (a.tarea_creada_en || '').localeCompare(b.tarea_creada_en || '');
+}
+
+/**
+ * `true` si dos tareas están empatadas en los 4 niveles estructurales de
+ * prioridad (`compararEstructural`) y **ninguna** tiene todavía
+ * `tarea_prioridad_manual` asignado — es decir, siguen siendo una
+ * ambigüedad real que la herramienta "Versus" puede ofrecer para resolver.
+ * Si alguna ya fue resuelta en una ronda anterior, no se vuelve a ofrecer.
+ */
+export function tareasEmpatadas(a, b, categorias) {
+  if (a.tarea_prioridad_manual != null || b.tarea_prioridad_manual != null) return false;
+  return compararEstructural(a, b, categorias) === 0;
 }
 
 /**

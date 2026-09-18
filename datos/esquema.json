@@ -82,7 +82,8 @@
         "ubicacion_id": { "type": ["string", "null"] },
         "tarea_requiere_clima_bueno": { "type": "boolean" },
         "tarea_costo_estimado": { "type": "number", "minimum": 0 },
-        "meta_id": { "type": ["string", "null"] }
+        "meta_id": { "type": ["string", "null"] },
+        "tarea_prioridad_manual": { "type": ["number", "null"] }
       }
     }
   },
