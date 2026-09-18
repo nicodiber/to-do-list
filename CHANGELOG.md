@@ -2,6 +2,27 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.46.0] - 2026-09-18
+
+### Cambiado
+
+- **Algoritmo real de prioridad** (Ronda 2 del rediseño de datos, `assets/js/tareas-logica.js`), definido en conjunto con el usuario para reflejar su jerarquía real (Facultad como prioridad de vida #1, pero sin que domine siempre el orden). `compararPorPrioridad` pasa de ordenar solo por `categoria_prioridad` a 5 niveles:
+  1. **Banda de holgura**: días de margen hasta `tarea_fecha_limite`, contados desde hoy (`calcularHolguraDias`), agrupados en 6 bandas (vencida, 0-3, 4-7, 8-15, 16-30, 31+/sin fecha) para que una diferencia chica de días no tape la prioridad de categoría.
+  2. `categoria_prioridad` de la categoría **raíz** de la tarea (nueva `categoriaRaiz` en `utilidades.js`, recorre `categoria_padre_id`).
+  3. `categoria_prioridad` de la categoría directa, como desempate entre categorías con la misma raíz.
+  4. `tarea_importancia`.
+  5. `tarea_creada_en` (FIFO), para que el orden sea siempre determinístico.
+- Nueva función `mejorTareaPorCategoria`: para cada categoría raíz, su tarea accionable de mayor prioridad — pensada para elegir qué hacer en un rato libre sin quedar siempre empujado hacia la categoría de mayor prioridad general. Nuevo apartado "Elegí por categoría" en Hoy, dentro de "Resto de tus pendientes". La sección "Urgentes" de Hoy ahora también muestra la holgura de cada tarea en texto.
+- Se simplificaron 3 sorts (Hoy-Resto, Tareas-listado general, `calcularEnfoque8020`) que pre-ordenaban manualmente por `tarea_fecha_limite` antes de aplicar `compararPorPrioridad` — quedaban redundantes y hasta conflictivos con las bandas de holgura nuevas.
+
+### Eliminado
+
+- `tarea_genera_dinero` (campo, checkbox de alta/edición, badges en Tareas/Hoy/3-8 días): el usuario concluyó que ese criterio ya lo cubre el orden manual de las categorías raíz correspondientes (ej. "Trabajo"), y no lo quería si no participaba del algoritmo de prioridad.
+
+### Nota
+
+- Ver `REGLAS_DE_PRIORIDAD.md` para el detalle completo con ejemplos, y su sección final "Pendiente para próximas rondas" (vista "Todas" con filtros, herramienta "Versus" de desempate manual, reprogramado automático/manual de fechas vencidas).
+
 ## [v0.45.0] - 2026-09-17
 
 ### Cambiado

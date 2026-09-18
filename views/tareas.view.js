@@ -149,10 +149,6 @@ export function renderVistaTareas(contenedor) {
         Requiere buen tiempo (sin lluvia)
       </label>
       <label class="opcion-mantenimiento">
-        <input type="checkbox" name="tarea_genera_dinero" />
-        💵 Genera ingreso
-      </label>
-      <label class="opcion-mantenimiento">
         <input type="checkbox" name="tarea_mantenimiento" />
         Es tarea de mantenimiento (se renueva sola)
       </label>
@@ -249,7 +245,6 @@ export function renderVistaTareas(contenedor) {
     });
     formulario.ubicacion_id.value = coincidencia.ubicacion_id || '';
     formulario.tarea_requiere_clima_bueno.checked = !!coincidencia.tarea_requiere_clima_bueno;
-    formulario.tarea_genera_dinero.checked = !!coincidencia.tarea_genera_dinero;
   });
 
   const formularioRapido = contenedor.querySelector('#form-alta-rapida');
@@ -288,7 +283,6 @@ export function renderVistaTareas(contenedor) {
         tarea_dias_habiles: datos.getAll('tarea_dias_habiles').map(Number),
         ubicacion_id: datos.get('ubicacion_id') || null,
         tarea_requiere_clima_bueno: datos.get('tarea_requiere_clima_bueno') === 'on',
-        tarea_genera_dinero: datos.get('tarea_genera_dinero') === 'on',
       })
     );
     await persistirYNotificar();
@@ -334,11 +328,7 @@ export function renderVistaTareas(contenedor) {
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
     .filter((t) => !filtroImportancia || t.tarea_importancia === filtroImportancia)
     .slice()
-    .sort(
-      (a, b) =>
-        (a.tarea_fecha_limite || '9999-99-99').localeCompare(b.tarea_fecha_limite || '9999-99-99') ||
-        compararPorPrioridad(a, b, estado.categorias)
-    );
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
 
   if (tareasFiltradas.length === 0) {
     listaTareas.innerHTML = '<p class="mensaje-vacio">No hay tareas que coincidan con el filtro.</p>';
@@ -402,7 +392,6 @@ function renderTarea(tarea, enfoqueIds) {
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
         ${tarea.tarea_duracion_min ? `<span class="etiqueta-fecha">${tarea.tarea_duracion_min} min</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
-        ${tarea.tarea_genera_dinero ? `<span class="etiqueta-fecha">💵 Genera ingreso</span>` : ''}
         ${
           tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_intervalo
             ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento_intervalo.unidad]}</span>`
@@ -584,10 +573,6 @@ function crearPanelEditar(tarea) {
       Requiere buen tiempo (sin lluvia)
     </label>
     <label class="opcion-mantenimiento">
-      <input type="checkbox" name="tarea_genera_dinero" ${tarea.tarea_genera_dinero ? 'checked' : ''} />
-      💵 Genera ingreso
-    </label>
-    <label class="opcion-mantenimiento">
       <input type="checkbox" name="tarea_mantenimiento" ${tarea.tarea_mantenimiento ? 'checked' : ''} />
       Es tarea de mantenimiento (se renueva sola)
     </label>
@@ -634,7 +619,6 @@ function crearPanelEditar(tarea) {
     tarea.tarea_dias_habiles = datos.getAll('tarea_dias_habiles').map(Number);
     tarea.ubicacion_id = datos.get('ubicacion_id') || null;
     tarea.tarea_requiere_clima_bueno = datos.get('tarea_requiere_clima_bueno') === 'on';
-    tarea.tarea_genera_dinero = datos.get('tarea_genera_dinero') === 'on';
     await persistirYNotificar();
   });
 

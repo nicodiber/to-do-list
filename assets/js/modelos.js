@@ -20,6 +20,11 @@ export const ICONOS_IMPORTANCIA = {
   importante: '🟡',
 };
 
+export const ORDEN_IMPORTANCIA = {
+  urgente: 0,
+  importante: 1,
+};
+
 export function crearCategoria({
   categoria_nombre,
   categoria_descripcion = '',
@@ -96,7 +101,6 @@ export function crearTarea({
   ubicacion_id = null,
   tarea_requiere_clima_bueno = false,
   tarea_costo_estimado = 0,
-  tarea_genera_dinero = false,
   meta_id = null,
 }) {
   const creadaEn = ahoraISO();
@@ -120,7 +124,6 @@ export function crearTarea({
     ubicacion_id: ubicacion_id || null,
     tarea_requiere_clima_bueno,
     tarea_costo_estimado,
-    tarea_genera_dinero,
     meta_id: meta_id || null,
   };
 }

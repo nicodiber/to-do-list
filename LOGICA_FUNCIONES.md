@@ -58,6 +58,7 @@ Helpers puros de fecha/formato/id, sin dependencias de `estado`. Reutilizados po
 - **`diasEntreFechas(fechaISO1, fechaISO2)`**: diferencia en días enteros entre dos fechas.
 - **`arbolCategorias(categorias, padreId, profundidad)`**: aplana el árbol de categorías (vía `categoria_padre_id`) en orden DFS, cada entrada con su nivel de profundidad — para selects/listas indentadas.
 - **`caminoCategoria(categoria, todasLasCategorias)`**: arma el "camino" de nombres de una categoría hasta su raíz (ej. "Facultad / IR"), recorriendo `categoria_padre_id`.
+- **`categoriaRaiz(categoria, todasLasCategorias)`**: sube por `categoria_padre_id` hasta la categoría sin padre. Usado por `compararPorPrioridad` para comparar tareas por la prioridad de su categoría raíz, no de la categoría directa.
 - **`escaparHtml(texto)`**: sanitiza texto libre antes de insertarlo en `innerHTML`.
 
 ## `assets/js/tareas-logica.js`
@@ -69,7 +70,9 @@ Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dep
 - **`recalcularBloqueo(tarea, listaTareas)`**: fija `tarea_estado` según `tarea_dependiente` — `bloqueada` si apunta a una tarea no completada, `pendiente` si no. No toca tareas ya `completada`. Se llama al crear una tarea con dependencia, al editar/quitar la dependencia, y en cascada al completar una tarea (ver siguiente función).
 - **`desbloquearDependientes(tareaCompletada, listaTareas)`**: al completar una tarea, encuentra las que dependían de ella (`tarea_dependiente === tareaCompletada.tarea_id`), les copia `tarea_fecha_inicio_habilitada = tareaCompletada.tarea_fecha_fin` y llama `recalcularBloqueo` sobre cada una.
 - **`reprogramarTareaConCascada(tarea, nuevaFechaSugeridaISO, listaTareas)`**: actualiza `tarea_fecha_sugerida` y, si había un valor previo, desplaza en cascada (mismo delta de tiempo, vía `desplazarFecha`) a las tareas que dependen de ella (`tarea_dependiente === tarea.tarea_id`), ajustando también su `tarea_fecha_limite`.
+- **`calcularHolguraDias(tarea)`**: días de margen antes de que venza `tarea_fecha_limite`, contados desde hoy (o desde `tarea_fecha_inicio_habilitada` si es futura). Ver `REGLAS_DE_PRIORIDAD.md` para la fórmula completa y las bandas.
 - **`compararPorPrioridad(a, b, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`.
+- **`mejorTareaPorCategoria(tareas, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`.
 - **`puedeAgregarDependencia(tareaId, candidatoId, listaTareas)`**: valida que asignar `candidatoId` como `tarea_dependiente` de `tareaId` no cierre un ciclo, recorriendo la cadena de `tarea_dependiente` hacia atrás desde `candidatoId`.
 - **`esTareaAccionable(tarea)`**: `true` si `tarea_estado === 'pendiente'` y ya se alcanzó `tarea_fecha_inicio_habilitada`.
 - **`calcularEnfoque8020(tareas, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`.
@@ -150,8 +153,8 @@ Sincronización vía Google Drive API (OAuth, scope `drive.file`).
 
 Vista "Hoy": separa tareas urgentes del resto (ver `REGLAS_DE_PRIORIDAD.md`), con un asistente de cierre por tarjeta.
 
-- **`renderVistaHoy(contenedor)`**: arma las secciones Urgentes / Resto / Todavía no pueden empezar / Bloqueadas, filtradas por la ubicación actual. `bloqueadas` y `accionables` se separan directamente por `tarea_estado`.
-- **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, foco 80/20, categoría, fechas, estado, ubicación, costo, genera_dinero, clima, solapamiento con Calendar). Si es accionable, agrega los botones "Cumplida"/"No cumplida" (sin pedir duración/costo real — se eliminaron de la app).
+- **`renderVistaHoy(contenedor)`**: arma las secciones Urgentes / Resto (con el apartado "Elegí por categoría" vía `mejorTareaPorCategoria`) / Todavía no pueden empezar / Bloqueadas, filtradas por la ubicación actual. `bloqueadas` y `accionables` se separan directamente por `tarea_estado`.
+- **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, foco 80/20, categoría, fechas, holgura, estado, ubicación, costo, clima, solapamiento con Calendar). Si es accionable, agrega los botones "Cumplida"/"No cumplida" (sin pedir duración/costo real — se eliminaron de la app).
 
 ## `views/tres-dias.view.js` / `views/ocho-dias.view.js`
 

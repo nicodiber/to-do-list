@@ -1,5 +1,5 @@
-import { crearTarea } from './modelos.js';
-import { ahoraISO, noPuedeEmpezarTodavia, desplazarFecha } from './utilidades.js';
+import { crearTarea, ORDEN_IMPORTANCIA } from './modelos.js';
+import { ahoraISO, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz } from './utilidades.js';
 
 /**
  * Calcula la próxima fecha límite (YYYY-MM-DD) de una tarea de mantenimiento,
@@ -115,18 +115,105 @@ function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados) {
     });
 }
 
+const MS_POR_DIA = 24 * 60 * 60 * 1000;
+
 /**
- * Compara dos tareas por prioridad. Versión provisoria de la Ronda 1 del
- * rediseño de datos: ordena solo por `categoria_prioridad` de la categoría
- * directa de la tarea (menor = más prioritaria); sin categoría, o categoría
- * inexistente, queda siempre al final. El algoritmo real (con
- * `tarea_importancia`, `tarea_genera_dinero` y la jerarquía de objetivos del
- * usuario) se define en una Ronda 2 aparte — ver REGLAS_DE_PRIORIDAD.md.
+ * Calcula cuántos días de margen le quedan a una tarea antes de que sea
+ * imposible cumplir su `tarea_fecha_limite`, contados desde hoy (no desde
+ * que se creó): `tarea_fecha_limite − max(ahora, tarea_fecha_inicio_habilitada)`.
+ * Sin fecha límite, devuelve `Infinity` (sin apuro). Negativo = vencida.
+ * Una fecha sin hora se interpreta como el límite del día (fin de día para
+ * `tarea_fecha_limite`, inicio de día para `tarea_fecha_inicio_habilitada`),
+ * para que una tarea que vence "hoy" no aparezca vencida a la mañana.
+ */
+export function calcularHolguraDias(tarea) {
+  if (!tarea.tarea_fecha_limite) return Infinity;
+
+  const limite = new Date(tieneHora(tarea.tarea_fecha_limite) ? tarea.tarea_fecha_limite : tarea.tarea_fecha_limite + 'T23:59:59');
+
+  const ahora = new Date();
+  let desde = ahora;
+  if (tarea.tarea_fecha_inicio_habilitada) {
+    const inicio = new Date(
+      tieneHora(tarea.tarea_fecha_inicio_habilitada) ? tarea.tarea_fecha_inicio_habilitada : tarea.tarea_fecha_inicio_habilitada + 'T00:00:00'
+    );
+    if (inicio > desde) desde = inicio;
+  }
+
+  return Math.floor((limite.getTime() - desde.getTime()) / MS_POR_DIA);
+}
+
+/**
+ * Agrupa la holgura (ver `calcularHolguraDias`) en bandas, de más a menos
+ * urgente. Definidas junto al usuario en la Ronda 2 para que una diferencia
+ * de días chica no tape la prioridad real de categorías (ver
+ * REGLAS_DE_PRIORIDAD.md).
+ */
+function bandaHolgura(dias) {
+  if (dias < 0) return 0;
+  if (dias <= 3) return 1;
+  if (dias <= 7) return 2;
+  if (dias <= 15) return 3;
+  if (dias <= 30) return 4;
+  return 5;
+}
+
+/**
+ * Compara dos tareas por prioridad, en 5 niveles (ver REGLAS_DE_PRIORIDAD.md
+ * para el detalle y los ejemplos): 1) banda de holgura (`calcularHolguraDias`)
+ * — el criterio dominante; 2) `categoria_prioridad` de la categoría raíz de
+ * cada tarea (`categoriaRaiz`); 3) `categoria_prioridad` de la categoría
+ * directa, como desempate entre categorías con la misma raíz; 4)
+ * `tarea_importancia` (urgente > importante > sin definir); 5)
+ * `tarea_creada_en` ascendente (FIFO), como último recurso para que el orden
+ * sea siempre determinístico. Sin categoría, o categoría inexistente, queda
+ * siempre al final en los niveles 2 y 3.
  */
 export function compararPorPrioridad(a, b, categorias) {
-  const prioridadA = categorias.find((c) => c.categoria_id === a.categoria_id)?.categoria_prioridad ?? Infinity;
-  const prioridadB = categorias.find((c) => c.categoria_id === b.categoria_id)?.categoria_prioridad ?? Infinity;
-  return prioridadA - prioridadB;
+  const bandaA = bandaHolgura(calcularHolguraDias(a));
+  const bandaB = bandaHolgura(calcularHolguraDias(b));
+  if (bandaA !== bandaB) return bandaA - bandaB;
+
+  const categoriaA = categorias.find((c) => c.categoria_id === a.categoria_id) ?? null;
+  const categoriaB = categorias.find((c) => c.categoria_id === b.categoria_id) ?? null;
+
+  const prioridadRaizA = categoriaA ? (categoriaRaiz(categoriaA, categorias)?.categoria_prioridad ?? Infinity) : Infinity;
+  const prioridadRaizB = categoriaB ? (categoriaRaiz(categoriaB, categorias)?.categoria_prioridad ?? Infinity) : Infinity;
+  if (prioridadRaizA !== prioridadRaizB) return prioridadRaizA - prioridadRaizB;
+
+  const prioridadDirectaA = categoriaA?.categoria_prioridad ?? Infinity;
+  const prioridadDirectaB = categoriaB?.categoria_prioridad ?? Infinity;
+  if (prioridadDirectaA !== prioridadDirectaB) return prioridadDirectaA - prioridadDirectaB;
+
+  const importanciaA = ORDEN_IMPORTANCIA[a.tarea_importancia] ?? 2;
+  const importanciaB = ORDEN_IMPORTANCIA[b.tarea_importancia] ?? 2;
+  if (importanciaA !== importanciaB) return importanciaA - importanciaB;
+
+  return (a.tarea_creada_en || '').localeCompare(b.tarea_creada_en || '');
+}
+
+/**
+ * Para cada categoría raíz (sin `categoria_padre_id`), devuelve su tarea
+ * accionable de mayor prioridad (misma lógica que `compararPorPrioridad`) —
+ * "la tarea que bloquea al resto de esa categoría". Categorías raíz sin
+ * ninguna tarea accionable se omiten. Pensada para elegir qué hacer en un
+ * rato libre sin que la categoría de mayor prioridad general (ej. Facultad)
+ * tape siempre a las demás.
+ */
+export function mejorTareaPorCategoria(tareas, categorias) {
+  const raices = categorias.filter((c) => !c.categoria_padre_id);
+  return raices
+    .map((raiz) => {
+      const candidatas = tareas.filter((t) => {
+        if (!esTareaAccionable(t)) return false;
+        const categoria = categorias.find((c) => c.categoria_id === t.categoria_id);
+        return categoria && categoriaRaiz(categoria, categorias)?.categoria_id === raiz.categoria_id;
+      });
+      if (candidatas.length === 0) return null;
+      candidatas.sort((a, b) => compararPorPrioridad(a, b, categorias));
+      return { categoria: raiz, tarea: candidatas[0] };
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -164,17 +251,11 @@ export function esTareaAccionable(tarea) {
 /**
  * Regla 80/20 (Pareto): de las tareas accionables, devuelve el 20% superior
  * (redondeado hacia arriba) según el orden de prioridad ya usado en la app
- * (compararPorPrioridad, con la fecha límite como desempate final) — las
- * "pocas vitales" en las que más conviene enfocarse ahora.
+ * (`compararPorPrioridad`, que siempre termina en un orden determinístico) —
+ * las "pocas vitales" en las que más conviene enfocarse ahora.
  */
 export function calcularEnfoque8020(tareas, categorias) {
-  const accionables = tareas
-    .filter((t) => esTareaAccionable(t))
-    .sort(
-      (a, b) =>
-        compararPorPrioridad(a, b, categorias) ||
-        (a.tarea_fecha_limite || '9999-99-99').localeCompare(b.tarea_fecha_limite || '9999-99-99')
-    );
+  const accionables = tareas.filter((t) => esTareaAccionable(t)).sort((a, b) => compararPorPrioridad(a, b, categorias));
   const cantidad = Math.ceil(accionables.length * 0.2);
   return accionables.slice(0, cantidad);
 }

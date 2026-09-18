@@ -131,7 +131,12 @@ function migrarPersona(p) {
 }
 
 function migrarTarea(t) {
-  if ('tarea_dependiente' in t) return t;
+  if ('tarea_dependiente' in t) {
+    // `tarea_genera_dinero` se eliminó del modelo: si el objeto lo trae de
+    // una versión anterior, se descarta acá (destructuring sin volver a usarlo).
+    const { tarea_genera_dinero, ...resto } = t;
+    return resto;
+  }
 
   const esFormatoMuyViejo = 'id' in t;
   const id = esFormatoMuyViejo ? t.id : t.tarea_id;
@@ -172,7 +177,6 @@ function migrarTarea(t) {
     ubicacion_id: t.ubicacion_id || null,
     tarea_requiere_clima_bueno: !!requiereClimaViejo,
     tarea_costo_estimado: costoEstimadoViejo || 0,
-    tarea_genera_dinero: !!t.tarea_genera_dinero,
     meta_id: (metasIdsViejas && metasIdsViejas[0]) || null,
   };
 }

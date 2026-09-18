@@ -8,6 +8,8 @@ import {
   desbloquearDependientes,
   compararPorPrioridad,
   calcularEnfoque8020,
+  calcularHolguraDias,
+  mejorTareaPorCategoria,
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
@@ -40,11 +42,8 @@ export function renderVistaHoy(contenedor) {
   const idsUrgentes = new Set(urgentes.map((t) => t.tarea_id));
   const resto = disponibles
     .filter((t) => !idsUrgentes.has(t.tarea_id))
-    .sort(
-      (a, b) =>
-        (a.tarea_fecha_limite || '9999-99-99').localeCompare(b.tarea_fecha_limite || '9999-99-99') ||
-        compararPorPrioridad(a, b, estado.categorias)
-    );
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const mejoresPorCategoria = mejorTareaPorCategoria(resto, estado.categorias);
 
   contenedor.innerHTML = `
     <h2>Hoy</h2>
@@ -76,6 +75,13 @@ export function renderVistaHoy(contenedor) {
     <section>
       <h3>Resto de tus pendientes</h3>
       <ul id="lista-resto" class="lista-tareas"></ul>
+      ${
+        mejoresPorCategoria.length > 0
+          ? `<h4>Elegí por categoría</h4>
+             <p class="ayuda">¿Tenés un rato libre y no hay nada urgente? Acá tenés la tarea que más conviene de cada categoría, para elegir vos.</p>
+             <ul id="lista-por-categoria" class="lista-tareas"></ul>`
+          : ''
+      }
     </section>
     ${
       aunNoDisponibles.length > 0
@@ -133,6 +139,11 @@ export function renderVistaHoy(contenedor) {
     resto.forEach((tarea) => listaResto.appendChild(renderItem(tarea, { enfoqueIds })));
   }
 
+  const listaPorCategoria = contenedor.querySelector('#lista-por-categoria');
+  if (listaPorCategoria) {
+    mejoresPorCategoria.forEach(({ tarea }) => listaPorCategoria.appendChild(renderItem(tarea, { enfoqueIds })));
+  }
+
   const listaNoDisponibles = contenedor.querySelector('#lista-no-disponibles');
   if (listaNoDisponibles) {
     aunNoDisponibles
@@ -144,6 +155,19 @@ export function renderVistaHoy(contenedor) {
   if (listaBloqueadas) {
     bloqueadas.forEach((tarea) => listaBloqueadas.appendChild(renderItem(tarea, { soloInfo: true, enfoqueIds })));
   }
+}
+
+/**
+ * Texto de la holgura (ver `calcularHolguraDias` en tareas-logica.js) para
+ * mostrar junto a cada tarea con fecha límite: cuánto margen le queda antes
+ * de vencer, o hace cuánto que venció.
+ */
+function etiquetaHolgura(tarea) {
+  if (!tarea.tarea_fecha_limite) return '';
+  const dias = calcularHolguraDias(tarea);
+  if (dias < 0) return `Vencida hace ${Math.abs(dias)} día${Math.abs(dias) === 1 ? '' : 's'}`;
+  if (dias === 0) return 'Vence hoy';
+  return `Quedan ${dias} día${dias === 1 ? '' : 's'}`;
 }
 
 function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
@@ -161,11 +185,11 @@ function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
         ${tarea.tarea_fecha_inicio_habilitada ? `<span class="etiqueta-fecha">Desde: ${formatearFechaOFechaHora(tarea.tarea_fecha_inicio_habilitada)}</span>` : ''}
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
+        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">${etiquetaHolgura(tarea)}</span>` : ''}
         ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha etiqueta-agendada">Sugerida: ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.tarea_estado]}</span>
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
-        ${tarea.tarea_genera_dinero ? `<span class="etiqueta-fecha">💵 Genera ingreso</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
         <span class="etiqueta-fecha etiqueta-solapamiento-calendar" hidden></span>
       </span>

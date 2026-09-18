@@ -20,7 +20,6 @@
       "ubicacion_id": null,
       "tarea_requiere_clima_bueno": false,
       "tarea_costo_estimado": 0,
-      "tarea_genera_dinero": false,
       "meta_id": null
     },
     {
@@ -43,7 +42,6 @@
       "ubicacion_id": null,
       "tarea_requiere_clima_bueno": false,
       "tarea_costo_estimado": 0,
-      "tarea_genera_dinero": false,
       "meta_id": null
     },
     {
@@ -66,7 +64,6 @@
       "ubicacion_id": null,
       "tarea_requiere_clima_bueno": true,
       "tarea_costo_estimado": 0,
-      "tarea_genera_dinero": false,
       "meta_id": null
     }
   ]

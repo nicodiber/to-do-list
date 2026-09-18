@@ -128,6 +128,25 @@ export function arbolCategorias(categorias, padreId = null, profundidad = 0) {
  * `categoria_padre_id` (ej. "Facultad / IR"). Con protección ante ciclos
  * (no debería haberlos, pero evita un loop infinito si los datos están mal).
  */
+/**
+ * Sube por `categoria_padre_id` hasta la categoría raíz (sin padre). Usado
+ * por `compararPorPrioridad` para que dos tareas de categorías distintas
+ * pero con la misma raíz (ej. dos materias de "Facultad") compitan primero
+ * por la prioridad de esa raíz. Con protección ante ciclos.
+ */
+export function categoriaRaiz(categoria, todasLasCategorias) {
+  if (!categoria) return null;
+  let actual = categoria;
+  const visitados = new Set();
+  while (actual.categoria_padre_id && !visitados.has(actual.categoria_id)) {
+    visitados.add(actual.categoria_id);
+    const padre = todasLasCategorias.find((c) => c.categoria_id === actual.categoria_padre_id);
+    if (!padre) break;
+    actual = padre;
+  }
+  return actual;
+}
+
 export function caminoCategoria(categoria, todasLasCategorias) {
   if (!categoria) return '';
   const nombres = [];

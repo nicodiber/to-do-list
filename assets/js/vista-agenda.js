@@ -120,7 +120,6 @@ function renderTarjetaTarea(tarea) {
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
-        ${tarea.tarea_genera_dinero ? `<span class="etiqueta-fecha">💵 Genera ingreso</span>` : ''}
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
       ${bloqueada && dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
