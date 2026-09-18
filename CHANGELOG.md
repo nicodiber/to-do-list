@@ -2,6 +2,13 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.49.0] - 2026-09-19
+
+### Agregado
+
+- **Reprogramado de fechas vencidas** (Ronda 5, cierra el algoritmo de prioridad): `tarea_fecha_sugerida` vencida de una tarea activa se reprograma sola al iniciar la app (`reprogramarFechasSugeridasVencidas`, `assets/js/tareas-logica.js`) — a la próxima fecha disponible respetando `tarea_dias_habiles` y sin superar `tarea_fecha_limite`, en cascada a dependientes — con un `alert()` de aviso si hubo cambios. `tarea_fecha_limite` nunca se toca sola: en Hoy, cada tarea vencida en "Urgentes" suma un botón "📅 Revalorizar fecha límite" (reusa `crearPanelReprogramar`, sin cascada).
+- `siguienteDiaHabil` (`assets/js/reprogramar.js`) pasa a exportada, para reusarla desde `tareas-logica.js`.
+
 ## [v0.48.0] - 2026-09-19
 
 ### Agregado

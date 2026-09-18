@@ -2,6 +2,7 @@ import {
   estado,
   suscribir,
   inicializarAlmacenamiento,
+  persistirYNotificar,
   elegirCarpetaDatos,
   exportarJSON,
   importarJSON,
@@ -11,6 +12,7 @@ import {
   hayConexionDrive,
   conectarDrive,
 } from './almacenamiento.js';
+import { reprogramarFechasSugeridasVencidas } from './tareas-logica.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaTresDias } from '../../views/tres-dias.view.js';
 import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
@@ -25,7 +27,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.48.0';
+const VERSION = 'v0.49.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -200,7 +202,13 @@ if (scriptGoogleIdentity) {
   });
 }
 
-inicializarAlmacenamiento();
+inicializarAlmacenamiento().then(async () => {
+  const afectadas = reprogramarFechasSugeridasVencidas(estado.tareas);
+  if (afectadas.length > 0) {
+    await persistirYNotificar();
+    alert(`Se reprogramó la fecha sugerida de ${afectadas.length} tarea${afectadas.length === 1 ? '' : 's'} que había vencido.`);
+  }
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch((error) => {

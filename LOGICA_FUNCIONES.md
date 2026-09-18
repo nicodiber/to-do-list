@@ -17,6 +17,7 @@ Bootstrap y router de toda la app.
 - **`actualizarEstadoConexion()` / `actualizarBotonDrive()`**: texto/estado de los botones de la cabecera según si hay carpeta local elegida o conexión a Drive activa.
 - **Atajo de teclado "N"**: un listener global de `keydown` que, si no hay modificadores (`Ctrl`/`Alt`/`Meta`) y el foco no está en un campo editable (`INPUT`/`TEXTAREA`/`SELECT`/`contentEditable`), navega a la vista Tareas (si no se está ya ahí) y enfoca el input de alta rápida (`#form-alta-rapida input[name="tarea_nombre"]`). Usa un flag módulo (`enfocarAltaRapidaAlEntrar`) para enfocar recién después de que el cambio de hash haya disparado el re-render de la vista.
 - **Tema claro/oscuro**: `temaEfectivo()`/`aplicarTema()` leen/aplican la preferencia guardada en `localStorage` (clave separada de los datos de la app), con fallback a `prefers-color-scheme` del sistema.
+- **Reprogramado automático al iniciar**: después de `inicializarAlmacenamiento()`, se llama `reprogramarFechasSugeridasVencidas(estado.tareas)` (`tareas-logica.js`) y, si afectó alguna tarea, se persiste y se avisa con un `alert()`. Ver `REGLAS_DE_PRIORIDAD.md`.
 - Wiring de los botones de la cabecera (elegir carpeta, Drive, exportar/importar JSON) hacia las funciones correspondientes de `almacenamiento.js`.
 - Al final, llama `inicializarAlmacenamiento()` y registra el service worker (`sw.js`).
 
@@ -75,6 +76,7 @@ Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dep
 - **`compararPorPrioridad(a, b, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`. Internamente delega los niveles 1-4 en `compararEstructural` (no exportada), reusada también por `tareasEmpatadas`.
 - **`tareasEmpatadas(a, b, categorias)`**: `true` si 2 tareas empatan en `compararEstructural` y ninguna tiene ya `tarea_prioridad_manual` asignado — usada por el panel "Versus" (`views/todas.view.js`) para armar los clusters a comparar.
 - **`mejorTareaPorCategoria(tareas, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`.
+- **`reprogramarFechasSugeridasVencidas(listaTareas)`**: reprograma automáticamente la `tarea_fecha_sugerida` vencida de toda tarea activa a la próxima fecha disponible (`calcularProximaFechaSugerida`, interna, reusa `siguienteDiaHabil` de `reprogramar.js`), en cascada vía `reprogramarTareaConCascada`. Se llama una vez al iniciar la app (`app.js`). Devuelve las tareas afectadas, para avisar al usuario. Ver `REGLAS_DE_PRIORIDAD.md`.
 - **`puedeAgregarDependencia(tareaId, candidatoId, listaTareas)`**: valida que asignar `candidatoId` como `tarea_dependiente` de `tareaId` no cierre un ciclo, recorriendo la cadena de `tarea_dependiente` hacia atrás desde `candidatoId`.
 - **`esTareaAccionable(tarea)`**: `true` si `tarea_estado === 'pendiente'` y ya se alcanzó `tarea_fecha_inicio_habilitada`.
 - **`calcularEnfoque8020(tareas, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`.
@@ -83,7 +85,8 @@ Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dep
 
 UI del panel de reprogramar (usado desde Hoy, Tareas, 3/8 días y "Revisar mi día").
 
-- **`crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles })`**: arma un panel con atajos de día (hoy/mañana/+7/+15/+30, y "primer [día de la semana] del próximo mes") y de horario **opcional** (mañana/tarde/tardecita/noche, o vacío). Si la tarea tiene `tarea_dias_habiles`, cualquier fecha elegida se ajusta automáticamente al próximo día hábil. Al confirmar, llama `onConfirmar(valor)` — solo la fecha (`YYYY-MM-DD`) si no se eligió horario, o un datetime ISO completo si sí.
+- **`crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles })`**: arma un panel con atajos de día (hoy/mañana/+7/+15/+30, y "primer [día de la semana] del próximo mes") y de horario **opcional** (mañana/tarde/tardecita/noche, o vacío). Si la tarea tiene `tarea_dias_habiles`, cualquier fecha elegida se ajusta automáticamente al próximo día hábil. Al confirmar, llama `onConfirmar(valor)` — solo la fecha (`YYYY-MM-DD`) si no se eligió horario, o un datetime ISO completo si sí. También usado por Hoy para revalorizar `tarea_fecha_limite` de una tarea vencida.
+- **`siguienteDiaHabil(fechaISODate, diasHabiles)`** (exportada): próximo día que cumple `tarea_dias_habiles` desde una fecha dada (o la misma fecha si no hay restricción). Reusada por `reprogramarFechasSugeridasVencidas` en `tareas-logica.js`.
 
 ## `assets/js/revision-dia.js`
 
@@ -156,7 +159,7 @@ Sincronización vía Google Drive API (OAuth, scope `drive.file`).
 Vista "Hoy": separa tareas urgentes del resto (ver `REGLAS_DE_PRIORIDAD.md`), con un asistente de cierre por tarjeta.
 
 - **`renderVistaHoy(contenedor)`**: arma las secciones Urgentes / Resto (con el apartado "Elegí por categoría" vía `mejorTareaPorCategoria`) / Todavía no pueden empezar / Bloqueadas, filtradas por la ubicación actual. `bloqueadas` y `accionables` se separan directamente por `tarea_estado`.
-- **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, foco 80/20, categoría, fechas, holgura, estado, ubicación, costo, clima, solapamiento con Calendar). Si es accionable, agrega los botones "Cumplida"/"No cumplida" (sin pedir duración/costo real — se eliminaron de la app).
+- **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, foco 80/20, categoría, fechas, holgura, estado, ubicación, costo, clima, solapamiento con Calendar). Si es accionable, agrega los botones "Cumplida"/"No cumplida" (sin pedir duración/costo real — se eliminaron de la app); si además está vencida, agrega "📅 Revalorizar fecha límite" (reusa `crearPanelReprogramar`, pero escribe directo `tarea.tarea_fecha_limite` sin cascada a dependientes — ver `REGLAS_DE_PRIORIDAD.md`).
 
 ## `views/tres-dias.view.js` / `views/ocho-dias.view.js`
 

@@ -199,7 +199,8 @@ function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
         soloInfo
           ? ''
           : `<button type="button" data-accion="cumplida">Cumplida ✓</button>
-             <button type="button" data-accion="no-cumplida">No cumplida ✗</button>`
+             <button type="button" data-accion="no-cumplida">No cumplida ✗</button>
+             ${esVencida(tarea.tarea_fecha_limite) ? `<button type="button" data-accion="revalorizar-limite">📅 Revalorizar fecha límite</button>` : ''}`
       }
     </div>
   `;
@@ -302,6 +303,30 @@ function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
       contenedorPanel.hidden = false;
     });
   });
+
+  const botonRevalorizarLimite = li.querySelector('[data-accion="revalorizar-limite"]');
+  if (botonRevalorizarLimite) {
+    botonRevalorizarLimite.addEventListener('click', () => {
+      contenedorCierre.hidden = true;
+      contenedorCierre.innerHTML = '';
+
+      const panel = crearPanelReprogramar({
+        diasHabiles: tarea.tarea_dias_habiles,
+        onConfirmar: async (fechaLimiteISO) => {
+          tarea.tarea_fecha_limite = fechaLimiteISO;
+          contenedorPanel.hidden = true;
+          contenedorPanel.innerHTML = '';
+          await persistirYNotificar();
+        },
+        onCancelar: () => {
+          contenedorPanel.hidden = true;
+          contenedorPanel.innerHTML = '';
+        },
+      });
+      contenedorPanel.appendChild(panel);
+      contenedorPanel.hidden = false;
+    });
+  }
 
   return li;
 }

@@ -30,7 +30,7 @@ function esDiaHabil(fechaISODate, diasHabiles) {
   return diasHabiles.includes(new Date(fechaISODate + 'T00:00:00').getDay());
 }
 
-function siguienteDiaHabil(fechaISODate, diasHabiles) {
+export function siguienteDiaHabil(fechaISODate, diasHabiles) {
   if (!diasHabiles || diasHabiles.length === 0) return fechaISODate;
   let fecha = fechaISODate;
   let intentos = 0;

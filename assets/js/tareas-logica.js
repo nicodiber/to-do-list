@@ -1,5 +1,6 @@
 import { crearTarea, ORDEN_IMPORTANCIA } from './modelos.js';
-import { ahoraISO, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz } from './utilidades.js';
+import { ahoraISO, hoyISO, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz, combinarFechaYHora } from './utilidades.js';
+import { siguienteDiaHabil } from './reprogramar.js';
 
 /**
  * Calcula la próxima fecha límite (YYYY-MM-DD) de una tarea de mantenimiento,
@@ -113,6 +114,45 @@ function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados) {
 
       desplazarDependientes(dependiente.tarea_id, deltaMs, listaTareas, visitados);
     });
+}
+
+/**
+ * Próxima `tarea_fecha_sugerida` para una tarea cuya fecha sugerida venció
+ * sin completarse: hoy (o el próximo día hábil según `tarea_dias_habiles`),
+ * preservando la hora si tenía, y sin superar `tarea_fecha_limite` si existe.
+ */
+function calcularProximaFechaSugerida(tarea) {
+  let dia = siguienteDiaHabil(hoyISO(), tarea.tarea_dias_habiles);
+  if (tarea.tarea_fecha_limite && dia > tarea.tarea_fecha_limite.slice(0, 10)) {
+    dia = tarea.tarea_fecha_limite.slice(0, 10);
+  }
+  if (!tieneHora(tarea.tarea_fecha_sugerida)) return dia;
+
+  // La hora se extrae en horario local (igual que `partesFechaHora` en
+  // tareas.view.js), no recortando el string ISO crudo (que está en UTC) —
+  // `combinarFechaYHora` espera una hora local para volver a armar el ISO.
+  const fechaVieja = new Date(tarea.tarea_fecha_sugerida);
+  const hora = `${String(fechaVieja.getHours()).padStart(2, '0')}:${String(fechaVieja.getMinutes()).padStart(2, '0')}`;
+  return combinarFechaYHora(dia, hora);
+}
+
+/**
+ * Reprograma automáticamente (sin intervención del usuario, a diferencia de
+ * `tarea_fecha_limite`) la `tarea_fecha_sugerida` de toda tarea activa (no
+ * completada) que quedó vencida, a la próxima fecha disponible
+ * (`calcularProximaFechaSugerida`), en cascada sobre sus dependientes vía
+ * `reprogramarTareaConCascada`. Se llama una vez al iniciar la app. Devuelve
+ * las tareas afectadas, para poder avisarle al usuario.
+ */
+export function reprogramarFechasSugeridasVencidas(listaTareas) {
+  const afectadas = [];
+  listaTareas
+    .filter((t) => t.tarea_estado !== 'completada' && t.tarea_fecha_sugerida && t.tarea_fecha_sugerida.slice(0, 10) < hoyISO())
+    .forEach((tarea) => {
+      reprogramarTareaConCascada(tarea, calcularProximaFechaSugerida(tarea), listaTareas);
+      afectadas.push(tarea);
+    });
+  return afectadas;
 }
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;

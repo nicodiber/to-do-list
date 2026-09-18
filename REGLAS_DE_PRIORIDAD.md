@@ -71,8 +71,8 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 
 `calcularEnfoque8020(tareas, categorias)`: de todas las tareas accionables, ordena por `compararPorPrioridad` (que ya termina siempre en un orden determinístico) y devuelve el 20% superior (redondeado hacia arriba). Se muestra como badge "🎯 Foco 80/20" en Tareas y Hoy, y como lista en Informes.
 
-## Pendiente para próximas rondas
+## Reprogramado de fechas vencidas
 
-Ideas ya charladas y acordadas con el usuario, deliberadamente fuera del alcance de esta ronda (la vista "Todas" de la Ronda 3 y la herramienta "Versus" de la Ronda 4 ya están implementadas, ver más arriba):
+`tarea_fecha_sugerida` es una sugerencia sin compromiso real, así que se reprograma **sola**: al iniciar la app, `reprogramarFechasSugeridasVencidas` (`assets/js/tareas-logica.js`) busca tareas activas (no completadas) con `tarea_fecha_sugerida` vencida y la mueve a la próxima fecha disponible (hoy o el próximo día hábil según `tarea_dias_habiles`, sin superar `tarea_fecha_limite` si existe), en cascada a sus dependientes (`reprogramarTareaConCascada`). Si hubo cambios, se avisa con un `alert()`.
 
-- **Ronda 5**: reprogramado de fechas vencidas — automático con aviso para `tarea_fecha_sugerida`, siempre consultado al usuario para `tarea_fecha_limite` (reusando/extendiendo `assets/js/reprogramar.js`). (Gantt ya muestra las conexiones de dependencia — `renderFlechasDependencia` — de una ronda anterior, no hace falta agregarlo de nuevo.)
+`tarea_fecha_limite` es un compromiso real y **nunca se toca sola**: en Hoy, cada tarea vencida en "Urgentes" muestra un botón "📅 Revalorizar fecha límite" que reusa el panel de reprogramar (`crearPanelReprogramar`), pero solo actualiza esa tarea puntual (sin cascada a dependientes, a diferencia de "Posponer").
