@@ -53,6 +53,11 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
     tarea_mantenimiento_intervalo: tarea.tarea_mantenimiento_intervalo,
     tarea_costo_estimado: tarea.tarea_costo_estimado,
     tarea_disfrute: tarea.tarea_disfrute,
+    tarea_importancia: tarea.tarea_importancia,
+    ubicacion_id: tarea.ubicacion_id,
+    tarea_dias_habiles: [...(tarea.tarea_dias_habiles || [])],
+    tarea_requiere_clima_bueno: tarea.tarea_requiere_clima_bueno,
+    meta_id: tarea.meta_id,
     tarea_checklist: (tarea.tarea_checklist || []).map((item) => ({ texto: item.texto, hecho: false })),
     tarea_desencadenante: tarea.tarea_desencadenante || null,
   });

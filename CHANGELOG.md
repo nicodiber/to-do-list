@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.52.1] - 2026-09-19
+
+### Corregido
+
+- **La copia de una tarea de mantenimiento ahora hereda todos los atributos de la original** (pedido del usuario): además de nombre, categoría, duración, descripción, intervalo, costo, disfrute, desencadenante y checklist, la copia conserva `tarea_importancia`, `ubicacion_id`, `tarea_dias_habiles`, `tarea_requiere_clima_bueno` y `meta_id`, que antes se perdían al completar la tarea.
+
 ## [v0.52.0] - 2026-09-19
 
 Ronda 2 del rediseño: **modelo de datos** (ver `REDISENO.md`). Fija la forma de lo que se guarda antes de cargar datos reales.
