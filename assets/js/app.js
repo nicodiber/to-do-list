@@ -16,6 +16,7 @@ import {
   importarJSON,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas } from './tareas-logica.js';
+import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaTresDias } from '../../views/tres-dias.view.js';
 import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
@@ -30,7 +31,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.51.0';
+const VERSION = 'v0.51.4';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -128,8 +129,11 @@ function actualizarCabeceraSync() {
     banners.push(
       s.estado === 'sin-conexion'
         ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.</p>`
-        : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.
-           <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
+        : s.reconectaConClic
+          ? `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${copia} Mientras tanto podés seguir usando la app: los cambios quedan pendientes.
+             <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
+          : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.
+             <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
     );
   }
   if (s.recienConectado && s.estado === 'sincronizado') {
@@ -252,8 +256,9 @@ function claveDeRender(s) {
   return `${s.datosListos}|${s.soloLectura}|${!s.datosListos && s.estado === 'conectando'}`;
 }
 
-function render() {
+function render({ conservarBorradores = false } = {}) {
   const s = obtenerEstadoSync();
+  const borradores = conservarBorradores && s.datosListos && !s.soloLectura ? capturarBorradores(CONTENEDOR) : null;
   renderNav();
   actualizarCabeceraSync();
   claveUltimoRender = claveDeRender(s);
@@ -267,6 +272,7 @@ function render() {
     return;
   }
   VISTAS[vistaActual()].render(CONTENEDOR, estado);
+  restaurarBorradores(CONTENEDOR, borradores);
 }
 
 // Los cambios de estado de sincronización solo actualizan la cabecera; la
@@ -292,8 +298,8 @@ async function reprogramarSiCorresponde() {
 
 document.getElementById('version-app').textContent = VERSION;
 
-window.addEventListener('hashchange', render);
-suscribir(render);
+window.addEventListener('hashchange', () => render());
+suscribir((_estado, opciones) => render(opciones));
 
 // Atajo de teclado "N" (sin modificador) para crear una tarea rápido sin
 // usar el mouse. Ctrl+N está reservado por el navegador (nueva ventana),
@@ -357,7 +363,10 @@ function temaEfectivo() {
 
 function aplicarTema(tema) {
   document.documentElement.dataset.tema = tema;
-  BOTON_TEMA.textContent = tema === 'oscuro' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+  BOTON_TEMA.textContent = tema === 'oscuro' ? '☀️' : '🌙';
+  const etiqueta = tema === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  BOTON_TEMA.title = etiqueta;
+  BOTON_TEMA.setAttribute('aria-label', etiqueta);
 }
 
 let temaActual = temaEfectivo();

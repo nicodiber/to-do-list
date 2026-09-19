@@ -23,16 +23,39 @@ export function soportaGoogle() {
   return typeof google !== 'undefined' && !!google.accounts && !!google.accounts.oauth2;
 }
 
+const URL_SCRIPT_GOOGLE = 'https://accounts.google.com/gsi/client';
+let cargandoScript = null;
+let yaEsperoAlOriginal = false;
+
 /**
- * El script de Google Identity Services (index.html) carga async: al arrancar
- * puede no estar listo todavía. Espera hasta `timeoutMs` a que aparezca.
+ * Vuelve a pedir el script de Google Identity Services. El `<script>` de
+ * index.html se carga una sola vez al abrir la página: si en ese momento no
+ * había conexión falla para siempre, aunque después vuelva internet. Por eso se
+ * reintenta cargándolo de nuevo.
  */
-export function esperarGoogle(timeoutMs = 8000) {
+function cargarScriptGoogle() {
+  if (soportaGoogle()) return Promise.resolve(true);
+  if (cargandoScript) return cargandoScript;
+  cargandoScript = new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = URL_SCRIPT_GOOGLE;
+    script.async = true;
+    script.onload = () => {
+      cargandoScript = null;
+      resolve(soportaGoogle());
+    };
+    script.onerror = () => {
+      cargandoScript = null;
+      script.remove();
+      resolve(false);
+    };
+    document.head.appendChild(script);
+  });
+  return cargandoScript;
+}
+
+function esperarAparicion(timeoutMs) {
   return new Promise((resolve) => {
-    if (soportaGoogle()) {
-      resolve(true);
-      return;
-    }
     const inicio = Date.now();
     const intervalo = setInterval(() => {
       if (soportaGoogle()) {
@@ -44,6 +67,20 @@ export function esperarGoogle(timeoutMs = 8000) {
       }
     }, 200);
   });
+}
+
+/**
+ * El script de Google Identity Services (index.html) carga async: al arrancar
+ * puede no estar listo todavía. Espera hasta `timeoutMs` a que aparezca (solo la
+ * primera vez) y, si no llegó, lo vuelve a cargar por su cuenta.
+ */
+export async function esperarGoogle(timeoutMs = 8000) {
+  if (soportaGoogle()) return true;
+  if (!yaEsperoAlOriginal) {
+    yaEsperoAlOriginal = true;
+    if (await esperarAparicion(timeoutMs)) return true;
+  }
+  return cargarScriptGoogle();
 }
 
 export function hayToken() {
@@ -112,13 +149,15 @@ export function invalidarToken() {
  * reales solo delegan a `manejarRespuestaToken`/`manejarErrorToken`, que cada
  * llamada reasigna a su propio resolve/reject.
  */
-export function conectar({ silencioso = false } = {}) {
-  return new Promise((resolve, reject) => {
-    if (!soportaGoogle()) {
-      reject(new Error('No se pudo cargar Google Identity Services. Revisá tu conexión e intentá de nuevo.'));
-      return;
-    }
+export async function conectar({ silencioso = false } = {}) {
+  if (!soportaGoogle() && !(await cargarScriptGoogle())) {
+    throw new Error('No se pudo cargar Google Identity Services. Revisá tu conexión e intentá de nuevo.');
+  }
+  return pedirToken({ silencioso });
+}
 
+function pedirToken({ silencioso }) {
+  return new Promise((resolve, reject) => {
     // Si quedó otra solicitud en curso, se cancela: sus callbacks se reasignan
     // acá y, si no, esa promesa quedaría colgada para siempre.
     if (rechazarPendiente) rechazarPendiente(new Error('Se pidió una nueva conexión mientras había otra en curso.'));

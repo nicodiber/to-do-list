@@ -2,6 +2,31 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.51.4] - 2026-09-19
+
+### Corregido
+
+- **Se perdía lo que estabas escribiendo cuando llegaban cambios de otro dispositivo** (hallado al validar: el campo "Agregar tarea rápido" quedaba vacío tras aplicar los cambios, tanto al hacer clic fuera como con el botón "Actualizar"). Al aplicar cambios remotos la vista se redibuja entera y vaciaba los formularios a medio completar. Nuevo módulo `assets/js/borradores.js`: antes de redibujar guarda los campos que el usuario ya tocó (y cuál tenía el foco) y los vuelve a poner después. Solo se usa para cambios que vienen de otro dispositivo (`notificar({ conservarBorradores: true })`); los redibujados locales siguen limpiando el formulario, por ejemplo después de agregar una tarea.
+- `sw.js`: `CACHE_NAME` a `v10` y precache de `borradores.js`.
+
+## [v0.51.3] - 2026-09-19
+
+### Cambiado
+
+- **Aviso de reconexión con Google más claro** (pedido del usuario al validar): al abrir la app sin sesión de Google, el navegador bloquea el popup silencioso (no hay ningún clic todavía), pero el primer clic o tecla en cualquier parte de la página reconecta y sincroniza solo. El aviso de la cabecera ahora lo dice: "Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo". Si el reintento por clic ya se usó (o falló), vuelve el texto anterior. Además, el reintento por clic se vuelve a armar cada vez que se pierde la sesión (por ejemplo cuando vence el token a la hora), no solo al abrir la app. Estado nuevo `reconectaConClic` en `obtenerEstadoSync()`.
+
+## [v0.51.2] - 2026-09-19
+
+### Corregido
+
+- **"No se pudo cargar Google Identity Services" al volver la conexión** (hallado al validar v0.51.0): si la página se abría sin internet, el script de Google (`index.html`) fallaba de forma definitiva y "Reconectar Drive" seguía fallando aunque internet volviera, hasta recargar con F5. Ahora `google-auth.js` vuelve a cargar el script por su cuenta (`esperarGoogle` la primera vez espera al original y después lo reintenta; `conectar` lo recarga si falta), así que la reconexión funciona sin recargar.
+
+## [v0.51.1] - 2026-09-19
+
+### Cambiado
+
+- **Botón de tema** de la cabecera: muestra solo el emoji de la acción (☀️ para pasar a modo claro, 🌙 para pasar a modo oscuro) en lugar del texto "Modo claro"/"Modo oscuro", que se leía como el estado actual y no como la acción. La lógica no cambia; se suman `title` y `aria-label` ("Cambiar a modo claro/oscuro") para que el botón siga siendo comprensible.
+
 ## [v0.51.0] - 2026-09-19
 
 Ronda 1 del rediseño: **Google Drive como único destino de los datos** (ver `REDISENO.md`, sección Almacenamiento).
