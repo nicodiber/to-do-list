@@ -9,6 +9,7 @@ import { buscarArchivoRemoto, leerArchivoRemoto, guardarArchivoRemoto, ErrorDriv
 import * as almacenamientoLocal from './almacenamiento-local.js';
 import { COLECCIONES, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
 import { recalcularBloqueo } from './tareas-logica.js';
+import { repararEnlaces } from './dependencias.js';
 
 const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
 const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
@@ -24,6 +25,8 @@ export const estado = {
   metas: [],
   personas: [],
   tareas: [],
+  mejoras: [],
+  cumplimientos: [],
 };
 
 const listeners = [];
@@ -202,7 +205,13 @@ function migrarTarea(t) {
     // `tarea_genera_dinero` se eliminó del modelo: si el objeto lo trae de
     // una versión anterior, se descarta acá (destructuring sin volver a usarlo).
     const { tarea_genera_dinero, ...resto } = t;
-    return resto;
+    return {
+      ...resto,
+      // Campos de la Ronda 2: ausentes en datos anteriores, se completan con su valor por defecto.
+      tarea_exportada_calendar: !!resto.tarea_exportada_calendar,
+      tarea_checklist: Array.isArray(resto.tarea_checklist) ? resto.tarea_checklist : [],
+      tarea_desencadenante: resto.tarea_desencadenante || null,
+    };
   }
 
   const esFormatoMuyViejo = 'id' in t;
@@ -245,6 +254,23 @@ function migrarTarea(t) {
     tarea_requiere_clima_bueno: !!requiereClimaViejo,
     tarea_costo_estimado: costoEstimadoViejo || 0,
     meta_id: (metasIdsViejas && metasIdsViejas[0]) || null,
+    tarea_exportada_calendar: false,
+    tarea_checklist: [],
+    tarea_desencadenante: null,
+  };
+}
+
+/** `mejoras` y `cumplimientos` nacieron en la Ronda 2: no hay formatos anteriores que migrar. */
+function migrarMejora(m) {
+  return { ...m, mejora_texto: m.mejora_texto || '' };
+}
+
+function migrarCumplimiento(c) {
+  return {
+    ...c,
+    categoria_id: c.categoria_id || null,
+    cumplimiento_fecha_limite: c.cumplimiento_fecha_limite || '',
+    cumplimiento_mantenimiento: !!c.cumplimiento_mantenimiento,
   };
 }
 
@@ -256,7 +282,9 @@ function normalizarDatosCrudos(datosOriginal) {
   const personas = (datos.personas || []).map(migrarPersona);
   const tareas = (datos.tareas || []).map(migrarTarea);
   tareas.forEach((t) => recalcularBloqueo(t, tareas));
-  return { categorias, ubicaciones, metas, personas, tareas };
+  const mejoras = (datos.mejoras || []).map(migrarMejora);
+  const cumplimientos = (datos.cumplimientos || []).map(migrarCumplimiento);
+  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos };
 }
 
 // ---------------------------------------------------------------------------
@@ -519,8 +547,20 @@ async function sincronizarUnaVez(forzar) {
     }
   } else if (remoto) {
     const mezcla = mezclar(local, remoto, base, ahora);
-    resultado = mezcla.datos;
+    resultado = copiarProfundo(mezcla.datos);
     avisosNuevos.push(...mezcla.avisos);
+    // Dos dispositivos pudieron enlazar tareas de forma incompatible (regla 1 a 1): se repara y se avisa.
+    for (const { tarea, previa, tipo } of repararEnlaces(resultado.tareas)) {
+      tarea.tarea_modificado_en = ahora;
+      avisosNuevos.push(
+        avisoInformativo(
+          ahora,
+          tipo === 'ciclo'
+            ? `Los cambios de dos dispositivos formaron un ciclo de dependencias: se soltó la tarea previa de «${tarea.tarea_nombre}».`
+            : `La tarea «${tarea.tarea_nombre}» quedó sin tarea previa: dos dispositivos pusieron tareas detrás de «${previa ? previa.tarea_nombre : 'la misma tarea'}» y cada tarea bloquea a una sola. Volvé a enlazarla si hace falta.`
+        )
+      );
+    }
     aplicar = difierenDatos(resultado, local);
     subir = difierenDatos(resultado, remoto);
   } else {
@@ -757,7 +797,7 @@ export async function inicializarAlmacenamiento() {
     almacenamientoLocal.leerAvisos(),
   ]);
 
-  base = cache ? copiarProfundo(cache.datos) : null;
+  base = cache ? copiarProfundo(normalizarArchivo(cache.datos)) : null;
   baseModifiedTime = cache ? cache.modifiedTime : null;
   const origen = pendiente ? pendiente.datos : cache ? cache.datos : null;
   if (origen) aplicarDatosAlEstado(normalizarArchivo(origen));

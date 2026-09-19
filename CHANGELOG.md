@@ -2,6 +2,34 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.52.1] - 2026-09-19
+
+### Corregido
+
+- **La copia de una tarea de mantenimiento ahora hereda todos los atributos de la original** (pedido del usuario): además de nombre, categoría, duración, descripción, intervalo, costo, disfrute, desencadenante y checklist, la copia conserva `tarea_importancia`, `ubicacion_id`, `tarea_dias_habiles`, `tarea_requiere_clima_bueno` y `meta_id`, que antes se perdían al completar la tarea.
+
+## [v0.52.0] - 2026-09-19
+
+Ronda 2 del rediseño: **modelo de datos** (ver `REDISENO.md`). Fija la forma de lo que se guarda antes de cargar datos reales.
+
+### Agregado
+
+- **Tarea**: `tarea_exportada_calendar` (se marca al aceptar abrir la tarea en Calendar), `tarea_checklist` (`[{ texto, hecho }]`, solo tareas de mantenimiento; la copia nace destildada; todavía sin pantalla) y `tarea_desencadenante` (tarea que "activa" a una de mantenimiento: al completarla, su copia nace bloqueada por la instancia vigente del desencadenante, lo que permite sostener anillos A→B→C→D→A).
+- **Entidades nuevas** `Mejora` (nota "¿cómo mejorar la próxima vez?" asociada al **nombre** de la tarea, independiente de las instancias) y `Cumplimiento` (registro liviano por cada tarea completada: nombre, categoría, fecha, vencimiento esperado y si era de mantenimiento; base del mapa de hábitos). Se sincronizan con Drive como el resto (`COLECCIONES`, sellos `*_modificado_en`, eliminados y mezcla). Van en el archivo de Drive y en Exportar JSON.
+- **Dependencias 1 a 1** (`assets/js/dependencias.js`, nuevo): cada tarea bloquea a como máximo una tarea activa y es bloqueada por una (entre categorías distintas también). Elegir una tarea ya enlazada **inserta en medio** (P→A→N); pedidos contradictorios se rechazan explicando el conflicto. El panel "Dependencia" de Tareas ahora tiene "depende de (tarea previa)" y "bloquea a (tarea próxima)"; el panel "Editar" suma el desplegable "Se activa cuando se cumple (desencadenante)".
+- `cumplirTarea`, `reabrirTarea` y `eliminarTarea` (`assets/js/tareas-logica.js`): la lógica de completar ya no está duplicada en Hoy, Tareas y "Revisar mi día". Al reabrir una tarea de mantenimiento se borra su copia si sigue sin tocar (si se modificó, se conserva y se avisa) y se deshace el cumplimiento. Al eliminar una tarea del medio de una cadena, se reconecta (P→N) y el desencadenante que la apuntaba pasa a su previa.
+- **Reparación tras mezclar**: si dos dispositivos enlazan tareas de forma incompatible con la regla 1 a 1 (o forman un ciclo), se conserva el enlace de la tarea más antigua, se sueltan los demás y se deja un aviso.
+
+### Cambiado
+
+- `recalcularBloqueo` y `puedeAgregarDependencia` se movieron a `dependencias.js` (se reexportan desde `tareas-logica.js`).
+- Al arrancar, la base de la mezcla con Drive se normaliza igual que la copia local y la remota, para no generar diferencias falsas por los campos nuevos.
+- `sw.js`: `CACHE_NAME` a `v11` y precache de `dependencias.js`.
+
+### Documentación
+
+- Actualizados `DICCIONARIO_DE_DATOS.md`, `datos/esquema.json`, `LOGICA_FUNCIONES.md`, `PROCESOS_AUTOMATICOS.md` (1, 3, 15, 16), `CASOS_DE_USO.md` (A4), `REDISENO.md`, `BACKLOG.md` y `README.md`. Los datos existentes no se migran ni se reparan: los campos nuevos toman su valor por defecto, y las dependencias viejas que rompan la regla 1 a 1 quedan como están (el usuario recrea sus datos).
+
 ## [v0.51.4] - 2026-09-19
 
 ### Corregido

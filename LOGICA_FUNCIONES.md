@@ -26,7 +26,7 @@ Bootstrap y router de toda la app.
 
 Estado en memoria, sincronización con Google Drive y migración de datos.
 
-- **`estado`**: objeto exportado con las 5 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
+- **`estado`**: objeto exportado con las 7 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`, `mejoras`, `cumplimientos`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
 - **`suscribir(fn)` / `notificar()`**: observer simple para re-renderizar cuando cambian los datos. **`suscribirSync(fn)` / `obtenerEstadoSync()`**: observer aparte para el estado de sincronización (`estado`, `datosListos`, `soloLectura`, hora del último guardado/verificación, avisos, cambios remotos pendientes de aplicar, etc.), que solo redibuja la cabecera.
 - **Migración retrocompatible**, en dos pasos (sin cambios): **`fusionarSubcategoriasEnCategorias`** y **`migrarCategoria`/`migrarUbicacion`/`migrarMeta`/`migrarPersona`/`migrarTarea`**, encadenados por `normalizarDatosCrudos`, que al final recalcula el bloqueo de cada tarea con `recalcularBloqueo`. Los archivos de Drive de versiones anteriores (sin sellos `*_modificado_en`) pasan por acá al leerse.
 - **Guardar (`persistirYNotificar()`)**: es el único punto de guardado que usan las vistas. (1) `sellarCambios` compara contra la última foto y pone `*_modificado_en` a lo que cambió y registra las bajas en `eliminados`; (2) guarda el estado de trabajo en el buffer `pendiente` de IndexedDB (durable, sobrevive a recargar); (3) sube la versión local (`versionLocal++`) y el estado pasa a `pendiente`; (4) `programarSubida()` agenda la subida a Drive con un debounce de 2 s (antes de notificar, para que un error al redibujar una vista no impida la subida); (5) notifica a las vistas. **La UI solo pasa a `sincronizado` cuando Drive confirmó**; recién entonces se actualiza la copia `cache` y se borra `pendiente`.
@@ -40,6 +40,17 @@ Estado en memoria, sincronización con Google Drive y migración de datos.
 - **`exportarJSON()`**: descarga el `estado` completo como `.json`. **`importarJSON(archivo)`**: pide confirmación explícita (reemplaza todo lo que hay en Drive) y pasa por `normalizarDatosCrudos`.
 - **`inicializarAlmacenamiento()`**: lee `pendiente`/`cache`/avisos de IndexedDB, muestra al instante lo último que hubo (pendiente si existe, si no la copia en cache; solo lectura si no hay conexión), adquiere el bloqueo de edición, intenta la sesión de Google y, si la hay, sincroniza. Registra los eventos de verificación y el aviso `beforeunload` si hay cambios sin confirmar.
 
+## `assets/js/dependencias.js`
+
+Dependencias entre tareas (lógica pura). Regla 1 a 1: cada tarea bloquea a como máximo una tarea activa (sin completar) y es bloqueada por como máximo una.
+
+- **`recalcularBloqueo(tarea, lista)` / `puedeAgregarDependencia(tareaId, candidatoId, lista)`**: movidas desde `tareas-logica.js` (que las reexporta). Bloqueada si la previa no está completada; sin auto-referencia ni ciclos.
+- **`proximasActivas(id, lista)` / `tareaProxima(id, lista)`**: las tareas activas que dependen directamente de `id` (regla 1 a 1: a lo sumo una).
+- **`evaluarEnlace(tareaId, { previaId, proximaId }, lista)` / `aplicarEnlace(...)`**: cada valor puede ser un id, `null` (quitar) o `undefined` (dejar). Si se elige una tarea ya enlazada, se **inserta en medio** (elegir solo la previa P, o solo la próxima N, o ambas cuando son consecutivas → P→A→N); si se eligen las dos y no son consecutivas se **rechaza** con el conflicto explicado (`{ ok: false, motivo }`). También rechaza auto-referencia, ciclos, tareas completadas y el uso simultáneo de desencadenante y previa. `aplicarEnlace` muta las dependencias y recalcula los bloqueos.
+- **`opcionesPrevia(tarea, lista)` / `opcionesProxima(tarea, lista)`**: opciones de los desplegables (tareas sin completar que no crean un ciclo) con `ocupadaPor` (la tarea ya enlazada), para rotular "se inserta en medio".
+- **`reconectarAlEliminar(tarea, lista)`**: al eliminar una tarea del medio, las que dependían de ella pasan a depender de su previa; el desencadenante que la apuntaba pasa a su previa.
+- **`repararEnlaces(tareas)`**: tras mezclar cambios de dos dispositivos, si una previa quedó con más de una tarea activa detrás conserva el enlace de la más antigua y suelta el resto; si se formó un ciclo, lo corta por la más nueva. Devuelve las reparaciones para dejar avisos. Solo la usa la sincronización con Drive.
+
 ## `assets/js/borradores.js`
 
 Conserva lo que el usuario ya escribió en los formularios cuando la vista se redibuja por cambios que llegaron de otro dispositivo.
@@ -52,7 +63,7 @@ Conserva lo que el usuario ya escribió en los formularios cuando la vista se re
 
 Lógica **pura** (sin DOM ni red) de sellado y mezcla entre dispositivos. Toda la política de conflictos vive acá.
 
-- **`COLECCIONES`**: configuración de las 5 colecciones (clave de id, campo de sello `*_modificado_en`, campo de nombre para los avisos, etiqueta).
+- **`COLECCIONES`**: configuración de las 7 colecciones (clave de id, campo de sello `*_modificado_en`, campo de nombre para los avisos, etiqueta).
 - **`sellarCambios(estado, ultimo, base, eliminados, ahora)`**: compara cada entidad contra la última foto guardada; nueva o distinta → `*_modificado_en = ahora`; ausente ahora y presente antes → tombstone en `eliminados`. Usa `estable()` para comparar sin que importe el orden de las claves.
 - **`mezclar(local, remoto, base, ahora)`**: por id y entidad completa. Si solo un lado cambió respecto de `base`, gana ese; si cambiaron ambos, gana el sello más nuevo (empate → remoto) y se genera un aviso con los campos y valores descartados; borrado vs. edición: se conserva lo más reciente y se avisa. Devuelve `{ estado, eliminados, avisos }`.
 - **`datosParaArchivo(estado, eliminados, ahora)`**: arma el JSON de Drive (formato 2: colecciones, `eliminados`, `guardado_en`). **`fotoColecciones`**, **`copiarProfundo`**, **`difierenDatos`**, **`purgarEliminados`** (borra tombstones de más de 90 días).
@@ -69,7 +80,7 @@ IndexedDB (`super-todo-list`, versión 2) para lo que no puede depender de la re
 
 Factories y constantes del modelo de datos — es la fuente de verdad de qué campos tiene cada entidad (debe coincidir 1:1 con `datos/esquema.json` y `DICCIONARIO_DE_DATOS.md`).
 
-- **`crearCategoria`, `crearUbicacion`, `crearPersona`, `crearMeta`, `crearTarea`**: una factory por entidad. Reciben los campos propios de la entidad (con sus defaults) y devuelven el objeto completo, generando `entidad_id` con `generarId()`. `crearTarea` calcula `tarea_creada_en` una sola vez y la usa también como default de `tarea_fecha_inicio_habilitada` si no se pasó una.
+- **`crearCategoria`, `crearUbicacion`, `crearPersona`, `crearMeta`, `crearTarea`, `crearMejora`, `crearCumplimiento`**: una factory por entidad (`crearCumplimiento` recibe la tarea cumplida y la fecha). Reciben los campos propios de la entidad (con sus defaults) y devuelven el objeto completo, generando `entidad_id` con `generarId()`. `crearTarea` calcula `tarea_creada_en` una sola vez y la usa también como default de `tarea_fecha_inicio_habilitada` si no se pasó una.
 - **Constantes de UI**: `ESTADOS_TAREA`/`ETIQUETAS_ESTADO` (`bloqueada`/`pendiente`/`completada`), `NIVELES_IMPORTANCIA`/`ETIQUETAS_IMPORTANCIA`/`ICONOS_IMPORTANCIA` (`urgente`/`importante`), `PLAZOS_META`/`ETIQUETAS_PLAZO`, `UNIDADES_MANTENIMIENTO`/`ETIQUETAS_UNIDAD_MANTENIMIENTO`.
 
 ## `assets/js/utilidades.js`
@@ -97,8 +108,12 @@ Helpers puros de fecha/formato/id, sin dependencias de `estado`. Reutilizados po
 Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dependencia, prioridad (ver `REGLAS_DE_PRIORIDAD.md` para el detalle de orden, no repetido acá).
 
 - **`calcularProximaFechaMantenimiento(desdeISODatetime, intervalo)`**: dado un `tarea_mantenimiento_intervalo` (`{ cantidad, unidad }`) y una fecha de referencia, calcula la próxima `tarea_fecha_limite`.
-- **`completarTarea(tarea, listaTareas, opciones)`**: marca la tarea como `completada` y fija `tarea_fecha_fin`. Si tiene `tarea_mantenimiento`, clona una nueva instancia `pendiente` (vía `crearTarea`) con la próxima fecha límite calculada desde la fecha real de finalización, copiando categoría, nombre, duración, descripción (con la mejora sugerida anexada si se cargó una), intervalo de mantenimiento y costo estimado. Devuelve la tarea clonada o `null`. **No** desbloquea dependientes — eso lo hace `desbloquearDependientes`, que hay que llamar aparte.
-- **`recalcularBloqueo(tarea, listaTareas)`**: fija `tarea_estado` según `tarea_dependiente` — `bloqueada` si apunta a una tarea no completada, `pendiente` si no. No toca tareas ya `completada`. Se llama al crear una tarea con dependencia, al editar/quitar la dependencia, y en cascada al completar una tarea (ver siguiente función).
+- **`completarTarea(tarea, listaTareas, opciones)`**: marca la tarea como `completada` y fija `tarea_fecha_fin`. Si tiene `tarea_mantenimiento`, clona una nueva instancia `pendiente` (vía `crearTarea`) con la próxima fecha límite calculada desde la fecha real de finalización, copiando categoría, nombre, duración, descripción (con la mejora sugerida anexada si se cargó una), intervalo de mantenimiento, costo estimado, disfrute, importancia, ubicación, días hábiles, clima, meta, el `tarea_desencadenante` y el checklist con todos los ítems destildados. Devuelve la tarea clonada o `null`. Es una pieza interna: las vistas usan `cumplirTarea`, que además enlaza la copia, desbloquea dependientes y registra cumplimiento y mejora.
+- **`cumplirTarea(tarea, estado, { notaMejora })`**: cumple una tarea: `completarTarea`, registra el **cumplimiento** (`estado.cumplimientos`), crea la **Mejora** si hay nota (`estado.mejoras`), enlaza la copia de mantenimiento y desbloquea dependientes. Reemplaza el par `completarTarea` + `desbloquearDependientes` que repetían Hoy, Tareas y "Revisar mi día". Enlace de la copia: si la original tenía previa P, la copia depende de la instancia vigente de P; si no, y tenía `tarea_desencadenante` D, queda bloqueada por la instancia vigente de D (así una cadena o un anillo A→B→C→D→A se repite entero). Nunca crea un enlace que rompa la regla 1 a 1 o forme un ciclo.
+- **`instanciaPendiente(tarea, lista, excluirIds)`**: la instancia vigente de una tarea — ella misma si no está completada, o la copia de mantenimiento pendiente con el mismo `tarea_nombre` (la más antigua).
+- **`reabrirTarea(tarea, estado)`**: vuelve la tarea a `pendiente` (o `bloqueada` si su previa no está completa), borra su cumplimiento, pone `tarea_exportada_calendar = false` y recalcula a las dependientes. Si era de mantenimiento borra la copia que había generado solo si sigue sin tocar (sin completar, sin dependientes y sin ediciones posteriores: su `tarea_modificado_en` está a menos de 10 s de su creación); si se tocó la conserva. Devuelve `{ copiaEliminada, copiaConservada }`. La Mejora se conserva.
+- **`eliminarTarea(tarea, estado)`**: elimina la tarea y reconecta la cadena (`reconectarAlEliminar`). No borra cumplimientos ni mejoras (historial).
+- **`recalcularBloqueo(tarea, listaTareas)`** (ahora en `dependencias.js`, reexportada): fija `tarea_estado` según `tarea_dependiente` — `bloqueada` si apunta a una tarea no completada, `pendiente` si no. No toca tareas ya `completada`. Se llama al crear una tarea con dependencia, al editar/quitar la dependencia, y en cascada al completar una tarea (ver siguiente función).
 - **`desbloquearDependientes(tareaCompletada, listaTareas)`**: al completar una tarea, encuentra las que dependían de ella (`tarea_dependiente === tareaCompletada.tarea_id`), les copia `tarea_fecha_inicio_habilitada = tareaCompletada.tarea_fecha_fin` y llama `recalcularBloqueo` sobre cada una.
 - **`reprogramarTareaConCascada(tarea, nuevaFechaSugeridaISO, listaTareas)`**: actualiza `tarea_fecha_sugerida` y, si había un valor previo, desplaza en cascada (mismo delta de tiempo, vía `desplazarFecha`) a las tareas que dependen de ella (`tarea_dependiente === tarea.tarea_id`), ajustando también su `tarea_fecha_limite`.
 - **`calcularHolguraDias(tarea)`**: días de margen antes de que venza `tarea_fecha_limite`, contados desde hoy (o desde `tarea_fecha_inicio_habilitada` si es futura). Ver `REGLAS_DE_PRIORIDAD.md` para la fórmula completa y las bandas.
@@ -106,7 +121,7 @@ Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dep
 - **`tareasEmpatadas(a, b, categorias)`**: `true` si 2 tareas empatan en `compararEstructural` y ninguna tiene ya `tarea_prioridad_manual` asignado — usada por el panel "Versus" (`views/todas.view.js`) para armar los clusters a comparar.
 - **`mejorTareaPorCategoria(tareas, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`.
 - **`reprogramarFechasSugeridasVencidas(listaTareas)`**: reprograma automáticamente la `tarea_fecha_sugerida` vencida de toda tarea activa a la próxima fecha disponible (`calcularProximaFechaSugerida`, interna, reusa `siguienteDiaHabil` de `reprogramar.js`), en cascada vía `reprogramarTareaConCascada`. Se llama una vez al iniciar la app (`app.js`). Devuelve las tareas afectadas, para avisar al usuario. Ver `REGLAS_DE_PRIORIDAD.md`.
-- **`puedeAgregarDependencia(tareaId, candidatoId, listaTareas)`**: valida que asignar `candidatoId` como `tarea_dependiente` de `tareaId` no cierre un ciclo, recorriendo la cadena de `tarea_dependiente` hacia atrás desde `candidatoId`.
+- **`puedeAgregarDependencia(tareaId, candidatoId, listaTareas)`** (ahora en `dependencias.js`, reexportada): valida que asignar `candidatoId` como `tarea_dependiente` de `tareaId` no cierre un ciclo, recorriendo la cadena de `tarea_dependiente` hacia atrás desde `candidatoId`.
 - **`esTareaAccionable(tarea)`**: `true` si `tarea_estado === 'pendiente'` y ya se alcanzó `tarea_fecha_inicio_habilitada`.
 - **`calcularEnfoque8020(tareas, categorias)`**: ver `REGLAS_DE_PRIORIDAD.md`.
 
@@ -122,7 +137,7 @@ UI del panel de reprogramar (usado desde Hoy, Tareas, 3/8 días y "Revisar mi d�
 Asistente "Revisar mi día": repasa una por una las tareas activas del día en un `<dialog>`.
 
 - **`iniciarRevisionDia(tareas)`**: arma la cola de tareas no completadas y muestra el diálogo, paso a paso.
-- **`renderPaso()`**: por cada tarea, ofrece "Cumplida" (si tiene `tarea_mantenimiento`, pide una nota de mejora opcional, y llama `completarTarea` + `desbloquearDependientes`), "No cumplida" (abre directamente el panel de reprogramar) o "Saltar".
+- **`renderPaso()`**: por cada tarea, ofrece "Cumplida" (si tiene `tarea_mantenimiento`, pide una nota de mejora opcional, y llama `cumplirTarea`), "No cumplida" (abre directamente el panel de reprogramar) o "Saltar".
 - **`renderPasoFinal(dlg)` / `renderSeccionCalendario(contenedor)`**: al terminar la cola, si hay conexión con Google Calendar muestra los eventos reales del día; si no, ofrece un alta rápida de "tareas de continuidad" (`wirePreguntaContinuidad`).
 
 ## `assets/js/exportar-calendar.js`
@@ -214,7 +229,7 @@ La vista más grande: ABM completo de tareas, filtros, y los paneles de dependen
 - **`tareasUnicasPorNombre()`**: para el `<datalist>` de autocompletado y para precargar el resto del formulario cuando el nombre coincide con una tarea ya creada.
 - **`renderTarea(tarea, enfoqueIds)`**: tarjeta con los badges y acciones (cambiar estado — solo `pendiente`/`completada`, `bloqueada` se muestra como badge de solo lectura —, posponer, dependencia, meta, editar, eliminar).
 - **`crearPanelEditar(tarea)`**: formulario de edición completo.
-- **`crearPanelDependencia(tarea)` / `crearPanelMeta(tarea)`**: paneles con un `<select>` único (ya no checklist, porque `tarea_dependiente`/`meta_id` son referencias singulares) para editar la dependencia (validando ciclos vía `puedeAgregarDependencia` y recalculando bloqueo) y la meta.
+- **`crearPanelDependencia(tarea)` / `crearPanelMeta(tarea)`**: el panel de dependencia tiene dos desplegables, "depende de (tarea previa)" y "bloquea a (tarea próxima)" (`opcionesPrevia`/`opcionesProxima`, `aplicarEnlace` de `dependencias.js`): las tareas ya enlazadas figuran como "se inserta en medio" y los conflictos se rechazan con un `alert()` que los explica. El panel de meta tiene un `<select>` único. El panel **Editar** suma el desplegable "Se activa cuando se cumple (desencadenante)" (solo con "es de mantenimiento" marcado y sin otra tarea previa). Cumplir, reabrir y eliminar usan `cumplirTarea`, `reabrirTarea` y `eliminarTarea`.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
 ## `views/todas.view.js`

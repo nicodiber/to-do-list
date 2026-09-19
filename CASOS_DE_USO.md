@@ -78,7 +78,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   3. Usuario completa el resto de los campos que quiera y presiona "Agregar tarea".
   4. Sistema exige solo el nombre, crea la tarea, la guarda y redibuja la lista.
   5. Usuario (si quiere una dependencia o meta) abre la tarea recién creada y usa el botón "Dependencia" o "Meta".
-  6. Sistema muestra un desplegable único; al elegir, valida ciclos (solo dependencia), recalcula el bloqueo y guarda.
+  6. Sistema muestra, para la dependencia, dos desplegables ("depende de (tarea previa)" y "bloquea a (tarea próxima)") y, para la meta, uno; al elegir, valida la regla 1 a 1 y los ciclos (si se elige una tarea ya enlazada, se inserta en medio; si el pedido es contradictorio, se rechaza explicando el conflicto), recalcula el bloqueo y guarda.
 - **Vistas/funciones**: `views/tareas.view.js` (`#form-alta-rapida`, formulario principal, `tareasUnicasPorNombre`), `assets/js/modelos.js` (`crearTarea`), atajo "N" en `assets/js/app.js`.
 - **Resultado**: nueva Tarea en `estado.tareas`, persistida.
 - **Fricciones**: el atajo "N" solo cubre el alta rápida (nombre nomás), no hay atajo para abrir el formulario completo. Dependencia y meta **no** se cargan en el alta — requieren un segundo paso después de creada la tarea (ver A5 y B1).
@@ -113,9 +113,9 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   5. Sistema muestra un cuadro del navegador: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?".
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
-- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`completarTarea`, `desbloquearDependientes`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`).
-- **Resultado**: `tarea_estado='completada'`, `tarea_fecha_fin` seteada; posible clon nuevo (ver `PROCESOS_AUTOMATICOS.md`); posibles dependientes desbloqueadas; posible evento nuevo en Google Calendar.
-- **Fricciones**: el flujo está duplicado casi idéntico en 3 archivos distintos (no es fricción de usuario, pero sí de mantenimiento de código — candidato a unificar en el rediseño). (La sugerencia de tarea de alto disfrute — Premack — se eliminó; el `confirm()` de exportar a Calendar no resulta invasivo según el usuario.)
+- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`).
+- **Resultado**: `tarea_estado='completada'`, `tarea_fecha_fin` seteada; se registra un cumplimiento; posible Mejora (si hay nota) y posible clon nuevo, enlazado a la cadena o al desencadenante (ver `PROCESOS_AUTOMATICOS.md`, procesos 1 y 15); posibles dependientes desbloqueadas; si se acepta abrir Calendar, `tarea_exportada_calendar` queda en `true`. **Reabrir** una completada (desplegable "Cambiar estado" → Pendiente en Tareas) deshace el cumplimiento y la marca de exportada, y borra la copia de mantenimiento si sigue sin tocar (si se modificó, se conserva y se avisa).
+- **Fricciones**: las 3 vistas comparten ahora `cumplirTarea` (la lógica ya no está duplicada; el panel de confirmación sí sigue repetido en cada vista). (La sugerencia de tarea de alto disfrute — Premack — se eliminó; el `confirm()` de exportar a Calendar no resulta invasivo según el usuario.)
 
 ### A5. Reprogramar una tarea
 

@@ -117,7 +117,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que define cómo y dónde se guardan (rondas 1 y 2; el resto solo agrega campos, sin cambiar la forma de lo guardado):
 
 1. ✅ **Almacenamiento** (v0.51.0): Drive único, pantalla inicial obligatoria, cabecera con estado, buffer pendiente, sincronización manual, verificación automática y mezcla por tarea.
-2. **Modelo de datos**: entidad `Mejora`, `tarea_exportada_calendar`, registro de cumplimientos, restricción 1 a 1 de dependencias, campo de checklist, `tarea_desencadenante` (si se confirma).
+2. ✅ **Modelo de datos** (v0.52.0): entidad `Mejora`, `tarea_exportada_calendar`, registro de cumplimientos, restricción 1 a 1 de dependencias, campo de checklist, `tarea_desencadenante`. Detalle: el checklist es solo para tareas de mantenimiento y aún sin pantalla (llega con la ventana modal de edición de la Ronda 3); los cumplimientos guardan además el vencimiento esperado y si era de mantenimiento; el panel "Dependencia" de Tareas ya tiene "depende de" y "bloquea a" con inserción en medio y rechazo de conflictos (las dependencias **en el alta** siguen en la Ronda 3); reabrir una tarea de mantenimiento borra su copia si sigue sin tocar; tras mezclar cambios de dos dispositivos los enlaces que rompan la regla 1 a 1 se reparan con aviso.
 3. **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)".
 4. **Hoy**: Próximos por categoría, focus, completadas de hoy, exportar por tarea, ☀️, Posponer en el solapamiento.
 5. **ABMs**: editar categorías y ubicaciones, editar último contacto, vista Configuraciones.

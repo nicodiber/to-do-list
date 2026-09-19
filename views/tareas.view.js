@@ -19,15 +19,15 @@ import {
 } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import {
-  completarTarea,
+  cumplirTarea,
+  reabrirTarea,
+  eliminarTarea,
   reprogramarTareaConCascada,
-  recalcularBloqueo,
-  desbloquearDependientes,
-  puedeAgregarDependencia,
   compararPorPrioridad,
   calcularEnfoque8020,
   esTareaAccionable,
 } from '../assets/js/tareas-logica.js';
+import { aplicarEnlace, opcionesPrevia, opcionesProxima, tareaProxima } from '../assets/js/dependencias.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
@@ -459,8 +459,7 @@ function renderTarea(tarea, enfoqueIds) {
       contenedorMejora.hidden = false;
       contenedorMejora.querySelector('[data-accion="confirmar-mejora"]').addEventListener('click', async () => {
         const notaMejora = contenedorMejora.querySelector('[data-campo="mejora"]').value.trim();
-        completarTarea(tarea, estado.tareas, { notaMejora });
-        desbloquearDependientes(tarea, estado.tareas);
+        cumplirTarea(tarea, estado, { notaMejora });
         contenedorMejora.hidden = true;
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
@@ -469,18 +468,18 @@ function renderTarea(tarea, enfoqueIds) {
       return;
     }
     if (nuevoEstado === 'completada') {
-      completarTarea(tarea, estado.tareas);
-      desbloquearDependientes(tarea, estado.tareas);
+      cumplirTarea(tarea, estado);
       await persistirYNotificar();
       ofrecerExportarACalendar(tarea);
       return;
     }
-    tarea.tarea_estado = 'pendiente';
-    tarea.tarea_fecha_fin = null;
-    estado.tareas
-      .filter((t) => t.tarea_dependiente === tarea.tarea_id)
-      .forEach((dependiente) => recalcularBloqueo(dependiente, estado.tareas));
+    const { copiaConservada } = reabrirTarea(tarea, estado);
     await persistirYNotificar();
+    if (copiaConservada) {
+      alert(
+        `Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`
+      );
+    }
   });
 
   const contenedorPanel = li.querySelector('.contenedor-panel-reprogramar');
@@ -542,13 +541,7 @@ function renderTarea(tarea, enfoqueIds) {
 
   li.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;
-    estado.tareas = estado.tareas.filter((t) => t.tarea_id !== tarea.tarea_id);
-    estado.tareas.forEach((t) => {
-      if (t.tarea_dependiente === tarea.tarea_id) {
-        t.tarea_dependiente = null;
-        recalcularBloqueo(t, estado.tareas);
-      }
-    });
+    eliminarTarea(tarea, estado);
     await persistirYNotificar();
   });
 
@@ -556,6 +549,8 @@ function renderTarea(tarea, enfoqueIds) {
 }
 
 function crearPanelEditar(tarea) {
+  // Una tarea con tarea previa no puede tener desencadenante (salvo la copia que ya nació bloqueada por él).
+  const puedeTenerDesencadenante = !tarea.tarea_dependiente || tarea.tarea_dependiente === tarea.tarea_desencadenante;
   const panel = document.createElement('form');
   panel.className = 'formulario-tarea panel-editar';
   panel.innerHTML = `
@@ -598,6 +593,18 @@ function crearPanelEditar(tarea) {
         ).join('')}
       </select>
     </span>
+    <span class="campos-mantenimiento" ${tarea.tarea_mantenimiento ? '' : 'hidden'}>
+      <label>Se activa cuando se cumple (desencadenante):
+        <select name="tarea_desencadenante" ${puedeTenerDesencadenante ? '' : 'disabled'}>
+          <option value="">Ninguna</option>
+          ${estado.tareas
+            .filter((t) => t.tarea_id !== tarea.tarea_id && (t.tarea_estado !== 'completada' || t.tarea_id === tarea.tarea_desencadenante))
+            .map((t) => `<option value="${t.tarea_id}" ${t.tarea_id === tarea.tarea_desencadenante ? 'selected' : ''}>${escaparHtml(t.tarea_nombre)}</option>`)
+            .join('')}
+        </select>
+      </label>
+      ${puedeTenerDesencadenante ? '' : '<span class="ayuda">Esta tarea ya depende de otra: quitá esa dependencia (botón "Dependencia") para usar un desencadenante.</span>'}
+    </span>
     <fieldset class="dias-habiles">
       <legend>Días hábiles (vacío = cualquier día)</legend>
       ${htmlDiasHabiles(tarea.tarea_dias_habiles || [])}
@@ -606,9 +613,9 @@ function crearPanelEditar(tarea) {
   `;
 
   const checkboxMantenimiento = panel.tarea_mantenimiento;
-  const camposMantenimiento = panel.querySelector('.campos-mantenimiento');
+  const camposMantenimiento = panel.querySelectorAll('.campos-mantenimiento');
   checkboxMantenimiento.addEventListener('change', () => {
-    camposMantenimiento.hidden = !checkboxMantenimiento.checked;
+    camposMantenimiento.forEach((campos) => (campos.hidden = !checkboxMantenimiento.checked));
   });
 
   panel.addEventListener('submit', async (evento) => {
@@ -633,6 +640,11 @@ function crearPanelEditar(tarea) {
     tarea.tarea_dias_habiles = datos.getAll('tarea_dias_habiles').map(Number);
     tarea.ubicacion_id = datos.get('ubicacion_id') || null;
     tarea.tarea_requiere_clima_bueno = datos.get('tarea_requiere_clima_bueno') === 'on';
+    if (!tarea.tarea_mantenimiento) {
+      tarea.tarea_desencadenante = null;
+    } else if (puedeTenerDesencadenante) {
+      tarea.tarea_desencadenante = datos.get('tarea_desencadenante') || null;
+    }
     await persistirYNotificar();
   });
 
@@ -643,38 +655,48 @@ function crearPanelDependencia(tarea) {
   const panel = document.createElement('div');
   panel.className = 'panel-dependencias';
 
-  const candidatas = estado.tareas.filter((t) => t.tarea_id !== tarea.tarea_id);
-  if (candidatas.length === 0) {
-    panel.innerHTML = '<p class="mensaje-vacio">No hay otras tareas para elegir como dependencia.</p>';
-    return panel;
-  }
+  const previas = opcionesPrevia(tarea, estado.tareas);
+  const proximas = opcionesProxima(tarea, estado.tareas);
+  const proximaActual = tareaProxima(tarea.tarea_id, estado.tareas);
+  const previaActual = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
+
+  // Cada tarea puede tener una sola previa y bloquear a una sola próxima. Si se elige una tarea que
+  // ya está enlazada, esta se inserta en medio de las dos (P→esta→N).
+  const etiquetaOpcion = (opcion, textoOcupada) =>
+    `${escaparHtml(opcion.tarea.tarea_nombre)}${opcion.ocupadaPor ? ` (${textoOcupada} «${escaparHtml(opcion.ocupadaPor.tarea_nombre)}»: se inserta en medio)` : ''}`;
+  const opcionesConActual = (lista, actual) => (actual && !lista.some((o) => o.tarea.tarea_id === actual.tarea_id) ? [{ tarea: actual, ocupadaPor: null }, ...lista] : lista);
 
   panel.innerHTML = `
-    <p class="panel-reprogramar-etiqueta">Esta tarea depende de:</p>
-    <select data-campo="dependencia">
-      <option value="">Sin dependencia</option>
-      ${candidatas
-        .map(
-          (c) =>
-            `<option value="${c.tarea_id}" ${c.tarea_id === tarea.tarea_dependiente ? 'selected' : ''}>${escaparHtml(c.tarea_nombre)}${c.tarea_estado === 'completada' ? ' (completada)' : ''}</option>`
-        )
+    <p class="panel-reprogramar-etiqueta">Esta tarea depende de (tarea previa):</p>
+    <select data-campo="previa">
+      <option value="">Sin tarea previa</option>
+      ${opcionesConActual(previas, previaActual)
+        .map((o) => `<option value="${o.tarea.tarea_id}" ${o.tarea.tarea_id === tarea.tarea_dependiente ? 'selected' : ''}>${etiquetaOpcion(o, 'ya bloquea a')}${o.tarea.tarea_estado === 'completada' ? ' (completada)' : ''}</option>`)
         .join('')}
     </select>
+    <p class="panel-reprogramar-etiqueta">Esta tarea bloquea a (tarea próxima):</p>
+    <select data-campo="proxima">
+      <option value="">Sin tarea próxima</option>
+      ${opcionesConActual(proximas, proximaActual)
+        .map((o) => `<option value="${o.tarea.tarea_id}" ${proximaActual && o.tarea.tarea_id === proximaActual.tarea_id ? 'selected' : ''}>${etiquetaOpcion(o, 'ya depende de')}</option>`)
+        .join('')}
+    </select>
+    ${tarea.tarea_desencadenante ? '<p class="ayuda">Esta tarea tiene un desencadenante (se configura en "Editar").</p>' : ''}
   `;
 
-  const select = panel.querySelector('[data-campo="dependencia"]');
-  const valorAnterior = tarea.tarea_dependiente || '';
-  select.addEventListener('change', async () => {
-    const nuevoValor = select.value;
-    if (nuevoValor && !puedeAgregarDependencia(tarea.tarea_id, nuevoValor, estado.tareas)) {
+  const selectPrevia = panel.querySelector('[data-campo="previa"]');
+  const selectProxima = panel.querySelector('[data-campo="proxima"]');
+  const aplicar = async (enlaces, select, valorAnterior) => {
+    const resultado = aplicarEnlace(tarea.tarea_id, enlaces, estado.tareas);
+    if (!resultado.ok) {
       select.value = valorAnterior;
-      alert('No se puede agregar esa dependencia: crearía un ciclo (directo o indirecto) entre tareas.');
+      alert(resultado.motivo);
       return;
     }
-    tarea.tarea_dependiente = nuevoValor || null;
-    recalcularBloqueo(tarea, estado.tareas);
     await persistirYNotificar();
-  });
+  };
+  selectPrevia.addEventListener('change', () => aplicar({ previaId: selectPrevia.value || null }, selectPrevia, tarea.tarea_dependiente || ''));
+  selectProxima.addEventListener('change', () => aplicar({ proximaId: selectProxima.value || null }, selectProxima, proximaActual ? proximaActual.tarea_id : ''));
 
   return panel;
 }
