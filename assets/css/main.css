@@ -610,6 +610,10 @@ span.etiqueta-solapamiento-calendar {
   color: var(--color-texto-suave);
 }
 
+.campos-mantenimiento[hidden] {
+  display: none;
+}
+
 .campos-mantenimiento input,
 .campos-mantenimiento select {
   padding: 0.3rem 0.4rem;
@@ -1156,4 +1160,122 @@ section h3 {
 
 .asa-gantt.derecha {
   right: 0;
+}
+
+/* --- Ronda 3: alta unificada, modal de edición, completar carga, checklist --- */
+
+.boton-mas {
+  margin-right: auto;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-primario);
+  color: white;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transicion);
+}
+
+.boton-mas:hover {
+  transform: scale(1.08);
+}
+
+.fila-nombre-tarea {
+  flex: 1 1 100%;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fila-nombre-tarea input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialogo-tarea {
+  border: none;
+  border-radius: var(--radio);
+  padding: 1rem 1.25rem;
+  width: min(760px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+}
+
+.dialogo-tarea::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.dialogo-tarea h3 {
+  margin: 0.1rem 0 0.4rem;
+}
+
+.dialogo-tarea .formulario-tarea {
+  border: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  background: transparent;
+}
+
+.dialogo-carga .tarjeta-carga {
+  border: 1px solid var(--color-borde);
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.acciones-modal {
+  flex: 1 1 100%;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.acciones-modal button:not(.boton-primario),
+.item-checklist-editor button,
+.checklist-editor > button {
+  background: transparent;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+}
+
+.checklist-editor {
+  flex: 1 1 100%;
+  border: 1px dashed var(--color-borde);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.lista-checklist-editor,
+.checklist-tarjeta {
+  list-style: none;
+  margin: 0.3rem 0;
+  padding: 0;
+}
+
+.item-checklist-editor {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.item-checklist-editor input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.checklist-tarjeta li {
+  margin: 0.15rem 0;
+}
+
+.checklist-tarjeta label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.85rem;
+  cursor: pointer;
 }

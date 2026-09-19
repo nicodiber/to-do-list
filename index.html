@@ -15,7 +15,9 @@
   <header class="cabecera">
     <div class="cabecera-fila">
       <h1>Super To-Do List <span id="version-app" class="version-app"></span></h1>
+      <button id="boton-nueva-tarea" class="boton-mas" type="button" title="Nueva tarea (atajo: N)" aria-label="Nueva tarea" hidden>＋</button>
       <div class="acciones-datos">
+        <button id="boton-completar-carga" type="button" title="Tareas que quedaron con solo el nombre" hidden></button>
         <div id="indicador-sync" class="indicador-sync" role="status" aria-live="polite"></div>
         <button id="boton-sync" type="button" title="Verifica contra Drive y sube lo pendiente">🔄 Sincronizar ahora</button>
         <button id="boton-exportar" type="button">Exportar JSON</button>

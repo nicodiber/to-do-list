@@ -1,7 +1,7 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
 import { esTareaAccionable, compararPorPrioridad } from '../assets/js/tareas-logica.js';
-import { abrirEdicionAlEntrar } from './tareas.view.js';
+import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -104,8 +104,7 @@ function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, f
   bloque.title = `${tarea.tarea_nombre} (${duracionMin} min)`;
 
   bloque.addEventListener('click', () => {
-    abrirEdicionAlEntrar(tarea.tarea_id);
-    location.hash = '#/tareas';
+    abrirEdicionTarea(tarea.tarea_id);
   });
 
   agregarAsasArrastre(bloque, tarea, fechaDia, offsetMin, alturaMin, proyectada);

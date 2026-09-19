@@ -3,7 +3,7 @@ import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, NIVELES_IM
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, escaparHtml } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
 import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable } from '../assets/js/tareas-logica.js';
-import { abrirEdicionAlEntrar } from './tareas.view.js';
+import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
@@ -211,8 +211,7 @@ function renderFila(tarea) {
     <td>${holgura === Infinity ? '—' : textoHolgura(holgura)}</td>
   `;
   fila.addEventListener('click', () => {
-    abrirEdicionAlEntrar(tarea.tarea_id);
-    location.hash = '#/tareas';
+    abrirEdicionTarea(tarea.tarea_id);
   });
   return fila;
 }

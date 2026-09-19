@@ -2,6 +2,33 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.53.0] - 2026-09-19
+
+Ronda 3 del rediseño: **carga de tareas** (ver `REDISENO.md`, A2, A3 y "Cabecera y navegación").
+
+### Agregado
+
+- **Alta unificada**: un solo formulario con **un solo campo de nombre** (se acabó el cartel "Completa este campo" del segundo formulario). Con solo el nombre + Enter crea una tarea rápida; con más campos, la completa. Todos los campos son opcionales y visibles debajo, e incluyen ahora **meta**, **"depende de (tarea previa)" y "bloquea a (tarea próxima)"** (regla 1 a 1: si se elige una tarea ya enlazada se inserta en medio; si el pedido es contradictorio se rechaza explicando el conflicto y **no se crea la tarea ni se limpia el formulario**), **desencadenante** y **checklist** (para tareas de mantenimiento).
+- **Botón "＋" fijo en la cabecera** (mismo efecto que el atajo "N": va a Tareas y enfoca el nombre); no aparece en la pantalla inicial ni en una pestaña de solo lectura.
+- **"📝 Completar carga de tareas (X)"** en la cabecera, solo si X > 0: ventana con las tareas que quedaron solo con nombre, cada una con su formulario y los botones "Actualizar" y **"Dejar así"** (nuevo campo `tarea_carga_completa`, sincronizado con Drive).
+- **Ventana modal de edición** (`assets/js/modal-tarea.js`): editar una tarea ya no mezcla el formulario de alta en la misma pantalla. Se abre desde Tareas, Todas, Gantt y Semana **sin cambiar de vista**. Esc o clic afuera preguntan "¿Descartar los cambios?" solo si hay cambios sin guardar; si la tarea se eliminó o cambió en otro dispositivo mientras estaba abierta, avisa (y pide confirmar antes de pisar los cambios ajenos).
+- **Checklist**: se edita en el formulario (agregar y quitar pasos) y se tilda en la tarjeta de la vista Tareas.
+- `assets/js/formulario-tarea.js`: formulario compartido (reemplaza las tres copias que había en `views/tareas.view.js`); `esTareaSoloConNombre`/`tareasSoloConNombre` en `assets/js/tareas-logica.js`.
+
+### Cambiado
+
+- La fila de cada tarea queda con **un solo "Editar"** (más Posponer y Eliminar): Dependencia y Meta pasan a ser campos del formulario y se eliminan sus paneles.
+- El formulario de alta **conserva lo escrito** ante cualquier redibujado (acciones locales, filtros y cambios de otro dispositivo) y se limpia solo al agregar; `assets/js/borradores.js` gana el modo `soloEn` para no cambiar el comportamiento de los formularios de otras vistas.
+- `sw.js`: `CACHE_NAME` a `v12` y precache de los módulos nuevos.
+
+### Corregido
+
+- Los campos de mantenimiento ("cada N días…", desencadenante, checklist) se mostraban siempre, aunque "Es tarea de mantenimiento" no estuviera marcado: el atributo `hidden` perdía contra el estilo `inline-flex`.
+
+### Eliminado
+
+- Los formularios `#form-alta-rapida` y `#form-nueva-tarea`, los paneles Dependencia, Meta y Editar de la fila, y `abrirEdicionAlEntrar` (Todas, Gantt y Semana abren la ventana de edición directamente).
+
 ## [v0.52.1] - 2026-09-19
 
 ### Corregido

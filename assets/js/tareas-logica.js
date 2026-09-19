@@ -407,6 +407,33 @@ export function mejorTareaPorCategoria(tareas, categorias) {
 }
 
 /**
+ * ¿La tarea quedó "solo con nombre"? Sin completar, sin ningún dato cargado más
+ * allá del nombre (todo en su valor por defecto) y sin enlaces con otras
+ * tareas. Sirve para "Completar carga de tareas": encontrar lo que se cargó
+ * rápido y quedó incompleto. Una tarea marcada con `tarea_carga_completa`
+ * (botón "Dejar así") queda afuera.
+ */
+export function esTareaSoloConNombre(tarea, listaTareas = []) {
+  if (tarea.tarea_estado === 'completada' || tarea.tarea_carga_completa) return false;
+  if (tarea.categoria_id || tarea.tarea_importancia || tarea.tarea_disfrute != null || tarea.meta_id) return false;
+  if (tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite) return false;
+  if (tarea.tarea_fecha_inicio_habilitada && tarea.tarea_fecha_inicio_habilitada !== tarea.tarea_creada_en) return false;
+  if ((tarea.tarea_duracion_min || 15) !== 15) return false;
+  if (tarea.tarea_descripcion || tarea.ubicacion_id || tarea.tarea_requiere_clima_bueno || tarea.tarea_costo_estimado) return false;
+  if (tarea.tarea_mantenimiento || (tarea.tarea_dias_habiles || []).length > 0) return false;
+  if ((tarea.tarea_checklist || []).length > 0 || tarea.tarea_desencadenante) return false;
+  if (tarea.tarea_dependiente || proximasActivas(tarea.tarea_id, listaTareas).length > 0) return false;
+  return true;
+}
+
+/** Las tareas que quedaron "solo con nombre" (ver `esTareaSoloConNombre`), en orden de creación. */
+export function tareasSoloConNombre(listaTareas) {
+  return listaTareas
+    .filter((t) => esTareaSoloConNombre(t, listaTareas))
+    .sort((a, b) => (a.tarea_creada_en || '').localeCompare(b.tarea_creada_en || ''));
+}
+
+/**
  * Indica si una tarea está en condiciones de actuarse ahora: `pendiente`
  * (ni `bloqueada` ni `completada`) y con `tarea_fecha_inicio_habilitada` ya
  * alcanzada.

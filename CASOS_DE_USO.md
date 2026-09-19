@@ -63,42 +63,36 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ### A2. Cargar una tarea (rápida o completa)
 
-- **Objetivo**: no perder una idea o pendiente apenas surge, sin importar el dispositivo.
+- **Objetivo**: no perder una idea o pendiente apenas surge, sin importar el dispositivo, y poder darle todos sus datos en el mismo momento si se quiere.
 - **Disparador**: se le ocurre algo, en cualquier momento.
-- **Pasos — alta rápida**: atajo de teclado "N" (o el input dedicado en Tareas) → escribe el nombre → confirma → tarea creada con todos los demás campos en su default (sin categoría, sin fechas, `tarea_duracion_min=15`, `pendiente`).
-- **Pasos — alta completa**: en Tareas, formulario extendido (nombre con autocompletado por nombre ya usado — precarga categoría/importancia/duración/etc. si coincide exacto —, categoría en árbol, importancia, los 3 pares fecha+hora, duración, costo estimado, descripción, ubicación, "requiere buen tiempo", "es de mantenimiento" + intervalo, días hábiles) → Agregar tarea.
-- **Flujo usuario/sistema — alta rápida**:
-  1. Usuario presiona "N" (o va a Tareas y hace clic en el input de alta rápida).
-  2. Sistema navega a Tareas (si hacía falta) y enfoca ese input.
-  3. Usuario escribe el nombre y presiona Enter.
-  4. Sistema crea la tarea con los valores por defecto, la guarda y redibuja la lista.
-- **Flujo usuario/sistema — alta completa**:
-  1. Usuario va a Tareas y empieza a completar el formulario extendido por el campo nombre.
-  2. Sistema ofrece autocompletado por nombres de tareas ya existentes; si el nombre coincide exacto, precarga los demás atributos de esa tarea.
-  3. Usuario completa el resto de los campos que quiera y presiona "Agregar tarea".
-  4. Sistema exige solo el nombre, crea la tarea, la guarda y redibuja la lista.
-  5. Usuario (si quiere una dependencia o meta) abre la tarea recién creada y usa el botón "Dependencia" o "Meta".
-  6. Sistema muestra, para la dependencia, dos desplegables ("depende de (tarea previa)" y "bloquea a (tarea próxima)") y, para la meta, uno; al elegir, valida la regla 1 a 1 y los ciclos (si se elige una tarea ya enlazada, se inserta en medio; si el pedido es contradictorio, se rechaza explicando el conflicto), recalcula el bloqueo y guarda.
-- **Vistas/funciones**: `views/tareas.view.js` (`#form-alta-rapida`, formulario principal, `tareasUnicasPorNombre`), `assets/js/modelos.js` (`crearTarea`), atajo "N" en `assets/js/app.js`.
-- **Resultado**: nueva Tarea en `estado.tareas`, persistida.
-- **Fricciones**: el atajo "N" solo cubre el alta rápida (nombre nomás), no hay atajo para abrir el formulario completo. Dependencia y meta **no** se cargan en el alta — requieren un segundo paso después de creada la tarea (ver A5 y B1).
+- **Pasos**: botón "＋" de la cabecera (o atajo "N") desde cualquier vista → Tareas, con el foco en el nombre → escribe el nombre → Enter (o "Agregar") → tarea creada. Si antes de confirmar completa más campos (todos visibles debajo del nombre y opcionales: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, tarea previa y próxima, buen tiempo, mantenimiento con intervalo, desencadenante y checklist, días hábiles), se crea la tarea completa. Un solo formulario, un solo campo de nombre.
+- **Flujo usuario/sistema**:
+  1. Usuario hace clic en "＋" (o presiona "N", si no está escribiendo en un campo).
+  2. Sistema navega a Tareas (si hacía falta) y enfoca el nombre del formulario de alta.
+  3. Usuario escribe el nombre. (Si coincide exacto con una tarea ya cargada, el sistema precarga sus demás datos como sugerencia; el usuario los ve debajo y los puede cambiar.)
+  4. Usuario (opcional) completa los demás campos, incluido "depende de (tarea previa)" y "bloquea a (tarea próxima)".
+  5. Usuario presiona Enter o "Agregar".
+  6. Sistema valida: si el pedido de enlaces es contradictorio (regla 1 a 1, ver `REDISENO.md`), muestra el conflicto y **no crea la tarea ni limpia el formulario** para que el usuario reajuste. Si elige una tarea ya enlazada, la nueva se inserta en medio (P→A→N).
+  7. Sistema crea la tarea, la guarda, limpia el formulario y devuelve el foco al nombre para cargar la siguiente. Lo que estaba a medio escribir se conserva si el usuario hace otra acción antes de agregar (por ejemplo tildar un paso de un checklist) o cambia un filtro.
+- **Vistas/funciones**: `views/tareas.view.js` (`#form-alta`), `assets/js/formulario-tarea.js` (`htmlFormularioTarea`, `leerFormularioTarea`, `validarFormularioTarea`), `assets/js/dependencias.js` (`aplicarEnlace`), `assets/js/modelos.js` (`crearTarea`), botón "＋" y atajo "N" en `assets/js/app.js`.
+- **Resultado**: nueva Tarea en `estado.tareas`, persistida (y enlazada, si se pidió).
+- **Fricciones**: si se escribe en el nombre algo que coincide con una tarea ya cargada, la precarga cambia los demás campos aunque el usuario solo quisiera una alta rápida (los ve debajo y los puede corregir).
 
 ### A3. Completar carga de tareas cargadas rápido
 
-- **Objetivo**: cuando vuelve a una pantalla más cómoda (ej. la PC después de cargar varias cosas desde el celular) o desde celular ahora tiene más tiempo para cargar atributos a tarea creada previamente con solo nombre, encontrar rápido cuáles tareas quedaron con datos mínimos y completarlas.
-- **Disparador**: hay al menos una tarea que tiene solo campo nombre cargado.
-- **Pasos hoy**: **no existe un flujo dedicado.** Lo más cercano es ir a Todas y mirar manualmente cuáles tareas no tienen categoría/fecha, o usar el buscador si se acuerda el nombre — no hay un filtro ni una marca que identifique "esto se cargó rápido e incompleto".
-- **Flujo usuario/sistema (recorrido de hoy, sin soporte dedicado)**:
-  1. Usuario abre Todas.
-  2. Sistema muestra todas las tareas en orden de prioridad.
-  3. Usuario recorre la lista a ojo buscando las que no tienen categoría ni fechas (ordenar por Categoría o Fecha ayuda a juntarlas).
-  4. Usuario hace clic en una de esas filas.
-  5. Sistema lleva a Tareas con esa tarea ya abierta en edición.
-  6. Usuario completa los atributos y guarda.
-  7. Sistema persiste y redibuja; el usuario vuelve a Todas y repite con la siguiente.
-- **Vistas/funciones**: ninguna.
-- **Resultado**: n/a.
-- **Fricciones**: **gap real**, no una fricción menor — falta una forma explícita de decir "mostrame lo incompleto". Insumo directo para el rediseño: filtro dedicado en Todas (por heurística — sin categoría, sin ninguna fecha — o por un campo explícito que distinga "alta rápida" de "alta completa").
+- **Objetivo**: cuando vuelve a una pantalla más cómoda (ej. la PC después de cargar varias cosas desde el celular) o desde el celular tiene más tiempo, encontrar rápido cuáles tareas quedaron con datos mínimos y completarlas.
+- **Disparador**: hay al menos una tarea que tiene solo el nombre cargado (la cabecera muestra "📝 Completar carga de tareas (X)" solo si X > 0).
+- **Pasos**: clic en "📝 Completar carga de tareas (X)" → ventana modal con cada tarea "solo con nombre" en su propio formulario → en cada una, "Actualizar" (guarda lo cargado) o "Dejar así" (la saca de la lista) → Cerrar.
+- **Flujo usuario/sistema**:
+  1. Sistema detecta las tareas sin completar que tienen todo en su valor por defecto (sin categoría, importancia, disfrute, fechas, descripción, ubicación, meta, mantenimiento, días hábiles ni enlaces, duración 15) y que no fueron marcadas con "Dejar así"; si hay al menos una, muestra el botón con su cantidad.
+  2. Usuario hace clic en el botón.
+  3. Sistema abre una ventana con esas tareas, cada una con el formulario completo.
+  4. Usuario completa los datos de una y presiona "Actualizar".
+  5. Sistema valida (mismas reglas que el alta y la edición), guarda, y la tarea sale de la lista apenas deja de ser "solo nombre"; el contador baja. Lo escrito en las demás tarjetas se conserva.
+  6. Usuario, si una tarea debe quedar así a propósito (por ejemplo "Comprar pan"), presiona "Dejar así": se marca `tarea_carga_completa` y deja de aparecer.
+- **Vistas/funciones**: `assets/js/carga-tareas.js` (`abrirCargaTareas`), `assets/js/tareas-logica.js` (`esTareaSoloConNombre`, `tareasSoloConNombre`), botón en `index.html`/`assets/js/app.js`.
+- **Resultado**: tareas con más datos, o marcadas `tarea_carga_completa`.
+- **Fricciones**: la lista no se actualiza sola si llegan cambios de otro dispositivo mientras está abierta (se ve al volver a abrirla).
 
 ### A4. Marcar una tarea cumplida
 
@@ -192,7 +186,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   5. Sistema agrupa las tareas accionables empatadas y muestra dos de ellas lado a lado.
   6. Usuario elige la que conviene antes, o "Da igual / Omitir".
   7. Sistema, si se eligió, asigna `tarea_prioridad_manual` a ambas y guarda; si se omitió, solo recuerda el par. En ambos casos muestra el siguiente par (o "No hay tareas empatadas…").
-  8. Usuario (si corrige un dato) hace clic en una fila; sistema lleva a Tareas con esa tarea abierta en edición.
+  8. Usuario (si corrige un dato) hace clic en una fila; sistema abre la ventana de edición de esa tarea encima de Todas (sin cambiar de vista).
 - **Vistas/funciones**: `views/todas.view.js` (`renderVistaTodas`, `crearPanelVersus`, `construirClusteres`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `tareasEmpatadas`).
 - **Resultado**: eventualmente, `tarea_prioridad_manual` asignado a algunas tareas.
 - **Fricciones**: "Versus" opera sobre todas las tareas accionables de la app, sin acotarse a los filtros activos en ese momento en Todas — puede sentirse desconectado de lo que se estaba mirando.
@@ -230,7 +224,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   4. Sistema redibuja una fila por tarea, con su barra y las flechas de dependencia entre barras visibles.
   5. Usuario arrastra el borde izquierdo o derecho de una barra.
   6. Sistema actualiza `tarea_fecha_inicio_habilitada` (borde izquierdo) o `tarea_fecha_limite` (borde derecho) y guarda.
-  7. Usuario (alternativa) hace clic en una barra; sistema lleva a Tareas con esa tarea abierta en edición.
+  7. Usuario (alternativa) hace clic en una barra; sistema abre la ventana de edición de esa tarea encima de Gantt (sin cambiar de vista).
 - **Vistas/funciones**: `views/gantt.view.js` (`renderVistaGantt`, `renderGrillaGantt`, `renderFlechasDependencia`, `agregarAsasGantt`).
 - **Resultado**: posible cambio de `tarea_fecha_inicio_habilitada`/`tarea_fecha_limite` si se arrastra una barra.
 - **Nota abierta para rediseño** (del usuario): el Gantt no debería estar limitado a tareas con una Meta asociada — tendría que mostrar cualquier tarea, con filtros según lo que el usuario quiera visualizar en cada momento. A definir: si conviene usar `tarea_fecha_sugerida` en vez de (o además de) `tarea_fecha_inicio_habilitada`, y cómo visualizar `tarea_fecha_limite` (hoy el fin de la barra ES el límite; si se separan ambos conceptos, hace falta una marca visual distinta para cada uno).
