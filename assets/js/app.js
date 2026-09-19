@@ -1,16 +1,19 @@
 import {
   estado,
   suscribir,
+  suscribirSync,
+  obtenerEstadoSync,
   inicializarAlmacenamiento,
   persistirYNotificar,
-  elegirCarpetaDatos,
+  conectarDrive,
+  sincronizarAhora,
+  limpiarRecienConectado,
+  descartarAviso,
+  descartarTodosLosAvisos,
+  mezclarDatosViejos,
+  descartarDatosViejos,
   exportarJSON,
   importarJSON,
-  soportaFileSystemAccess,
-  hayCarpetaDatosElegida,
-  soportaGoogleDrive,
-  hayConexionDrive,
-  conectarDrive,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas } from './tareas-logica.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
@@ -27,13 +30,15 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.50.0';
+const VERSION = 'v0.51.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
-const ESTADO_CONEXION = document.getElementById('estado-conexion');
+const INDICADOR_SYNC = document.getElementById('indicador-sync');
+const BOTON_SYNC = document.getElementById('boton-sync');
+const BANNER_SYNC = document.getElementById('banner-sync');
+const PANEL_AVISOS = document.getElementById('panel-avisos');
 const BOTON_TEMA = document.getElementById('boton-tema');
-const BOTON_DRIVE = document.getElementById('boton-drive');
 const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 
 const VISTAS = {
@@ -68,29 +73,221 @@ function renderNav() {
   });
 }
 
-function actualizarEstadoConexion() {
-  if (!soportaFileSystemAccess) {
-    ESTADO_CONEXION.textContent = 'Tu navegador no soporta elegir carpeta de datos. Usá exportar/importar JSON.';
-  } else if (hayCarpetaDatosElegida()) {
-    ESTADO_CONEXION.textContent = 'Guardando en tu carpeta de datos elegida.';
-  } else {
-    ESTADO_CONEXION.textContent = 'Sin carpeta de datos elegida (por ahora se guarda solo en este navegador).';
+const ETIQUETAS_ESTADO_SYNC = {
+  'sin-destino': '⚪ Sin conectar',
+  conectando: '⏳ Conectando…',
+  verificando: '⏳ Verificando…',
+  guardando: '⏳ Guardando…',
+  pendiente: '🟡 Cambios sin subir a Drive',
+  sincronizado: '✅ Sincronizado con Drive',
+  'sin-conexion': '📴 Sin conexión',
+  'sesion-vencida': '⚠️ Sesión de Google vencida',
+  error: '⚠️ Error al sincronizar',
+};
+
+function escaparTexto(texto) {
+  const div = document.createElement('div');
+  div.textContent = texto == null ? '' : String(texto);
+  return div.innerHTML;
+}
+
+function formatoCorto(iso) {
+  if (!iso) return '—';
+  const fecha = new Date(iso);
+  const hora = `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
+  if (fecha.toDateString() === new Date().toDateString()) return `hoy ${hora}`;
+  return `${String(fecha.getDate()).padStart(2, '0')}/${String(fecha.getMonth() + 1).padStart(2, '0')} ${hora}`;
+}
+
+async function conectarConAviso() {
+  try {
+    await conectarDrive();
+    await reprogramarSiCorresponde();
+  } catch (error) {
+    alert(error.message);
   }
 }
 
-function actualizarBotonDrive() {
-  if (!soportaGoogleDrive()) {
-    BOTON_DRIVE.hidden = true;
-    return;
+let temporizadorRecienConectado = null;
+
+/** Cabecera: estado de guardado siempre visible, más banners y panel de avisos. Sin redibujar la vista. */
+function actualizarCabeceraSync() {
+  const s = obtenerEstadoSync();
+
+  INDICADOR_SYNC.innerHTML = `
+    <strong>${ETIQUETAS_ESTADO_SYNC[s.estado] || s.estado}</strong>
+    <span class="indicador-sync-detalle">Último guardado en Drive: ${formatoCorto(s.modificadoEnDrive)} · Verificado: ${formatoCorto(s.verificadoEn)}</span>
+    ${s.hayPendiente ? '<span class="indicador-sync-detalle">Hay cambios que Drive todavía no confirmó.</span>' : ''}
+  `;
+  BOTON_SYNC.hidden = s.estado === 'sin-destino' || s.soloLectura;
+  BOTON_SYNC.disabled = ['conectando', 'verificando', 'guardando'].includes(s.estado);
+
+  const banners = [];
+  if (s.estado === 'sin-conexion' || s.estado === 'sesion-vencida') {
+    const copia = s.copiaDel ? ` Estás viendo tu copia local de la última sincronización (${formatoCorto(s.copiaDel)}).` : '';
+    banners.push(
+      s.estado === 'sin-conexion'
+        ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.</p>`
+        : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.
+           <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
+    );
   }
-  BOTON_DRIVE.textContent = hayConexionDrive() ? 'Drive: sincronizado ✓' : 'Sincronizar con Google Drive';
+  if (s.recienConectado && s.estado === 'sincronizado') {
+    banners.push('<p>✅ Conectado y sincronizado con Drive.</p>');
+    clearTimeout(temporizadorRecienConectado);
+    temporizadorRecienConectado = setTimeout(limpiarRecienConectado, 6000);
+  }
+  if (s.cambiosRemotosDisponibles) {
+    banners.push('<p>🔄 Hay cambios de otro dispositivo. <button type="button" data-accion-sync="actualizar">Actualizar</button></p>');
+  }
+  if (s.datosViejosDisponibles && s.datosListos) {
+    banners.push(
+      `<p>📦 Encontré datos de una versión anterior guardados en este navegador. Antes se guardaban acá; ahora todo vive en Drive.
+      <button type="button" data-accion-sync="mezclar-viejos">Mezclarlos con Drive</button>
+      <button type="button" data-accion-sync="descartar-viejos">Descartarlos</button></p>`
+    );
+  }
+  if (s.relojDesfasado) {
+    const minutos = Math.round(Math.abs(s.desfaseRelojMs) / 60000);
+    banners.push(
+      `<p>⏰ El reloj de este dispositivo está ${s.desfaseRelojMs > 0 ? 'adelantado' : 'atrasado'} unos ${minutos} min respecto de Google: puede afectar qué versión gana al mezclar cambios entre dispositivos.</p>`
+    );
+  }
+  if (s.mensajeError) banners.push(`<p>⚠️ ${escaparTexto(s.mensajeError)}</p>`);
+  if (!s.almacenamientoLocalDisponible) {
+    banners.push('<p>⚠️ Este navegador no permite guardar una copia temporal: si perdés la conexión, los cambios sin subir se perderían al cerrar la pestaña.</p>');
+  }
+  if (s.avisos.length > 0) {
+    banners.push(
+      `<p>⚠️ Tenés ${s.avisos.length} aviso${s.avisos.length === 1 ? '' : 's'} de sincronización. <button type="button" data-accion-sync="ver-avisos">Ver</button></p>`
+    );
+  }
+  BANNER_SYNC.innerHTML = banners.join('');
+  BANNER_SYNC.hidden = banners.length === 0;
+
+  if (s.avisos.length === 0) {
+    PANEL_AVISOS.hidden = true;
+    PANEL_AVISOS.innerHTML = '';
+  } else if (!PANEL_AVISOS.hidden) {
+    renderPanelAvisos(s.avisos);
+  }
+}
+
+function renderPanelAvisos(avisos) {
+  PANEL_AVISOS.innerHTML = `
+    <h3>Avisos de sincronización</h3>
+    <p class="ayuda">Nada se pierde en silencio: acá queda registrado lo que se resolvió al mezclar cambios de distintos dispositivos. Descartá cada aviso cuando lo hayas revisado.</p>
+    <ul>
+      ${avisos
+        .map(
+          (aviso) => `
+        <li>
+          <p>${escaparTexto(aviso.mensaje)} <small>(${formatoCorto(aviso.creado_en)})</small></p>
+          ${
+            aviso.camposDescartados && aviso.camposDescartados.length > 0
+              ? `<ul>${aviso.camposDescartados.map((c) => `<li>Se descartó <code>${escaparTexto(c.campo)}</code>: ${escaparTexto(c.valorDescartado)}</li>`).join('')}</ul>`
+              : ''
+          }
+          <button type="button" data-descartar-aviso="${escaparTexto(aviso.id)}">Descartar</button>
+        </li>`
+        )
+        .join('')}
+    </ul>
+    <button type="button" data-accion-sync="descartar-todos">Descartar todos</button>
+    <button type="button" data-accion-sync="cerrar-avisos">Cerrar</button>
+  `;
+}
+
+document.addEventListener('click', async (evento) => {
+  const boton = evento.target.closest('[data-accion-sync], [data-descartar-aviso]');
+  if (!boton) return;
+  const accion = boton.dataset.accionSync;
+  try {
+    if (boton.dataset.descartarAviso) {
+      await descartarAviso(boton.dataset.descartarAviso);
+    } else if (accion === 'reconectar') {
+      await conectarConAviso();
+    } else if (accion === 'actualizar') {
+      await sincronizarAhora({ forzar: true });
+    } else if (accion === 'mezclar-viejos') {
+      await mezclarDatosViejos();
+    } else if (accion === 'descartar-viejos') {
+      if (confirm('¿Descartar los datos antiguos de este navegador? No se pueden recuperar después.')) descartarDatosViejos();
+    } else if (accion === 'ver-avisos') {
+      renderPanelAvisos(obtenerEstadoSync().avisos);
+      PANEL_AVISOS.hidden = false;
+    } else if (accion === 'cerrar-avisos') {
+      PANEL_AVISOS.hidden = true;
+    } else if (accion === 'descartar-todos') {
+      await descartarTodosLosAvisos();
+    }
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+BOTON_SYNC.addEventListener('click', () => sincronizarAhora({ forzar: true }));
+
+function renderPantallaInicial(contenedor) {
+  const s = obtenerEstadoSync();
+  const conectando = s.estado === 'conectando';
+  contenedor.innerHTML = `
+    <section class="pantalla-inicial">
+      <h2>☁️ Guardá tus datos en tu Google Drive</h2>
+      <p>Super To-Do List guarda tus tareas en un archivo dentro de tu propio Google Drive, así las tenés al día en la PC y en el celular, y nunca dependen de un solo navegador.</p>
+      <p class="ayuda">Vas a ver una ventana de Google que pide dos permisos: <strong>Drive</strong> (solo para el archivo que crea esta app) y <strong>Calendar</strong> (solo lectura, para avisarte de superposiciones con tus eventos).</p>
+      ${s.datosViejosDisponibles ? '<p class="ayuda">📦 Encontré datos de una versión anterior en este navegador: se van a importar a tu Drive al conectar.</p>' : ''}
+      ${s.mensajeError ? `<p class="aviso-bloqueada">${escaparTexto(s.mensajeError)}</p>` : ''}
+      <button type="button" id="boton-conectar-inicial" class="boton-primario" ${conectando ? 'disabled' : ''}>
+        ${conectando ? '⏳ Conectando…' : '🔗 Conectar con Google Drive'}
+      </button>
+    </section>
+  `;
+  contenedor.querySelector('#boton-conectar-inicial').addEventListener('click', conectarConAviso);
+}
+
+let claveUltimoRender = '';
+
+function claveDeRender(s) {
+  return `${s.datosListos}|${s.soloLectura}|${!s.datosListos && s.estado === 'conectando'}`;
 }
 
 function render() {
+  const s = obtenerEstadoSync();
   renderNav();
-  actualizarEstadoConexion();
-  actualizarBotonDrive();
+  actualizarCabeceraSync();
+  claveUltimoRender = claveDeRender(s);
+  if (s.soloLectura) {
+    CONTENEDOR.innerHTML =
+      '<section class="pantalla-inicial"><h2>🪟 Super To-Do List ya está abierta en otra pestaña</h2><p>Para que dos pestañas no se pisen los cambios, solo una puede editar a la vez. Cerrá la otra pestaña y recargá esta.</p></section>';
+    return;
+  }
+  if (!s.datosListos) {
+    renderPantallaInicial(CONTENEDOR);
+    return;
+  }
   VISTAS[vistaActual()].render(CONTENEDOR, estado);
+}
+
+// Los cambios de estado de sincronización solo actualizan la cabecera; la
+// vista se redibuja únicamente cuando cambia lo que corresponde mostrar
+// (pantalla inicial, aviso de otra pestaña o los datos ya listos).
+suscribirSync((s) => {
+  if (claveDeRender(s) !== claveUltimoRender) render();
+  else actualizarCabeceraSync();
+});
+
+let reprogramado = false;
+
+/** Reprograma fechas sugeridas vencidas una sola vez por sesión, apenas hay datos cargados. */
+async function reprogramarSiCorresponde() {
+  if (reprogramado || !obtenerEstadoSync().datosListos) return;
+  reprogramado = true;
+  const afectadas = reprogramarFechasSugeridasVencidas(estado.tareas);
+  if (afectadas.length > 0) {
+    await persistirYNotificar();
+    alert(`Se reprogramó la fecha sugerida de ${afectadas.length} tarea${afectadas.length === 1 ? '' : 's'} que había vencido.`);
+  }
 }
 
 document.getElementById('version-app').textContent = VERSION;
@@ -138,23 +335,6 @@ window.addEventListener('keydown', (evento) => {
   }
 });
 
-document.getElementById('boton-elegir-carpeta').addEventListener('click', async () => {
-  try {
-    await elegirCarpetaDatos();
-  } catch (error) {
-    alert(error.message);
-  }
-});
-
-BOTON_DRIVE.addEventListener('click', async () => {
-  try {
-    await conectarDrive();
-  } catch (error) {
-    alert(error.message);
-  }
-  actualizarBotonDrive();
-});
-
 document.getElementById('boton-exportar').addEventListener('click', exportarJSON);
 
 document.getElementById('input-importar').addEventListener('change', async (evento) => {
@@ -189,26 +369,7 @@ BOTON_TEMA.addEventListener('click', () => {
   aplicarTema(temaActual);
 });
 
-// El script de Google Identity Services (index.html) carga en paralelo
-// (async/defer): si todavía no terminó cuando corre el primer render(),
-// el botón de Drive queda oculto por soportaGoogleDrive() === false y
-// nada lo vuelve a mostrar. Ese script es el único <script src> externo
-// de la página, así que lo identificamos por su origen en vez de un id.
-const scriptGoogleIdentity = document.querySelector('script[src^="https://accounts.google.com/gsi/client"]');
-if (scriptGoogleIdentity) {
-  scriptGoogleIdentity.addEventListener('load', () => {
-    actualizarBotonDrive();
-    render();
-  });
-}
-
-inicializarAlmacenamiento().then(async () => {
-  const afectadas = reprogramarFechasSugeridasVencidas(estado.tareas);
-  if (afectadas.length > 0) {
-    await persistirYNotificar();
-    alert(`Se reprogramó la fecha sugerida de ${afectadas.length} tarea${afectadas.length === 1 ? '' : 's'} que había vencido.`);
-  }
-});
+inicializarAlmacenamiento().then(reprogramarSiCorresponde);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch((error) => {

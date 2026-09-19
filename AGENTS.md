@@ -11,7 +11,7 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 ## Arquitectura
 
 - Sitio 100% cliente: HTML/CSS/JS vanilla, **sin backend, sin build tools, sin frameworks**. No agregar `npm`, bundlers ni dependencias externas salvo que se discuta explícitamente con el usuario — es una decisión de simplicidad tomada a propósito, no un descuido.
-- Persistencia: `assets/js/almacenamiento.js` centraliza el estado en memoria y su guardado en `localStorage` + carpeta local vía File System Access API. Las vistas (`views/*.view.js`) importan `estado` y `persistirYNotificar()` desde ahí; no duplicar lógica de guardado en las vistas.
+- Persistencia: `assets/js/almacenamiento.js` centraliza el estado en memoria y su sincronización con **Google Drive por API, único destino de los datos** (buffer local durable en IndexedDB vía `almacenamiento-local.js`, mezcla entre dispositivos en `sincronizacion.js`, permiso único de Google en `google-auth.js`). **`localStorage` solo guarda preferencias** (tema, ubicación actual, flag de conexión), nunca datos de tareas. Las vistas (`views/*.view.js`) importan `estado` y `persistirYNotificar()` desde ahí; no duplicar lógica de guardado en las vistas, y no mostrar nunca "guardado" antes de que Drive confirme.
 - Cada vista expone una única función `renderVistaX(contenedor)` que redibuja su contenido en el contenedor recibido. El router en `assets/js/app.js` decide qué vista renderizar según el hash de la URL.
 
 ## Estructura de carpetas

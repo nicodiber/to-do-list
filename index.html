@@ -16,8 +16,8 @@
     <div class="cabecera-fila">
       <h1>Super To-Do List <span id="version-app" class="version-app"></span></h1>
       <div class="acciones-datos">
-        <button id="boton-elegir-carpeta" type="button">Elegir carpeta de datos</button>
-        <button id="boton-drive" type="button">Sincronizar con Google Drive</button>
+        <div id="indicador-sync" class="indicador-sync" role="status" aria-live="polite"></div>
+        <button id="boton-sync" type="button" title="Verifica contra Drive y sube lo pendiente">🔄 Sincronizar ahora</button>
         <button id="boton-exportar" type="button">Exportar JSON</button>
         <label class="boton-archivo">
           Importar JSON
@@ -27,7 +27,8 @@
       </div>
     </div>
     <nav id="nav-vistas" class="nav-vistas"></nav>
-    <p id="estado-conexion" class="estado-conexion"></p>
+    <div id="banner-sync" class="banner-sync" hidden></div>
+    <div id="panel-avisos" class="panel-avisos" hidden></div>
   </header>
   <main id="vista" class="vista"></main>
   <script type="module" src="assets/js/app.js"></script>
