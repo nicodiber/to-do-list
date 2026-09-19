@@ -4,9 +4,11 @@ Plataforma personal de gestión de tareas y objetivos, pensada para asistir y pr
 
 La visión completa está en [SPEC.md](SPEC.md), el backlog de funcionalidades futuras en [BACKLOG.md](BACKLOG.md), el modelo de datos en [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md) y las notas originales del brainstorm en [NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.md).
 
+Documentación de cómo funciona: [CASOS_DE_USO.md](CASOS_DE_USO.md) (flujos de usuario, foto de hoy), [PROCESOS_AUTOMATICOS.md](PROCESOS_AUTOMATICOS.md) (lo que el sistema hace solo), [REGLAS_DE_PRIORIDAD.md](REGLAS_DE_PRIORIDAD.md) (cómo se ordenan las tareas), [LOGICA_FUNCIONES.md](LOGICA_FUNCIONES.md) (qué hace cada función) y [REDISENO.md](REDISENO.md) (lo acordado para cambiar).
+
 ## Estado actual
 
-**v0.1.0 — MVP.** ABM de categorías/subcategorías/tareas, vista "Hoy", vista "Tareas" con filtros, y persistencia en un archivo JSON local. Ver [CHANGELOG.md](CHANGELOG.md).
+**v0.50.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, sincronización con Google Drive e integración con Google Calendar. Actualmente en definición del rediseño del frontend antes de cargar datos reales. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Cómo correrlo
 
@@ -39,4 +41,4 @@ Convenciones de desarrollo (idioma, arquitectura, flujo de Git, información par
 
 ## Roadmap
 
-Este MVP es intencionalmente mínimo. Todo lo demás (dependencias entre tareas, tareas de mantenimiento cíclicas, integración con Google Calendar, capa de IA opcional, informes de productividad, etc.) está relevado y priorizado por fase en [BACKLOG.md](BACKLOG.md).
+Lo pendiente está en [BACKLOG.md](BACKLOG.md) y lo ya acordado para el rediseño (incluido el cambio de almacenamiento a Google Drive como único destino) en [REDISENO.md](REDISENO.md).

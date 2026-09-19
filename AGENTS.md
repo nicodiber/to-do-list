@@ -26,14 +26,23 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 - **Nuevo campo al modelo de datos:** actualizarlo en `assets/js/modelos.js` (factory correspondiente), en `datos/esquema.json`, y documentarlo en `DICCIONARIO_DE_DATOS.md` con la fase a la que pertenece.
 - **Nueva función o cambio de lógica no trivial:** documentarlo en `LOGICA_FUNCIONES.md` (qué hace, en lenguaje natural). Si afecta el orden/prioridad de las tareas, actualizar también `REGLAS_DE_PRIORIDAD.md`. Si el sistema hace algo solo, sin acción directa del usuario (ej. un desbloqueo en cascada, una migración, un clonado), documentarlo también en `PROCESOS_AUTOMATICOS.md`.
 - **Nuevo flujo de usuario, o cambio a uno existente:** actualizar la entrada correspondiente en `CASOS_DE_USO.md` (o agregar una nueva, con el mismo formato objetivo/disparador/pasos/vistas-funciones/resultado/fricciones).
+- **Cambio de diseño acordado con el usuario:** registrarlo en `REDISENO.md` (el "cómo debería ser", con estado ✅ definido / ❓ abierto / 🔮 post-v1.0). `CASOS_DE_USO.md` describe solo la realidad de hoy; lo que el usuario pide y todavía no existe se marca ahí con ⏳.
 - **Nueva vista:** crear `views/nombre.view.js` exportando `renderVistaNombre(contenedor)`, registrarla en el objeto `VISTAS` de `assets/js/app.js`.
 - **Archivo nuevo en `assets/js/` o `views/`:** sumarlo también a `ARCHIVOS_PRECACHE` en `sw.js`, para que la primera carga offline (sin visitas previas) lo incluya.
 - **Nueva funcionalidad grande:** primero registrarla como ítem en `BACKLOG.md` bajo la fase que corresponda (ver `SPEC.md` para la definición de fases), salvo que el usuario ya la haya pedido explícitamente para la iteración actual.
+
+## Cómo definir funcionalidades con el usuario
+
+- Al definir o discutir una funcionalidad, **plantear proactivamente los casos borde y escenarios que el usuario no mencionó** (ej. qué pasa al eliminar una tarea del medio de una cadena de dependencias, al alternar dispositivos, al fallar un guardado, con datos ya existentes), con una propuesta concreta y una pregunta cerrada para confirmar. Al usuario le resulta muy útil que se le señalen los casos que le faltó completar.
+- Preferir preguntas cerradas o de opción múltiple cuando hay que decidir, dejando las abiertas para lo que realmente no tiene una respuesta obvia. No dar por cerrada una decisión ambigua: confirmarla.
+- No modificar el texto que el usuario escribió a mano en los `.md` para "corregirlo": si describe algo que el código no hace, marcarlo con ⏳ y preguntar si es un pedido nuevo o un error.
+- `SPEC.md` y `README.md` son documentación viva: se actualizan cuando cambia lo que describen (alcance, decisiones de diseño, instrucciones de uso).
 
 ## Versionado
 
 - Esquema `vMayor.Menor.Parche` (semver). Cada entrega funcional nueva suma una entrada en `CHANGELOG.md`.
 - La versión también se muestra en la cabecera de la app (constante `VERSION` en `assets/js/app.js`) — actualizarla junto con `CHANGELOG.md` en cada entrega.
+- **`README.md` siempre debe indicar la versión más nueva**: actualizar su sección "Estado actual" en cada entrega.
 
 ## Flujo de Git
 
