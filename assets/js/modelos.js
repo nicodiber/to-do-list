@@ -103,6 +103,7 @@ export function crearTarea({
   tarea_costo_estimado = 0,
   meta_id = null,
   tarea_prioridad_manual = null,
+  tarea_disfrute = null,
 }) {
   const creadaEn = ahoraISO();
   return {
@@ -127,5 +128,6 @@ export function crearTarea({
     tarea_costo_estimado,
     meta_id: meta_id || null,
     tarea_prioridad_manual,
+    tarea_disfrute,
   };
 }

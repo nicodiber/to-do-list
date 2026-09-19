@@ -48,6 +48,7 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
     tarea_mantenimiento: tarea.tarea_mantenimiento,
     tarea_mantenimiento_intervalo: tarea.tarea_mantenimiento_intervalo,
     tarea_costo_estimado: tarea.tarea_costo_estimado,
+    tarea_disfrute: tarea.tarea_disfrute,
   });
   listaTareas.push(nueva);
   return nueva;

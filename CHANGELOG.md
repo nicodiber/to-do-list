@@ -2,6 +2,20 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.50.0] - 2026-09-19
+
+### Eliminado
+
+- **Sugerencia automática de tarea de alto disfrute (principio de Premack)**: se borró `assets/js/disfrute.js` y sus llamadas en Hoy, Tareas y "Revisar mi día". Se retoma post-v1.0 con datos reales (ver `BACKLOG.md`). `categoria_disfrute` se conserva, solo recolecta datos.
+
+### Agregado
+
+- `tarea_disfrute` (1-5 o `null`, default `null`) en todas las tareas: select "Disfrute" en el alta y la edición, y se copia a la instancia clonada de una tarea de mantenimiento. Por ahora solo recolecta datos, sin efecto en la app.
+
+### Documentación
+
+- Nuevos documentos vivos `CASOS_DE_USO.md` (flujos por objetivo, baseline de cómo funciona hoy) y `PROCESOS_AUTOMATICOS.md` (condición → proceso → resultado de todo lo que el sistema hace solo), registrados en `AGENTS.md`. En `PROCESOS_AUTOMATICOS.md` se marcaron como pendientes de implementar dos pedidos nuevos (aviso ☀️ de clima favorable, botón "Posponer" junto al aviso de solapamiento con Calendar).
+
 ## [v0.49.0] - 2026-09-19
 
 ### Agregado

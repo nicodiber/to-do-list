@@ -14,7 +14,6 @@ import {
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
-import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 import {
   soportaGoogleCalendar,
   hayConexionGoogleCalendar,
@@ -257,7 +256,6 @@ function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
       completarTarea(tarea, estado.tareas, { notaMejora });
       desbloquearDependientes(tarea, estado.tareas);
       await persistirYNotificar();
-      sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {

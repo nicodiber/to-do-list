@@ -29,7 +29,6 @@ import {
   esTareaAccionable,
 } from '../assets/js/tareas-logica.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { sugerirTareaDeAltoDisfrute } from '../assets/js/disfrute.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
@@ -53,6 +52,14 @@ function htmlOpcionesImportancia(seleccionada = '') {
       `<option value="${nivel}" ${nivel === seleccionada ? 'selected' : ''}>${ICONOS_IMPORTANCIA[nivel]} ${ETIQUETAS_IMPORTANCIA[nivel]}</option>`
     );
   });
+  return opciones.join('');
+}
+
+function htmlOpcionesDisfrute(seleccionado = null) {
+  const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Disfrute: sin definir</option>`];
+  for (let nivel = 1; nivel <= 5; nivel += 1) {
+    opciones.push(`<option value="${nivel}" ${nivel === seleccionado ? 'selected' : ''}>${'⭐'.repeat(nivel)} (${nivel})</option>`);
+  }
   return opciones.join('');
 }
 
@@ -133,6 +140,9 @@ export function renderVistaTareas(contenedor) {
       </select>
       <select name="tarea_importancia">
         ${htmlOpcionesImportancia()}
+      </select>
+      <select name="tarea_disfrute">
+        ${htmlOpcionesDisfrute()}
       </select>
       ${htmlParFechaHora('tarea_fecha_inicio_habilitada', '', 'Habilitada desde')}
       ${htmlParFechaHora('tarea_fecha_sugerida', '', 'Sugerida')}
@@ -239,6 +249,7 @@ export function renderVistaTareas(contenedor) {
       formulario.mantenimiento_unidad.value = coincidencia.tarea_mantenimiento_intervalo.unidad;
     }
     formulario.tarea_importancia.value = coincidencia.tarea_importancia || '';
+    formulario.tarea_disfrute.value = coincidencia.tarea_disfrute ?? '';
     const diasSeleccionados = coincidencia.tarea_dias_habiles || [];
     formulario.querySelectorAll('input[name="tarea_dias_habiles"]').forEach((checkbox) => {
       checkbox.checked = diasSeleccionados.includes(Number(checkbox.value));
@@ -267,6 +278,7 @@ export function renderVistaTareas(contenedor) {
         tarea_nombre: nombre,
         categoria_id: datos.get('categoria_id') || null,
         tarea_importancia: datos.get('tarea_importancia') || null,
+        tarea_disfrute: datos.get('tarea_disfrute') ? Number(datos.get('tarea_disfrute')) : null,
         tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
         tarea_fecha_sugerida: combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'),
         tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
@@ -452,7 +464,6 @@ function renderTarea(tarea, enfoqueIds) {
         contenedorMejora.hidden = true;
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
-        sugerirTareaDeAltoDisfrute(tarea);
         ofrecerExportarACalendar(tarea);
       });
       return;
@@ -461,7 +472,6 @@ function renderTarea(tarea, enfoqueIds) {
       completarTarea(tarea, estado.tareas);
       desbloquearDependientes(tarea, estado.tareas);
       await persistirYNotificar();
-      sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
       return;
     }
@@ -556,6 +566,9 @@ function crearPanelEditar(tarea) {
     <select name="tarea_importancia">
       ${htmlOpcionesImportancia(tarea.tarea_importancia || '')}
     </select>
+    <select name="tarea_disfrute">
+      ${htmlOpcionesDisfrute(tarea.tarea_disfrute ?? null)}
+    </select>
     ${htmlParFechaHora('tarea_fecha_inicio_habilitada', tarea.tarea_fecha_inicio_habilitada, 'Habilitada desde')}
     ${htmlParFechaHora('tarea_fecha_sugerida', tarea.tarea_fecha_sugerida, 'Sugerida')}
     ${htmlParFechaHora('tarea_fecha_limite', tarea.tarea_fecha_limite, 'Límite')}
@@ -606,6 +619,7 @@ function crearPanelEditar(tarea) {
     tarea.tarea_nombre = nombre;
     tarea.categoria_id = datos.get('categoria_id') || null;
     tarea.tarea_importancia = datos.get('tarea_importancia') || null;
+    tarea.tarea_disfrute = datos.get('tarea_disfrute') ? Number(datos.get('tarea_disfrute')) : null;
     tarea.tarea_fecha_inicio_habilitada = combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada');
     tarea.tarea_fecha_sugerida = combinarCampoFechaHora(datos, 'tarea_fecha_sugerida');
     tarea.tarea_fecha_limite = combinarCampoFechaHora(datos, 'tarea_fecha_limite');

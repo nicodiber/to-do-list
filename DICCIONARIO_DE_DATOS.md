@@ -15,7 +15,7 @@ Convención de fecha±hora: los campos de fecha de Tarea (`tarea_fecha_inicio_ha
 | `categoria_descripcion` | string, default `""` | MVP | Texto libre opcional |
 | `categoria_color` | string (hex) | MVP | Color identificatorio en la UI de esta categoría (no de sus ancestros) |
 | `categoria_prioridad` | number | MVP | Prioridad relativa entre categorías **hermanas** (mismo `categoria_padre_id`). Se reordena con los botones ▲/▼ en la vista Categorías |
-| `categoria_disfrute` | number (1-5, default `3`) | MVP | Cuánto disfrutás las tareas de esta categoría. Al completar una tarea de una categoría con disfrute bajo (1-2), se sugiere continuar con una accionable de una categoría con disfrute alto (4-5) — principio de Premack |
+| `categoria_disfrute` | number (1-5, default `3`) | MVP | Cuánto disfrutás las tareas de esta categoría. Por ahora solo se recolecta, sin ningún efecto en la app: la sugerencia automática basada en el principio de Premack se eliminó y se retoma post-v1.0, cuando haya datos reales cargados para analizar (ver `BACKLOG.md`) |
 | `categoria_padre_id` | string (UUID) \| null | MVP | Categoría padre, si esta es una categoría anidada (reemplaza al viejo concepto de Subcategoria — ahora Categoria se auto-referencia, sin límite de profundidad). `null` = categoría raíz |
 
 El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se arma recorriendo `categoria_padre_id` en tiempo de renderizado (`caminoCategoria` en `assets/js/utilidades.js`), no se guarda como campo. Al eliminar una categoría, sus categorías hijas quedan promovidas (`categoria_padre_id: null`) y las tareas asociadas quedan sin categoría.
@@ -44,6 +44,7 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `tarea_requiere_clima_bueno` | boolean (default `false`) | MVP | Si está en `true` y la tarea tiene `ubicacion_id` con coordenadas y una fecha resoluble dentro de los próximos 16 días, se consulta el pronóstico real (Open-Meteo) y se avisa si la probabilidad de lluvia es alta |
 | `tarea_costo_estimado` | number, default `0` | MVP | Costo monetario estimado, opcional. Se suma en Informes para proyectar el costo de las tareas pendientes. Se copia a la instancia clonada si la tarea es de mantenimiento |
 | `meta_id` | string (UUID) \| null | MVP | Meta a la que aporta esta tarea (una sola). El progreso de la meta se calcula al vuelo filtrando por este campo |
+| `tarea_disfrute` | number (1-5) \| null, default `null` | MVP | Cuánto disfrutás esta tarea puntual (principalmente útil en tareas de mantenimiento). Por ahora solo se recolecta, sin efecto en la app — mismo criterio que `categoria_disfrute` (ver `BACKLOG.md`, Premack post-v1.0). Se copia a la instancia clonada si la tarea es de mantenimiento |
 | `tarea_prioridad_manual` | number \| null, default `null` | MVP | Desempate manual de prioridad (menor = más prioritaria), asignado por la herramienta "Versus" (vista Todas) al comparar 2 tareas empatadas. `null` = sin preferencia manual. Ver `REGLAS_DE_PRIORIDAD.md` |
 
 ## Ubicacion

@@ -1,7 +1,7 @@
 {
   "name": "Super To-Do List",
-  "short_name": "To-Do List",
-  "description": "Gestor de tareas personal: categorías, dependencias, mantenimiento cíclico, vistas Hoy/Semana/Gantt y más.",
+  "short_name": "STDL",
+  "description": "Gestor de tareas",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

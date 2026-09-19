@@ -4,9 +4,9 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 
 ## Idioma
 
-- Documentación, UI y textos visibles: **español**.
-- Nombres de campos de datos (JSON), variables y funciones en el código JS: **español**, para minimizar la fricción de traducción cuando el usuario lea o edite el código directamente. Excepción: palabras reservadas/API del navegador (`addEventListener`, `fetch`, etc.) se mantienen en inglés porque son parte del lenguaje/plataforma.
-- Campos propios de una entidad siguen el patrón `entidad_atributo` (ej. `Tarea.nombre` → `tarea_nombre`, `Categoria.color` → `categoria_color`), para evitar ambigüedad entre entidades. Los campos que ya son una referencia a otra entidad (`categoria_id`, `subcategoria_id`, `ubicacion_id`, `dependencias`, `metas_ids`) quedan sin ese prefijo, porque ya son inequívocos.
+- Documentación, UI y textos visibles: **español castellano**.
+- Nombres de campos de datos (JSON), variables y funciones en el código JS: **español castellano**, para minimizar la fricción de traducción cuando el usuario lea o edite el código directamente. Excepción: palabras reservadas/API del navegador (`addEventListener`, `fetch`, etc.) se mantienen en inglés porque son parte del lenguaje/plataforma.
+- Campos propios de una entidad siguen el patrón `entidad_atributo` (ej. `Tarea.nombre` → `tarea_nombre`, `Categoria.color` → `categoria_color`), para evitar ambigüedad entre entidades. Los campos que ya son una referencia a otra entidad (`categoria_id`, `ubicacion_id`, `tarea_dependiente`, `meta_id`) quedan sin ese prefijo, porque ya son inequívocos.
 
 ## Arquitectura
 
@@ -24,7 +24,8 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 ## Cómo agregar cosas
 
 - **Nuevo campo al modelo de datos:** actualizarlo en `assets/js/modelos.js` (factory correspondiente), en `datos/esquema.json`, y documentarlo en `DICCIONARIO_DE_DATOS.md` con la fase a la que pertenece.
-- **Nueva función o cambio de lógica no trivial:** documentarlo en `LOGICA_FUNCIONES.md` (qué hace, en lenguaje natural). Si afecta el orden/prioridad de las tareas, actualizar también `REGLAS_DE_PRIORIDAD.md`.
+- **Nueva función o cambio de lógica no trivial:** documentarlo en `LOGICA_FUNCIONES.md` (qué hace, en lenguaje natural). Si afecta el orden/prioridad de las tareas, actualizar también `REGLAS_DE_PRIORIDAD.md`. Si el sistema hace algo solo, sin acción directa del usuario (ej. un desbloqueo en cascada, una migración, un clonado), documentarlo también en `PROCESOS_AUTOMATICOS.md`.
+- **Nuevo flujo de usuario, o cambio a uno existente:** actualizar la entrada correspondiente en `CASOS_DE_USO.md` (o agregar una nueva, con el mismo formato objetivo/disparador/pasos/vistas-funciones/resultado/fricciones).
 - **Nueva vista:** crear `views/nombre.view.js` exportando `renderVistaNombre(contenedor)`, registrarla en el objeto `VISTAS` de `assets/js/app.js`.
 - **Archivo nuevo en `assets/js/` o `views/`:** sumarlo también a `ARCHIVOS_PRECACHE` en `sw.js`, para que la primera carga offline (sin visitas previas) lo incluya.
 - **Nueva funcionalidad grande:** primero registrarla como ítem en `BACKLOG.md` bajo la fase que corresponda (ver `SPEC.md` para la definición de fases), salvo que el usuario ya la haya pedido explícitamente para la iteración actual.

@@ -3,7 +3,6 @@ import { formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, desbloquearDependientes } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
-import { sugerirTareaDeAltoDisfrute } from './disfrute.js';
 import { crearTarea } from './modelos.js';
 import {
   soportaGoogleCalendar,
@@ -92,7 +91,6 @@ function renderPaso() {
       completarTarea(tarea, estado.tareas, { notaMejora });
       desbloquearDependientes(tarea, estado.tareas);
       await persistirYNotificar();
-      sugerirTareaDeAltoDisfrute(tarea);
       ofrecerExportarACalendar(tarea);
       avanzar();
     });

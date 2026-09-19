@@ -111,10 +111,6 @@ Consulta de pronóstico real (Open-Meteo, sin API key) para tareas con `tarea_re
 - **`obtenerPronosticoUbicacion(latitud, longitud)`**: fetch a Open-Meteo, con caché en memoria por coordenadas.
 - **`evaluarClimaTarea(tarea)`**: si no aplica (no requiere clima, sin ubicación con coordenadas, sin fecha resoluble, fuera de la ventana de 16 días, o falló la consulta), devuelve `null`. Si hay datos, devuelve `{ favorable, probabilidadLluvia }`.
 
-## `assets/js/disfrute.js`
-
-- **`sugerirTareaDeAltoDisfrute(tareaCompletada)`**: si la categoría de la tarea recién completada tiene `categoria_disfrute` bajo (≤2), busca entre las tareas accionables una de una categoría con `categoria_disfrute` alto (≥4) y sugiere continuar con ella — principio de Premack a nivel categoría.
-
 ## `assets/js/vista-agenda.js`
 
 Motor compartido de las vistas "3 días" y "8 días" (ambas son wrappers triviales).
