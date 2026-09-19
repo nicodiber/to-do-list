@@ -12,7 +12,8 @@
         "categoria_color": { "type": "string" },
         "categoria_prioridad": { "type": "number" },
         "categoria_disfrute": { "type": "number", "minimum": 1, "maximum": 5 },
-        "categoria_padre_id": { "type": ["string", "null"] }
+        "categoria_padre_id": { "type": ["string", "null"] },
+        "categoria_modificado_en": { "type": "string" }
       }
     },
     "ubicacion": {
@@ -22,7 +23,8 @@
         "ubicacion_id": { "type": "string" },
         "ubicacion_nombre": { "type": "string", "minLength": 1 },
         "ubicacion_latitud": { "type": "number", "minimum": -90, "maximum": 90 },
-        "ubicacion_longitud": { "type": "number", "minimum": -180, "maximum": 180 }
+        "ubicacion_longitud": { "type": "number", "minimum": -180, "maximum": 180 },
+        "ubicacion_modificado_en": { "type": "string" }
       }
     },
     "meta": {
@@ -34,7 +36,8 @@
         "meta_plazo": { "type": "string", "enum": ["corto", "mediano", "largo"] },
         "meta_descripcion": { "type": "string" },
         "meta_fecha_estimada": { "type": "string" },
-        "meta_creada_en": { "type": "string" }
+        "meta_creada_en": { "type": "string" },
+        "meta_modificado_en": { "type": "string" }
       }
     },
     "persona": {
@@ -44,7 +47,8 @@
         "persona_id": { "type": "string" },
         "persona_nombre": { "type": "string", "minLength": 1 },
         "persona_ultimo_contacto": { "type": "string" },
-        "persona_creada_en": { "type": "string" }
+        "persona_creada_en": { "type": "string" },
+        "persona_modificado_en": { "type": "string" }
       }
     },
     "tarea": {
@@ -84,12 +88,15 @@
         "tarea_costo_estimado": { "type": "number", "minimum": 0 },
         "meta_id": { "type": ["string", "null"] },
         "tarea_prioridad_manual": { "type": ["number", "null"] },
-        "tarea_disfrute": { "type": ["number", "null"], "minimum": 1, "maximum": 5 }
+        "tarea_disfrute": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+        "tarea_modificado_en": { "type": "string" }
       }
     }
   },
   "type": "object",
   "properties": {
+    "formato": { "type": "number" },
+    "guardado_en": { "type": "string" },
     "categorias": {
       "type": "array",
       "items": { "$ref": "#/definitions/categoria" }
@@ -109,6 +116,18 @@
     "tareas": {
       "type": "array",
       "items": { "$ref": "#/definitions/tarea" }
+    },
+    "eliminados": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["coleccion", "id", "eliminado_en"],
+        "properties": {
+          "coleccion": { "type": "string", "enum": ["categorias", "ubicaciones", "metas", "personas", "tareas"] },
+          "id": { "type": "string" },
+          "eliminado_en": { "type": "string" }
+        }
+      }
     }
   }
 }

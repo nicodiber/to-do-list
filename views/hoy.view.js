@@ -14,13 +14,7 @@ import {
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
-import {
-  soportaGoogleCalendar,
-  hayConexionGoogleCalendar,
-  conectarGoogleCalendar,
-  obtenerEventosDeHoy,
-  calcularSolapamiento,
-} from '../assets/js/google-calendar.js';
+import { hayConexionGoogleCalendar, obtenerEventosDeHoy, calcularSolapamiento } from '../assets/js/google-calendar.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
 export function renderVistaHoy(contenedor) {
@@ -60,13 +54,6 @@ export function renderVistaHoy(contenedor) {
         : ''
     }
     <button type="button" id="boton-revisar-dia" class="boton-primario">Revisar mi día</button>
-    ${
-      soportaGoogleCalendar()
-        ? `<button type="button" id="boton-conectar-calendar">${
-            hayConexionGoogleCalendar() ? 'Conectado a Google Calendar ✓' : 'Conectar con Google Calendar'
-          }</button>`
-        : ''
-    }
     <section>
       <h3>Urgentes</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
@@ -103,18 +90,6 @@ export function renderVistaHoy(contenedor) {
   contenedor.querySelector('#boton-revisar-dia').addEventListener('click', () => {
     iniciarRevisionDia([...urgentes, ...resto]);
   });
-
-  const botonConectarCalendar = contenedor.querySelector('#boton-conectar-calendar');
-  if (botonConectarCalendar) {
-    botonConectarCalendar.addEventListener('click', async () => {
-      try {
-        await conectarGoogleCalendar();
-        renderVistaHoy(contenedor);
-      } catch (error) {
-        alert(error.message);
-      }
-    });
-  }
 
   const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-hoy');
   if (selectFiltroUbicacion) {

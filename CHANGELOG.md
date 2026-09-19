@@ -2,6 +2,39 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.51.0] - 2026-09-19
+
+Ronda 1 del rediseño: **Google Drive como único destino de los datos** (ver `REDISENO.md`, sección Almacenamiento).
+
+### Agregado
+
+- **Sincronización con Google Drive** (`assets/js/almacenamiento.js`, reescrito): buffer local durable en IndexedDB (`pendiente`, se borra solo cuando Drive confirma), copia `cache` de la última versión confirmada (base de la mezcla y copia de solo lectura sin conexión), subida con debounce de 2 s, reintentos si se edita durante la sincronización, verificación automática (al volver a la pestaña, al recuperar red y cada 5 min) y aviso `beforeunload` si hay cambios sin confirmar. La UI nunca muestra "sincronizado" hasta que Drive confirma.
+- **Mezcla entre dispositivos** (`assets/js/sincronizacion.js`, lógica pura): sello `*_modificado_en` por entidad (calculado por diferencia al guardar, sin tocar las vistas), registro de eliminados con retención de 90 días, gana el cambio más reciente de cada entidad y **avisos persistentes** de todo lo descartado (campo y valor), que el usuario cierra a mano. Aviso si Drive tiene archivos duplicados (se usa el más antiguo) y si el reloj del dispositivo está desfasado más de 2 minutos.
+- **Permiso único de Google** (`assets/js/google-auth.js`): Drive (`drive.file`) y Calendar (`calendar.readonly`) se piden juntos en un solo popup; reconexión silenciosa al abrir, con reintento en el primer clic si el navegador bloquea el popup.
+- **Cabecera de sincronización**: estado siempre visible (sincronizado / guardando / pendiente / sin conexión / sesión vencida), hora del último guardado y de la última verificación, botón "Sincronizar ahora", banners de estado y panel de avisos. **Pantalla inicial obligatoria** hasta conectar con Drive. Segunda pestaña abierta en **solo lectura** (Web Locks).
+- Campos `categoria_/ubicacion_/meta_/persona_/tarea_modificado_en` y estructura `formato 2` del archivo de Drive (`colecciones` + `eliminados` + `guardado_en`); los archivos anteriores se migran solos al leerse.
+- Datos viejos de `localStorage` (`super-todo-list:datos`): se importan solos si Drive no tiene archivo; si tiene, se ofrece mezclarlos o descartarlos.
+- `assets/js/almacenamiento-local.js` (IndexedDB v2: `cache`, `pendiente`, `avisos`).
+
+### Cambiado
+
+- "Importar JSON" ahora **pide confirmación** (reemplaza todo, también en Drive).
+- Google Calendar se concede junto con Drive: ya no hay un botón "Conectar con Google Calendar" en Hoy (en "Revisar mi día" queda un botón para reconectar si la sesión venció).
+- `sw.js`: `CACHE_NAME` a `v9` y precache de los módulos nuevos.
+
+### Eliminado
+
+- **Modo carpeta local** (File System Access API, `categorias.json`/`tareas.json`) y **`localStorage` como copia de los datos** (queda solo para preferencias). El store `handles` de IndexedDB se elimina.
+- Botones "Elegir carpeta de datos" y "Sincronizar con Google Drive" de la cabecera y el conflicto por `confirm()` todo-o-nada.
+
+### Documentación
+
+- Actualizados `CASOS_DE_USO.md` (D1-D3), `PROCESOS_AUTOMATICOS.md` (10-13), `LOGICA_FUNCIONES.md`, `DICCIONARIO_DE_DATOS.md`, `datos/esquema.json`, `REDISENO.md`, `SPEC.md`, `README.md`, `AGENTS.md` y `BACKLOG.md`.
+
+### Pendiente de validar en el navegador real
+
+- La reconexión silenciosa de Google al abrir la app (en las pruebas el popup con `prompt: 'none'` fue bloqueado) y publicar la app OAuth "En producción" en Google Cloud Console para evitar la caducidad del consentimiento a los ~7 días.
+
 ## [v0.50.0] - 2026-09-19
 
 ### Eliminado

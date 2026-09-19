@@ -17,6 +17,7 @@ Convención de fecha±hora: los campos de fecha de Tarea (`tarea_fecha_inicio_ha
 | `categoria_prioridad` | number | MVP | Prioridad relativa entre categorías **hermanas** (mismo `categoria_padre_id`). Se reordena con los botones ▲/▼ en la vista Categorías |
 | `categoria_disfrute` | number (1-5, default `3`) | MVP | Cuánto disfrutás las tareas de esta categoría. Por ahora solo se recolecta, sin ningún efecto en la app: la sugerencia automática basada en el principio de Premack se eliminó y se retoma post-v1.0, cuando haya datos reales cargados para analizar (ver `BACKLOG.md`) |
 | `categoria_padre_id` | string (UUID) \| null | MVP | Categoría padre, si esta es una categoría anidada (reemplaza al viejo concepto de Subcategoria — ahora Categoria se auto-referencia, sin límite de profundidad). `null` = categoría raíz |
+| `categoria_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar, ver "Sincronización" abajo). No se edita a mano |
 
 El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se arma recorriendo `categoria_padre_id` en tiempo de renderizado (`caminoCategoria` en `assets/js/utilidades.js`), no se guarda como campo. Al eliminar una categoría, sus categorías hijas quedan promovidas (`categoria_padre_id: null`) y las tareas asociadas quedan sin categoría.
 
@@ -45,6 +46,7 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `tarea_costo_estimado` | number, default `0` | MVP | Costo monetario estimado, opcional. Se suma en Informes para proyectar el costo de las tareas pendientes. Se copia a la instancia clonada si la tarea es de mantenimiento |
 | `meta_id` | string (UUID) \| null | MVP | Meta a la que aporta esta tarea (una sola). El progreso de la meta se calcula al vuelo filtrando por este campo |
 | `tarea_disfrute` | number (1-5) \| null, default `null` | MVP | Cuánto disfrutás esta tarea puntual (principalmente útil en tareas de mantenimiento). Por ahora solo se recolecta, sin efecto en la app — mismo criterio que `categoria_disfrute` (ver `BACKLOG.md`, Premack post-v1.0). Se copia a la instancia clonada si la tarea es de mantenimiento |
+| `tarea_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 | `tarea_prioridad_manual` | number \| null, default `null` | MVP | Desempate manual de prioridad (menor = más prioritaria), asignado por la herramienta "Versus" (vista Todas) al comparar 2 tareas empatadas. `null` = sin preferencia manual. Ver `REGLAS_DE_PRIORIDAD.md` |
 
 ## Ubicacion
@@ -55,6 +57,7 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `ubicacion_nombre` | string | MVP | Nombre de la ubicación (ej. "Casa", "Facultad") |
 | `ubicacion_latitud` | number (-90 a 90) | MVP | Usada para consultar el pronóstico real en Open-Meteo |
 | `ubicacion_longitud` | number (-180 a 180) | MVP | Idem |
+| `ubicacion_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
 Se administra desde el ABM en la vista "Ubicaciones". Al eliminar una ubicación, las tareas que la referenciaban quedan con `ubicacion_id: null`.
 
@@ -68,6 +71,7 @@ Se administra desde el ABM en la vista "Ubicaciones". Al eliminar una ubicación
 | `meta_descripcion` | string, default `""` | MVP | Texto libre opcional |
 | `meta_fecha_estimada` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha en la que se aspira a cumplir la meta |
 | `meta_creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
+| `meta_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
 Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas / tareas asociadas) se calcula al vuelo filtrando `estado.tareas` por `meta_id`, no se guarda como campo. Al eliminar una meta, las tareas que la referenciaban quedan con `meta_id: null`.
 
@@ -79,12 +83,25 @@ Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas 
 | `persona_nombre` | string | MVP | Nombre de la persona (ej. "Mamá", "Juan") |
 | `persona_ultimo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha del último encuentro/contacto registrado. Vacío = nunca registrado |
 | `persona_creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
+| `persona_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
 Se administra desde el ABM en la vista "Personas", sin relación con Tareas por ahora. La lista se ordena de mayor a menor tiempo sin contacto; el botón "Marcar contacto hoy" actualiza `persona_ultimo_contacto` a la fecha actual.
 
-## Estructura de los archivos de datos
+## Sincronización: sellos de modificación y archivo de Drive
 
-- `datos/categorias.json` → `{ "categorias": Categoria[], "ubicaciones": Ubicacion[], "metas": Meta[], "personas": Persona[] }`
-- `datos/tareas.json` → `{ "tareas": Tarea[] }`
+Cada entidad lleva un campo `<entidad>_modificado_en` (ver tablas de arriba). No se edita a mano: el sistema lo sella al guardar, comparando contra el guardado anterior, y sirve para mezclar los cambios de distintos dispositivos (gana la versión más reciente de cada entidad; ver `LOGICA_FUNCIONES.md`, `sincronizacion.js`). Un sello vacío significa "más viejo que cualquier otro".
 
-Los archivos reales con datos personales **no se versionan** (ver `.gitignore`); solo se versionan `datos/categorias.ejemplo.json`, `datos/tareas.ejemplo.json` y `datos/esquema.json`.
+Los datos viven en **un único archivo en el Google Drive del usuario**, `super-todo-list-datos.json`, con esta estructura:
+
+```
+{
+  "formato": 2,
+  "guardado_en": "ISO datetime del guardado",
+  "categorias": Categoria[], "ubicaciones": Ubicacion[], "metas": Meta[], "personas": Persona[], "tareas": Tarea[],
+  "eliminados": [ { "coleccion": "tareas", "id": "...", "eliminado_en": "ISO datetime" } ]
+}
+```
+
+`eliminados` registra qué se borró y cuándo (durante 90 días) para que una entidad eliminada en un dispositivo no reviva al mezclar con otro. Los archivos anteriores (sin `formato` ni sellos, o con los formatos viejos de campos) se migran solos al leerlos.
+
+Los datos reales con información personal **no se versionan**; en el repositorio solo hay `datos/categorias.ejemplo.json`, `datos/tareas.ejemplo.json` y `datos/esquema.json` (el esquema describe la estructura del archivo de Drive).

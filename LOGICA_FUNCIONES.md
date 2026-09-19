@@ -4,7 +4,7 @@ Documentación viva de qué hace cada función/módulo del proyecto, en lenguaje
 
 ## Arquitectura general
 
-`assets/js/almacenamiento.js` mantiene un único objeto `estado` en memoria (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`). Las vistas (`views/*.view.js`) leen `estado` directamente y llaman `persistirYNotificar()` tras cualquier cambio, que guarda y vuelve a renderizar la vista activa. `assets/js/app.js` es el punto de entrada: arma la navegación, decide qué vista renderizar según el hash de la URL, e inicializa el resto de los módulos. Categoria es una entidad auto-referenciada (`categoria_padre_id`) — no existe una entidad Subcategoria separada.
+`assets/js/almacenamiento.js` mantiene un único objeto `estado` en memoria (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`). Las vistas (`views/*.view.js`) leen `estado` directamente y llaman `persistirYNotificar()` tras cualquier cambio, que sella los cambios, los guarda en un buffer local durable (IndexedDB), los sube a Google Drive (único destino de los datos) y vuelve a renderizar la vista activa. Las vistas no saben nada de Drive ni de la mezcla entre dispositivos. `assets/js/app.js` es el punto de entrada: arma la navegación, decide qué vista renderizar según el hash de la URL, e inicializa el resto de los módulos. Categoria es una entidad auto-referenciada (`categoria_padre_id`) — no existe una entidad Subcategoria separada.
 
 ---
 
@@ -13,28 +13,49 @@ Documentación viva de qué hace cada función/módulo del proyecto, en lenguaje
 Bootstrap y router de toda la app.
 
 - **`vistaActual()`**: lee `location.hash` y devuelve la clave de vista correspondiente (o `'hoy'` si el hash no coincide con ninguna registrada en `VISTAS`).
-- **`renderNav()` / `render()`**: `render()` es la función que se re-ejecuta en cada cambio de hash o de datos (registrada tanto en `window.addEventListener('hashchange', ...)` como pasada a `suscribir()` de `almacenamiento.js`); redibuja la navegación, el estado de conexión (carpeta/Drive) y llama al `render` de la vista activa.
-- **`actualizarEstadoConexion()` / `actualizarBotonDrive()`**: texto/estado de los botones de la cabecera según si hay carpeta local elegida o conexión a Drive activa.
+- **`renderNav()` / `render()`**: `render()` es la función que se re-ejecuta en cada cambio de hash o de datos (registrada en `hashchange` y pasada a `suscribir()` de `almacenamiento.js`); redibuja la navegación, la cabecera de sincronización y llama al `render` de la vista activa. Si todavía no hay datos listos (`obtenerEstadoSync().datosListos` es falso) muestra la pantalla inicial en lugar de la vista; si esta pestaña es de solo lectura (otra pestaña tiene el bloqueo de edición) muestra un aviso arriba.
+- **Cabecera de sincronización** (`actualizarCabeceraSync()`, suscripta con `suscribirSync()`): `#indicador-sync` muestra el estado (`sin-destino`, `conectando`, `verificando`, `guardando`, `pendiente`, `sincronizado`, `sin-conexion`, `sesion-vencida`, `error`) con la hora del último guardado y de la última verificación; `#boton-sync` ("Sincronizar ahora"); `#banner-sync` con los avisos de estado (sin conexión con la fecha de la copia de solo lectura, sesión vencida, "Conectado y sincronizado", hay cambios de otro dispositivo → "Actualizar", datos viejos de `localStorage` para mezclar/descartar, reloj desfasado); `#panel-avisos` con la lista de avisos de conflicto/borrado que se cierran a mano (`renderPanelAvisos`). Los clics se resuelven por delegación con `data-accion-sync`. Una actualización de estado solo redibuja la cabecera; las vistas solo se redibujan si cambia la clave de render (`datosListos | soloLectura | conectando`).
+- **`renderPantallaInicial()`**: pantalla previa a tener datos (sin sesión de Google, o conectando): explica que los datos se guardan en el Drive del usuario y ofrece "Conectar con Google Drive". No se puede cargar tareas hasta conectar.
 - **Atajo de teclado "N"**: un listener global de `keydown` que, si no hay modificadores (`Ctrl`/`Alt`/`Meta`) y el foco no está en un campo editable (`INPUT`/`TEXTAREA`/`SELECT`/`contentEditable`), navega a la vista Tareas (si no se está ya ahí) y enfoca el input de alta rápida (`#form-alta-rapida input[name="tarea_nombre"]`). Usa un flag módulo (`enfocarAltaRapidaAlEntrar`) para enfocar recién después de que el cambio de hash haya disparado el re-render de la vista.
-- **Tema claro/oscuro**: `temaEfectivo()`/`aplicarTema()` leen/aplican la preferencia guardada en `localStorage` (clave separada de los datos de la app), con fallback a `prefers-color-scheme` del sistema.
-- **Reprogramado automático al iniciar**: después de `inicializarAlmacenamiento()`, se llama `reprogramarFechasSugeridasVencidas(estado.tareas)` (`tareas-logica.js`) y, si afectó alguna tarea, se persiste y se avisa con un `alert()`. Ver `REGLAS_DE_PRIORIDAD.md`.
-- Wiring de los botones de la cabecera (elegir carpeta, Drive, exportar/importar JSON) hacia las funciones correspondientes de `almacenamiento.js`.
+- **Tema claro/oscuro**: `temaEfectivo()`/`aplicarTema()` leen/aplican la preferencia guardada en `localStorage` (una preferencia, nunca datos de tareas), con fallback a `prefers-color-scheme` del sistema.
+- **Reprogramado automático al iniciar** (`reprogramarSiCorresponde()`): una sola vez, cuando los datos ya están listos (después de `inicializarAlmacenamiento()` o de conectar), se llama `reprogramarFechasSugeridasVencidas(estado.tareas)` (`tareas-logica.js`) y, si afectó alguna tarea, se persiste y se avisa con un `alert()`. Ver `REGLAS_DE_PRIORIDAD.md`.
+- Wiring de los botones de la cabecera (sincronizar ahora, exportar/importar JSON, tema) hacia `almacenamiento.js`.
 - Al final, llama `inicializarAlmacenamiento()` y registra el service worker (`sw.js`).
 
 ## `assets/js/almacenamiento.js`
 
-Estado en memoria, persistencia y migración de datos.
+Estado en memoria, sincronización con Google Drive y migración de datos.
 
-- **`estado`**: objeto exportado con las 5 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`). Es la única fuente de verdad; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
-- **`suscribir(fn)` / `notificar()`**: patrón observer simple — cualquier módulo puede suscribirse para re-renderizar cuando cambian los datos.
-- **Migración retrocompatible**, en dos pasos:
-  - **`fusionarSubcategoriasEnCategorias(datosCrudos)`**: si los datos traen una colección `subcategorias` separada (formato de rondas anteriores), convierte cada una en una Categoria (reusando el mismo id como `categoria_id`, con `categoria_padre_id` = la categoría que era su padre), y reasigna `tarea.categoria_id = tarea.subcategoria_id` en cualquier tarea que tuviera ese campo.
-  - **`migrarCategoria`, `migrarUbicacion`, `migrarMeta`, `migrarPersona`, `migrarTarea`**: migradores por entidad, tolerantes a 3 generaciones de formato (el original con clave `id`, el patrón `entidad_atributo` de la ronda anterior, y el formato actual), detectando cuál es por la presencia/ausencia de claves clave. `normalizarDatosCrudos(datos)` encadena ambos pasos y, al final, recorre las tareas migradas con `recalcularBloqueo` (de `tareas-logica.js`) para fijar el `tarea_estado` inicial correcto según `tarea_dependiente`.
-- **Persistencia**: `guardarEnLocalStorage()` serializa `estado` completo a `localStorage`. `guardarTodo()` además escribe en la carpeta local elegida (si hay una) y sincroniza con Google Drive (si hay conexión). `persistirYNotificar()` es el atajo que usan las vistas: guarda y notifica a los suscriptores.
-- **4 puntos de carga de datos externos** (todos pasan por `normalizarDatosCrudos`): `cargarDeLocalStorage()`, `cargarDesdeCarpeta()` (combina `categorias.json` + `tareas.json` en un solo objeto antes de normalizar, para que la fusión de Subcategoria pueda ver las tareas de ambos archivos), `conectarDrive()`, `importarJSON(archivo)`.
-- **`elegirCarpetaDatos()` / `hayCarpetaDatosElegida()`**: File System Access API, con el handle guardado en IndexedDB para no tener que re-elegir la carpeta en cada sesión.
-- **`exportarJSON()`**: descarga `estado` completo como archivo `.json`.
-- **`inicializarAlmacenamiento()`**: orquesta el arranque — carga de `localStorage`, después intenta recuperar y cargar la carpeta local si había una guardada, y notifica al final.
+- **`estado`**: objeto exportado con las 5 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
+- **`suscribir(fn)` / `notificar()`**: observer simple para re-renderizar cuando cambian los datos. **`suscribirSync(fn)` / `obtenerEstadoSync()`**: observer aparte para el estado de sincronización (`estado`, `datosListos`, `soloLectura`, hora del último guardado/verificación, avisos, cambios remotos pendientes de aplicar, etc.), que solo redibuja la cabecera.
+- **Migración retrocompatible**, en dos pasos (sin cambios): **`fusionarSubcategoriasEnCategorias`** y **`migrarCategoria`/`migrarUbicacion`/`migrarMeta`/`migrarPersona`/`migrarTarea`**, encadenados por `normalizarDatosCrudos`, que al final recalcula el bloqueo de cada tarea con `recalcularBloqueo`. Los archivos de Drive de versiones anteriores (sin sellos `*_modificado_en`) pasan por acá al leerse.
+- **Guardar (`persistirYNotificar()`)**: es el único punto de guardado que usan las vistas. (1) `sellarCambios` compara contra la última foto y pone `*_modificado_en` a lo que cambió y registra las bajas en `eliminados`; (2) guarda el estado de trabajo en el buffer `pendiente` de IndexedDB (durable, sobrevive a recargar); (3) sube la versión local (`versionLocal++`) y el estado pasa a `pendiente`; (4) `programarSubida()` agenda la subida a Drive con un debounce de 2 s (antes de notificar, para que un error al redibujar una vista no impida la subida); (5) notifica a las vistas. **La UI solo pasa a `sincronizado` cuando Drive confirmó**; recién entonces se actualiza la copia `cache` y se borra `pendiente`.
+- **`sincronizarAhora({ forzar })` / `sincronizarUnaVez()`**: pide a Drive los datos del archivo (`buscarArchivoRemoto`), lo crea si no existe, lo descarga y mezcla con `mezclar(local, remoto, base=cache)` si cambió, aplica el resultado y lo sube. Si el usuario editó durante la sincronización (cambió `versionLocal`), reintenta hasta 3 veces. Con cambios remotos y algo tipeándose en un campo (`hayTextoEnEdicion`), los difiere: la cabecera ofrece "Actualizar" y se aplican al salir del campo.
+- **Verificación automática** (`verificar()`): al volver a la pestaña (`visibilitychange`), al recuperar red (`online`) y cada 5 minutos; solo actualiza la hora de "verificado" si no hay nada nuevo. Detecta además el reloj desfasado (>2 min) comparando la hora local con el `modifiedTime` devuelto en una subida.
+- **Errores** (`manejarErrorSync`): sin red → `sin-conexion`; token vencido/401 → `sesion-vencida` (botón "Reconectar Drive"). En ambos los cambios siguen en `pendiente` y se suben al volver la conexión.
+- **Conexión**: `conectarDrive()` (botón/pantalla inicial) pide el token unificado y sincroniza; `reconexionSilenciosa()` intenta reconectar sin popup al abrir la app, y `reconectarEnPrimerGesto()` reintenta en el primer clic/tecla del usuario si el navegador bloqueó el intento inicial.
+- **Avisos**: `agregarAvisos`, `descartarAviso(id)`, `descartarTodosLosAvisos()` — se guardan en IndexedDB y no se pierden al recargar. Los generan la mezcla (conflictos, ediciones vs. borrados) y la detección de archivos duplicados en Drive (se usa el más antiguo).
+- **Bloqueo de edición** (`adquirirBloqueoEdicion`): Web Locks `stdl-editor`; la segunda pestaña abierta queda en solo lectura.
+- **Datos viejos** (`leerDatosViejos`, `mezclarDatosViejos()`, `descartarDatosViejos()`): si en `localStorage` quedan datos de una versión anterior (`super-todo-list:datos`), se ofrece mezclarlos con Drive o descartarlos; si Drive no tiene archivo, se importan solos. Nunca se ignoran en silencio.
+- **`exportarJSON()`**: descarga el `estado` completo como `.json`. **`importarJSON(archivo)`**: pide confirmación explícita (reemplaza todo lo que hay en Drive) y pasa por `normalizarDatosCrudos`.
+- **`inicializarAlmacenamiento()`**: lee `pendiente`/`cache`/avisos de IndexedDB, muestra al instante lo último que hubo (pendiente si existe, si no la copia en cache; solo lectura si no hay conexión), adquiere el bloqueo de edición, intenta la sesión de Google y, si la hay, sincroniza. Registra los eventos de verificación y el aviso `beforeunload` si hay cambios sin confirmar.
+
+## `assets/js/sincronizacion.js`
+
+Lógica **pura** (sin DOM ni red) de sellado y mezcla entre dispositivos. Toda la política de conflictos vive acá.
+
+- **`COLECCIONES`**: configuración de las 5 colecciones (clave de id, campo de sello `*_modificado_en`, campo de nombre para los avisos, etiqueta).
+- **`sellarCambios(estado, ultimo, base, eliminados, ahora)`**: compara cada entidad contra la última foto guardada; nueva o distinta → `*_modificado_en = ahora`; ausente ahora y presente antes → tombstone en `eliminados`. Usa `estable()` para comparar sin que importe el orden de las claves.
+- **`mezclar(local, remoto, base, ahora)`**: por id y entidad completa. Si solo un lado cambió respecto de `base`, gana ese; si cambiaron ambos, gana el sello más nuevo (empate → remoto) y se genera un aviso con los campos y valores descartados; borrado vs. edición: se conserva lo más reciente y se avisa. Devuelve `{ estado, eliminados, avisos }`.
+- **`datosParaArchivo(estado, eliminados, ahora)`**: arma el JSON de Drive (formato 2: colecciones, `eliminados`, `guardado_en`). **`fotoColecciones`**, **`copiarProfundo`**, **`difierenDatos`**, **`purgarEliminados`** (borra tombstones de más de 90 días).
+
+## `assets/js/almacenamiento-local.js`
+
+IndexedDB (`super-todo-list`, versión 2) para lo que no puede depender de la red. Todas las operaciones fallan en silencio devolviendo `null` (con `hayAlmacenamientoLocal()` para saber si hay soporte).
+
+- **`leerCache()` / `guardarCache()`**: última copia **confirmada por Drive** (datos + `modifiedTime`). Es la base de la mezcla y la copia de solo lectura sin conexión.
+- **`leerPendiente()` / `guardarPendiente()` / `borrarPendiente()`**: estado de trabajo con cambios aún no confirmados por Drive. **Se borra únicamente después de que Drive confirma.**
+- **`leerAvisos()` / `guardarAvisos()`**: avisos de conflicto sin descartar.
 
 ## `assets/js/modelos.js`
 
@@ -128,21 +149,29 @@ Capa de IA "conectable": arma prompts en texto plano para copiar/pegar en un LLM
 - **`construirPromptChatMeta(historial)` / `parsearRespuestaChatMeta(texto)`**: diálogo de ida y vuelta para definir una Meta desde una idea vaga.
 - **`construirPromptFinalizarMeta(historial)` / `parsearRespuestaFinalizarMeta(texto)`**: cierra la conversación pidiendo un JSON con `meta_nombre`/`meta_plazo`/`meta_fecha_estimada`/`meta_descripcion`.
 
-## `assets/js/google-calendar.js`
+## `assets/js/google-auth.js`
 
-Lectura de eventos reales de Google Calendar (requiere OAuth, a diferencia de la exportación puntual).
+Permiso único de Google para Drive y Calendar (un solo popup por sesión).
 
-- **`soportaGoogleCalendar()` / `hayConexionGoogleCalendar()` / `conectarGoogleCalendar()`**: Google Identity Services (token client, scope de solo lectura), token en memoria (no persiste, expira en ~1h).
-- **`obtenerEventosDeHoy()`**: trae los eventos del día actual, con caché en memoria por día.
-- **`calcularSolapamiento(tarea, eventos)`**: compara la ventana `[tarea_fecha_sugerida (con hora), +tarea_duracion_min]` contra cada evento y devuelve el primero que se superpone (usado en Hoy).
+- **`conectar({ silencioso })`**: pide un token de acceso con los scopes `drive.file` + `calendar.readonly` juntos vía Google Identity Services. El token vive solo en memoria (~1 h). Con `silencioso: true` usa `prompt: 'none'` (sin popup visible; puede fallar si Google necesita interacción). El `TokenClient` es singleton, así que los callbacks reales delegan a handlers reasignables por cada llamada (una nueva conexión cancela la anterior en curso).
+- **`hayToken()` / `obtenerTokenAcceso()` / `tieneScope('drive' | 'calendar')`**: `tieneScope` usa `hasGrantedAllScopes` porque el usuario puede desmarcar permisos en el consentimiento granular; con Drive denegado no se puede trabajar, con Calendar denegado se ocultan solo las funciones de Calendar.
+- **`esperarGoogle()`**: espera a que cargue el script async de Google. **`soportaGoogle()`**, **`conectadoAlgunaVez()`** (flag de preferencia en `localStorage` para intentar la reconexión silenciosa), **`alPerderSesion(cb)`** / **`invalidarToken()`** (401 de Google → avisa a `almacenamiento.js`).
 
 ## `assets/js/google-drive-sync.js`
 
-Sincronización vía Google Drive API (OAuth, scope `drive.file`).
+Cliente mínimo de Google Drive API v3 con `fetch`. El único destino de los datos.
 
-- **`soportaGoogleDrive()` / `hayConexionDrive()` / `conectarDriveOAuth()`**: mismo patrón de token client que `google-calendar.js`.
-- **`buscarArchivoRemoto()`**: busca (o reusa de la sesión) el archivo `super-todo-list-datos.json` en Drive.
-- **`leerArchivoRemoto(id)` / `guardarArchivoRemoto(datos)`**: descarga o crea/actualiza el archivo remoto con el `estado` completo.
+- **`ErrorDrive`**: error con `codigo` (`sin-sesion`, `sesion-vencida`, `sin-conexion`, `no-encontrado`, `otro`) para que `almacenamiento.js` decida qué estado mostrar. `pedirDrive` envuelve el `fetch`, invalida el token ante un 401 y traduce los fallos de red.
+- **`buscarArchivoRemoto()`**: busca `super-todo-list-datos.json` (con `drive.file` ve el archivo creado por la app en cualquier dispositivo). Devuelve `{ id, modifiedTime, createdTime, duplicados }`; si hay más de uno (dos dispositivos lo crearon a la vez) elige el más antiguo.
+- **`leerArchivoRemoto(id)`**: descarga y parsea el contenido. **`guardarArchivoRemoto(datos)`**: crea (multipart) o actualiza (PATCH) el archivo; devuelve `{ id, modifiedTime, desfaseRelojMs }`.
+
+## `assets/js/google-calendar.js`
+
+Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (ya no tiene conexión propia).
+
+- **`soportaGoogleCalendar()` / `hayConexionGoogleCalendar()`**: `hayConexionGoogleCalendar` es verdadero si hay token y el usuario concedió el scope de Calendar.
+- **`obtenerEventosDeHoy()`**: trae los eventos del día actual, con caché en memoria por día.
+- **`calcularSolapamiento(tarea, eventos)`**: compara la ventana `[tarea_fecha_sugerida (con hora), +tarea_duracion_min]` contra cada evento y devuelve el primero que se superpone (usado en Hoy).
 
 ## `assets/js/ubicacion-actual.js`
 

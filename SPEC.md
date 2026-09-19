@@ -25,13 +25,13 @@ Plataforma personal de autogestión de tareas y objetivos que reemplace la combi
 
 ## 3. Alcance
 
-### Construido (v0.50.0)
+### Construido (v0.51.0)
 
-Categorías jerárquicas de profundidad libre; tareas con fechas (con o sin hora), importancia, dependencias, tareas de mantenimiento cíclicas, días hábiles, ubicación, clima y costo; metas; personas; algoritmo de prioridad por holgura + categoría + importancia con desempate manual ("Versus"); reprogramado automático de fechas sugeridas vencidas; vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes; integración con Google Drive (sincronización) y Google Calendar (exportar completadas, detectar solapamientos); PWA instalable.
+Categorías jerárquicas de profundidad libre; tareas con fechas (con o sin hora), importancia, dependencias, tareas de mantenimiento cíclicas, días hábiles, ubicación, clima y costo; metas; personas; algoritmo de prioridad por holgura + categoría + importancia con desempate manual ("Versus"); reprogramado automático de fechas sugeridas vencidas; vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes; almacenamiento en Google Drive como único destino (buffer local durable, mezcla entre dispositivos con avisos de conflicto, estado de sincronización siempre visible) e integración con Google Calendar (exportar completadas, detectar solapamientos); PWA instalable.
 
 ### Camino a v1.0
 
-Rediseño del frontend y cambio de almacenamiento, definido en [REDISENO.md](REDISENO.md) y organizado en 8 rondas (almacenamiento con Drive como único destino → modelo de datos → alta unificada → Hoy → ABMs → Tablero de progreso y hábitos → Gantt → rediseño visual). Las dos primeras rondas se hacen **antes de cargar datos reales**.
+Rediseño del frontend y cambio de almacenamiento, definido en [REDISENO.md](REDISENO.md) y organizado en 8 rondas (almacenamiento con Drive como único destino → modelo de datos → alta unificada → Hoy → ABMs → Tablero de progreso y hábitos → Gantt → rediseño visual). Las dos primeras rondas se hacen **antes de cargar datos reales**. La ronda 1 (almacenamiento) está hecha desde v0.51.0.
 
 ### Después de la v1.0
 
@@ -51,7 +51,7 @@ Capa de IA conectable (sugerir subtareas, definir metas charlando, reestructurar
 - **Arquitectura:** 100% cliente (HTML/CSS/JS vanilla), sin backend, sin build tools ni frameworks.
 - **Rendimiento:** liviana, sin dependencias externas pesadas — a diferencia de Google Calendar, que es lento en la PC de 16 GB de RAM del usuario.
 - **Formato de fechas en UI:** DD/MM/YYYY; horarios de 24 horas, zona horaria UTC−3. Internamente se guardan en ISO (`YYYY-MM-DD`, o datetime ISO completo cuando la fecha lleva hora — ver la convención fecha±hora en el diccionario de datos).
-- **Persistencia (objetivo v1.0):** **Google Drive por API como único destino**, en todos los dispositivos, con un archivo JSON. `localStorage` queda solo para preferencias (tema, ubicación actual); sin modo carpeta local. Cambios que fallan al guardarse quedan en un buffer temporal marcado "pendiente"; con conexión caída se muestra una copia de solo lectura; hay verificación automática y mezcla por tarea entre dispositivos. *(Hoy conviven `localStorage`, carpeta local y Drive; se reemplazan en la ronda 1.)*
+- **Persistencia:** **Google Drive por API como único destino**, en todos los dispositivos, con un archivo JSON. `localStorage` queda solo para preferencias (tema, ubicación actual); sin modo carpeta local. Cambios que fallan al guardarse quedan en un buffer temporal marcado "pendiente"; con conexión caída se muestra una copia de solo lectura; hay verificación automática y mezcla por tarea entre dispositivos. *(Implementado en v0.51.0.)*
 - **IA:** el núcleo del sistema **no depende de tokens de ningún LLM**.
 - **Idioma:** documentación, UI y nombres de campos/funciones en español castellano (ver [AGENTS.md](AGENTS.md)).
 - **Versionado:** `vMayor.Menor.Parche` (semver), registrado en [CHANGELOG.md](CHANGELOG.md); el `README.md` indica siempre la versión vigente.

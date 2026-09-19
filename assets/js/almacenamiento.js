@@ -1,24 +1,22 @@
-import {
-  soportaGoogleDrive,
-  hayConexionDrive,
-  conectarDriveOAuth,
-  buscarArchivoRemoto,
-  leerArchivoRemoto,
-  guardarArchivoRemoto,
-} from './google-drive-sync.js';
+// Estado de la app en memoria y su sincronización con Google Drive, que es el
+// único destino real de los datos. Ningún dato de tareas se guarda en
+// `localStorage`: mientras Drive no confirma un cambio, ese cambio vive en un
+// buffer "pendiente" (IndexedDB, ver almacenamiento-local.js) que la UI nunca
+// presenta como guardado. Las vistas siguen usando solo `estado` y
+// `persistirYNotificar()`.
+import { conectar, hayToken, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion } from './google-auth.js';
+import { buscarArchivoRemoto, leerArchivoRemoto, guardarArchivoRemoto, ErrorDrive } from './google-drive-sync.js';
+import * as almacenamientoLocal from './almacenamiento-local.js';
+import { COLECCIONES, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
 import { recalcularBloqueo } from './tareas-logica.js';
 
-const NOMBRE_BD = 'super-todo-list';
-const VERSION_BD = 1;
-const ALMACEN_HANDLES = 'handles';
-const CLAVE_LOCALSTORAGE = 'super-todo-list:datos';
-const CLAVE_LOCALSTORAGE_ULTIMA_MOD = 'super-todo-list:ultima-modificacion';
-const ARCHIVO_CATEGORIAS = 'categorias.json';
-const ARCHIVO_TAREAS = 'tareas.json';
-
-export { soportaGoogleDrive, hayConexionDrive };
-
-export const soportaFileSystemAccess = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
+const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
+const DEBOUNCE_SUBIDA_MS = 2000;
+const INTERVALO_VERIFICACION_MS = 5 * 60 * 1000;
+const REINTENTO_ERROR_MS = 60 * 1000;
+const ESPERA_RECONEXION_SILENCIOSA_MS = 60 * 1000;
+const DESFASE_RELOJ_MAX_MS = 2 * 60 * 1000;
 
 export const estado = {
   categorias: [],
@@ -28,15 +26,77 @@ export const estado = {
   tareas: [],
 };
 
-let carpetaDatosHandle = null;
 const listeners = [];
+const listenersSync = [];
+
+// Tombstones de lo eliminado (van en el archivo de Drive, no en `estado`).
+let eliminados = [];
+// Foto de las colecciones en el último sellado, para saber qué cambió.
+let ultimoSellado = null;
+// Última copia confirmada en Drive (ancestro común para mezclar) y su modifiedTime.
+let base = null;
+let baseModifiedTime = null;
+// Sube con cada cambio local, para detectar cambios ocurridos durante una sincronización.
+let versionLocal = 0;
+let sincronizando = false;
+let volverASincronizar = false;
+let temporizadorSubida = null;
+let ultimoIntentoSilencioso = 0;
+let avisoDuplicadosMostrado = false;
+// Datos que versiones anteriores guardaban en localStorage (se ofrecen, no se ignoran).
+let datosViejos = null;
+
+/**
+ * Estado de sincronización que muestra la cabecera:
+ * `estado` ∈ sin-destino | conectando | verificando | guardando | pendiente |
+ * sincronizado | sin-conexion | sesion-vencida | error.
+ */
+const sync = {
+  estado: 'conectando',
+  datosListos: false,
+  hayPendiente: false,
+  modificadoEnDrive: null,
+  verificadoEn: null,
+  copiaDel: null,
+  avisos: [],
+  cambiosRemotosDisponibles: false,
+  soloLectura: false,
+  relojDesfasado: false,
+  desfaseRelojMs: 0,
+  datosViejosDisponibles: false,
+  mensajeError: '',
+  almacenamientoLocalDisponible: true,
+  recienConectado: false,
+};
+
+export function suscribir(fn) {
+  listeners.push(fn);
+}
+
+export function suscribirSync(fn) {
+  listenersSync.push(fn);
+}
+
+function notificar() {
+  listeners.forEach((fn) => fn(estado));
+}
+
+export function obtenerEstadoSync() {
+  return { ...sync, avisos: [...sync.avisos] };
+}
+
+function setSync(parcial) {
+  Object.assign(sync, parcial);
+  listenersSync.forEach((fn) => fn(obtenerEstadoSync()));
+}
 
 /**
  * Migración retrocompatible del modelo de datos. Tolera 3 generaciones de
  * datos guardados: el formato original (clave `id` a secas), el patrón
  * `entidad_atributo` de la ronda anterior (con `Subcategoria` como entidad
- * separada), y el formato actual. Se aplica a datos leídos de localStorage,
- * carpeta local, Google Drive o un JSON importado.
+ * separada), y el formato actual. Se aplica a datos leídos de Google Drive,
+ * de la copia local (caché o pendiente), de un JSON importado o de los datos
+ * que una versión anterior dejó en localStorage.
  */
 
 /**
@@ -192,229 +252,539 @@ function normalizarDatosCrudos(datosOriginal) {
   return { categorias, ubicaciones, metas, personas, tareas };
 }
 
-export function suscribir(fn) {
-  listeners.push(fn);
+// ---------------------------------------------------------------------------
+// Utilidades internas
+// ---------------------------------------------------------------------------
+
+function normalizarArchivo(crudo) {
+  const normalizados = normalizarDatosCrudos(crudo || {});
+  return { ...normalizados, eliminados: Array.isArray(crudo?.eliminados) ? crudo.eliminados : [] };
 }
 
-function notificar() {
-  listeners.forEach((fn) => fn(estado));
+function datosActuales(ahora) {
+  return datosParaArchivo(estado, eliminados, ahora);
 }
 
-function abrirBD() {
-  return new Promise((resolve, reject) => {
-    const peticion = indexedDB.open(NOMBRE_BD, VERSION_BD);
-    peticion.onupgradeneeded = () => {
-      peticion.result.createObjectStore(ALMACEN_HANDLES);
-    };
-    peticion.onsuccess = () => resolve(peticion.result);
-    peticion.onerror = () => reject(peticion.error);
-  });
+function tomarFotoSellado() {
+  ultimoSellado = fotoColecciones(estado);
 }
 
-async function guardarHandleCarpeta(handle) {
-  const bd = await abrirBD();
-  return new Promise((resolve, reject) => {
-    const tx = bd.transaction(ALMACEN_HANDLES, 'readwrite');
-    tx.objectStore(ALMACEN_HANDLES).put(handle, 'carpetaDatos');
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function recuperarHandleCarpeta() {
-  const bd = await abrirBD();
-  return new Promise((resolve, reject) => {
-    const tx = bd.transaction(ALMACEN_HANDLES, 'readonly');
-    const peticion = tx.objectStore(ALMACEN_HANDLES).get('carpetaDatos');
-    peticion.onsuccess = () => resolve(peticion.result || null);
-    peticion.onerror = () => reject(peticion.error);
-  });
-}
-
-function guardarEnLocalStorage() {
-  try {
-    localStorage.setItem(CLAVE_LOCALSTORAGE, JSON.stringify(estado));
-  } catch (error) {
-    console.warn('No se pudo guardar en localStorage:', error);
+/**
+ * Reemplaza el contenido de `estado` con `datos` (colecciones + eliminados) y
+ * recalcula el bloqueo de las tareas; las que cambian de estado por eso se
+ * sellan con `ahora`.
+ */
+function aplicarDatosAlEstado(datos, ahora) {
+  for (const cfg of COLECCIONES) estado[cfg.clave] = datos[cfg.clave] || [];
+  eliminados = datos.eliminados || [];
+  const antes = new Map(estado.tareas.map((t) => [t.tarea_id, t.tarea_estado]));
+  estado.tareas.forEach((t) => recalcularBloqueo(t, estado.tareas));
+  if (ahora) {
+    estado.tareas.forEach((t) => {
+      if (antes.get(t.tarea_id) !== t.tarea_estado) t.tarea_modificado_en = ahora;
+    });
   }
 }
 
-function cargarDeLocalStorage() {
-  const crudo = localStorage.getItem(CLAVE_LOCALSTORAGE);
-  if (!crudo) return false;
-  try {
-    const datos = JSON.parse(crudo);
-    Object.assign(estado, normalizarDatosCrudos(datos));
-    return true;
-  } catch (error) {
-    console.warn('No se pudo leer localStorage:', error);
-    return false;
+/**
+ * ¿Hay texto a medio escribir en un campo? Las vistas se redibujan enteras al
+ * aplicar cambios, lo que borraría lo tipeado: en ese caso se difiere.
+ */
+function hayTextoEnEdicion() {
+  const elemento = typeof document !== 'undefined' ? document.activeElement : null;
+  if (!elemento) return false;
+  if (elemento.tagName === 'TEXTAREA') return elemento.value !== '';
+  if (elemento.tagName === 'INPUT') {
+    const tipo = (elemento.type || 'text').toLowerCase();
+    if (['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'color', 'range'].includes(tipo)) return false;
+    return elemento.value !== '';
   }
+  return !!elemento.isContentEditable;
 }
 
-async function escribirArchivo(nombreArchivo, contenido) {
-  if (!carpetaDatosHandle) return;
-  const handleArchivo = await carpetaDatosHandle.getFileHandle(nombreArchivo, { create: true });
-  const flujo = await handleArchivo.createWritable();
-  await flujo.write(JSON.stringify(contenido, null, 2));
-  await flujo.close();
+function estadoSinSesion() {
+  return typeof navigator !== 'undefined' && navigator.onLine === false ? 'sin-conexion' : 'sesion-vencida';
 }
 
-async function leerArchivo(nombreArchivo) {
+/** Solo una pestaña puede editar a la vez: dos pestañas se pisarían el buffer pendiente. */
+function adquirirBloqueoEdicion() {
+  if (typeof navigator === 'undefined' || !navigator.locks) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    navigator.locks.request('stdl-editor', { ifAvailable: true }, (bloqueo) => {
+      if (!bloqueo) {
+        resolve(false);
+        return undefined;
+      }
+      resolve(true);
+      return new Promise(() => {});
+    });
+  });
+}
+
+function leerDatosViejos() {
   try {
-    const handleArchivo = await carpetaDatosHandle.getFileHandle(nombreArchivo, { create: false });
-    const archivo = await handleArchivo.getFile();
-    const texto = await archivo.text();
-    return JSON.parse(texto);
+    const crudo = localStorage.getItem(CLAVE_LOCALSTORAGE_VIEJA);
+    if (!crudo) return null;
+    const normalizados = normalizarDatosCrudos(JSON.parse(crudo));
+    const total = COLECCIONES.reduce((suma, cfg) => suma + normalizados[cfg.clave].length, 0);
+    return total > 0 ? { ...normalizados, eliminados: [] } : null;
   } catch {
     return null;
   }
 }
 
-function recordarUltimoModifiedTimeDrive(modifiedTime) {
+function limpiarDatosViejos() {
+  datosViejos = null;
   try {
-    localStorage.setItem(CLAVE_LOCALSTORAGE_ULTIMA_MOD, modifiedTime);
-  } catch (error) {
-    console.warn('No se pudo guardar la fecha de sincronización con Drive:', error);
+    localStorage.removeItem(CLAVE_LOCALSTORAGE_VIEJA);
+  } catch {
+    // Nada más que hacer: solo es limpieza de datos que ya no se usan.
+  }
+  setSync({ datosViejosDisponibles: false });
+}
+
+function avisoInformativo(ahora, mensaje) {
+  return { id: `${ahora}-info-${Math.random().toString(36).slice(2, 8)}`, creado_en: ahora, tipo: 'info', coleccion: '', nombre: '', mensaje, camposDescartados: [] };
+}
+
+// ---------------------------------------------------------------------------
+// Avisos de sincronización (nada se pierde en silencio)
+// ---------------------------------------------------------------------------
+
+async function agregarAvisos(nuevos) {
+  if (nuevos.length === 0) return;
+  const avisos = [...sync.avisos, ...nuevos];
+  setSync({ avisos });
+  await almacenamientoLocal.guardarAvisos(avisos);
+}
+
+export async function descartarAviso(id) {
+  const avisos = sync.avisos.filter((aviso) => aviso.id !== id);
+  setSync({ avisos });
+  await almacenamientoLocal.guardarAvisos(avisos);
+}
+
+export async function descartarTodosLosAvisos() {
+  setSync({ avisos: [] });
+  await almacenamientoLocal.guardarAvisos([]);
+}
+
+// ---------------------------------------------------------------------------
+// Guardado: cada cambio va primero al buffer pendiente y después a Drive
+// ---------------------------------------------------------------------------
+
+/**
+ * Único punto de guardado de las vistas: sella qué cambió, guarda una copia
+ * temporal durable ("pendiente") y programa la subida a Drive. El estado
+ * queda "pendiente" hasta que Drive confirme.
+ */
+export async function persistirYNotificar() {
+  if (sync.soloLectura) return;
+  const ahora = new Date().toISOString();
+  eliminados = sellarCambios(estado, ultimoSellado, base, eliminados, ahora);
+  tomarFotoSellado();
+  versionLocal += 1;
+
+  const guardado = await almacenamientoLocal.guardarPendiente({ datos: datosActuales(ahora), desde: ahora });
+  const conservaEstado = ['sin-conexion', 'sesion-vencida', 'error', 'sin-destino'].includes(sync.estado);
+  setSync({
+    hayPendiente: true,
+    estado: conservaEstado ? sync.estado : 'pendiente',
+    almacenamientoLocalDisponible: almacenamientoLocal.hayAlmacenamientoLocal(),
+    mensajeError: guardado ? sync.mensajeError : 'No se pudo guardar una copia temporal en este navegador: si cerrás la pestaña antes de que Drive confirme, se pierde el último cambio.',
+  });
+  // La subida se programa antes de notificar: si una vista falla al redibujar,
+  // el cambio igual llega a Drive.
+  programarSubida();
+  notificar();
+}
+
+function programarSubida(retraso = DEBOUNCE_SUBIDA_MS) {
+  if (sync.soloLectura) return;
+  clearTimeout(temporizadorSubida);
+  temporizadorSubida = setTimeout(async () => {
+    if (!hayToken() && !(await reconexionSilenciosa())) {
+      setSync({ estado: estadoSinSesion() });
+      return;
+    }
+    sincronizarAhora();
+  }, retraso);
+}
+
+let reconectando = false;
+
+/**
+ * Intenta recuperar el permiso de Google sin pedirle nada al usuario
+ * (`prompt: 'none'`). Sin un gesto del usuario los navegadores suelen bloquear
+ * el popup que usa Google, por eso también se reintenta en el primer clic o
+ * tecla (`reconectarEnPrimerGesto`), donde el popup sí está permitido.
+ */
+async function reconexionSilenciosa({ ignorarEspera = false } = {}) {
+  if (hayToken()) return true;
+  if (!conectadoAlgunaVez() || reconectando) return false;
+  if (!ignorarEspera && Date.now() - ultimoIntentoSilencioso < ESPERA_RECONEXION_SILENCIOSA_MS) return false;
+  ultimoIntentoSilencioso = Date.now();
+  reconectando = true;
+  try {
+    if (!(await esperarGoogle())) return false;
+    await conectar({ silencioso: true });
+    return tieneScope('drive');
+  } catch {
+    return false;
+  } finally {
+    reconectando = false;
   }
 }
 
-export async function guardarTodo() {
-  guardarEnLocalStorage();
+// ---------------------------------------------------------------------------
+// Sincronización con Drive
+// ---------------------------------------------------------------------------
 
-  if (carpetaDatosHandle) {
-    await escribirArchivo(ARCHIVO_CATEGORIAS, {
-      categorias: estado.categorias,
-      ubicaciones: estado.ubicaciones,
-      metas: estado.metas,
-      personas: estado.personas,
-    });
-    await escribirArchivo(ARCHIVO_TAREAS, { tareas: estado.tareas });
+/**
+ * Sincroniza con Drive: sube lo pendiente, trae y mezcla lo que otro
+ * dispositivo haya cambiado, y recién cuando Drive confirma actualiza la copia
+ * local y borra el buffer pendiente. La usan el arranque, el botón "Sincronizar
+ * ahora", la verificación automática, la reconexión y la subida tras un cambio.
+ * Con `forzar: true` aplica los cambios de otros dispositivos aunque haya texto
+ * a medio escribir.
+ */
+export async function sincronizarAhora({ forzar = false } = {}) {
+  if (sync.soloLectura) return;
+  if (sincronizando) {
+    volverASincronizar = true;
+    return;
   }
-
-  if (hayConexionDrive()) {
-    try {
-      const resultado = await guardarArchivoRemoto(estado);
-      recordarUltimoModifiedTimeDrive(resultado.modifiedTime);
-    } catch (error) {
-      console.warn('No se pudo sincronizar con Google Drive:', error.message);
+  sincronizando = true;
+  clearTimeout(temporizadorSubida);
+  try {
+    for (let intento = 0; intento < 3; intento += 1) {
+      const resultado = await sincronizarUnaVez(forzar);
+      if (resultado !== 'reintentar') break;
+    }
+  } catch (error) {
+    manejarErrorSync(error);
+  } finally {
+    sincronizando = false;
+    if (volverASincronizar) {
+      volverASincronizar = false;
+      programarSubida(0);
     }
   }
 }
 
-export async function persistirYNotificar() {
-  await guardarTodo();
-  notificar();
-}
+async function sincronizarUnaVez(forzar) {
+  if (!hayToken()) throw new ErrorDrive('sin-sesion', 'No hay una sesión de Google activa.');
+  const estadoAntes = sync.estado;
+  setSync({ estado: sync.hayPendiente ? 'guardando' : sync.datosListos ? 'verificando' : 'conectando' });
 
-export function hayCarpetaDatosElegida() {
-  return !!carpetaDatosHandle;
-}
-
-export async function elegirCarpetaDatos() {
-  if (!soportaFileSystemAccess) {
-    throw new Error(
-      'Este navegador no soporta elegir una carpeta de datos (File System Access API). Usá Chrome/Edge, o mientras tanto exportá/importá el JSON manualmente.'
-    );
-  }
-  carpetaDatosHandle = await window.showDirectoryPicker();
-  await guardarHandleCarpeta(carpetaDatosHandle);
-  await cargarDesdeCarpeta();
-}
-
-export async function cargarDesdeCarpeta() {
-  if (!carpetaDatosHandle) return false;
-
-  const permisoActual = await carpetaDatosHandle.queryPermission({ mode: 'readwrite' });
-  if (permisoActual !== 'granted') {
-    const permisoSolicitado = await carpetaDatosHandle.requestPermission({ mode: 'readwrite' });
-    if (permisoSolicitado !== 'granted') return false;
+  const versionInicial = versionLocal;
+  const ahora = new Date().toISOString();
+  const meta = await buscarArchivoRemoto();
+  const avisosNuevos = [];
+  if (meta && meta.duplicados > 0 && !avisoDuplicadosMostrado) {
+    avisoDuplicadosMostrado = true;
+    avisosNuevos.push(avisoInformativo(ahora, `Se encontraron ${meta.duplicados + 1} archivos de datos en Drive con el mismo nombre (probablemente creados a la vez desde dos dispositivos): se usa el más antiguo. Podés borrar los otros desde Drive.`));
   }
 
-  const datosCategorias = await leerArchivo(ARCHIVO_CATEGORIAS);
-  const datosTareas = await leerArchivo(ARCHIVO_TAREAS);
+  let remoto = null;
+  if (meta && (!base || meta.modifiedTime !== baseModifiedTime)) {
+    remoto = normalizarArchivo(await leerArchivoRemoto(meta.id));
+  }
+  // El usuario cambió algo mientras esperábamos a la red: se rehace con lo último.
+  if (versionLocal !== versionInicial) return 'reintentar';
 
-  if (datosCategorias || datosTareas) {
-    // Se combinan ambos archivos antes de normalizar: la fusión de
-    // Subcategoria (vive en categorias.json) necesita ver las tareas (viven
-    // en tareas.json) para reasignar `categoria_id` correctamente.
-    const normalizados = normalizarDatosCrudos({ ...(datosCategorias || {}), ...(datosTareas || {}) });
-    estado.categorias = normalizados.categorias;
-    estado.ubicaciones = normalizados.ubicaciones;
-    estado.metas = normalizados.metas;
-    estado.personas = normalizados.personas;
-    estado.tareas = normalizados.tareas;
-    guardarEnLocalStorage();
+  const local = datosActuales(ahora);
+  let resultado = local;
+  let aplicar = false;
+  let subir = false;
+  let importoDatosViejos = false;
+
+  if (!meta) {
+    subir = true;
+    if (datosViejos) {
+      const fusion = mezclar(local, datosViejos, null, ahora);
+      resultado = fusion.datos;
+      aplicar = difierenDatos(resultado, local);
+      importoDatosViejos = true;
+    }
+  } else if (remoto) {
+    const mezcla = mezclar(local, remoto, base, ahora);
+    resultado = mezcla.datos;
+    avisosNuevos.push(...mezcla.avisos);
+    aplicar = difierenDatos(resultado, local);
+    subir = difierenDatos(resultado, remoto);
   } else {
-    // Carpeta nueva y vacía: la sembramos con lo que ya haya en memoria/localStorage.
-    await guardarTodo();
+    subir = sync.hayPendiente && difierenDatos(local, base || {});
   }
 
-  notificar();
-  return true;
+  if (aplicar && !forzar && hayTextoEnEdicion()) {
+    setSync({ cambiosRemotosDisponibles: true, estado: sync.hayPendiente ? 'pendiente' : 'sincronizado' });
+    return 'diferido';
+  }
+
+  if (aplicar) {
+    aplicarDatosAlEstado(resultado, ahora);
+    tomarFotoSellado();
+    notificar();
+  }
+
+  let guardado = null;
+  if (subir) {
+    resultado.guardado_en = ahora;
+    guardado = await guardarArchivoRemoto(resultado);
+  }
+
+  // Drive confirmó (o no había nada que subir): recién ahora se actualiza la copia local.
+  base = copiarProfundo(subir ? resultado : remoto || base || resultado);
+  baseModifiedTime = subir ? guardado.modifiedTime : meta.modifiedTime;
+  if (subir || remoto) {
+    await almacenamientoLocal.guardarCache({ datos: base, modifiedTime: baseModifiedTime, sincronizado_en: ahora });
+  }
+  const hayCambiosNuevos = versionLocal !== versionInicial;
+  if (!hayCambiosNuevos) await almacenamientoLocal.borrarPendiente();
+
+  if (importoDatosViejos) {
+    limpiarDatosViejos();
+    avisosNuevos.push(avisoInformativo(ahora, 'Se importaron a Drive los datos que había guardados en este navegador (de una versión anterior).'));
+  }
+  await agregarAvisos(avisosNuevos);
+
+  const desfase = guardado ? guardado.desfaseRelojMs : sync.desfaseRelojMs;
+  setSync({
+    estado: hayCambiosNuevos ? 'pendiente' : 'sincronizado',
+    datosListos: true,
+    hayPendiente: hayCambiosNuevos,
+    modificadoEnDrive: baseModifiedTime,
+    verificadoEn: ahora,
+    copiaDel: ahora,
+    cambiosRemotosDisponibles: false,
+    mensajeError: '',
+    desfaseRelojMs: desfase,
+    relojDesfasado: Math.abs(desfase) > DESFASE_RELOJ_MAX_MS,
+    recienConectado: ['sin-conexion', 'sesion-vencida', 'conectando', 'error'].includes(estadoAntes),
+  });
+  if (hayCambiosNuevos) programarSubida();
+  return 'ok';
+}
+
+function manejarErrorSync(error) {
+  if (error instanceof ErrorDrive) {
+    if (error.codigo === 'sin-conexion') {
+      setSync({ estado: 'sin-conexion' });
+      return;
+    }
+    if (error.codigo === 'sin-sesion' || error.codigo === 'sesion-vencida') {
+      setSync({ estado: estadoSinSesion() });
+      return;
+    }
+  }
+  console.error('Error al sincronizar con Drive:', error);
+  setSync({ estado: 'error', mensajeError: error && error.message ? error.message : 'No se pudo sincronizar con Drive.' });
+  programarSubida(REINTENTO_ERROR_MS);
 }
 
 /**
- * Conecta con Google Drive (OAuth) y sincroniza: si Drive todavía no tiene
- * un archivo de datos, sube el `estado` actual (primera vez). Si ya existe
- * uno y su fecha de modificación difiere de la última modificación local
- * registrada, le pregunta al usuario cuál versión conservar antes de
- * pisar nada — no hay merge automático, solo esta elección explícita.
+ * Conecta con Google (un solo popup, Drive + Calendar) y sincroniza. Es lo que
+ * hacen la pantalla inicial y el botón "Reconectar Drive".
  */
 export async function conectarDrive() {
-  await conectarDriveOAuth();
+  await conectar();
+  if (!tieneScope('drive')) {
+    invalidarToken();
+    throw new Error('Para guardar tus datos tenés que permitir el acceso a Google Drive en la ventana de autorización.');
+  }
+  setSync({ estado: 'conectando' });
+  await sincronizarAhora({ forzar: true });
+}
 
-  const archivoRemoto = await buscarArchivoRemoto();
+export function limpiarRecienConectado() {
+  setSync({ recienConectado: false });
+}
 
-  if (!archivoRemoto) {
-    const resultado = await guardarArchivoRemoto(estado);
-    recordarUltimoModifiedTimeDrive(resultado.modifiedTime);
+// ---------------------------------------------------------------------------
+// Verificación automática
+// ---------------------------------------------------------------------------
+
+async function verificar() {
+  if (sync.soloLectura || sincronizando || !sync.datosListos) return;
+  if (navigator.onLine === false) {
+    setSync({ estado: 'sin-conexion' });
+    return;
+  }
+  if (!hayToken() && !(await reconexionSilenciosa())) {
+    setSync({ estado: estadoSinSesion() });
+    return;
+  }
+  if (sync.hayPendiente) {
+    await sincronizarAhora();
+    return;
+  }
+  try {
+    const meta = await buscarArchivoRemoto();
+    if (meta && meta.modifiedTime === baseModifiedTime) {
+      setSync({ estado: 'sincronizado', verificadoEn: new Date().toISOString(), mensajeError: '' });
+    } else if (hayTextoEnEdicion()) {
+      setSync({ cambiosRemotosDisponibles: true });
+    } else {
+      await sincronizarAhora();
+    }
+  } catch (error) {
+    manejarErrorSync(error);
+  }
+}
+
+/**
+ * Google exige un gesto del usuario para abrir su popup: si al abrir la app
+ * no hay sesión, se reintenta la reconexión silenciosa en el primer clic o
+ * tecla (salvo en los botones que ya conectan por su cuenta).
+ */
+function reconectarEnPrimerGesto() {
+  if (!conectadoAlgunaVez()) return;
+  const intentar = async (evento) => {
+    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial')) return;
+    document.removeEventListener('pointerdown', intentar, true);
+    document.removeEventListener('keydown', intentar, true);
+    if (hayToken() || sync.soloLectura || !(await reconexionSilenciosa({ ignorarEspera: true }))) return;
+    await sincronizarAhora();
+  };
+  document.addEventListener('pointerdown', intentar, true);
+  document.addEventListener('keydown', intentar, true);
+}
+
+let eventosConfigurados = false;
+
+function configurarEventos() {
+  if (eventosConfigurados) return;
+  eventosConfigurados = true;
+  reconectarEnPrimerGesto();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      verificar();
+    } else if (sync.hayPendiente && hayToken()) {
+      sincronizarAhora();
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    if (sync.hayPendiente && hayToken()) sincronizarAhora();
+  });
+  window.addEventListener('beforeunload', (evento) => {
+    if (!sync.hayPendiente) return;
+    evento.preventDefault();
+    evento.returnValue = '';
+  });
+  window.addEventListener('online', verificar);
+  window.addEventListener('offline', () => setSync({ estado: 'sin-conexion' }));
+  document.addEventListener('focusout', () => {
+    if (!sync.cambiosRemotosDisponibles) return;
+    setTimeout(() => {
+      if (sync.cambiosRemotosDisponibles && !hayTextoEnEdicion()) sincronizarAhora();
+    }, 300);
+  });
+  setInterval(verificar, INTERVALO_VERIFICACION_MS);
+}
+
+// ---------------------------------------------------------------------------
+// Arranque
+// ---------------------------------------------------------------------------
+
+async function intentarSesionInicial() {
+  const sinSesion = () => setSync({ estado: sync.datosListos ? estadoSinSesion() : 'sin-destino' });
+
+  if (!conectadoAlgunaVez()) {
+    sinSesion();
+    return;
+  }
+  if (navigator.onLine === false) {
+    setSync({ estado: sync.datosListos ? 'sin-conexion' : 'sin-destino' });
+    return;
+  }
+  ultimoIntentoSilencioso = Date.now();
+  if (!(await esperarGoogle())) {
+    setSync({ estado: sync.datosListos ? 'sin-conexion' : 'sin-destino' });
+    return;
+  }
+  try {
+    await conectar({ silencioso: true });
+  } catch {
+    sinSesion();
+    return;
+  }
+  if (!tieneScope('drive')) {
+    sinSesion();
+    return;
+  }
+  await sincronizarAhora();
+}
+
+export async function inicializarAlmacenamiento() {
+  try {
+    localStorage.removeItem(CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA);
+  } catch {
+    // Solo es limpieza de una clave que ya no se usa.
+  }
+  datosViejos = leerDatosViejos();
+
+  if (!(await adquirirBloqueoEdicion())) {
+    setSync({ soloLectura: true, estado: 'sin-conexion' });
     notificar();
     return;
   }
 
-  const ultimaSyncConocida = localStorage.getItem(CLAVE_LOCALSTORAGE_ULTIMA_MOD);
-  const cambioPorFuera = archivoRemoto.modifiedTime !== ultimaSyncConocida;
+  alPerderSesion(() => {
+    if (!sync.soloLectura) setSync({ estado: estadoSinSesion() });
+  });
 
-  if (cambioPorFuera) {
-    const usarDrive = confirm(
-      `Encontré datos en Google Drive (última modificación: ${new Date(archivoRemoto.modifiedTime).toLocaleString('es-AR')}) ` +
-        'que no coinciden con la última vez que este dispositivo sincronizó.\n\n' +
-        'Aceptar = usar los datos de Drive (se reemplazan los de este dispositivo).\n' +
-        'Cancelar = subir los datos de este dispositivo (se reemplazan los de Drive).'
-    );
+  const [cache, pendiente, avisos] = await Promise.all([
+    almacenamientoLocal.leerCache(),
+    almacenamientoLocal.leerPendiente(),
+    almacenamientoLocal.leerAvisos(),
+  ]);
 
-    if (usarDrive) {
-      const datosRemotos = await leerArchivoRemoto(archivoRemoto.id);
-      Object.assign(estado, normalizarDatosCrudos(datosRemotos));
-      guardarEnLocalStorage();
-      recordarUltimoModifiedTimeDrive(archivoRemoto.modifiedTime);
-    } else {
-      const resultado = await guardarArchivoRemoto(estado);
-      recordarUltimoModifiedTimeDrive(resultado.modifiedTime);
-    }
-  }
+  base = cache ? copiarProfundo(cache.datos) : null;
+  baseModifiedTime = cache ? cache.modifiedTime : null;
+  const origen = pendiente ? pendiente.datos : cache ? cache.datos : null;
+  if (origen) aplicarDatosAlEstado(normalizarArchivo(origen));
+  tomarFotoSellado();
 
+  setSync({
+    estado: 'conectando',
+    datosListos: !!origen,
+    hayPendiente: !!pendiente,
+    copiaDel: cache ? cache.sincronizado_en : null,
+    modificadoEnDrive: cache ? cache.modifiedTime : null,
+    avisos,
+    datosViejosDisponibles: !!datosViejos,
+    almacenamientoLocalDisponible: almacenamientoLocal.hayAlmacenamientoLocal(),
+  });
   notificar();
+
+  configurarEventos();
+  await intentarSesionInicial();
 }
 
-export async function inicializarAlmacenamiento() {
-  cargarDeLocalStorage();
+// ---------------------------------------------------------------------------
+// Datos de versiones anteriores (localStorage)
+// ---------------------------------------------------------------------------
 
-  if (soportaFileSystemAccess) {
-    try {
-      const handleGuardado = await recuperarHandleCarpeta();
-      if (handleGuardado) {
-        carpetaDatosHandle = handleGuardado;
-        await cargarDesdeCarpeta();
-      }
-    } catch (error) {
-      console.warn('No se pudo recuperar la carpeta de datos guardada:', error);
-    }
-  }
-
-  notificar();
+/** Mezcla los datos viejos de este navegador con los que ya hay (los actuales ganan). */
+export async function mezclarDatosViejos() {
+  if (!datosViejos) return;
+  const ahora = new Date().toISOString();
+  const fusion = mezclar(datosActuales(ahora), datosViejos, null, ahora);
+  aplicarDatosAlEstado(fusion.datos, ahora);
+  limpiarDatosViejos();
+  await persistirYNotificar();
+  await agregarAvisos(fusion.avisos);
 }
+
+export function descartarDatosViejos() {
+  limpiarDatosViejos();
+}
+
+// ---------------------------------------------------------------------------
+// Exportar / importar (respaldo manual)
+// ---------------------------------------------------------------------------
 
 export function exportarJSON() {
   const blob = new Blob([JSON.stringify(estado, null, 2)], { type: 'application/json' });
@@ -429,8 +799,13 @@ export function exportarJSON() {
 }
 
 export async function importarJSON(archivo) {
+  const confirmado = confirm(
+    'Importar reemplaza TODOS tus datos actuales (también en Google Drive) por el contenido del archivo. ¿Querés continuar?'
+  );
+  if (!confirmado) return;
+
   const texto = await archivo.text();
-  const datos = JSON.parse(texto);
-  Object.assign(estado, normalizarDatosCrudos(datos));
+  const normalizados = normalizarDatosCrudos(JSON.parse(texto));
+  for (const cfg of COLECCIONES) estado[cfg.clave] = normalizados[cfg.clave];
   await persistirYNotificar();
 }

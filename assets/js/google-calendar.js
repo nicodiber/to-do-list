@@ -1,63 +1,20 @@
-// Client ID de una app OAuth pública (no es secreto, a diferencia de un
-// Client Secret) creada en Google Cloud Console, con
-// http://localhost:5173 como origen de JavaScript autorizado.
-const CLIENT_ID = '688334428961-v8beno5ekn6i9uvn18m6rkccq0f0hnui.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+import { soportaGoogle, hayToken, tieneScope, obtenerTokenAcceso, invalidarToken } from './google-auth.js';
+
 const DURACION_CACHE_MS = 5 * 60 * 1000;
 
-let tokenActual = null;
-let clienteToken = null;
-let manejarRespuestaToken = null;
 let cacheEventos = { fecha: '', eventos: [], timestamp: 0 };
 
 export function soportaGoogleCalendar() {
-  return typeof google !== 'undefined' && !!google.accounts;
-}
-
-export function hayConexionGoogleCalendar() {
-  return !!tokenActual;
+  return soportaGoogle();
 }
 
 /**
- * Pide un token de acceso de solo lectura al calendario del usuario vía
- * Google Identity Services (popup). El token queda en memoria (no se
- * persiste): es de corta duración (~1h) y no hace falta backend para
- * refrescarlo, alcanza con volver a conectar cuando expire.
- *
- * El `TokenClient` de Google es un singleton (`initTokenClient` se llama
- * una sola vez): su `callback` no puede cerrar directamente sobre el
- * `resolve`/`reject` de ESTA promesa, porque en una reconexión posterior
- * (mismo objeto `clienteToken` reusado) seguiría resolviendo la promesa de
- * la primera llamada y esta nueva quedaría colgada para siempre. Por eso
- * el `callback` real solo delega a `manejarRespuestaToken`, que cada
- * llamada reasigna a su propio resolve/reject.
+ * Calendar se conecta junto con Drive (un solo popup, ver google-auth.js):
+ * hay conexión si hay sesión activa y el usuario no desmarcó el permiso de
+ * Calendar en el consentimiento.
  */
-export function conectarGoogleCalendar() {
-  return new Promise((resolve, reject) => {
-    if (!soportaGoogleCalendar()) {
-      reject(new Error('No se pudo cargar Google Identity Services. Revisá tu conexión e intentá de nuevo.'));
-      return;
-    }
-
-    manejarRespuestaToken = (respuesta) => {
-      if (respuesta.error) {
-        reject(new Error('No se pudo conectar con Google Calendar.'));
-        return;
-      }
-      tokenActual = respuesta.access_token;
-      resolve();
-    };
-
-    if (!clienteToken) {
-      clienteToken = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPE,
-        callback: (respuesta) => manejarRespuestaToken(respuesta),
-      });
-    }
-
-    clienteToken.requestAccessToken();
-  });
+export function hayConexionGoogleCalendar() {
+  return hayToken() && tieneScope('calendar');
 }
 
 /**
@@ -67,7 +24,8 @@ export function conectarGoogleCalendar() {
  * el mismo render.
  */
 export async function obtenerEventosDeHoy() {
-  if (!tokenActual) return [];
+  const accessToken = obtenerTokenAcceso();
+  if (!accessToken || !tieneScope('calendar')) return [];
 
   const hoy = new Date();
   const claveHoy = hoy.toISOString().slice(0, 10);
@@ -85,11 +43,11 @@ export async function obtenerEventosDeHoy() {
   });
 
   const respuesta = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
-    headers: { Authorization: `Bearer ${tokenActual}` },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 
   if (!respuesta.ok) {
-    if (respuesta.status === 401) tokenActual = null;
+    if (respuesta.status === 401) invalidarToken();
     throw new Error('No se pudieron obtener los eventos de Google Calendar.');
   }
 

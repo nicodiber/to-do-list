@@ -8,24 +8,31 @@ Documentación de cómo funciona: [CASOS_DE_USO.md](CASOS_DE_USO.md) (flujos de 
 
 ## Estado actual
 
-**v0.50.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, sincronización con Google Drive e integración con Google Calendar. Actualmente en definición del rediseño del frontend antes de cargar datos reales. Ver [CHANGELOG.md](CHANGELOG.md).
+**v0.51.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Actualmente en el rediseño del frontend, por rondas, antes de cargar datos reales (la ronda 1, almacenamiento, ya está hecha). Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Cómo correrlo
 
-Es una app 100% cliente, sin instalación ni backend. Dos formas de abrirla:
+Es una app 100% cliente, sin instalación ni backend:
 
-1. **Recomendado — Web**:
-   https://nicodiber.github.io/to-do-list/
+1. **Web**: https://nicodiber.github.io/to-do-list/ (instalable como PWA en PC y celular).
+2. La primera vez, la app pide **conectar con Google** (un solo permiso para Drive y Calendar de solo lectura). Sin conexión a Drive no se pueden cargar tareas.
 
-Usá **Chrome o Edge** para la mejor experiencia (soportan la File System Access API). En otros navegadores la app funciona igual guardando en `localStorage`, con exportar/importar JSON como respaldo manual.
+Usá un navegador moderno (Chrome, Edge, Safari o Firefox). La app usa IndexedDB, Web Locks y Google Identity Services.
 
 ## Cómo funciona la persistencia y la sincronización
 
-- Al usar el botón **"Elegir carpeta de datos"**, el navegador te deja seleccionar (o crear) una carpeta en tu disco. La app lee y escribe ahí `categorias.json` y `tareas.json`.
-- **Recomendación:** elegí una carpeta dentro de tu **Google Drive** local (la app de escritorio de Drive). Así, al sincronizarse Drive entre todos tus dispositivos (computadoras y celulares), tus tareas quedan disponibles en todas sin que la app tenga que integrarse con ninguna API de Drive.
-- Mientras tanto, todo se guarda también en `localStorage` del navegador como caché/respaldo.
-- Si tu navegador no soporta elegir carpeta, o todavía no elegiste una, podés usar **"Exportar JSON"** / **"Importar JSON"** para mover tus datos manualmente.
-- Los archivos de datos reales (`datos/categorias.json`, `datos/tareas.json`) **no se versionan** en este repo — quedan en tu carpeta de Drive, fuera de Git.
+- **Google Drive es el único destino de los datos**, en todos los dispositivos: un archivo `super-todo-list-datos.json` en tu Drive (la app solo ve los archivos que ella misma crea; permiso `drive.file`). No hace falta la app de escritorio de Drive ni elegir carpetas.
+- **Nada se pierde en silencio**: cada cambio se guarda de inmediato en un buffer local del navegador (IndexedDB), se sube a Drive a los ~2 segundos y **recién cuando Drive confirma** la cabecera muestra "✅ Sincronizado" con la hora. Si se corta internet o vence la sesión de Google, los cambios quedan como "⏳ pendiente" y se suben al reconectar; podés seguir editando sin conexión.
+- **Varios dispositivos**: la app verifica Drive al volver a la pestaña, al recuperar internet y cada 5 minutos. Si otro dispositivo cambió algo, lo mezcla por tarea/entidad (gana el cambio más reciente) y, si algo se descartó, deja un **aviso** en la cabecera diciendo qué campo y qué valor, hasta que lo cierres.
+- **Sin conexión al abrir**: se muestra la última copia sincronizada, en solo lectura, con su fecha.
+- `localStorage` guarda solo preferencias (tema, ubicación actual); nunca tus tareas.
+- **"Exportar JSON" / "Importar JSON"** en la cabecera sirven de respaldo manual (importar pide confirmación porque reemplaza todo, también en Drive).
+- Los datos reales **no se versionan** en este repositorio: viven en tu Drive.
+
+### Configuración de Google (para quien despliegue su propia copia)
+
+- En Google Cloud Console, la pantalla de consentimiento debe incluir los permisos `drive.file` y `calendar.readonly`.
+- Con la app OAuth en modo "Testing", el consentimiento caduca a los ~7 días; publicarla **"En producción"** (uso personal, sin verificar: mostrará una vez el aviso "app no verificada") evita tener que volver a autorizar.
 
 ## Estructura del proyecto
 

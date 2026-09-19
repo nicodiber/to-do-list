@@ -4,12 +4,8 @@ import { crearPanelReprogramar } from './reprogramar.js';
 import { completarTarea, reprogramarTareaConCascada, desbloquearDependientes } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { crearTarea } from './modelos.js';
-import {
-  soportaGoogleCalendar,
-  hayConexionGoogleCalendar,
-  conectarGoogleCalendar,
-  obtenerEventosDeHoy,
-} from './google-calendar.js';
+import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventosDeHoy } from './google-calendar.js';
+import { conectar } from './google-auth.js';
 
 // El <dialog> vive en document.body (no en el contenedor de la vista) para
 // sobrevivir a los re-renders que dispara persistirYNotificar() en cada paso.
@@ -173,7 +169,7 @@ async function renderSeccionCalendario(contenedor) {
     `;
     contenedor.querySelector('[data-accion="conectar-calendar-revision"]').addEventListener('click', async () => {
       try {
-        await conectarGoogleCalendar();
+        await conectar();
         renderSeccionCalendario(contenedor);
       } catch (error) {
         alert(error.message);

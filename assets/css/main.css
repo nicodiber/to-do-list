@@ -153,10 +153,80 @@ h1, h2, h3 {
   background: var(--color-primario);
 }
 
-.estado-conexion {
-  font-size: 0.8rem;
+.indicador-sync {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.indicador-sync-detalle {
+  font-size: 0.72rem;
   color: var(--color-texto-suave);
+}
+
+.banner-sync {
+  font-size: 0.82rem;
   margin: 0.5rem 0 0.75rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--color-fondo-info);
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+}
+
+.banner-sync p {
+  margin: 0.25rem 0;
+}
+
+.banner-sync button,
+.panel-avisos button {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.55rem;
+  margin-left: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.banner-sync[hidden],
+.panel-avisos[hidden] {
+  display: none;
+}
+
+.panel-avisos {
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-peligro);
+  border-radius: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.panel-avisos h3 {
+  margin: 0 0 0.3rem;
+}
+
+.panel-avisos ul {
+  padding-left: 1.1rem;
+}
+
+.pantalla-inicial {
+  max-width: 560px;
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.pantalla-inicial .boton-primario {
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
 }
 
 .vista {

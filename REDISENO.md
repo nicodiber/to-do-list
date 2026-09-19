@@ -8,16 +8,16 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 - ✅ **Atajos de teclado** en casi todo lo que se pueda, para que un usuario experto maneje STDL sin mouse (hoy solo existe "N").
 - ✅ **Emojis representativos** complementando todos los textos de la interfaz, de forma consistente.
-- ✅ **Los datos de tareas nunca dependen solo de `localStorage`.** `localStorage` queda solo para preferencias (tema, ubicación actual).
-- ✅ **La UI nunca dice "guardado" hasta que sea cierto** (confirmado en el destino real).
+- ✅ **Los datos de tareas nunca dependen solo de `localStorage`.** `localStorage` queda solo para preferencias (tema, ubicación actual). *(Implementado en v0.51.0.)*
+- ✅ **La UI nunca dice "guardado" hasta que sea cierto** (confirmado en el destino real). *(Implementado en v0.51.0.)*
 - ✅ **Plantear casos borde**: al definir cada funcionalidad se anticipan los escenarios que el usuario no mencionó (ver `AGENTS.md`).
 
 ## Cabecera y navegación
 
 - ✅ **Botón "+" fijo en la cabecera**, visible en todas las vistas: lleva a Tareas y enfoca el input de alta (mismo efecto que el atajo "N").
 - ✅ **Contador "Completar carga de tareas (X)"** visible en toda la app, **solo si X > 0** (ver A3 abajo).
-- ✅ **Estado de guardado siempre visible** en la cabecera (ver "Almacenamiento").
-- ✅ **Vista "Configuraciones"**: por ahora solo "Importar JSON" y "Exportar JSON" (que dejan de estar en la cabecera). Drive queda en la cabecera. Importar debe **pedir confirmación** antes de reemplazar todo.
+- ✅ **Estado de guardado siempre visible** en la cabecera (ver "Almacenamiento"). *(Implementado en v0.51.0.)*
+- ✅ **Vista "Configuraciones"**: por ahora solo "Importar JSON" y "Exportar JSON" (que dejan de estar en la cabecera). Drive queda en la cabecera. Importar debe **pedir confirmación** antes de reemplazar todo. *(La confirmación ya está desde v0.51.0; la vista y el traslado de los botones llegan en la Ronda 5.)*
 - ✅ **Vista nueva "Tablero"** con pestañas: *Progreso por categoría* y *Hábitos* (ver más abajo).
 - ✅ **Vista nueva "Mejoras"** para repasar las notas de mejora de las tareas de mantenimiento (ver A4).
 - ❓ **Semana**: candidata a eliminarse o fusionarse con "8 días" (el usuario considera que 8 días la reemplaza).
@@ -66,7 +66,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
   - Se eligen *previa = P* y *próxima = N*: si son consecutivas se inserta en medio; si **no** lo son (hay tareas entre ellas, o son de cadenas distintas) se **rechaza indicando el conflicto**, para que el usuario reajuste y termine la carga.
   - Al **eliminar** una tarea del medio (P→A→N), se **reconecta P→N**.
   - El panel "Dependencia" de la edición sigue las mismas reglas y filtros que el alta.
-- ❓ **Ciclos de mantenimiento**: cuando una cadena de tareas de mantenimiento se repite en anillo (A→B→C→D y D desencadena de nuevo a A), el clon de A debe nacer enlazado a D, pero A no puede depender de D desde el inicio sin quedar bloqueada (y hoy los ciclos se rechazan). Propuesta pendiente de confirmar: campo `tarea_desencadenante` (solo mantenimiento) que se aplica **al crear el clon**; cada clon hereda el enlace apuntando a la instancia pendiente vigente de su previa.
+- ✅ **Ciclos de mantenimiento**: cuando una cadena de tareas de mantenimiento se repite en anillo (A→B→C→D y D desencadena de nuevo a A), el clon de A debe nacer enlazado a D, pero A no puede depender de D desde el inicio sin quedar bloqueada (y los ciclos se rechazan). Solución: campo `tarea_desencadenante` (solo mantenimiento), que **no bloquea nada por sí mismo** y se aplica **al crear el clon**: al completar A, su clon A' nace bloqueado por D; cada clon hereda el enlace apuntando a la instancia pendiente vigente de su previa (B' depende de A', C' de B', D' de C'); al completar D se desbloquea A' con el mecanismo habitual. Si se elimina D, el desencadenante de A pasa a C (misma lógica que al eliminar una tarea del medio de una cadena).
 
 ## C1 / C2 / C3 · ABMs
 
@@ -97,6 +97,8 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## Almacenamiento y sincronización
 
+> ✅ **Implementado en v0.51.0 (Ronda 1)** — todo lo de esta sección; `CASOS_DE_USO.md` (D1-D3) y `PROCESOS_AUTOMATICOS.md` (10-13) vuelven a describir la realidad. Detalles de lo construido: el estado "conflicto" se resolvió como **avisos** persistentes (no un estado de la cabecera); las ediciones de un campo con foco difieren la actualización remota ("Actualizar"); una segunda pestaña abierta queda en solo lectura; los datos viejos de `localStorage` se ofrecen para mezclar con Drive o descartar. "Importar JSON" ya pide confirmación (aunque sigue en la cabecera hasta la vista Configuraciones, Ronda 5). ⏳ Falta validar en el navegador real la reconexión silenciosa de Google y publicar la app OAuth "En producción" (ver `README.md`).
+
 - ✅ **Google Drive por API en todos los dispositivos**. Se **elimina el modo carpeta local** (`categorias.json`/`tareas.json`) y el uso de `localStorage` como copia de las tareas.
 - ✅ **Pantalla inicial obligatoria** si no hay un destino real conectado: "elegí dónde guardar", sin dejar cargar tareas hasta entonces.
 - ✅ **Estado siempre visible en la cabecera**: estado (sincronizado / guardando / pendiente / conflicto), **fecha y hora del último guardado**, y un botón **"Sincronizar ahora"** que verifica contra Drive y muestra la fecha de la **última verificación** (para poder mostrar que está al día aunque el último cambio sea viejo).
@@ -104,13 +106,15 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Copia de solo lectura sin conexión**: si al abrir no hay conexión, se muestra la última copia sincronizada, con un aviso visible mientras no haya conexión ("sin conexión — datos al 19/09 14:32") y otro aviso cuando la conexión se establece y se sincroniza ("conectado y sincronizado ✓").
 - ✅ **Verificación automática**: al volver a la pestaña y cada pocos minutos se chequea Drive; si hubo cambios de otro dispositivo y no hay nada pendiente propio, se actualiza solo con un aviso.
 - ✅ **Mezcla por tarea** cuando hay cambios en ambos lados: cada entidad lleva un `modificado_en` y gana la más reciente; las eliminaciones se registran para que lo borrado no reviva.
-- ❓ Alcance de la edición sin conexión, y si el permiso de Calendar se unifica con el de Drive en un solo inicio de sesión.
+- ✅ **Edición sin conexión permitida**: se puede editar todo; los cambios quedan como pendientes y se mezclan al reconectar. Si un cambio propio pierde contra uno más reciente de otro dispositivo, **se avisa cuál** (nada se pierde en silencio).
+- ✅ **Un solo inicio de sesión de Google**: los permisos de Drive y de Calendar (solo lectura) se piden juntos en un único popup por sesión.
+- ✅ **Formato**: un solo archivo `super-todo-list-datos.json`, con un `modificado_en` por entidad, las eliminaciones registradas por 90 días, gana la versión más reciente de cada entidad completa (no campo por campo), y verificación automática cada 5 minutos y al volver a la pestaña.
 
 ## Rondas de implementación acordadas
 
 Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que define cómo y dónde se guardan (rondas 1 y 2; el resto solo agrega campos, sin cambiar la forma de lo guardado):
 
-1. **Almacenamiento**: Drive único, pantalla inicial obligatoria, cabecera con estado, buffer pendiente, sincronización manual, verificación automática y mezcla por tarea.
+1. ✅ **Almacenamiento** (v0.51.0): Drive único, pantalla inicial obligatoria, cabecera con estado, buffer pendiente, sincronización manual, verificación automática y mezcla por tarea.
 2. **Modelo de datos**: entidad `Mejora`, `tarea_exportada_calendar`, registro de cumplimientos, restricción 1 a 1 de dependencias, campo de checklist, `tarea_desencadenante` (si se confirma).
 3. **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)".
 4. **Hoy**: Próximos por categoría, focus, completadas de hoy, exportar por tarea, ☀️, Posponer en el solapamiento.

@@ -34,8 +34,8 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 | Personas | ABM | C3 |
 | "Revisar mi día" | Asistente / flujo guiado | A6 |
 | IA conectable (paneles en Metas/Tareas) | Asistente / flujo guiado — **suspendido** | — |
-| Carpeta local / Exportar-Importar JSON | Configuración / integración | D1 |
-| Google Drive | Configuración / integración | D2 |
+| Exportar / Importar JSON | Configuración / integración | D1 |
+| Google Drive (cabecera de sincronización) | Configuración / integración | D2 |
 | Google Calendar | Configuración / integración | D3 |
 | Tema claro/oscuro | Configuración | — |
 | Atajo de teclado "N" | Transversal | A2 |
@@ -155,7 +155,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   2. Sistema abre un diálogo modal con la primera tarea de la lista (Urgentes + Resto, sin completadas) y el progreso "Tarea 1 de N".
   3. Usuario elige Cumplida, No cumplida o Saltar.
   4. Si Cumplida: sistema pide confirmar (con la nota de mejora si es de mantenimiento); usuario confirma; sistema completa la tarea (todo lo de A4) y avanza. Si No cumplida: sistema ofrece "Reprogramar"; usuario elige fecha en el panel; sistema mueve la fecha y avanza. Si Saltar: sistema avanza sin cambios.
-  5. Al terminar la lista, sistema muestra "¡Repasaste todas tus tareas de hoy!" y la sección de Calendar: sin conexión, un botón "Conectar con Google Calendar"; con conexión, los eventos de hoy.
+  5. Al terminar la lista, sistema muestra "¡Repasaste todas tus tareas de hoy!" y la sección de Calendar: sin conexión con Calendar (sesión vencida o permiso no concedido), un botón para reconectar con Google; con conexión, los eventos de hoy.
   6. Usuario (opcional) escribe el nombre de una tarea de continuidad en el alta rápida inline.
   7. Sistema crea esa tarea con valores por defecto, la guarda y la agrega a una lista de confirmación.
   8. Usuario presiona "Cerrar" (o "Cerrar repaso" en cualquier momento).
@@ -288,56 +288,57 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ## Bloque D — Datos y confiabilidad
 
-### D1. Elegir carpeta local / exportar-importar JSON
+### D1. Exportar / importar JSON
 
-- **Objetivo**: tener los datos en un archivo propio, fuera del navegador, y poder moverlos manualmente entre dispositivos si hace falta.
-- **Pasos — carpeta**: botón "Elegir carpeta de datos" → selector nativo del sistema operativo → si la carpeta ya tiene datos, se cargan (reemplazan lo que había en memoria); si está vacía, se siembra con el estado actual → de ahí en más, cada guardado escribe `categorias.json`/`tareas.json` ahí automáticamente.
-- **Pasos — exportar/importar**: "Exportar JSON" descarga un archivo con la fecha en el nombre; "Importar JSON" reemplaza todo el estado con el contenido del archivo elegido.
-- **Flujo usuario/sistema — carpeta**:
-  1. Usuario hace clic en "Elegir carpeta de datos".
-  2. Sistema abre el selector de carpetas del sistema operativo.
-  3. Usuario elige (o crea) una carpeta y concede permiso de lectura y escritura.
-  4. Sistema, si la carpeta ya tiene `categorias.json`/`tareas.json`, los lee, migra el formato si hace falta y reemplaza el estado en memoria; si está vacía, escribe ahí el estado actual.
-  5. Sistema, a partir de ahí, escribe ambos archivos en cada cambio.
-- **Flujo usuario/sistema — exportar/importar**:
+- **Objetivo**: llevarse una copia de los datos en un archivo propio (respaldo) o restaurar una.
+- **Pasos**: "Exportar JSON" (cabecera) descarga un archivo con la fecha en el nombre; "Importar JSON" pide **confirmación explícita** (reemplaza todo lo que hay en Drive) y, si se acepta, reemplaza todo el estado con el contenido del archivo elegido. El modo "carpeta local" ya no existe: Google Drive es el único destino de los datos (ver D2).
+- **Flujo usuario/sistema**:
   1. Usuario hace clic en "Exportar JSON"; sistema descarga un archivo con la fecha en el nombre.
   2. Usuario elige un archivo en "Importar JSON".
-  3. Sistema lo lee, migra el formato, **reemplaza todo el estado sin pedir confirmación** y guarda.
-- **Vistas/funciones**: `assets/js/almacenamiento.js` (`elegirCarpetaDatos`, `cargarDesdeCarpeta`, `exportarJSON`, `importarJSON`), botones de cabecera en `assets/js/app.js`.
-- **Resultado**: estado sincronizado con la carpeta elegida, o reemplazado por un JSON importado.
-- **Fricciones**: importar no pide confirmación — pisa todo sin preguntar "¿estás seguro?". Sin soporte en navegadores sin File System Access API (el usuario recién se entera del límite al intentarlo, vía un mensaje de error).
+  3. Sistema muestra una confirmación: "Esto reemplaza todos los datos actuales (también en Drive)".
+  4. Usuario confirma; sistema lee el archivo, migra el formato si hace falta, reemplaza el estado y lo guarda como cualquier otro cambio (buffer local → Drive; ver D2).
+- **Vistas/funciones**: `assets/js/almacenamiento.js` (`exportarJSON`, `importarJSON`), botones de cabecera en `assets/js/app.js`.
+- **Resultado**: archivo descargado, o estado reemplazado por el JSON importado (y subido a Drive).
+- **Fricciones**: importar reemplaza todo, no mezcla. ⏳ En el rediseño, Exportar/Importar pasan a la vista Configuraciones (Ronda 5, ver `REDISENO.md`).
 
-### D2. Sincronizar con Google Drive
+### D2. Conectar Google y sincronizar con Drive
 
-- **Objetivo**: tener los datos disponibles y al día entre PC y celular, sin depender de que una carpeta esté físicamente sincronizada.
-- **Pasos**: botón "Sincronizar con Google Drive" → OAuth por popup → si Drive todavía no tiene archivo, sube el estado actual (primera vez); si ya existe uno y su fecha de modificación no coincide con la última sincronización conocida de este dispositivo, un `confirm()` pregunta qué versión conservar → de ahí en más, cada guardado también sube a Drive automáticamente → Indicar en frontend fecha y hora de última modificación del archivo de Google Drive *(⏳ no existe hoy — contradice la fricción de abajo; pedido del usuario, ver `REDISENO.md`)*.
-- **Flujo usuario/sistema**:
-  1. Usuario hace clic en "Sincronizar con Google Drive".
-  2. Sistema abre el popup de autorización de Google.
-  3. Usuario autoriza el acceso.
-  4. Sistema busca el archivo de datos en Drive. Si no existe, sube el estado actual (primera vez).
-  5. Si existe y su fecha de modificación no coincide con la última sincronización conocida de este dispositivo, sistema muestra un cuadro del navegador: Aceptar = usar Drive / Cancelar = subir lo de este dispositivo.
-  6. Usuario elige.
-  7. Sistema aplica la opción elegida y recuerda la fecha de modificación.
-  8. Sistema cambia el botón a "Drive: sincronizado ✓" y, desde ahí, sube a Drive en cada cambio.
-- **Vistas/funciones**: `assets/js/almacenamiento.js` (`conectarDrive` y funciones internas de Drive), botón en `assets/js/app.js`.
-- **Resultado**: estado sincronizado con el archivo remoto de Drive.
-- **Fricciones**: el token OAuth no se persiste entre sesiones (hay que reconectar en cada pestaña/sesión nueva). El conflicto se resuelve con un único `confirm()` todo-o-nada — sin merge ni vista de qué cambió. No hay ningún indicador visible de "hace cuánto se sincronizó por última vez" (el dato ya se guarda internamente — `recordarUltimoModifiedTimeDrive` — pero no se muestra en ningún lado; ya estaba anotado en `BACKLOG.md`).
+- **Objetivo**: tener los datos disponibles y al día entre PC y celular, sin perder nada aunque se corte la conexión o se edite desde dos dispositivos.
+- **Disparador**: primera vez que se abre la app en un dispositivo, o cada vez que hay que reconectar la sesión de Google (el token dura ~1 hora).
+- **Pasos**: sin datos → pantalla inicial "Conectar con Google Drive" → popup de autorización de Google (**un solo permiso** que incluye Drive y Calendar de solo lectura) → si Drive no tiene el archivo de datos, lo crea con lo que hay (o con datos vacíos); si lo tiene, lo carga → a partir de ahí, cada cambio se guarda primero en un buffer local durable y se sube a Drive a los 2 s → la cabecera muestra siempre el estado de sincronización, la hora del último guardado y la de la última verificación, y un botón "Sincronizar ahora" → al volver a la pestaña, al recuperar red y cada 5 minutos, el sistema verifica solo si otro dispositivo cambió algo y lo mezcla.
+- **Flujo usuario/sistema — primera conexión**:
+  1. Usuario abre la app; sistema muestra la pantalla inicial (no deja cargar tareas hasta conectar).
+  2. Usuario hace clic en "Conectar con Google Drive" y autoriza en el popup de Google (Drive y Calendar).
+  3. Sistema busca `super-todo-list-datos.json` en Drive. Si no existe lo crea; si existe lo descarga. Guarda una copia local confirmada (`cache`).
+  4. Sistema muestra la app y la cabecera pasa a "✅ Sincronizado" con fecha y hora.
+- **Flujo usuario/sistema — cada cambio**:
+  1. Usuario crea/edita/elimina algo.
+  2. Sistema guarda de inmediato en el buffer local (IndexedDB) y la cabecera pasa a "⏳ pendiente".
+  3. Sistema sube a Drive (debounce de 2 s) y, **recién cuando Drive confirma**, pasa a "✅ Sincronizado" con la hora y borra el buffer.
+- **Flujo usuario/sistema — otro dispositivo cambió algo**:
+  1. Sistema (al volver a la pestaña, cada 5 min o al recuperar red) compara la fecha de modificación de Drive.
+  2. Si cambió, sistema descarga y mezcla por entidad (gana el cambio más reciente; si el mismo campo cambió en ambos lados, gana el más nuevo).
+  3. Si algo se descartó, sistema deja un **aviso** en la cabecera con qué campo y qué valor se descartó; el usuario lo cierra a mano.
+  4. Si el usuario está escribiendo, sistema difiere la actualización y muestra "Actualizar".
+- **Flujo usuario/sistema — sin conexión / sesión vencida**:
+  1. Sistema pasa a "Sin conexión" (copia de solo lectura con su fecha) o "Sesión vencida — Reconectar Drive". Las ediciones siguen guardándose en el buffer local.
+  2. Al volver la conexión (o al reconectar), sistema mezcla y sube lo pendiente.
+- **Vistas/funciones**: `assets/js/almacenamiento.js`, `assets/js/sincronizacion.js`, `assets/js/almacenamiento-local.js`, `assets/js/google-auth.js`, `assets/js/google-drive-sync.js`, cabecera y pantalla inicial en `assets/js/app.js`.
+- **Resultado**: los datos viven en un único archivo del Drive del usuario; nada se pierde en silencio (buffer local hasta confirmar + avisos de conflicto). `localStorage` no guarda datos de tareas, solo preferencias.
+- **Fricciones**: el token de Google no se persiste (dura ~1 hora): al abrir la app el sistema intenta reconectar sin popup y, si el navegador lo bloquea, reintenta en el primer clic; si no, "Reconectar Drive". Si abrís la app en dos pestañas, la segunda queda en solo lectura. Si nunca se validó "En producción" la app de Google, el consentimiento puede caducar a los ~7 días.
 
 ### D3. Conectar y usar Google Calendar
 
 - **Objetivo**: usar Calendar como la fuente de verdad de lo agendado con horario fijo y de lo que realmente pasó, en paralelo a STDL.
 - **Pasos — exportar una completada**: al completar una tarea, un `confirm()` pregunta si se quiere abrir en Calendar con los datos precargados (nombre, tarea_fecha_fin, duración) → si acepta, se abre `calendar.google.com/render` en una pestaña nueva y el usuario la guarda a mano ahí (sin OAuth).
-- **Pasos — detectar solapamientos**: botón "Conectar con Google Calendar" en Hoy (OAuth de solo lectura) → una vez conectado, cada tarea con `tarea_fecha_sugerida` con hora se compara contra los eventos reales de **hoy**, y si se superpone se muestra un aviso con botón "Posponer" *(⏳ hoy el aviso es solo texto, sin botón — pedido del usuario, ver `REDISENO.md`)*.
+- **Pasos — detectar solapamientos**: no hay un botón aparte para Calendar: se concede junto con Drive (D2). Con el permiso concedido, cada tarea con `tarea_fecha_sugerida` con hora se compara contra los eventos reales de **hoy**, y si se superpone se muestra un aviso *(⏳ falta el botón "Posponer" junto al aviso — pedido del usuario, ver `REDISENO.md`)*. Si el usuario desmarcó el permiso de Calendar al autorizar, esos avisos simplemente no aparecen.
 - **Pasos — "Revisar mi día"**: si hay conexión, el paso final muestra los eventos reales del día (ver A6).
 - **Flujo usuario/sistema — detectar solapamientos**:
-  1. Usuario hace clic en "Conectar con Google Calendar" (en Hoy).
-  2. Sistema abre el popup de autorización de Google (solo lectura).
-  3. Usuario autoriza.
-  4. Sistema guarda el token en memoria (no persiste) y redibuja Hoy.
-  5. Sistema, por cada tarea con `tarea_fecha_sugerida` con hora, consulta los eventos de hoy (con caché de 5 minutos) y compara ventanas.
-  6. Sistema muestra "📅 Se superpone con…" en las tareas que chocan con un evento. (El flujo de exportar una completada está en A4, pasos 5-7.)
-- **Vistas/funciones**: `assets/js/exportar-calendar.js`, `assets/js/google-calendar.js`, `views/hoy.view.js`, `assets/js/revision-dia.js`.
+  1. Usuario autoriza Google (Drive y Calendar de solo lectura, ver D2).
+  2. Sistema guarda el token en memoria (no persiste) y redibuja Hoy.
+  3. Sistema, por cada tarea con `tarea_fecha_sugerida` con hora, consulta los eventos de hoy (con caché en memoria por día) y compara ventanas.
+  4. Sistema muestra "📅 Se superpone con…" en las tareas que chocan con un evento. (El flujo de exportar una completada está en A4, pasos 5-7.)
+- **Vistas/funciones**: `assets/js/exportar-calendar.js`, `assets/js/google-calendar.js`, `assets/js/google-auth.js`, `views/hoy.view.js`, `assets/js/revision-dia.js`.
 - **Resultado**: eventos creados en Calendar (fuera de STDL); ningún dato de STDL cambia por esto, salvo que el usuario reprograme a partir del aviso de solapamiento.
 - **Fricciones**: la lectura de eventos hoy solo cubre **el día de hoy** — no hay lectura de eventos pasados ni de rangos futuros (relevante para la nota abierta de Informes, E1). Exportar es manual paso a paso (abrir pestaña, guardar a mano); no queda una confirmación de que efectivamente se guardó.
 
