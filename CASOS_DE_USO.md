@@ -325,7 +325,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   2. Al volver la conexión (o al reconectar), sistema mezcla y sube lo pendiente.
 - **Vistas/funciones**: `assets/js/almacenamiento.js`, `assets/js/sincronizacion.js`, `assets/js/almacenamiento-local.js`, `assets/js/google-auth.js`, `assets/js/google-drive-sync.js`, cabecera y pantalla inicial en `assets/js/app.js`.
 - **Resultado**: los datos viven en un único archivo del Drive del usuario; nada se pierde en silencio (buffer local hasta confirmar + avisos de conflicto). `localStorage` no guarda datos de tareas, solo preferencias.
-- **Fricciones**: el token de Google no se persiste (dura ~1 hora): al abrir la app el sistema intenta reconectar sin popup y, si el navegador lo bloquea, reintenta en el primer clic; si no, "Reconectar Drive". Si abrís la app en dos pestañas, la segunda queda en solo lectura. Si nunca se validó "En producción" la app de Google, el consentimiento puede caducar a los ~7 días.
+- **Fricciones**: el token de Google no se persiste (dura ~1 hora): al abrir la app el sistema intenta reconectar sin popup; como el navegador suele bloquearlo (no hay un clic todavía), la cabecera avisa "hacé clic en cualquier parte de la página" y el primer clic reconecta y sincroniza solo (también existe el botón "Reconectar Drive"). Si abrís la app en dos pestañas, la segunda queda en solo lectura. Si nunca se validó "En producción" la app de Google, el consentimiento puede caducar a los ~7 días.
 
 ### D3. Conectar y usar Google Calendar
 

@@ -30,7 +30,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.51.2';
+const VERSION = 'v0.51.3';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -128,8 +128,11 @@ function actualizarCabeceraSync() {
     banners.push(
       s.estado === 'sin-conexion'
         ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.</p>`
-        : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.
-           <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
+        : s.reconectaConClic
+          ? `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${copia} Mientras tanto podés seguir usando la app: los cambios quedan pendientes.
+             <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
+          : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.
+             <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
     );
   }
   if (s.recienConectado && s.estado === 'sincronizado') {

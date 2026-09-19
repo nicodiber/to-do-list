@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.51.3] - 2026-09-19
+
+### Cambiado
+
+- **Aviso de reconexión con Google más claro** (pedido del usuario al validar): al abrir la app sin sesión de Google, el navegador bloquea el popup silencioso (no hay ningún clic todavía), pero el primer clic o tecla en cualquier parte de la página reconecta y sincroniza solo. El aviso de la cabecera ahora lo dice: "Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo". Si el reintento por clic ya se usó (o falló), vuelve el texto anterior. Además, el reintento por clic se vuelve a armar cada vez que se pierde la sesión (por ejemplo cuando vence el token a la hora), no solo al abrir la app. Estado nuevo `reconectaConClic` en `obtenerEstadoSync()`.
+
 ## [v0.51.2] - 2026-09-19
 
 ### Corregido

@@ -67,6 +67,8 @@ const sync = {
   mensajeError: '',
   almacenamientoLocalDisponible: true,
   recienConectado: false,
+  // Hay un reintento de reconexión armado para el próximo clic o tecla del usuario.
+  reconectaConClic: false,
 };
 
 export function suscribir(fn) {
@@ -303,7 +305,10 @@ function hayTextoEnEdicion() {
 }
 
 function estadoSinSesion() {
-  return typeof navigator !== 'undefined' && navigator.onLine === false ? 'sin-conexion' : 'sesion-vencida';
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'sin-conexion';
+  // Sin sesión, el próximo clic del usuario puede reconectar (Google exige un gesto para abrir su popup).
+  reconectarEnPrimerGesto();
+  return 'sesion-vencida';
 }
 
 /** Solo una pestaña puede editar a la vez: dos pestañas se pisarían el buffer pendiente. */
@@ -633,17 +638,23 @@ async function verificar() {
   }
 }
 
+let reconexionPorClicArmada = false;
+
 /**
  * Google exige un gesto del usuario para abrir su popup: si al abrir la app
  * no hay sesión, se reintenta la reconexión silenciosa en el primer clic o
  * tecla (salvo en los botones que ya conectan por su cuenta).
  */
 function reconectarEnPrimerGesto() {
-  if (!conectadoAlgunaVez()) return;
+  if (!conectadoAlgunaVez() || reconexionPorClicArmada) return;
+  reconexionPorClicArmada = true;
+  setSync({ reconectaConClic: true });
   const intentar = async (evento) => {
     if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial')) return;
     document.removeEventListener('pointerdown', intentar, true);
     document.removeEventListener('keydown', intentar, true);
+    reconexionPorClicArmada = false;
+    setSync({ reconectaConClic: false });
     if (hayToken() || sync.soloLectura || !(await reconexionSilenciosa({ ignorarEspera: true }))) return;
     await sincronizarAhora();
   };
