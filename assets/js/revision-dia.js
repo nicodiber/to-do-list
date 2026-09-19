@@ -1,7 +1,7 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { completarTarea, reprogramarTareaConCascada, desbloquearDependientes } from './tareas-logica.js';
+import { cumplirTarea, reprogramarTareaConCascada } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { crearTarea } from './modelos.js';
 import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventosDeHoy } from './google-calendar.js';
@@ -84,8 +84,7 @@ function renderPaso() {
     contenedorPaso.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
       const campoMejora = contenedorPaso.querySelector('[data-campo="mejora"]');
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
-      completarTarea(tarea, estado.tareas, { notaMejora });
-      desbloquearDependientes(tarea, estado.tareas);
+      cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
       ofrecerExportarACalendar(tarea);
       avanzar();

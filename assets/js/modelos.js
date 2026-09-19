@@ -104,6 +104,9 @@ export function crearTarea({
   meta_id = null,
   tarea_prioridad_manual = null,
   tarea_disfrute = null,
+  tarea_exportada_calendar = false,
+  tarea_checklist = [],
+  tarea_desencadenante = null,
 }) {
   const creadaEn = ahoraISO();
   return {
@@ -129,5 +132,38 @@ export function crearTarea({
     meta_id: meta_id || null,
     tarea_prioridad_manual,
     tarea_disfrute,
+    tarea_exportada_calendar,
+    tarea_checklist,
+    tarea_desencadenante: tarea_desencadenante || null,
+  };
+}
+
+/**
+ * Nota de mejora ("¿cómo se podría mejorar la próxima vez?") de una tarea de
+ * mantenimiento. Se asocia al nombre de la tarea, no a una instancia, para
+ * que sobreviva cuando las instancias completadas se archiven.
+ */
+export function crearMejora({ mejora_tarea_nombre, mejora_texto }) {
+  return {
+    mejora_id: generarId(),
+    mejora_tarea_nombre,
+    mejora_texto,
+    mejora_fecha: ahoraISO(),
+  };
+}
+
+/**
+ * Registro liviano de que una tarea se cumplió (base del mapa de hábitos).
+ * Guarda lo necesario para no depender de que la tarea siga existiendo.
+ */
+export function crearCumplimiento({ tarea, fecha }) {
+  return {
+    cumplimiento_id: generarId(),
+    cumplimiento_tarea_id: tarea.tarea_id,
+    cumplimiento_tarea_nombre: tarea.tarea_nombre,
+    categoria_id: tarea.categoria_id || null,
+    cumplimiento_fecha: fecha,
+    cumplimiento_fecha_limite: tarea.tarea_fecha_limite || '',
+    cumplimiento_mantenimiento: !!tarea.tarea_mantenimiento,
   };
 }

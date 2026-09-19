@@ -89,7 +89,45 @@
         "meta_id": { "type": ["string", "null"] },
         "tarea_prioridad_manual": { "type": ["number", "null"] },
         "tarea_disfrute": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+        "tarea_exportada_calendar": { "type": "boolean" },
+        "tarea_checklist": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["texto", "hecho"],
+            "properties": {
+              "texto": { "type": "string" },
+              "hecho": { "type": "boolean" }
+            }
+          }
+        },
+        "tarea_desencadenante": { "type": ["string", "null"] },
         "tarea_modificado_en": { "type": "string" }
+      }
+    },
+    "mejora": {
+      "type": "object",
+      "required": ["mejora_id", "mejora_tarea_nombre", "mejora_texto", "mejora_fecha"],
+      "properties": {
+        "mejora_id": { "type": "string" },
+        "mejora_tarea_nombre": { "type": "string", "minLength": 1 },
+        "mejora_texto": { "type": "string" },
+        "mejora_fecha": { "type": "string" },
+        "mejora_modificado_en": { "type": "string" }
+      }
+    },
+    "cumplimiento": {
+      "type": "object",
+      "required": ["cumplimiento_id", "cumplimiento_tarea_id", "cumplimiento_tarea_nombre", "cumplimiento_fecha"],
+      "properties": {
+        "cumplimiento_id": { "type": "string" },
+        "cumplimiento_tarea_id": { "type": "string" },
+        "cumplimiento_tarea_nombre": { "type": "string", "minLength": 1 },
+        "categoria_id": { "type": ["string", "null"] },
+        "cumplimiento_fecha": { "type": "string" },
+        "cumplimiento_fecha_limite": { "type": "string" },
+        "cumplimiento_mantenimiento": { "type": "boolean" },
+        "cumplimiento_modificado_en": { "type": "string" }
       }
     }
   },
@@ -117,13 +155,21 @@
       "type": "array",
       "items": { "$ref": "#/definitions/tarea" }
     },
+    "mejoras": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/mejora" }
+    },
+    "cumplimientos": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/cumplimiento" }
+    },
     "eliminados": {
       "type": "array",
       "items": {
         "type": "object",
         "required": ["coleccion", "id", "eliminado_en"],
         "properties": {
-          "coleccion": { "type": "string", "enum": ["categorias", "ubicaciones", "metas", "personas", "tareas"] },
+          "coleccion": { "type": "string", "enum": ["categorias", "ubicaciones", "metas", "personas", "tareas", "mejoras", "cumplimientos"] },
           "id": { "type": "string" },
           "eliminado_en": { "type": "string" }
         }

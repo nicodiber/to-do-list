@@ -1,6 +1,10 @@
-import { crearTarea, ORDEN_IMPORTANCIA } from './modelos.js';
+import { crearTarea, crearMejora, crearCumplimiento, ORDEN_IMPORTANCIA } from './modelos.js';
 import { ahoraISO, hoyISO, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz, combinarFechaYHora } from './utilidades.js';
 import { siguienteDiaHabil } from './reprogramar.js';
+import { recalcularBloqueo, puedeAgregarDependencia, proximasActivas, reconectarAlEliminar } from './dependencias.js';
+
+// Las dependencias viven en `dependencias.js`; se reexportan para no cambiar los imports de las vistas.
+export { recalcularBloqueo, puedeAgregarDependencia };
 
 /**
  * Calcula la próxima fecha límite (YYYY-MM-DD) de una tarea de mantenimiento,
@@ -49,22 +53,11 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
     tarea_mantenimiento_intervalo: tarea.tarea_mantenimiento_intervalo,
     tarea_costo_estimado: tarea.tarea_costo_estimado,
     tarea_disfrute: tarea.tarea_disfrute,
+    tarea_checklist: (tarea.tarea_checklist || []).map((item) => ({ texto: item.texto, hecho: false })),
+    tarea_desencadenante: tarea.tarea_desencadenante || null,
   });
   listaTareas.push(nueva);
   return nueva;
-}
-
-/**
- * Recalcula `tarea_estado` de una tarea según su `tarea_dependiente`: si
- * apunta a otra tarea que todavía no está `completada`, queda `bloqueada`;
- * si no, `pendiente`. No toca tareas ya `completada`. Se llama al crear una
- * tarea, al editar/quitar su dependencia, y (en cascada) al completar la
- * tarea de la que depende.
- */
-export function recalcularBloqueo(tarea, listaTareas) {
-  if (tarea.tarea_estado === 'completada') return;
-  const previa = tarea.tarea_dependiente ? listaTareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
-  tarea.tarea_estado = previa && previa.tarea_estado !== 'completada' ? 'bloqueada' : 'pendiente';
 }
 
 /**
@@ -80,6 +73,129 @@ export function desbloquearDependientes(tareaCompletada, listaTareas) {
       dependiente.tarea_fecha_inicio_habilitada = tareaCompletada.tarea_fecha_fin;
       recalcularBloqueo(dependiente, listaTareas);
     });
+}
+
+/**
+ * La instancia "vigente" de una tarea: ella misma si todavía no se completó o,
+ * si ya se completó, la copia de mantenimiento pendiente con el mismo
+ * `tarea_nombre` (la identidad de una tarea que se repite es su nombre; si hay
+ * más de una, la más antigua). `excluirIds` deja afuera instancias puntuales.
+ */
+export function instanciaPendiente(tarea, listaTareas, excluirIds = []) {
+  if (tarea.tarea_estado !== 'completada') return tarea;
+  return (
+    listaTareas
+      .filter(
+        (t) =>
+          t.tarea_id !== tarea.tarea_id &&
+          !excluirIds.includes(t.tarea_id) &&
+          t.tarea_mantenimiento &&
+          t.tarea_estado !== 'completada' &&
+          t.tarea_nombre === tarea.tarea_nombre
+      )
+      .sort((a, b) => (a.tarea_creada_en || '').localeCompare(b.tarea_creada_en || ''))[0] || null
+  );
+}
+
+/**
+ * Enlaza la copia de una tarea de mantenimiento recién completada: si la
+ * original tenía tarea previa P, la copia depende de la instancia vigente de P
+ * (así una cadena A→B→C se repite entera); si no tenía previa pero sí un
+ * `tarea_desencadenante` D, la copia queda bloqueada por la instancia vigente
+ * de D (así un anillo A→B→C→D→A se sostiene). Nunca crea un enlace que rompa
+ * la regla 1 a 1 ni que forme un ciclo.
+ */
+function enlazarCopia(original, copia, listaTareas) {
+  const referenciaId = original.tarea_dependiente || original.tarea_desencadenante;
+  const referencia = referenciaId ? listaTareas.find((t) => t.tarea_id === referenciaId) : null;
+  const objetivo = referencia ? instanciaPendiente(referencia, listaTareas, [original.tarea_id, copia.tarea_id]) : null;
+  if (!objetivo) return;
+  if (proximasActivas(objetivo.tarea_id, listaTareas).some((t) => t.tarea_id !== copia.tarea_id)) return;
+  if (!puedeAgregarDependencia(copia.tarea_id, objetivo.tarea_id, listaTareas)) return;
+  copia.tarea_dependiente = objetivo.tarea_id;
+  recalcularBloqueo(copia, listaTareas);
+}
+
+/**
+ * Cumple una tarea: la completa (y, si es de mantenimiento, crea su copia), la
+ * enlaza (ver `enlazarCopia`), desbloquea a las que dependían de ella, registra
+ * el cumplimiento (base del mapa de hábitos) y, si hay nota, crea la Mejora.
+ * Reemplaza el par `completarTarea` + `desbloquearDependientes` que repetían
+ * las vistas. `estado` es el objeto con las colecciones de la app. Devuelve la
+ * copia creada, o `null`.
+ */
+export function cumplirTarea(tarea, estado, { notaMejora = '' } = {}) {
+  const copia = completarTarea(tarea, estado.tareas, { notaMejora });
+  if (!estado.cumplimientos) estado.cumplimientos = [];
+  estado.cumplimientos.push(crearCumplimiento({ tarea, fecha: tarea.tarea_fecha_fin }));
+  if (notaMejora) {
+    if (!estado.mejoras) estado.mejoras = [];
+    estado.mejoras.push(crearMejora({ mejora_tarea_nombre: tarea.tarea_nombre, mejora_texto: notaMejora }));
+  }
+  if (copia) enlazarCopia(tarea, copia, estado.tareas);
+  desbloquearDependientes(tarea, estado.tareas);
+  return copia;
+}
+
+const MS_COPIA_SIN_TOCAR = 10 * 1000;
+
+/** ¿La copia se creó y no se volvió a modificar (su sello es de la misma guardada que la creó)? */
+function copiaSinTocar(copia, estado) {
+  if (!copia.tarea_modificado_en || !copia.tarea_creada_en) return false;
+  const editadaDespues = Date.parse(copia.tarea_modificado_en) - Date.parse(copia.tarea_creada_en) > MS_COPIA_SIN_TOCAR;
+  return !editadaDespues && !estado.tareas.some((t) => t.tarea_dependiente === copia.tarea_id);
+}
+
+/**
+ * Reabre una tarea completada: vuelve a estar pendiente (o bloqueada, si su
+ * previa no está completa), se deshace su cumplimiento y su marca de exportada
+ * a Calendar, y las tareas que dependían de ella se recalculan. Si era de
+ * mantenimiento y ya había generado su copia, la borra solo si sigue sin tocar
+ * (sin completar, sin nadie que dependa de ella y sin ediciones); si se tocó
+ * la conserva. La Mejora, si hubo, se conserva. Devuelve
+ * `{ copiaEliminada, copiaConservada }` para que la vista pueda avisar.
+ */
+export function reabrirTarea(tarea, estado) {
+  const finAnterior = tarea.tarea_fecha_fin;
+  tarea.tarea_estado = 'pendiente';
+  tarea.tarea_fecha_fin = null;
+  tarea.tarea_exportada_calendar = false;
+  recalcularBloqueo(tarea, estado.tareas);
+  estado.cumplimientos = (estado.cumplimientos || []).filter((c) => c.cumplimiento_tarea_id !== tarea.tarea_id);
+  estado.tareas.filter((t) => t.tarea_dependiente === tarea.tarea_id).forEach((dependiente) => recalcularBloqueo(dependiente, estado.tareas));
+
+  const resultado = { copiaEliminada: null, copiaConservada: null };
+  if (!tarea.tarea_mantenimiento || !finAnterior) return resultado;
+
+  const copia = estado.tareas
+    .filter(
+      (t) =>
+        t.tarea_id !== tarea.tarea_id &&
+        t.tarea_mantenimiento &&
+        t.tarea_estado !== 'completada' &&
+        t.tarea_nombre === tarea.tarea_nombre &&
+        (t.tarea_creada_en || '') >= finAnterior
+    )
+    .sort((a, b) => (a.tarea_creada_en || '').localeCompare(b.tarea_creada_en || ''))[0];
+  if (!copia) return resultado;
+
+  if (copiaSinTocar(copia, estado)) {
+    eliminarTarea(copia, estado);
+    resultado.copiaEliminada = copia;
+  } else {
+    resultado.copiaConservada = copia;
+  }
+  return resultado;
+}
+
+/**
+ * Elimina una tarea. Si estaba en el medio de una cadena, la reconecta
+ * (P→A→N queda P→N) y el desencadenante que la apuntaba pasa a su previa.
+ * No toca cumplimientos ni mejoras: son historial.
+ */
+export function eliminarTarea(tarea, estado) {
+  estado.tareas = estado.tareas.filter((t) => t.tarea_id !== tarea.tarea_id);
+  reconectarAlEliminar(tarea, estado.tareas);
 }
 
 /**
@@ -283,29 +399,6 @@ export function mejorTareaPorCategoria(tareas, categorias) {
       return { categoria: raiz, tarea: candidatas[0] };
     })
     .filter(Boolean);
-}
-
-/**
- * Valida que se pueda agregar `candidatoId` como `tarea_dependiente` de
- * `tareaId`: ni auto-referencia, ni que agregar ese enlace cierre un ciclo
- * (A depende de B depende de C depende de A, etc.) recorriendo la cadena de
- * `tarea_dependiente` hacia atrás desde `candidatoId`.
- */
-export function puedeAgregarDependencia(tareaId, candidatoId, listaTareas) {
-  if (tareaId === candidatoId) return false;
-  return !existeCaminoDeDependencias(candidatoId, tareaId, listaTareas);
-}
-
-function existeCaminoDeDependencias(desdeId, hastaId, listaTareas) {
-  let actual = desdeId;
-  const visitados = new Set();
-  while (actual && !visitados.has(actual)) {
-    if (actual === hastaId) return true;
-    visitados.add(actual);
-    const tarea = listaTareas.find((t) => t.tarea_id === actual);
-    actual = tarea ? tarea.tarea_dependiente : null;
-  }
-  return false;
 }
 
 /**

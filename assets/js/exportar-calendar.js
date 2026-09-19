@@ -1,4 +1,4 @@
-import { estado } from './almacenamiento.js';
+import { estado, persistirYNotificar } from './almacenamiento.js';
 
 function formatoUTCGoogleCalendar(fecha) {
   return fecha.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -40,4 +40,7 @@ export function ofrecerExportarACalendar(tarea) {
   );
   if (!quiereExportar) return;
   window.open(construirUrlExportarGoogleCalendar(tarea), '_blank', 'noopener');
+  // Se marca al abrir Calendar (no se puede verificar que el usuario haya guardado el evento).
+  tarea.tarea_exportada_calendar = true;
+  persistirYNotificar();
 }

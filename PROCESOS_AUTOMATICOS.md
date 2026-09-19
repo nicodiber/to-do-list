@@ -5,8 +5,8 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 ## 1. Clonado de una tarea de mantenimiento al completarla
 
 - **Condición**: se marca como completada una tarea con `tarea_mantenimiento = true`.
-- **Proceso**: `completarTarea` (`assets/js/tareas-logica.js`) calcula la próxima `tarea_fecha_limite` a partir de la fecha **real** de finalización (no de una fecha teórica) más `tarea_mantenimiento_intervalo` (`calcularProximaFechaMantenimiento`), y clona una nueva instancia pendiente con el mismo nombre, categoría, duración, intervalo, costo estimado y disfrute (más la nota de mejora, si se cargó, anexada a la descripción).
-- **Resultado**: la instancia completada queda como historial; nace una nueva tarea pendiente con la fecha recalculada.
+- **Proceso**: `cumplirTarea` (`assets/js/tareas-logica.js`) calcula la próxima `tarea_fecha_limite` a partir de la fecha **real** de finalización (no de una fecha teórica) más `tarea_mantenimiento_intervalo` (`calcularProximaFechaMantenimiento`), y clona una nueva instancia pendiente con el mismo nombre, categoría, duración, intervalo, costo estimado, disfrute y `tarea_desencadenante`, el checklist con todos los ítems destildados y `tarea_exportada_calendar` en `false` (más la nota de mejora, si se cargó, anexada a la descripción). Además **enlaza la copia**: si la original tenía tarea previa P, la copia depende de la instancia vigente de P (la misma P si sigue sin completar, o su copia pendiente con el mismo nombre); si no tenía previa pero sí desencadenante D, la copia queda bloqueada por la instancia vigente de D. Nunca crea un enlace que rompa la regla 1 a 1 ni que forme un ciclo.
+- **Resultado**: la instancia completada queda como historial; nace una nueva tarea pendiente (o bloqueada, si se enlazó) con la fecha recalculada. Una cadena A→B→C→D con D como desencadenante de A se sostiene sola: al completar A, su copia A' queda bloqueada por D; B' depende de A', C' de B', D' de C', y al completar D se desbloquea A'.
 
 ## 2. Desbloqueo en cascada al completar una tarea
 
@@ -17,8 +17,8 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 ## 3. Recálculo de bloqueo al crear/editar una dependencia
 
 - **Condición**: se crea una tarea con `tarea_dependiente`, o se cambia/quita la dependencia de una tarea existente.
-- **Proceso**: `recalcularBloqueo` consulta si la tarea de la que depende ya está `completada`.
-- **Resultado**: `tarea_estado` queda en `bloqueada` (si la dependencia no está completada) o `pendiente` (si sí, o si no hay dependencia).
+- **Proceso**: `aplicarEnlace` (`assets/js/dependencias.js`) valida la regla 1 a 1 (cada tarea bloquea a una y es bloqueada por una), sin ciclos ni tareas completadas; si se elige una tarea ya enlazada, inserta la nueva en medio (P→A→N), y si el pedido es contradictorio lo rechaza explicando el conflicto. Luego `recalcularBloqueo` consulta si la tarea previa ya está `completada`.
+- **Resultado**: `tarea_estado` queda en `bloqueada` (si la previa no está completada) o `pendiente` (si sí, o si no hay dependencia); las tareas afectadas por la inserción se recalculan también.
 
 ## 4. Reprogramado en cascada al posponer
 
@@ -67,7 +67,7 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 ## 11. Verificación automática y mezcla con avisos
 
 - **Condición**: la pestaña vuelve a estar visible (`visibilitychange`), vuelve la red (`online`), pasaron 5 minutos, o se conecta Drive.
-- **Proceso**: `verificar` / `sincronizarUnaVez` consultan el `modifiedTime` del archivo en Drive. Si no cambió y no hay nada pendiente, solo se actualiza la hora de "verificado". Si otro dispositivo lo modificó, se descarga y se mezcla con `mezclar` (`assets/js/sincronizacion.js`) tomando como base la última copia confirmada: por cada entidad, si solo cambió un lado gana ese; si cambiaron los dos gana el sello `*_modificado_en` más nuevo; un borrado (`eliminados`) contra una edición conserva lo más reciente. Si el usuario está escribiendo en un campo, los cambios remotos se difieren ("Actualizar" en la cabecera; se aplican al salir del campo). Al aplicarlos, los campos de formulario que el usuario ya había tocado conservan su valor (`assets/js/borradores.js`).
+- **Proceso**: `verificar` / `sincronizarUnaVez` consultan el `modifiedTime` del archivo en Drive. Si no cambió y no hay nada pendiente, solo se actualiza la hora de "verificado". Si otro dispositivo lo modificó, se descarga y se mezcla con `mezclar` (`assets/js/sincronizacion.js`) tomando como base la última copia confirmada: por cada entidad, si solo cambió un lado gana ese; si cambiaron los dos gana el sello `*_modificado_en` más nuevo; un borrado (`eliminados`) contra una edición conserva lo más reciente. Si el usuario está escribiendo en un campo, los cambios remotos se difieren ("Actualizar" en la cabecera; se aplican al salir del campo). Al aplicarlos, los campos de formulario que el usuario ya había tocado conservan su valor (`assets/js/borradores.js`). Después de mezclar, `repararEnlaces` (`assets/js/dependencias.js`) revisa las dependencias: si dos dispositivos pusieron más de una tarea detrás de la misma previa (regla 1 a 1) o formaron un ciclo, conserva el enlace de la tarea más antigua, suelta el resto y deja un **aviso** que lo explica.
 - **Resultado**: los dispositivos convergen sin acción manual. Cada vez que la mezcla descarta algo (conflicto o borrado vs. edición) se genera un **aviso** con la entidad, el ganador y los campos/valores descartados; queda en la cabecera hasta que el usuario lo cierra ("nada se pierde en silencio"). También se avisa si Drive tiene archivos duplicados (se usa el más antiguo) o si el reloj del dispositivo está desfasado más de 2 minutos.
 
 ## 12. Permiso único de Google y reconexión
@@ -87,3 +87,15 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Condición**: se muestra una Meta (no existe un campo de progreso persistido).
 - **Proceso**: se cuentan al vuelo las tareas con ese `meta_id` y cuántas de ellas están `completada`.
 - **Resultado**: la barra de progreso y el contador "X/Y completadas" siempre reflejan el estado real, sin necesidad de recalcular ni guardar nada aparte.
+
+## 15. Registro de cumplimientos y de mejoras al completar una tarea
+
+- **Condición**: se completa cualquier tarea (`cumplirTarea`).
+- **Proceso**: se crea un **Cumplimiento** (nombre, categoría, fecha, vencimiento esperado, si era de mantenimiento) y, si la tarea era de mantenimiento y se escribió una nota, una **Mejora** asociada al nombre de la tarea.
+- **Resultado**: queda un historial liviano que no depende de que la tarea siga existiendo. Al reabrir la tarea, su cumplimiento se borra (la mejora se conserva); al reabrir una tarea de mantenimiento, también se elimina su copia si sigue sin tocar (si se modificó, se conserva y se avisa).
+
+## 16. Reconexión de la cadena al eliminar una tarea del medio
+
+- **Condición**: se elimina una tarea que bloqueaba a otra y tenía a su vez una tarea previa (P→A→N).
+- **Proceso**: `eliminarTarea` → `reconectarAlEliminar` (`assets/js/dependencias.js`): las tareas que dependían de la eliminada pasan a depender de su previa y se recalcula su bloqueo. Si otra tarea tenía a la eliminada como `tarea_desencadenante`, ese desencadenante pasa a la previa de la eliminada.
+- **Resultado**: la cadena queda P→N; nada queda bloqueado por una tarea que ya no existe.

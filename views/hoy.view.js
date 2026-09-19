@@ -3,9 +3,8 @@ import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from '../
 import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
-  completarTarea,
+  cumplirTarea,
   reprogramarTareaConCascada,
-  desbloquearDependientes,
   compararPorPrioridad,
   calcularEnfoque8020,
   calcularHolguraDias,
@@ -228,8 +227,7 @@ function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
     contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
       const campoMejora = contenedorCierre.querySelector('[data-campo="mejora"]');
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
-      completarTarea(tarea, estado.tareas, { notaMejora });
-      desbloquearDependientes(tarea, estado.tareas);
+      cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
       ofrecerExportarACalendar(tarea);
     });

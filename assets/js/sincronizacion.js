@@ -12,6 +12,8 @@ export const COLECCIONES = [
   { clave: 'metas', id: 'meta_id', modificado: 'meta_modificado_en', nombre: 'meta_nombre', etiqueta: 'meta' },
   { clave: 'personas', id: 'persona_id', modificado: 'persona_modificado_en', nombre: 'persona_nombre', etiqueta: 'persona' },
   { clave: 'tareas', id: 'tarea_id', modificado: 'tarea_modificado_en', nombre: 'tarea_nombre', etiqueta: 'tarea' },
+  { clave: 'mejoras', id: 'mejora_id', modificado: 'mejora_modificado_en', nombre: 'mejora_tarea_nombre', etiqueta: 'nota de mejora' },
+  { clave: 'cumplimientos', id: 'cumplimiento_id', modificado: 'cumplimiento_modificado_en', nombre: 'cumplimiento_tarea_nombre', etiqueta: 'marca de cumplimiento' },
 ];
 
 /** Serialización con claves ordenadas, para comparar contenidos sin depender del orden de las claves. */
@@ -70,7 +72,7 @@ export function copiarProfundo(valor) {
   return JSON.parse(JSON.stringify(valor));
 }
 
-/** Foto de las 5 colecciones de `estado`, para compararla luego con `sellarCambios`. */
+/** Foto de las colecciones de `estado`, para compararla luego con `sellarCambios`. */
 export function fotoColecciones(estado) {
   const foto = {};
   for (const cfg of COLECCIONES) foto[cfg.clave] = copiarProfundo(estado[cfg.clave]);
