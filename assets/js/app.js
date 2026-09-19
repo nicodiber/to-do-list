@@ -16,6 +16,7 @@ import {
   importarJSON,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas } from './tareas-logica.js';
+import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaTresDias } from '../../views/tres-dias.view.js';
 import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
@@ -30,7 +31,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.51.3';
+const VERSION = 'v0.51.4';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -255,8 +256,9 @@ function claveDeRender(s) {
   return `${s.datosListos}|${s.soloLectura}|${!s.datosListos && s.estado === 'conectando'}`;
 }
 
-function render() {
+function render({ conservarBorradores = false } = {}) {
   const s = obtenerEstadoSync();
+  const borradores = conservarBorradores && s.datosListos && !s.soloLectura ? capturarBorradores(CONTENEDOR) : null;
   renderNav();
   actualizarCabeceraSync();
   claveUltimoRender = claveDeRender(s);
@@ -270,6 +272,7 @@ function render() {
     return;
   }
   VISTAS[vistaActual()].render(CONTENEDOR, estado);
+  restaurarBorradores(CONTENEDOR, borradores);
 }
 
 // Los cambios de estado de sincronización solo actualizan la cabecera; la
@@ -295,8 +298,8 @@ async function reprogramarSiCorresponde() {
 
 document.getElementById('version-app').textContent = VERSION;
 
-window.addEventListener('hashchange', render);
-suscribir(render);
+window.addEventListener('hashchange', () => render());
+suscribir((_estado, opciones) => render(opciones));
 
 // Atajo de teclado "N" (sin modificador) para crear una tarea rápido sin
 // usar el mouse. Ctrl+N está reservado por el navegador (nueva ventana),

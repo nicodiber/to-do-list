@@ -2,6 +2,13 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.51.4] - 2026-09-19
+
+### Corregido
+
+- **Se perdía lo que estabas escribiendo cuando llegaban cambios de otro dispositivo** (hallado al validar: el campo "Agregar tarea rápido" quedaba vacío tras aplicar los cambios, tanto al hacer clic fuera como con el botón "Actualizar"). Al aplicar cambios remotos la vista se redibuja entera y vaciaba los formularios a medio completar. Nuevo módulo `assets/js/borradores.js`: antes de redibujar guarda los campos que el usuario ya tocó (y cuál tenía el foco) y los vuelve a poner después. Solo se usa para cambios que vienen de otro dispositivo (`notificar({ conservarBorradores: true })`); los redibujados locales siguen limpiando el formulario, por ejemplo después de agregar una tarea.
+- `sw.js`: `CACHE_NAME` a `v10` y precache de `borradores.js`.
+
 ## [v0.51.3] - 2026-09-19
 
 ### Cambiado

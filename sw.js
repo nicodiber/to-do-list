@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v9';
+const CACHE_NAME = 'super-todo-list-v10';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -25,6 +25,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/google-drive-sync.js',
   'assets/js/sincronizacion.js',
   'assets/js/almacenamiento-local.js',
+  'assets/js/borradores.js',
   'assets/js/ubicacion-actual.js',
   'views/hoy.view.js',
   'views/tres-dias.view.js',

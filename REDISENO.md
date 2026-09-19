@@ -36,6 +36,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Atajo "N"** enfoca ese input (ya lo hace; sigue cubriendo alta rápida y completa porque están en la misma pantalla).
 - ✅ **`tarea_disfrute`** (1-5 o `null`) en el formulario. *(Ya implementado en v0.50.0.)*
 - ✅ **Dependencias en el alta** (ver "Dependencias 1 a 1").
+- ❓ **Borradores de formulario**: hoy, si hay algo a medio escribir en el alta y el usuario hace otra acción local (por ejemplo cumplir otra tarea desde la lista), la vista se redibuja y el formulario se vacía; solo los cambios que llegan de otro dispositivo conservan lo escrito (v0.51.4). Evaluar en la Ronda 3 (alta unificada) conservar el borrador también en redibujados locales.
 - ✅ **Edición separada del alta, en una ventana modal**: al editar una tarea (por ejemplo desde "Todas"), se abre una ventana modal con solo esa tarea, sin el formulario de alta al lado. Se implementa en la Ronda 3. ❓ Falta definir los detalles (cerrar con Esc y con clic afuera, qué pasa si hay cambios sin guardar, si conviene una ruta como `#/tareas/editar/<id>` para compartir el enlace).
 
 ## A3 · Completar carga de tareas

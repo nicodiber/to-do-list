@@ -79,8 +79,13 @@ export function suscribirSync(fn) {
   listenersSync.push(fn);
 }
 
-function notificar() {
-  listeners.forEach((fn) => fn(estado));
+/**
+ * Avisa a las vistas que los datos cambiaron. Con `conservarBorradores` (cambios
+ * que llegaron de otro dispositivo) quien redibuja debe conservar lo que el
+ * usuario ya escribió en los formularios.
+ */
+function notificar(opciones = {}) {
+  listeners.forEach((fn) => fn(estado, opciones));
 }
 
 export function obtenerEstadoSync() {
@@ -530,7 +535,7 @@ async function sincronizarUnaVez(forzar) {
   if (aplicar) {
     aplicarDatosAlEstado(resultado, ahora);
     tomarFotoSellado();
-    notificar();
+    notificar({ conservarBorradores: true });
   }
 
   let guardado = null;
