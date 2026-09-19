@@ -47,22 +47,26 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Notas de mejora** ("¿cómo se podría mejorar para la próxima vez?"): se asocian al **nombre de la tarea** y, por ahora, solo aplican a tareas de mantenimiento. Se guardan en una **entidad nueva `Mejora`** (`tarea_nombre`, texto, fecha), independiente de las instancias, para que sobrevivan al archivado. Vista dedicada "Mejoras" para repasarlas. Además se sigue anexando la última nota a la descripción de la instancia clonada.
 - ✅ **Botón "Exportar a Calendar" dentro de cada tarea**, habilitado una vez completada. El usuario **conserva el control** de qué se escribe en Calendar: se mantiene el mecanismo actual (pestaña de Calendar con el evento precargado); se descartó escribir vía API.
 - ✅ **Campo nuevo `tarea_exportada_calendar`** (booleano): se marca al usar el botón (no verifica que el usuario haya guardado el evento).
-- ❓ **`confirm()` al completar** ("¿Abrir «tarea» en Google Calendar…?"): decidir si desaparece, ya que el botón por tarea lo reemplaza.
+- ✅ **El `confirm()` al completar se mantiene** ("¿Abrir «tarea» en Google Calendar…?"): el usuario no lo considera una interrupción. El botón "Exportar a Calendar" por tarea **se suma**, no lo reemplaza.
 - ✅ **Checklist en tareas de mantenimiento**: lista de pasos dentro de la tarea para definir el proceso. Ya estaba anotado en `BACKLOG.md`. ❓ Falta definir cuándo se resetea (al completar, o al final del día). Propuesta: la instancia clonada nace con el checklist destildado, sin lógica de reseteo aparte.
 - ✅ **Se eliminó Premack** (sugerencia automática de tarea de alto disfrute). 🔮 Se retoma post-v1.0 con datos reales.
 
 ## A6 · "Revisar mi día"
 
 - ⚠️ **A redefinir** con el usuario (¿flujo modal separado, o basta iterar Hoy?).
-- ✅ Deseo del usuario: que el paso de eventos de Calendar pregunte **en secuencia, evento por evento**, si generó una tarea nueva (hoy se listan todos juntos con un único alta rápida).
-- ❓ Dónde vive el paso "eventos de Calendar → tarea nueva" (o si se descarta).
+- ✅ El paso **"eventos de Calendar → tarea nueva" se descarta por ahora**: una tarea de continuidad se crea con el botón "+". 🔮 Se evalúa post-v1.0. (Queda en suspenso el deseo de que ese paso pregunte en secuencia evento por evento, ya que el paso está descartado.)
 
 ## Dependencias 1 a 1
 
 - ✅ **Regla**: cada tarea bloquea a **como máximo una** y es bloqueada por **como máximo una**. Se permite conectar tareas de **distintas categorías**.
 - ✅ **En el alta**: dos desplegables, "depende de (tarea previa)" y "bloquea a (tarea próxima)", ambos con valor por defecto `null`, sin ofrecer tareas completadas.
-- ✅ **Insertar en medio de una cadena**: si la previa (o la próxima) elegida ya está enlazada, igual aparece en el desplegable ("ocupada") y la tarea nueva se inserta entre ambas.
-- ❓ Reglas exactas de la inserción y qué pasa al eliminar una tarea del medio de una cadena (ver conversación).
+- ✅ **Insertar en medio de una cadena**: si la previa (o la próxima) elegida ya está enlazada, igual aparece en el desplegable ("ocupada") y la tarea nueva se inserta entre ambas. Con la cadena P→N:
+  - Se elige solo *previa = P* (P ya bloquea a N): A se inserta en medio, P→A→N.
+  - Se elige solo *próxima = N* (N ya tiene previa P): mismo resultado, P→A→N.
+  - Se eligen *previa = P* y *próxima = N*: si son consecutivas se inserta en medio; si **no** lo son (hay tareas entre ellas, o son de cadenas distintas) se **rechaza indicando el conflicto**, para que el usuario reajuste y termine la carga.
+  - Al **eliminar** una tarea del medio (P→A→N), se **reconecta P→N**.
+  - El panel "Dependencia" de la edición sigue las mismas reglas y filtros que el alta.
+- ❓ **Ciclos de mantenimiento**: cuando una cadena de tareas de mantenimiento se repite en anillo (A→B→C→D y D desencadena de nuevo a A), el clon de A debe nacer enlazado a D, pero A no puede depender de D desde el inicio sin quedar bloqueada (y hoy los ciclos se rechazan). Propuesta pendiente de confirmar: campo `tarea_desencadenante` (solo mantenimiento) que se aplica **al crear el clon**; cada clon hereda el enlace apuntando a la instancia pendiente vigente de su previa.
 
 ## C1 / C2 / C3 · ABMs
 
@@ -97,9 +101,26 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Pantalla inicial obligatoria** si no hay un destino real conectado: "elegí dónde guardar", sin dejar cargar tareas hasta entonces.
 - ✅ **Estado siempre visible en la cabecera**: estado (sincronizado / guardando / pendiente / conflicto), **fecha y hora del último guardado**, y un botón **"Sincronizar ahora"** que verifica contra Drive y muestra la fecha de la **última verificación** (para poder mostrar que está al día aunque el último cambio sea viejo).
 - ✅ **Si un guardado falla** (sin internet, sesión vencida): los cambios quedan en un **buffer temporal marcado "pendiente"** que se borra apenas se confirma el guardado; la UI nunca lo presenta como guardado.
-- ❓ Lectura sin conexión (copia de solo lectura), verificación automática al volver a la pestaña, y resolución de conflictos (elegir todo o mezclar por tarea): ver conversación.
+- ✅ **Copia de solo lectura sin conexión**: si al abrir no hay conexión, se muestra la última copia sincronizada, con un aviso visible mientras no haya conexión ("sin conexión — datos al 19/09 14:32") y otro aviso cuando la conexión se establece y se sincroniza ("conectado y sincronizado ✓").
+- ✅ **Verificación automática**: al volver a la pestaña y cada pocos minutos se chequea Drive; si hubo cambios de otro dispositivo y no hay nada pendiente propio, se actualiza solo con un aviso.
+- ✅ **Mezcla por tarea** cuando hay cambios en ambos lados: cada entidad lleva un `modificado_en` y gana la más reciente; las eliminaciones se registran para que lo borrado no reviva.
+- ❓ Alcance de la edición sin conexión, y si el permiso de Calendar se unifica con el de Drive en un solo inicio de sesión.
+
+## Rondas de implementación acordadas
+
+Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que define cómo y dónde se guardan (rondas 1 y 2; el resto solo agrega campos, sin cambiar la forma de lo guardado):
+
+1. **Almacenamiento**: Drive único, pantalla inicial obligatoria, cabecera con estado, buffer pendiente, sincronización manual, verificación automática y mezcla por tarea.
+2. **Modelo de datos**: entidad `Mejora`, `tarea_exportada_calendar`, registro de cumplimientos, restricción 1 a 1 de dependencias, campo de checklist, `tarea_desencadenante` (si se confirma).
+3. **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)".
+4. **Hoy**: Próximos por categoría, focus, completadas de hoy, exportar por tarea, ☀️, Posponer en el solapamiento.
+5. **ABMs**: editar categorías y ubicaciones, editar último contacto, vista Configuraciones.
+6. **Tablero** (progreso por categoría + hábitos) y vista **Mejoras**.
+7. **Gantt**: todas las tareas + filtros.
+8. **Rediseño visual, emojis y atajos** (transversal).
 
 ## Post-v1.0
 
+- 🔮 **Eventos de Calendar → tarea nueva** (paso descartado por ahora del flujo de cierre del día).
 - 🔮 **IA conectable** (suspendida por completo).
 - 🔮 **Premack / disfrute**: retomar con datos reales de `categoria_disfrute` y `tarea_disfrute`.
