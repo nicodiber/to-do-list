@@ -155,7 +155,7 @@ Permiso único de Google para Drive y Calendar (un solo popup por sesión).
 
 - **`conectar({ silencioso })`**: pide un token de acceso con los scopes `drive.file` + `calendar.readonly` juntos vía Google Identity Services. El token vive solo en memoria (~1 h). Con `silencioso: true` usa `prompt: 'none'` (sin popup visible; puede fallar si Google necesita interacción). El `TokenClient` es singleton, así que los callbacks reales delegan a handlers reasignables por cada llamada (una nueva conexión cancela la anterior en curso).
 - **`hayToken()` / `obtenerTokenAcceso()` / `tieneScope('drive' | 'calendar')`**: `tieneScope` usa `hasGrantedAllScopes` porque el usuario puede desmarcar permisos en el consentimiento granular; con Drive denegado no se puede trabajar, con Calendar denegado se ocultan solo las funciones de Calendar.
-- **`esperarGoogle()`**: espera a que cargue el script async de Google. **`soportaGoogle()`**, **`conectadoAlgunaVez()`** (flag de preferencia en `localStorage` para intentar la reconexión silenciosa), **`alPerderSesion(cb)`** / **`invalidarToken()`** (401 de Google → avisa a `almacenamiento.js`).
+- **`esperarGoogle()`**: espera a que cargue el script async de Google (solo la primera vez) y, si no llegó —por ejemplo porque la página se abrió sin internet—, lo vuelve a cargar por su cuenta (`cargarScriptGoogle`); `conectar()` también lo recarga si falta. **`soportaGoogle()`**, **`conectadoAlgunaVez()`** (flag de preferencia en `localStorage` para intentar la reconexión silenciosa), **`alPerderSesion(cb)`** / **`invalidarToken()`** (401 de Google → avisa a `almacenamiento.js`).
 
 ## `assets/js/google-drive-sync.js`
 

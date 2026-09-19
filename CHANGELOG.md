@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.51.2] - 2026-09-19
+
+### Corregido
+
+- **"No se pudo cargar Google Identity Services" al volver la conexión** (hallado al validar v0.51.0): si la página se abría sin internet, el script de Google (`index.html`) fallaba de forma definitiva y "Reconectar Drive" seguía fallando aunque internet volviera, hasta recargar con F5. Ahora `google-auth.js` vuelve a cargar el script por su cuenta (`esperarGoogle` la primera vez espera al original y después lo reintenta; `conectar` lo recarga si falta), así que la reconexión funciona sin recargar.
+
 ## [v0.51.1] - 2026-09-19
 
 ### Cambiado
