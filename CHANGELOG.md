@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.51.1] - 2026-09-19
+
+### Cambiado
+
+- **Botón de tema** de la cabecera: muestra solo el emoji de la acción (☀️ para pasar a modo claro, 🌙 para pasar a modo oscuro) en lugar del texto "Modo claro"/"Modo oscuro", que se leía como el estado actual y no como la acción. La lógica no cambia; se suman `title` y `aria-label` ("Cambiar a modo claro/oscuro") para que el botón siga siendo comprensible.
+
 ## [v0.51.0] - 2026-09-19
 
 Ronda 1 del rediseño: **Google Drive como único destino de los datos** (ver `REDISENO.md`, sección Almacenamiento).

@@ -30,7 +30,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.51.0';
+const VERSION = 'v0.51.1';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -357,7 +357,10 @@ function temaEfectivo() {
 
 function aplicarTema(tema) {
   document.documentElement.dataset.tema = tema;
-  BOTON_TEMA.textContent = tema === 'oscuro' ? '☀️ Modo claro' : '🌙 Modo oscuro';
+  BOTON_TEMA.textContent = tema === 'oscuro' ? '☀️' : '🌙';
+  const etiqueta = tema === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  BOTON_TEMA.title = etiqueta;
+  BOTON_TEMA.setAttribute('aria-label', etiqueta);
 }
 
 let temaActual = temaEfectivo();
