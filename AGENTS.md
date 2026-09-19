@@ -36,6 +36,7 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 - Al definir o discutir una funcionalidad, **plantear proactivamente los casos borde y escenarios que el usuario no mencionó** (ej. qué pasa al eliminar una tarea del medio de una cadena de dependencias, al alternar dispositivos, al fallar un guardado, con datos ya existentes), con una propuesta concreta y una pregunta cerrada para confirmar. Al usuario le resulta muy útil que se le señalen los casos que le faltó completar.
 - Preferir preguntas cerradas o de opción múltiple cuando hay que decidir, dejando las abiertas para lo que realmente no tiene una respuesta obvia. No dar por cerrada una decisión ambigua: confirmarla.
 - No modificar el texto que el usuario escribió a mano en los `.md` para "corregirlo": si describe algo que el código no hace, marcarlo con ⏳ y preguntar si es un pedido nuevo o un error.
+- **No reemplazar todavía los datos personales del usuario por datos genéricos** en ejemplos, docs ni textos: el contexto real es útil para trabajar bien. Hay un ítem en `BACKLOG.md` ("Limpieza de datos personales antes de dejar el repositorio público") para hacerlo al final del proyecto. Mientras tanto, no agregar datos realmente sensibles (contraseñas, tokens, ni datos de terceros) a ningún archivo versionado.
 - `SPEC.md` y `README.md` son documentación viva: se actualizan cuando cambia lo que describen (alcance, decisiones de diseño, instrucciones de uso).
 
 ## Versionado
