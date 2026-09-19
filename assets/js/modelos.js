@@ -107,6 +107,7 @@ export function crearTarea({
   tarea_exportada_calendar = false,
   tarea_checklist = [],
   tarea_desencadenante = null,
+  tarea_carga_completa = false,
 }) {
   const creadaEn = ahoraISO();
   return {
@@ -135,6 +136,7 @@ export function crearTarea({
     tarea_exportada_calendar,
     tarea_checklist,
     tarea_desencadenante: tarea_desencadenante || null,
+    tarea_carga_completa,
   };
 }
 

@@ -102,6 +102,7 @@
           }
         },
         "tarea_desencadenante": { "type": ["string", "null"] },
+        "tarea_carga_completa": { "type": "boolean" },
         "tarea_modificado_en": { "type": "string" }
       }
     },

@@ -14,8 +14,8 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## Cabecera y navegación
 
-- ✅ **Botón "+" fijo en la cabecera**, visible en todas las vistas: lleva a Tareas y enfoca el input de alta (mismo efecto que el atajo "N").
-- ✅ **Contador "Completar carga de tareas (X)"** visible en toda la app, **solo si X > 0** (ver A3 abajo).
+- ✅ **Botón "+" fijo en la cabecera**, visible en todas las vistas: lleva a Tareas y enfoca el input de alta (mismo efecto que el atajo "N"). *(Implementado en v0.53.0.)*
+- ✅ **Contador "Completar carga de tareas (X)"** visible en toda la app, **solo si X > 0** (ver A3 abajo). *(Implementado en v0.53.0.)*
 - ✅ **Estado de guardado siempre visible** en la cabecera (ver "Almacenamiento"). *(Implementado en v0.51.0.)*
 - ✅ **Vista "Configuraciones"**: por ahora solo "Importar JSON" y "Exportar JSON" (que dejan de estar en la cabecera). Drive queda en la cabecera. Importar debe **pedir confirmación** antes de reemplazar todo. *(La confirmación ya está desde v0.51.0; la vista y el traslado de los botones llegan en la Ronda 5.)*
 - ✅ **Vista nueva "Tablero"** con pestañas: *Progreso por categoría* y *Hábitos* (ver más abajo).
@@ -36,13 +36,13 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Atajo "N"** enfoca ese input (ya lo hace; sigue cubriendo alta rápida y completa porque están en la misma pantalla).
 - ✅ **`tarea_disfrute`** (1-5 o `null`) en el formulario. *(Ya implementado en v0.50.0.)*
 - ✅ **Dependencias en el alta** (ver "Dependencias 1 a 1").
-- ❓ **Borradores de formulario**: hoy, si hay algo a medio escribir en el alta y el usuario hace otra acción local (por ejemplo cumplir otra tarea desde la lista), la vista se redibuja y el formulario se vacía; solo los cambios que llegan de otro dispositivo conservan lo escrito (v0.51.4). Evaluar en la Ronda 3 (alta unificada) conservar el borrador también en redibujados locales.
-- ✅ **Edición separada del alta, en una ventana modal**: al editar una tarea (por ejemplo desde "Todas"), se abre una ventana modal con solo esa tarea, sin el formulario de alta al lado. Se implementa en la Ronda 3. ❓ Falta definir los detalles (cerrar con Esc y con clic afuera, qué pasa si hay cambios sin guardar, si conviene una ruta como `#/tareas/editar/<id>` para compartir el enlace).
+- ✅ **Borradores de formulario**: el formulario de alta conserva lo escrito ante cualquier redibujado (cambios de otro dispositivo, acciones locales como tildar un paso de un checklist o cumplir otra tarea, y filtros); se limpia solo al agregar. Los demás formularios de la app se siguen vaciando al agregar. *(Implementado en v0.53.0.)*
+- ✅ **Edición separada del alta, en una ventana modal** *(implementado en v0.53.0)*: al editar una tarea (desde Tareas, Todas, Gantt o Semana) se abre una ventana modal con solo esa tarea, sin navegar. Esc o clic afuera preguntan "¿Descartar los cambios?" solo si hay cambios sin guardar; si la tarea se eliminó o cambió en otro dispositivo mientras estaba abierta, avisa. Sin ruta propia (`#/tareas/editar/<id>`, queda en el backlog). Dependencia y Meta dejan de ser botones de la fila: son campos del formulario, y en la fila queda un solo "Editar".
 
 ## A3 · Completar carga de tareas
 
 - ✅ El sistema detecta las tareas "solo con nombre": `categoria_id`, `tarea_importancia` y `tarea_disfrute` en `null`; `tarea_fecha_inicio_habilitada` igual a `tarea_creada_en`; sin `tarea_fecha_sugerida` ni `tarea_fecha_limite`; `tarea_duracion_min` 15; sin descripción, ubicación, clima, costo, mantenimiento, días hábiles, dependencia ni meta.
-- ✅ Si hay al menos una, muestra en la cabecera el botón **"Completar carga de tareas (X)"** (X = cantidad). Al hacer clic, lista esas tareas cada una con su formulario y un botón **"Actualizar"**.
+- ✅ Si hay al menos una, muestra en la cabecera el botón **"Completar carga de tareas (X)"** (X = cantidad). Al hacer clic, lista esas tareas cada una con su formulario y un botón **"Actualizar"**, más un botón **"Dejar así"** que marca `tarea_carga_completa` y la saca de la lista (para tareas que deben quedar con solo el nombre). *(Implementado en v0.53.0.)*
 
 ## A4 · Cumplir tareas, mejora continua y exportación a Calendar
 
@@ -50,7 +50,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Botón "Exportar a Calendar" dentro de cada tarea**, habilitado una vez completada. El usuario **conserva el control** de qué se escribe en Calendar: se mantiene el mecanismo actual (pestaña de Calendar con el evento precargado); se descartó escribir vía API.
 - ✅ **Campo nuevo `tarea_exportada_calendar`** (booleano): se marca al usar el botón (no verifica que el usuario haya guardado el evento).
 - ✅ **El `confirm()` al completar se mantiene** ("¿Abrir «tarea» en Google Calendar…?"): el usuario no lo considera una interrupción. El botón "Exportar a Calendar" por tarea **se suma**, no lo reemplaza.
-- ✅ **Checklist en tareas de mantenimiento**: lista de pasos dentro de la tarea para definir el proceso. Ya estaba anotado en `BACKLOG.md`. ❓ Falta definir cuándo se resetea (al completar, o al final del día). Propuesta: la instancia clonada nace con el checklist destildado, sin lógica de reseteo aparte.
+- ✅ **Checklist en tareas de mantenimiento** *(campo en v0.52.0; edición en la ventana modal y casillas en la tarjeta de la vista Tareas en v0.53.0; tildarlo en Hoy va con la Ronda 4)*: lista de pasos dentro de la tarea para definir el proceso. Ya estaba anotado en `BACKLOG.md`. ❓ Falta definir cuándo se resetea (al completar, o al final del día). Propuesta: la instancia clonada nace con el checklist destildado, sin lógica de reseteo aparte.
 - ✅ **Se eliminó Premack** (sugerencia automática de tarea de alto disfrute). 🔮 Se retoma post-v1.0 con datos reales.
 
 ## A6 · "Revisar mi día"
@@ -118,7 +118,7 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 
 1. ✅ **Almacenamiento** (v0.51.0): Drive único, pantalla inicial obligatoria, cabecera con estado, buffer pendiente, sincronización manual, verificación automática y mezcla por tarea.
 2. ✅ **Modelo de datos** (v0.52.0): entidad `Mejora`, `tarea_exportada_calendar`, registro de cumplimientos, restricción 1 a 1 de dependencias, campo de checklist, `tarea_desencadenante`. Detalle: el checklist es solo para tareas de mantenimiento y aún sin pantalla (llega con la ventana modal de edición de la Ronda 3); los cumplimientos guardan además el vencimiento esperado y si era de mantenimiento; el panel "Dependencia" de Tareas ya tiene "depende de" y "bloquea a" con inserción en medio y rechazo de conflictos (las dependencias **en el alta** siguen en la Ronda 3); reabrir una tarea de mantenimiento borra su copia si sigue sin tocar; tras mezclar cambios de dos dispositivos los enlaces que rompan la regla 1 a 1 se reparan con aviso.
-3. **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)".
+3. ✅ **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)" (v0.53.0), más la ventana modal de edición, la pantalla del checklist y el botón "Dejar así".
 4. **Hoy**: Próximos por categoría, focus, completadas de hoy, exportar por tarea, ☀️, Posponer en el solapamiento.
 5. **ABMs**: editar categorías y ubicaciones, editar último contacto, vista Configuraciones.
 6. **Tablero** (progreso por categoría + hábitos) y vista **Mejoras**.

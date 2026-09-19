@@ -15,7 +15,8 @@ import {
   exportarJSON,
   importarJSON,
 } from './almacenamiento.js';
-import { reprogramarFechasSugeridasVencidas } from './tareas-logica.js';
+import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre } from './tareas-logica.js';
+import { abrirCargaTareas } from './carga-tareas.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaTresDias } from '../../views/tres-dias.view.js';
@@ -31,7 +32,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.52.1';
+const VERSION = 'v0.53.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -40,6 +41,8 @@ const BOTON_SYNC = document.getElementById('boton-sync');
 const BANNER_SYNC = document.getElementById('banner-sync');
 const PANEL_AVISOS = document.getElementById('panel-avisos');
 const BOTON_TEMA = document.getElementById('boton-tema');
+const BOTON_NUEVA_TAREA = document.getElementById('boton-nueva-tarea');
+const BOTON_COMPLETAR_CARGA = document.getElementById('boton-completar-carga');
 const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 
 const VISTAS = {
@@ -256,10 +259,22 @@ function claveDeRender(s) {
   return `${s.datosListos}|${s.soloLectura}|${!s.datosListos && s.estado === 'conectando'}`;
 }
 
+/** Botón "+" (siempre que haya datos) y "Completar carga de tareas (X)" (solo si X > 0). */
+function actualizarBotonesTareas(s) {
+  const disponible = s.datosListos && !s.soloLectura;
+  BOTON_NUEVA_TAREA.hidden = !disponible;
+  const pendientes = disponible ? tareasSoloConNombre(estado.tareas).length : 0;
+  BOTON_COMPLETAR_CARGA.hidden = pendientes === 0;
+  BOTON_COMPLETAR_CARGA.textContent = `📝 Completar carga de tareas (${pendientes})`;
+}
+
 function render({ conservarBorradores = false } = {}) {
   const s = obtenerEstadoSync();
-  const borradores = conservarBorradores && s.datosListos && !s.soloLectura ? capturarBorradores(CONTENEDOR) : null;
+  // Cambios de otro dispositivo: se conserva todo lo escrito; acciones locales: solo los formularios
+  // marcados (`data-conservar-borrador`, el alta de tareas), para que los demás se vacíen al agregar.
+  const borradores = s.datosListos && !s.soloLectura ? capturarBorradores(CONTENEDOR, conservarBorradores ? {} : { soloEn: '[data-conservar-borrador]' }) : null;
   renderNav();
+  actualizarBotonesTareas(s);
   actualizarCabeceraSync();
   claveUltimoRender = claveDeRender(s);
   if (s.soloLectura) {
@@ -309,9 +324,22 @@ suscribir((_estado, opciones) => render(opciones));
 let enfocarAltaRapidaAlEntrar = false;
 
 function enfocarAltaRapida() {
-  const input = document.querySelector('#form-alta-rapida input[name="tarea_nombre"]');
+  const input = document.querySelector('#form-alta input[name="tarea_nombre"]');
   if (input) input.focus();
 }
+
+/** Lleva al alta de tareas (vista Tareas) y enfoca el nombre: lo usan el botón "+" y el atajo "N". */
+function irAlAltaDeTarea() {
+  if (vistaActual() === 'tareas') {
+    enfocarAltaRapida();
+  } else {
+    enfocarAltaRapidaAlEntrar = true;
+    location.hash = '#/tareas';
+  }
+}
+
+BOTON_NUEVA_TAREA.addEventListener('click', irAlAltaDeTarea);
+BOTON_COMPLETAR_CARGA.addEventListener('click', abrirCargaTareas);
 
 window.addEventListener('hashchange', () => {
   if (enfocarAltaRapidaAlEntrar && vistaActual() === 'tareas') {
@@ -332,13 +360,9 @@ window.addEventListener('keydown', (evento) => {
       objetivo.isContentEditable);
   if (enCampo) return;
 
+  if (BOTON_NUEVA_TAREA.hidden) return; // sin datos listos o en solo lectura no hay alta
   evento.preventDefault();
-  if (vistaActual() === 'tareas') {
-    enfocarAltaRapida();
-  } else {
-    enfocarAltaRapidaAlEntrar = true;
-    location.hash = '#/tareas';
-  }
+  irAlAltaDeTarea();
 });
 
 document.getElementById('boton-exportar').addEventListener('click', exportarJSON);

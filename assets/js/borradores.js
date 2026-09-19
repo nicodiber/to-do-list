@@ -19,11 +19,15 @@ function fueTocado(campo) {
   return campo.value !== campo.defaultValue;
 }
 
-/** Recorre los campos dando a cada uno una clave estable: formulario + nombre + tipo + posición. */
-function recorrerCampos(contenedor, accion) {
+/**
+ * Recorre los campos dando a cada uno una clave estable: formulario + nombre + tipo + posición.
+ * Con `soloEn` (un selector) solo se consideran los campos dentro de un elemento que lo cumpla.
+ */
+function recorrerCampos(contenedor, accion, soloEn = null) {
   const contadores = new Map();
   contenedor.querySelectorAll(SELECTOR_CAMPOS).forEach((campo) => {
     if (TIPOS_IGNORADOS.includes(campo.type) || (!campo.name && !campo.id)) return;
+    if (soloEn && !campo.closest(soloEn)) return;
     const base = `${campo.form && campo.form.id ? campo.form.id : ''}|${campo.name || campo.id}|${campo.type}`;
     const posicion = contadores.get(base) || 0;
     contadores.set(base, posicion + 1);
@@ -31,8 +35,13 @@ function recorrerCampos(contenedor, accion) {
   });
 }
 
-/** Guarda el valor de los campos que el usuario ya modificó (y cuál tenía el foco). */
-export function capturarBorradores(contenedor) {
+/**
+ * Guarda el valor de los campos que el usuario ya modificó (y cuál tenía el foco).
+ * Con `soloEn` solo mira los campos dentro de elementos que cumplan ese selector
+ * (por ejemplo `[data-conservar-borrador]`, los formularios que deben conservar
+ * lo escrito aunque la vista se redibuje por una acción local).
+ */
+export function capturarBorradores(contenedor, { soloEn = null } = {}) {
   const borradores = new Map();
   let claveEnfocado = null;
   let seleccion = null;
@@ -43,7 +52,7 @@ export function capturarBorradores(contenedor) {
     }
     if (!fueTocado(campo)) return;
     borradores.set(clave, esCasilla(campo) ? { marcado: campo.checked } : { valor: campo.value });
-  });
+  }, soloEn);
   return { borradores, claveEnfocado, seleccion };
 }
 

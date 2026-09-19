@@ -211,6 +211,7 @@ function migrarTarea(t) {
       tarea_exportada_calendar: !!resto.tarea_exportada_calendar,
       tarea_checklist: Array.isArray(resto.tarea_checklist) ? resto.tarea_checklist : [],
       tarea_desencadenante: resto.tarea_desencadenante || null,
+      tarea_carga_completa: !!resto.tarea_carga_completa,
     };
   }
 
@@ -257,6 +258,7 @@ function migrarTarea(t) {
     tarea_exportada_calendar: false,
     tarea_checklist: [],
     tarea_desencadenante: null,
+    tarea_carga_completa: false,
   };
 }
 

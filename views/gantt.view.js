@@ -1,7 +1,7 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas } from '../assets/js/utilidades.js';
 import { compararPorPrioridad } from '../assets/js/tareas-logica.js';
-import { abrirEdicionAlEntrar } from './tareas.view.js';
+import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 
 let metaSeleccionada = '';
 
@@ -130,8 +130,7 @@ function renderGrillaGantt(filas) {
       const bloque = grilla.querySelector(`[data-tarea-id="${f.tarea.tarea_id}"]`);
       if (!bloque) return;
       bloque.addEventListener('click', () => {
-        abrirEdicionAlEntrar(f.tarea.tarea_id);
-        location.hash = '#/tareas';
+        abrirEdicionTarea(f.tarea.tarea_id);
       });
 
       const inicio = fechaInicioTarea(f.tarea);
