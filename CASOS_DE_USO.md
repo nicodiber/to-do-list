@@ -25,7 +25,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 | 8 días | Visualizador | A7 |
 | Semana ⚠️ candidata a fusión con 8 días | Visualizador | A7 |
 | Gantt | Visualizador | B2 |
-| Todas | Visualizador | A8 |
+| Tabla | Visualizador | A8 |
 | Informes | Visualizador | E1 |
 | Tareas (listado + alta/edición) | ABM | A2, A3, A4, A5, B1 |
 | Categorías | ABM | C1 |
@@ -177,19 +177,19 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: confirmar que el orden que calcula la app tiene sentido, y corregirlo puntualmente si no.
 - **Disparador**: duda sobre por qué una tarea aparece antes/después de lo esperado; revisión periódica.
-- **Pasos**: ir a Todas → ver el orden por defecto (`compararPorPrioridad`, el mismo que usa toda la app) → filtrar/buscar si hace falta → clic en un header de columna para mirar por un criterio puntual → si hay tareas empatadas, abrir "⚔️ Versus" → elegir cuál conviene antes de a pares (o "Da igual / Omitir") → `tarea_prioridad_manual` queda asignado a las tareas resueltas.
+- **Pasos**: ir a Tabla → ver el orden por defecto (`compararPorPrioridad`, el mismo que usa toda la app) → filtrar/buscar si hace falta → clic en un header de columna para mirar por un criterio puntual → si hay tareas empatadas, abrir "⚔️ Versus" → elegir cuál conviene antes de a pares (o "Da igual / Omitir") → `tarea_prioridad_manual` queda asignado a las tareas resueltas.
 - **Flujo usuario/sistema**:
-  1. Usuario abre Todas.
+  1. Usuario abre Tabla.
   2. Sistema muestra todas las tareas (de cualquier estado) en el orden real de prioridad, con su holgura.
   3. Usuario detecta algo mal ubicado y (opcional) filtra por categoría/estado/importancia, busca por nombre u ordena por una columna.
   4. Usuario hace clic en "⚔️ Versus".
   5. Sistema agrupa las tareas accionables empatadas y muestra dos de ellas lado a lado.
   6. Usuario elige la que conviene antes, o "Da igual / Omitir".
   7. Sistema, si se eligió, asigna `tarea_prioridad_manual` a ambas y guarda; si se omitió, solo recuerda el par. En ambos casos muestra el siguiente par (o "No hay tareas empatadas…").
-  8. Usuario (si corrige un dato) hace clic en una fila; sistema abre la ventana de edición de esa tarea encima de Todas (sin cambiar de vista).
-- **Vistas/funciones**: `views/todas.view.js` (`renderVistaTodas`, `crearPanelVersus`, `construirClusteres`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `tareasEmpatadas`).
+  8. Usuario (si corrige un dato) hace clic en una fila; sistema abre la ventana de edición de esa tarea encima de Tabla (sin cambiar de vista).
+- **Vistas/funciones**: `views/tabla.view.js` (`renderVistaTabla`, `crearPanelVersus`, `construirClusteres`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `tareasEmpatadas`).
 - **Resultado**: eventualmente, `tarea_prioridad_manual` asignado a algunas tareas.
-- **Fricciones**: "Versus" opera sobre todas las tareas accionables de la app, sin acotarse a los filtros activos en ese momento en Todas — puede sentirse desconectado de lo que se estaba mirando.
+- **Fricciones**: "Versus" opera sobre todas las tareas accionables de la app, sin acotarse a los filtros activos en ese momento en Tabla — puede sentirse desconectado de lo que se estaba mirando.
 
 ---
 
@@ -343,10 +343,10 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 ### E1. Ver Informes
 
 - **Objetivo**: entender de un vistazo cómo viene la carga de trabajo y el uso del tiempo.
-- **Pasos**: ir a Informes → 4 secciones: completadas (últimos 7 días) vs. pendientes por categoría; Enfoque 80/20 (lista); costo estimado total de pendientes; throughput semanal (últimas 8 semanas, gráfico de barras).
+- **Pasos**: ir a Informes → 3 secciones: completadas (últimos 7 días) vs. pendientes por categoría; costo estimado total de pendientes; throughput semanal (últimas 8 semanas, gráfico de barras).
 - **Flujo usuario/sistema**:
   1. Usuario abre Informes.
-  2. Sistema calcula al vuelo, sobre las tareas y categorías en memoria, las 4 secciones (completadas vs. pendientes por categoría, Enfoque 80/20, costo estimado de pendientes, throughput semanal) y las muestra.
+  2. Sistema calcula al vuelo, sobre las tareas y categorías en memoria, las 3 secciones (completadas vs. pendientes por categoría, costo estimado de pendientes, throughput semanal) y las muestra.
   3. Usuario lee; no hay acciones en esta vista.
 - **Vistas/funciones**: `views/informes.view.js` — todo el cálculo es local y en vivo sobre `estado.tareas`/`estado.categorias`, sin ningún dato propio persistido.
 - **Resultado**: no cambia datos, es de solo lectura con datos y gráficos.

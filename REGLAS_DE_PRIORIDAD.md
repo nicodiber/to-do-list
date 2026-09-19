@@ -41,12 +41,12 @@ Ejemplo: con "Facultad" arriba de "Trabajo" entre las categorías raíz (reorden
 
 ## Herramienta "Versus" (desempate manual)
 
-Dentro de un mismo grupo empatado en los niveles 1-4, el desempate hoy sería FIFO (arbitrario). "Versus" (botón en la vista Todas) deja resolverlo a mano: agrupa las tareas accionables en clusters mutuamente empatados (`tareasEmpatadas`, transitiva), ofrece pares adyacentes de a uno, y el usuario elige cuál prefiere (o "Da igual / Omitir").
+Dentro de un mismo grupo empatado en los niveles 1-4, el desempate hoy sería FIFO (arbitrario). "Versus" (botón en la vista Tabla) deja resolverlo a mano: agrupa las tareas accionables en clusters mutuamente empatados (`tareasEmpatadas`, transitiva), ofrece pares adyacentes de a uno, y el usuario elige cuál prefiere (o "Da igual / Omitir").
 
 - **Elegir una**: se le asigna `tarea_prioridad_manual` a las 2 tareas del par, usando un contador global creciente (`1 + máximo tarea_prioridad_manual existente`) — la elegida recibe el valor más bajo (más prioritaria), la otra el siguiente. A partir de ahí, esa tarea ya no vuelve a estar "empatada" con nadie (`tareasEmpatadas` descarta cualquier tarea con `tarea_prioridad_manual` ya asignado), así que no se vuelve a ofrecer.
 - **Omitir**: no asigna nada — ambas tareas siguen en `null`, genuinamente empatadas. Solo se recuerda (en memoria, mientras se navega la vista) para no volver a ofrecer el mismo par en la misma sesión.
 - No es un torneo todos-contra-todos: se ofrecen pares adyacentes dentro de cada cluster, una sola pasada — suficiente para reducir la mayoría de los empates sin pedir demasiadas comparaciones.
-- El alcance es global (todas las tareas accionables de la app), no se acota a los filtros activos de la vista Todas.
+- El alcance es global (todas las tareas accionables de la app), no se acota a los filtros activos de la vista Tabla.
 
 ## `mejorTareaPorCategoria(tareas, categorias)`
 
@@ -55,7 +55,7 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 ## Tareas bloqueadas y accionables
 
 - **Bloqueada**: `tarea_estado === 'bloqueada'` — es un valor persistido, no calculado (ver `DICCIONARIO_DE_DATOS.md`, campo `tarea_dependiente`).
-- **Accionable** (`esTareaAccionable`): una tarea es accionable si está `pendiente` (ni bloqueada ni completada) y su `tarea_fecha_inicio_habilitada` ya llegó. Es el filtro base que usan el Enfoque 80/20, `mejorTareaPorCategoria`, el panel "Reestructurar prioridades con IA" y la proyección de tareas en la vista Semana.
+- **Accionable** (`esTareaAccionable`): una tarea es accionable si está `pendiente` (ni bloqueada ni completada) y su `tarea_fecha_inicio_habilitada` ya llegó. Es el filtro base que usan `mejorTareaPorCategoria`, el panel "Reestructurar prioridades con IA" y la proyección de tareas en la vista Semana.
 
 ## Cómo se usa el criterio en cada vista
 
@@ -64,17 +64,15 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 - **Hoy — "Elegí por categoría"**: `mejorTareaPorCategoria` sobre las tareas de "Resto".
 - **3 días / 8 días** (`assets/js/vista-agenda.js`): agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`, la primera con valor). Dentro de cada día, por `tarea_fecha_sugerida` (hora concreta del día) y luego `compararPorPrioridad` como desempate — esto no cambia, porque ahí se ordena por horario del día, no por urgencia de vencimiento.
 - **Semana**: las tareas con horario puntual (`tarea_fecha_sugerida` con hora) se ubican en su horario exacto. Las proyectadas se ordenan por `compararPorPrioridad` y se apilan una detrás de otra según su `tarea_duracion_min`.
-- **Todas**: por defecto ordenada por `compararPorPrioridad` — es la vista pensada para auditar el orden real de la app y detectar rápido si algo quedó mal priorizado. Clickear el header de una columna cambia a un orden simple por esa columna sola (asc/desc); un botón "↺ Prioridad" vuelve al orden por defecto. Filtros de categoría (inclusivo de descendientes), estado, importancia y buscador por nombre.
+- **Tabla**: por defecto ordenada por `compararPorPrioridad` — es la vista pensada para auditar el orden real de la app y detectar rápido si algo quedó mal priorizado. Clickear el header de una columna cambia a un orden simple por esa columna sola (asc/desc); un botón "↺ Prioridad" vuelve al orden por defecto. Filtros de categoría (inclusivo de descendientes), estado, importancia y buscador por nombre.
 - **Gantt**: ordenada por fecha de inicio de la tarea y luego por `compararPorPrioridad`, dentro de cada meta — tampoco cambia, ahí se ordena por posición cronológica en el diagrama.
 
 ## Regla 80/20 (Pareto)
 
-`calcularEnfoque8020(tareas, categorias)`: de todas las tareas accionables, ordena por `compararPorPrioridad` (que ya termina siempre en un orden determinístico) y devuelve el 20% superior (redondeado hacia arriba). Se muestra como badge "🎯 Foco 80/20" en Tareas y Hoy, y como lista en Informes.
+**Eliminada en v0.53.2** (a pedido del usuario): la etiqueta "🎯 Foco 80/20" de Hoy y de Tareas y la sección "Enfoque 80/20" de Informes se sacaron, junto con la función `calcularEnfoque8020` (que devolvía el 20% superior, redondeado hacia arriba, de las tareas accionables ordenadas por `compararPorPrioridad`). Queda en `BACKLOG.md` para analizar si conviene incorporarla en una versión futura.
 
 ## Reprogramado de fechas vencidas
 
 `tarea_fecha_sugerida` es una sugerencia sin compromiso real, así que se reprograma **sola**: al iniciar la app, `reprogramarFechasSugeridasVencidas` (`assets/js/tareas-logica.js`) busca tareas activas (no completadas) con `tarea_fecha_sugerida` vencida y la mueve a la próxima fecha disponible (hoy o el próximo día hábil según `tarea_dias_habiles`, sin superar `tarea_fecha_limite` si existe), en cascada a sus dependientes (`reprogramarTareaConCascada`). Si hubo cambios, se avisa con un `alert()`.
 
 `tarea_fecha_limite` es un compromiso real y **nunca se toca sola**: en Hoy, cada tarea vencida en "Urgentes" muestra un botón "📅 Revalorizar fecha límite" que reusa el panel de reprogramar (`crearPanelReprogramar`), pero solo actualiza esa tarea puntual (sin cascada a dependientes, a diferencia de "Posponer").
-
-> Nota (v0.53.1): la etiqueta "🎯 Foco 80/20" de las tarjetas de Hoy y de Tareas se eliminó a pedido del usuario; `calcularEnfoque8020` y la sección "Enfoque 80/20" de Informes siguen por ahora. Ver `BACKLOG.md`.

@@ -2,6 +2,16 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.53.2] - 2026-09-19
+
+### Cambiado
+
+- **La vista "Todas" pasa a llamarse "Tabla"** (pedido del usuario, para dejar claro que es la vista de tabla, ya que el Gantt también mostrará todas las tareas): `views/todas.view.js` → `views/tabla.view.js`, ruta `#/tabla`. Los enlaces o marcadores viejos a `#/todas` siguen funcionando (alias).
+
+### Eliminado
+
+- La sección **"Enfoque 80/20 (Pareto)"** de Informes y la función `calcularEnfoque8020` (junto con sus estilos), a pedido del usuario. La etiqueta "🎯 Foco 80/20" ya se había sacado de Hoy y de Tareas en v0.53.1. Queda en el backlog para analizar si conviene incorporarla en el futuro.
+
 ## [v0.53.1] - 2026-09-19
 
 Ajustes surgidos de la validación manual de las Rondas 2 y 3.

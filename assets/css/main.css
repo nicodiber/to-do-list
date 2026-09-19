@@ -446,14 +446,6 @@ h1, h2, h3 {
   background: var(--color-fondo);
 }
 
-.lista-enfoque-8020 {
-  padding-left: 1.4rem;
-}
-
-.lista-enfoque-8020 li {
-  margin-bottom: 0.4rem;
-}
-
 .throughput-semanal {
   display: flex;
   align-items: flex-end;

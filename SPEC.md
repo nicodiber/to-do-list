@@ -16,7 +16,7 @@ Plataforma personal de autogestión de tareas y objetivos que reemplace la combi
 
 - **El tiempo es irrecuperable** → priorizar la acción inmediata y automatizar la replanificación en vez de que el usuario la haga a mano.
 - **Hábitos Atómicos** → desglosar objetivos grandes en metas y tareas pequeñas; medir hábitos ("lo que no se mide no se mejora").
-- **Regla 80/20 (Pareto)** → ayudar a identificar el subconjunto de tareas de mayor impacto.
+- **Regla 80/20 (Pareto)** → ayudar a identificar el subconjunto de tareas de mayor impacto. *(Se implementó como etiqueta y como informe, y se retiró en v0.53.2; queda en el backlog para analizar una implementación mejor.)*
 - **Fail fast / corregir rápido** → ante una tarea incumplida, replanificar ya, sin fricción ni culpa.
 - **Métricas ágiles (Scrum/Kanban)** → throughput, revisiones periódicas, aplicados a la vida personal.
 - **Nunca perder datos, y no mentir sobre ello** → los datos no dependen solo del navegador, y la interfaz nunca dice "guardado" hasta que sea cierto.
@@ -27,7 +27,7 @@ Plataforma personal de autogestión de tareas y objetivos que reemplace la combi
 
 ### Construido (v0.51.0)
 
-Categorías jerárquicas de profundidad libre; tareas con fechas (con o sin hora), importancia, dependencias, tareas de mantenimiento cíclicas, días hábiles, ubicación, clima y costo; metas; personas; algoritmo de prioridad por holgura + categoría + importancia con desempate manual ("Versus"); reprogramado automático de fechas sugeridas vencidas; vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes; almacenamiento en Google Drive como único destino (buffer local durable, mezcla entre dispositivos con avisos de conflicto, estado de sincronización siempre visible) e integración con Google Calendar (exportar completadas, detectar solapamientos); PWA instalable.
+Categorías jerárquicas de profundidad libre; tareas con fechas (con o sin hora), importancia, dependencias, tareas de mantenimiento cíclicas, días hábiles, ubicación, clima y costo; metas; personas; algoritmo de prioridad por holgura + categoría + importancia con desempate manual ("Versus"); reprogramado automático de fechas sugeridas vencidas; vistas Hoy / 3 días / 8 días / Semana / Gantt / Tabla / Informes; almacenamiento en Google Drive como único destino (buffer local durable, mezcla entre dispositivos con avisos de conflicto, estado de sincronización siempre visible) e integración con Google Calendar (exportar completadas, detectar solapamientos); PWA instalable.
 
 ### Camino a v1.0
 
@@ -41,10 +41,10 @@ Capa de IA conectable (sugerir subtareas, definir metas charlando, reestructurar
 
 - **Entidades**: Categoría (auto-referenciada), Tarea, Meta, Persona, Ubicación. Detalle de campos en [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md).
 - **Estados de tarea**: `bloqueada` (valor persistido, sincronizado automáticamente con `tarea_dependiente`), `pendiente`, `completada`.
-- **Prioridad**: ver [REGLAS_DE_PRIORIDAD.md](REGLAS_DE_PRIORIDAD.md). Es la base de las vistas Hoy, Todas y demás.
+- **Prioridad**: ver [REGLAS_DE_PRIORIDAD.md](REGLAS_DE_PRIORIDAD.md). Es la base de las vistas Hoy, Tabla y demás.
 - **Flujos de usuario**: [CASOS_DE_USO.md](CASOS_DE_USO.md) (cómo funciona hoy) y [REDISENO.md](REDISENO.md) (cómo debería ser).
 - **Lo que el sistema hace solo**: [PROCESOS_AUTOMATICOS.md](PROCESOS_AUTOMATICOS.md).
-- **Tipos de vista**: visualizadores (Hoy, 3 días, 8 días, Gantt, Todas, Informes), ABMs (Tareas, Categorías, Ubicaciones, Metas, Personas), asistentes (Revisar mi día) y configuración/integraciones (Drive, Calendar, Configuraciones).
+- **Tipos de vista**: visualizadores (Hoy, 3 días, 8 días, Gantt, Tabla, Informes), ABMs (Tareas, Categorías, Ubicaciones, Metas, Personas), asistentes (Revisar mi día) y configuración/integraciones (Drive, Calendar, Configuraciones).
 
 ## 5. Requisitos no funcionales
 

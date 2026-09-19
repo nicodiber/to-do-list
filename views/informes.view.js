@@ -1,7 +1,6 @@
 import { estado } from '../assets/js/almacenamiento.js';
 import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml } from '../assets/js/utilidades.js';
 import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
-import { calcularEnfoque8020 } from '../assets/js/tareas-logica.js';
 
 const DIAS_VENTANA = 7;
 const ESTADOS_ACTIVOS = ['bloqueada', 'pendiente'];
@@ -62,7 +61,6 @@ function calcularThroughputSemanal() {
 export function renderVistaInformes(contenedor) {
   const desde = fechaISOMasDias(-(DIAS_VENTANA - 1), hoyISO());
   const porCategoria = calcularPorCategoria(desde);
-  const enfoque8020 = calcularEnfoque8020(estado.tareas, estado.categorias);
   const proyeccionCostos = calcularProyeccionCostos();
   const throughput = calcularThroughputSemanal();
   const maxThroughput = Math.max(1, ...throughput.map((s) => s.cantidad));
@@ -94,26 +92,6 @@ export function renderVistaInformes(contenedor) {
                   .join('')}
               </tbody>
             </table>`
-      }
-    </section>
-
-    <section>
-      <h3>Enfoque 80/20 (Pareto)</h3>
-      ${
-        enfoque8020.length === 0
-          ? '<p class="mensaje-vacio">No hay tareas pendientes accionables para priorizar.</p>'
-          : `<p class="ayuda">El ~20% de tus tareas pendientes accionables que más conviene priorizar ahora, según importancia y prioridad de categoría.</p>
-              <ol class="lista-enfoque-8020">
-                ${enfoque8020
-                  .map((t) => {
-                    const categoria = estado.categorias.find((c) => c.categoria_id === t.categoria_id);
-                    return `<li>
-                        ${categoria ? `<span class="punto-color" style="background:${categoria.categoria_color}"></span>` : ''}
-                        ${t.tarea_importancia ? ICONOS_IMPORTANCIA[t.tarea_importancia] + ' ' : ''}${escaparHtml(t.tarea_nombre)}
-                      </li>`;
-                  })
-                  .join('')}
-              </ol>`
       }
     </section>
 
