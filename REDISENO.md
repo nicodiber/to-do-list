@@ -36,6 +36,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Atajo "N"** enfoca ese input (ya lo hace; sigue cubriendo alta rápida y completa porque están en la misma pantalla).
 - ✅ **`tarea_disfrute`** (1-5 o `null`) en el formulario. *(Ya implementado en v0.50.0.)*
 - ✅ **Dependencias en el alta** (ver "Dependencias 1 a 1").
+- ❓ **Edición separada del alta**: al editar una tarea, mostrar solo esa tarea (sin el formulario de alta al lado). Falta definir el formato: pantalla/ruta propia, panel lateral o ventana modal. Se decide en la Ronda 3.
 
 ## A3 · Completar carga de tareas
 
