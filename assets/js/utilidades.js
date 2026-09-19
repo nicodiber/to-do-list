@@ -39,6 +39,12 @@ export function tieneHora(fechaISO) {
   return !!fechaISO && fechaISO.length > 10;
 }
 
+/** Pone en mayúscula la primera letra de un texto (el resto queda como está). */
+export function capitalizarPrimera(texto) {
+  const t = String(texto == null ? '' : texto);
+  return t.charAt(0).toLocaleUpperCase('es') + t.slice(1);
+}
+
 export function escaparHtml(texto) {
   const div = document.createElement('div');
   div.textContent = texto == null ? '' : String(texto);

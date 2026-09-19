@@ -10,7 +10,7 @@ import {
   ETIQUETAS_IMPORTANCIA,
   ICONOS_IMPORTANCIA,
 } from './modelos.js';
-import { escaparHtml, arbolCategorias, tieneHora, combinarFechaYHora } from './utilidades.js';
+import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace } from './dependencias.js';
 
@@ -91,6 +91,15 @@ export function tareasUnicasPorNombre() {
   return [...mapa.values()];
 }
 
+/**
+ * Nombre de una tarea para mostrarlo en un desplegable: dos tareas distintas pueden
+ * llamarse igual en categorías distintas, así que se agrega la categoría.
+ */
+export function nombreConCategoria(tarea) {
+  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
+  return categoria ? `${tarea.tarea_nombre} · ${caminoCategoria(categoria, estado.categorias)}` : tarea.tarea_nombre;
+}
+
 function htmlItemChecklist(item = { texto: '', hecho: false }) {
   return `
     <li class="item-checklist-editor">
@@ -110,8 +119,8 @@ function htmlSelectEnlace(nombre, etiqueta, opciones, actual, textoOcupada, sinV
         ${lista
           .map(
             (o) =>
-              `<option value="${o.tarea.tarea_id}" ${actual && o.tarea.tarea_id === actual.tarea_id ? 'selected' : ''}>${escaparHtml(o.tarea.tarea_nombre)}${
-                o.ocupadaPor ? ` (${textoOcupada} «${escaparHtml(o.ocupadaPor.tarea_nombre)}»: se inserta en medio)` : ''
+              `<option value="${o.tarea.tarea_id}" ${actual && o.tarea.tarea_id === actual.tarea_id ? 'selected' : ''}>${escaparHtml(nombreConCategoria(o.tarea))}${
+                o.ocupadaPor ? ` (${textoOcupada} «${escaparHtml(nombreConCategoria(o.ocupadaPor))}»: se inserta en medio)` : ''
               }${o.tarea.tarea_estado === 'completada' ? ' (completada)' : ''}</option>`
           )
           .join('')}
@@ -181,7 +190,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
           <option value="">Ninguna</option>
           ${estado.tareas
             .filter((x) => x.tarea_id !== t.tarea_id && (x.tarea_estado !== 'completada' || x.tarea_id === t.tarea_desencadenante))
-            .map((x) => `<option value="${x.tarea_id}" ${x.tarea_id === t.tarea_desencadenante ? 'selected' : ''}>${escaparHtml(x.tarea_nombre)}</option>`)
+            .map((x) => `<option value="${x.tarea_id}" ${x.tarea_id === t.tarea_desencadenante ? 'selected' : ''}>${escaparHtml(nombreConCategoria(x))}</option>`)
             .join('')}
         </select>
       </label>
@@ -209,6 +218,17 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;
   checkbox.addEventListener('change', () => campos.forEach((c) => (c.hidden = !checkbox.checked)));
+
+  // La primera letra del nombre se escribe siempre en mayúscula (sin mover el cursor).
+  formulario.tarea_nombre.addEventListener('input', () => {
+    const campo = formulario.tarea_nombre;
+    const coincidencia = campo.value.match(/^(\s*)(\p{Ll})/u);
+    if (!coincidencia) return;
+    const posicion = campo.selectionStart;
+    const inicio = coincidencia[1].length;
+    campo.value = campo.value.slice(0, inicio) + coincidencia[2].toLocaleUpperCase('es') + campo.value.slice(inicio + 1);
+    campo.setSelectionRange(posicion, posicion);
+  });
 
   const lista = formulario.querySelector('.lista-checklist-editor');
   const agregarItem = () => {
@@ -273,7 +293,7 @@ export function leerFormularioTarea(formulario) {
 
   return {
     campos: {
-      tarea_nombre: String(datos.get('tarea_nombre') || '').trim(),
+      tarea_nombre: capitalizarPrimera(String(datos.get('tarea_nombre') || '').trim()),
       categoria_id: datos.get('categoria_id') || null,
       tarea_importancia: datos.get('tarea_importancia') || null,
       tarea_disfrute: datos.get('tarea_disfrute') ? Number(datos.get('tarea_disfrute')) : null,

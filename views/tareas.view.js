@@ -8,11 +8,10 @@ import {
   eliminarTarea,
   reprogramarTareaConCascada,
   compararPorPrioridad,
-  calcularEnfoque8020,
   esTareaAccionable,
 } from '../assets/js/tareas-logica.js';
 import { aplicarEnlace } from '../assets/js/dependencias.js';
-import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, validarFormularioTarea } from '../assets/js/formulario-tarea.js';
+import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, validarFormularioTarea, nombreConCategoria } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { capturarBorradores, restaurarBorradores } from '../assets/js/borradores.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
@@ -158,7 +157,6 @@ export function renderVistaTareas(contenedor) {
   });
 
   const listaTareas = contenedor.querySelector('#lista-tareas');
-  const enfoqueIds = new Set(calcularEnfoque8020(estado.tareas, estado.categorias).map((t) => t.tarea_id));
   const tareasFiltradas = estado.tareas
     .filter((t) => !filtroCategoria || t.categoria_id === filtroCategoria)
     .filter((t) => !filtroEstado || t.tarea_estado === filtroEstado)
@@ -170,18 +168,18 @@ export function renderVistaTareas(contenedor) {
   if (tareasFiltradas.length === 0) {
     listaTareas.innerHTML = '<p class="mensaje-vacio">No hay tareas que coincidan con el filtro.</p>';
   } else if (!agruparPorCategoria) {
-    tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
+    tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
   } else {
     arbolCategorias(estado.categorias).forEach(({ categoria }) => {
       const tareasDeCategoria = tareasFiltradas.filter((t) => t.categoria_id === categoria.categoria_id);
       if (tareasDeCategoria.length === 0) return;
       listaTareas.appendChild(crearSeparadorCategoria(caminoCategoria(categoria, estado.categorias), categoria.categoria_color));
-      tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
+      tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
     });
     const tareasSinCategoria = tareasFiltradas.filter((t) => !t.categoria_id);
     if (tareasSinCategoria.length > 0) {
       listaTareas.appendChild(crearSeparadorCategoria('Sin categoría'));
-      tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, enfoqueIds)));
+      tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
     }
   }
 }
@@ -194,11 +192,12 @@ function crearSeparadorCategoria(nombre, color) {
   return li;
 }
 
-function renderTarea(tarea, enfoqueIds) {
+function renderTarea(tarea) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
   const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
   const bloqueada = tarea.tarea_estado === 'bloqueada';
+  const proxima = estado.tareas.find((t) => t.tarea_dependiente === tarea.tarea_id && t.tarea_estado !== 'completada');
 
   const li = document.createElement('li');
   const clases = ['item-tarea'];
@@ -212,7 +211,6 @@ function renderTarea(tarea, enfoqueIds) {
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
         ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
-        ${enfoqueIds && enfoqueIds.has(tarea.tarea_id) ? `<span class="etiqueta-fecha etiqueta-enfoque">🎯 Foco 80/20</span>` : ''}
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(caminoCategoria(categoria, estado.categorias))}</span>` : ''}
         ${tarea.tarea_fecha_inicio_habilitada ? `<span class="etiqueta-fecha">Desde: ${formatearFechaOFechaHora(tarea.tarea_fecha_inicio_habilitada)}</span>` : ''}
         ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}</span>` : ''}
@@ -235,7 +233,9 @@ function renderTarea(tarea, enfoqueIds) {
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
       </span>
-      ${bloqueada && dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
+      ${bloqueada && dependeDe ? `<p class="aviso-bloqueada">⛓️ Bloqueada por: ${escaparHtml(nombreConCategoria(dependeDe))}</p>` : ''}
+      ${!bloqueada && dependeDe ? `<p class="enlace-tarea">⬅️ Depende de: ${escaparHtml(nombreConCategoria(dependeDe))}${dependeDe.tarea_estado === 'completada' ? ' (completada)' : ''}</p>` : ''}
+      ${proxima ? `<p class="enlace-tarea">➡️ Bloquea a: ${escaparHtml(nombreConCategoria(proxima))}</p>` : ''}
       ${tarea.tarea_descripcion ? `<p class="notas-tarea">${escaparHtml(tarea.tarea_descripcion)}</p>` : ''}
       ${
         (tarea.tarea_checklist || []).length > 0
@@ -258,7 +258,7 @@ function renderTarea(tarea, enfoqueIds) {
               ${ESTADOS_SELECCIONABLES.map((e) => `<option value="${e}" ${e === tarea.tarea_estado ? 'selected' : ''}>${ETIQUETAS_ESTADO_SELECCIONABLE[e]}</option>`).join('')}
             </select>`
       }
-      <button type="button" data-accion="posponer">Posponer</button>
+      ${tarea.tarea_estado === 'completada' ? '' : '<button type="button" data-accion="posponer">Posponer</button>'}
       <button type="button" data-accion="editar">Editar</button>
       <button type="button" data-accion="eliminar">Eliminar</button>
     </div>
@@ -303,7 +303,7 @@ function renderTarea(tarea, enfoqueIds) {
   });
 
   const contenedorPanel = li.querySelector('.contenedor-panel-reprogramar');
-  li.querySelector('[data-accion="posponer"]').addEventListener('click', () => {
+  li.querySelector('[data-accion="posponer"]')?.addEventListener('click', () => {
     const yaAbierto = !contenedorPanel.hidden;
     contenedorPanel.innerHTML = '';
     contenedorPanel.hidden = true;

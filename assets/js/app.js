@@ -23,7 +23,7 @@ import { renderVistaTresDias } from '../../views/tres-dias.view.js';
 import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
 import { renderVistaTareas } from '../../views/tareas.view.js';
-import { renderVistaTodas } from '../../views/todas.view.js';
+import { renderVistaTabla } from '../../views/tabla.view.js';
 import { renderVistaCategorias } from '../../views/categorias.view.js';
 import { renderVistaUbicaciones } from '../../views/ubicaciones.view.js';
 import { renderVistaMetas } from '../../views/metas.view.js';
@@ -32,7 +32,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.53.0';
+const VERSION = 'v0.53.2';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -51,7 +51,7 @@ const VISTAS = {
   'ocho-dias': { etiqueta: '8 días', render: renderVistaOchoDias },
   semana: { etiqueta: 'Semana', render: renderVistaSemana },
   tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
-  todas: { etiqueta: 'Todas', render: renderVistaTodas },
+  tabla: { etiqueta: 'Tabla', render: renderVistaTabla },
   categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
   ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },
   metas: { etiqueta: 'Metas', render: renderVistaMetas },
@@ -60,8 +60,12 @@ const VISTAS = {
   informes: { etiqueta: 'Informes', render: renderVistaInformes },
 };
 
+// Nombres viejos de vistas (por enlaces o marcadores guardados) que siguen llevando a la vista actual.
+const ALIAS_VISTAS = { todas: 'tabla' };
+
 function vistaActual() {
-  const clave = location.hash.replace('#/', '');
+  const pedida = location.hash.replace('#/', '');
+  const clave = ALIAS_VISTAS[pedida] || pedida;
   return VISTAS[clave] ? clave : 'hoy';
 }
 

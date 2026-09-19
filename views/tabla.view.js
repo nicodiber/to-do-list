@@ -72,7 +72,7 @@ const COMPARADORES = {
  * un vistazo si algo quedó mal priorizado. Hacé clic en una fila para
  * editarla.
  */
-export function renderVistaTodas(contenedor) {
+export function renderVistaTabla(contenedor) {
   const filas = estado.tareas
     .filter((t) => !filtroCategoria || idsCategoriaYDescendientes(filtroCategoria, estado.categorias).has(t.categoria_id))
     .filter((t) => !filtroEstado || t.tarea_estado === filtroEstado)
@@ -88,7 +88,7 @@ export function renderVistaTodas(contenedor) {
   }
 
   contenedor.innerHTML = `
-    <h2>Todas</h2>
+    <h2>Tabla</h2>
     <p class="ayuda">Todas tus tareas, en el orden real de prioridad de la app. Filtrá, buscá u ordená por columna para auditar o encontrar algo puntual. Hacé clic en una fila para editarla.</p>
     <div class="filtros">
       <label>Categoría
@@ -143,23 +143,23 @@ export function renderVistaTodas(contenedor) {
 
   contenedor.querySelector('#filtro-categoria-todas').addEventListener('change', (evento) => {
     filtroCategoria = evento.target.value;
-    renderVistaTodas(contenedor);
+    renderVistaTabla(contenedor);
   });
   contenedor.querySelector('#filtro-estado-todas').addEventListener('change', (evento) => {
     filtroEstado = evento.target.value;
-    renderVistaTodas(contenedor);
+    renderVistaTabla(contenedor);
   });
   contenedor.querySelector('#filtro-importancia-todas').addEventListener('change', (evento) => {
     filtroImportancia = evento.target.value;
-    renderVistaTodas(contenedor);
+    renderVistaTabla(contenedor);
   });
   contenedor.querySelector('#buscador-nombre-todas').addEventListener('input', (evento) => {
     textoBusqueda = evento.target.value;
-    renderVistaTodas(contenedor);
+    renderVistaTabla(contenedor);
   });
   contenedor.querySelector('#boton-reset-orden-todas').addEventListener('click', () => {
     columnaOrden = null;
-    renderVistaTodas(contenedor);
+    renderVistaTabla(contenedor);
   });
   const contenedorPanelVersus = contenedor.querySelector('#contenedor-panel-versus');
   contenedor.querySelector('#boton-versus-todas').addEventListener('click', () => {
@@ -181,7 +181,7 @@ export function renderVistaTodas(contenedor) {
         columnaOrden = clave;
         direccionOrden = 'asc';
       }
-      renderVistaTodas(contenedor);
+      renderVistaTabla(contenedor);
     });
   });
 
@@ -312,14 +312,14 @@ function crearPanelVersus(contenedorVista) {
     preferida.tarea_prioridad_manual = siguienteValor;
     otra.tarea_prioridad_manual = siguienteValor + 1;
     await persistirYNotificar();
-    renderVistaTodas(contenedorVista);
+    renderVistaTabla(contenedorVista);
   }
 
   panel.querySelector('[data-accion="elegir-a"]').addEventListener('click', () => elegir(a, b));
   panel.querySelector('[data-accion="elegir-b"]').addEventListener('click', () => elegir(b, a));
   panel.querySelector('[data-accion="omitir"]').addEventListener('click', () => {
     paresOmitidos.add(claveDePar(a, b));
-    renderVistaTodas(contenedorVista);
+    renderVistaTabla(contenedorVista);
   });
 
   return panel;

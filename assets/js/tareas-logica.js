@@ -441,15 +441,3 @@ export function tareasSoloConNombre(listaTareas) {
 export function esTareaAccionable(tarea) {
   return tarea.tarea_estado === 'pendiente' && !noPuedeEmpezarTodavia(tarea.tarea_fecha_inicio_habilitada);
 }
-
-/**
- * Regla 80/20 (Pareto): de las tareas accionables, devuelve el 20% superior
- * (redondeado hacia arriba) según el orden de prioridad ya usado en la app
- * (`compararPorPrioridad`, que siempre termina en un orden determinístico) —
- * las "pocas vitales" en las que más conviene enfocarse ahora.
- */
-export function calcularEnfoque8020(tareas, categorias) {
-  const accionables = tareas.filter((t) => esTareaAccionable(t)).sort((a, b) => compararPorPrioridad(a, b, categorias));
-  const cantidad = Math.ceil(accionables.length * 0.2);
-  return accionables.slice(0, cantidad);
-}
