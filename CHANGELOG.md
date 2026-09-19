@@ -2,6 +2,25 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.53.1] - 2026-09-19
+
+Ajustes surgidos de la validación manual de las Rondas 2 y 3.
+
+### Agregado
+
+- **Las tarjetas de la vista Tareas muestran los enlaces sin entrar a editar**: "⛓️ Bloqueada por: …", "⬅️ Depende de: …" y "➡️ Bloquea a: …" (los nombres llevan la categoría, porque dos tareas distintas pueden llamarse igual).
+- **La categoría acompaña al nombre en los desplegables** de tarea previa, tarea próxima y desencadenante ("Revisar · Casa" / "Revisar · Trabajo").
+
+### Cambiado
+
+- **La primera letra del nombre de una tarea siempre queda en mayúscula**: se corrige mientras se escribe (sin mover el cursor) y también al crear o guardar (`capitalizarPrimera`, en `crearTarea` y en el formulario).
+- **"Posponer" ya no aparece en las tareas completadas** (no tiene sentido posponer algo que ya se hizo).
+- **Ventana de edición en celular**: ocupa toda la pantalla (`100dvh`), los campos se apilan a lo ancho y los botones Guardar/Cancelar quedan fijos abajo, porque en el celular quedaba cortada. Pendiente de validar en un celular real.
+
+### Eliminado
+
+- La etiqueta **"🎯 Foco 80/20"** de las tarjetas de Hoy y de Tareas (pedido del usuario; queda anotado en el backlog para analizar su uso, su automatización y una implementación futura). La función `calcularEnfoque8020` y la sección "Enfoque 80/20" de Informes se mantienen por ahora.
+
 ## [v0.53.0] - 2026-09-19
 
 Ronda 3 del rediseño: **carga de tareas** (ver `REDISENO.md`, A2, A3 y "Cabecera y navegación").

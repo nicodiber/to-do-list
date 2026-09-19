@@ -229,7 +229,7 @@ Vista "Semana": grilla horaria de 7 días (07:00-23:00) con tareas fijas y proye
 La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 
 - **`renderVistaTareas(contenedor)`**: arma el formulario de alta unificado (`#form-alta`, un solo campo de nombre, marcado `data-conservar-borrador`), los filtros y la lista filtrada/ordenada. El alta lee el formulario, valida (`validarFormularioTarea`), crea la tarea, aplica los enlaces con `aplicarEnlace` (si son contradictorios, quita la tarea recién creada y avisa sin limpiar el formulario) y, ya guardado, limpia el formulario y devuelve el foco al nombre. Los filtros redibujan con `redibujar`, que conserva lo escrito en el alta.
-- **`renderTarea(tarea, enfoqueIds)`**: tarjeta con los badges, el checklist con casillas que se tildan ahí mismo (persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
+- **`renderTarea(tarea)`**: tarjeta con los badges, el checklist con casillas que se tildan ahí mismo (persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
 ## `assets/js/formulario-tarea.js`
@@ -237,7 +237,8 @@ La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 Formulario de tarea compartido por el alta, la ventana de edición y "Completar carga de tareas" (antes había tres copias).
 
 - **`htmlFormularioTarea(tarea | null, { modo, botonesNombre, botonesPie })`**: nombre arriba (con autocompletado por nombre solo en el alta) y debajo todos los campos: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, "depende de (tarea previa)" y "bloquea a (tarea próxima)" (`opcionesPrevia`/`opcionesProxima`), clima, mantenimiento con intervalo, desencadenante y checklist editable, y días hábiles. También exporta los helpers de opciones (`htmlOpcionesCategoria`, etc.) y `tareasUnicasPorNombre`.
-- **`conectarFormularioTarea(formulario, { modo })`**: muestra u oculta lo de mantenimiento, agrega/quita pasos del checklist (Enter en un paso agrega otro en vez de enviar) y, en el alta, precarga los demás campos cuando el nombre coincide exacto con una tarea existente.
+- **`nombreConCategoria(tarea)`**: nombre de la tarea con su categoría ("Revisar · Casa"), para los desplegables y las tarjetas, porque dos tareas distintas pueden llamarse igual.
+- **`conectarFormularioTarea(formulario, { modo })`**: pone en mayúscula la primera letra del nombre mientras se escribe, muestra u oculta lo de mantenimiento, agrega/quita pasos del checklist (Enter en un paso agrega otro en vez de enviar) y, en el alta, precarga los demás campos cuando el nombre coincide exacto con una tarea existente.
 - **`leerFormularioTarea(formulario)`**: devuelve `{ campos, previaId, proximaId }`; **`aplicarCamposATarea(tarea, campos)`** los aplica a una tarea existente.
 - **`validarFormularioTarea(leido, tareaId)`**: antes de cambiar nada, rechaza un desencadenante combinado con una tarea previa y, si la tarea ya existe, valida los enlaces con `evaluarEnlace`. **`firmaFormulario(formulario)`**: texto que identifica el contenido, para detectar cambios sin guardar.
 

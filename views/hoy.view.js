@@ -6,7 +6,6 @@ import {
   cumplirTarea,
   reprogramarTareaConCascada,
   compararPorPrioridad,
-  calcularEnfoque8020,
   calcularHolguraDias,
   mejorTareaPorCategoria,
 } from '../assets/js/tareas-logica.js';
@@ -18,7 +17,6 @@ import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/
 
 export function renderVistaHoy(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
-  const enfoqueIds = new Set(calcularEnfoque8020(estado.tareas, estado.categorias).map((t) => t.tarea_id));
   const pendientesActivas = estado.tareas
     .filter((t) => t.tarea_estado !== 'completada')
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion);
@@ -102,31 +100,31 @@ export function renderVistaHoy(contenedor) {
   if (urgentes.length === 0) {
     listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas vencidas ni con fecha límite hoy.</p>';
   } else {
-    urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { enfoqueIds })));
+    urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
   }
 
   const listaResto = contenedor.querySelector('#lista-resto');
   if (resto.length === 0) {
     listaResto.innerHTML = '<p class="mensaje-vacio">No hay más tareas pendientes disponibles.</p>';
   } else {
-    resto.forEach((tarea) => listaResto.appendChild(renderItem(tarea, { enfoqueIds })));
+    resto.forEach((tarea) => listaResto.appendChild(renderItem(tarea)));
   }
 
   const listaPorCategoria = contenedor.querySelector('#lista-por-categoria');
   if (listaPorCategoria) {
-    mejoresPorCategoria.forEach(({ tarea }) => listaPorCategoria.appendChild(renderItem(tarea, { enfoqueIds })));
+    mejoresPorCategoria.forEach(({ tarea }) => listaPorCategoria.appendChild(renderItem(tarea)));
   }
 
   const listaNoDisponibles = contenedor.querySelector('#lista-no-disponibles');
   if (listaNoDisponibles) {
     aunNoDisponibles
       .sort((a, b) => a.tarea_fecha_inicio_habilitada.localeCompare(b.tarea_fecha_inicio_habilitada))
-      .forEach((tarea) => listaNoDisponibles.appendChild(renderItem(tarea, { soloInfo: true, enfoqueIds })));
+      .forEach((tarea) => listaNoDisponibles.appendChild(renderItem(tarea, { soloInfo: true })));
   }
 
   const listaBloqueadas = contenedor.querySelector('#lista-bloqueadas');
   if (listaBloqueadas) {
-    bloqueadas.forEach((tarea) => listaBloqueadas.appendChild(renderItem(tarea, { soloInfo: true, enfoqueIds })));
+    bloqueadas.forEach((tarea) => listaBloqueadas.appendChild(renderItem(tarea, { soloInfo: true })));
   }
 }
 
@@ -140,7 +138,7 @@ function etiquetaHolgura(tarea) {
   return textoHolgura(calcularHolguraDias(tarea));
 }
 
-function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
+function renderItem(tarea, { soloInfo = false } = {}) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
   const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
@@ -151,7 +149,6 @@ function renderItem(tarea, { soloInfo = false, enfoqueIds = null } = {}) {
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
         ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
-        ${enfoqueIds && enfoqueIds.has(tarea.tarea_id) ? `<span class="etiqueta-fecha etiqueta-enfoque">🎯 Foco 80/20</span>` : ''}
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
         ${tarea.tarea_fecha_inicio_habilitada ? `<span class="etiqueta-fecha">Desde: ${formatearFechaOFechaHora(tarea.tarea_fecha_inicio_habilitada)}</span>` : ''}
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}

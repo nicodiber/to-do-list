@@ -76,3 +76,5 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 `tarea_fecha_sugerida` es una sugerencia sin compromiso real, así que se reprograma **sola**: al iniciar la app, `reprogramarFechasSugeridasVencidas` (`assets/js/tareas-logica.js`) busca tareas activas (no completadas) con `tarea_fecha_sugerida` vencida y la mueve a la próxima fecha disponible (hoy o el próximo día hábil según `tarea_dias_habiles`, sin superar `tarea_fecha_limite` si existe), en cascada a sus dependientes (`reprogramarTareaConCascada`). Si hubo cambios, se avisa con un `alert()`.
 
 `tarea_fecha_limite` es un compromiso real y **nunca se toca sola**: en Hoy, cada tarea vencida en "Urgentes" muestra un botón "📅 Revalorizar fecha límite" que reusa el panel de reprogramar (`crearPanelReprogramar`), pero solo actualiza esa tarea puntual (sin cascada a dependientes, a diferencia de "Posponer").
+
+> Nota (v0.53.1): la etiqueta "🎯 Foco 80/20" de las tarjetas de Hoy y de Tareas se eliminó a pedido del usuario; `calcularEnfoque8020` y la sección "Enfoque 80/20" de Informes siguen por ahora. Ver `BACKLOG.md`.

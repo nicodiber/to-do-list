@@ -1,4 +1,4 @@
-import { generarId, ahoraISO } from './utilidades.js';
+import { generarId, ahoraISO, capitalizarPrimera } from './utilidades.js';
 
 export const ESTADOS_TAREA = ['bloqueada', 'pendiente', 'completada'];
 
@@ -112,7 +112,7 @@ export function crearTarea({
   const creadaEn = ahoraISO();
   return {
     tarea_id: generarId(),
-    tarea_nombre,
+    tarea_nombre: capitalizarPrimera(tarea_nombre),
     categoria_id: categoria_id || null,
     tarea_estado,
     tarea_fecha_inicio_habilitada: tarea_fecha_inicio_habilitada || creadaEn,
