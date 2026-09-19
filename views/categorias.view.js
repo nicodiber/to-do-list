@@ -1,57 +1,16 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { crearCategoria } from '../assets/js/modelos.js';
 import { escaparHtml, arbolCategorias } from '../assets/js/utilidades.js';
+import { abrirDialogoCategoria } from '../assets/js/formularios-entidades.js';
 
 export function renderVistaCategorias(contenedor) {
   contenedor.innerHTML = `
     <h2>Categorías</h2>
     <p class="ayuda">Las categorías representan áreas de tu vida (Personal, Facultad, Trabajo...). Pueden anidarse eligiendo una categoría padre, sin límite de niveles.</p>
-    <form id="form-nueva-categoria" class="formulario-tarea">
-      <input type="text" name="categoria_nombre" placeholder="Nueva categoría" required />
-      <input type="text" name="categoria_descripcion" placeholder="Descripción (opcional)" />
-      <input type="color" name="categoria_color" value="#4f7cff" />
-      <select name="categoria_padre_id">
-        <option value="">Sin categoría padre</option>
-        ${arbolCategorias(estado.categorias)
-          .map(
-            ({ categoria, profundidad }) =>
-              `<option value="${categoria.categoria_id}">${'　'.repeat(profundidad)}${escaparHtml(categoria.categoria_nombre)}</option>`
-          )
-          .join('')}
-      </select>
-      <label>Disfrute
-        <select name="categoria_disfrute">
-          <option value="1">⭐ (1)</option>
-          <option value="2">⭐⭐ (2)</option>
-          <option value="3" selected>⭐⭐⭐ (3)</option>
-          <option value="4">⭐⭐⭐⭐ (4)</option>
-          <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-        </select>
-      </label>
-      <button type="submit">Agregar categoría</button>
-    </form>
+    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-categoria" class="boton-primario">＋ Nueva categoría</button></div>
     <div id="lista-categorias" class="lista-categorias"></div>
   `;
 
-  contenedor.querySelector('#form-nueva-categoria').addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-    const formulario = evento.target;
-    const nombre = formulario.categoria_nombre.value.trim();
-    if (!nombre) return;
-    const categoriaPadreId = formulario.categoria_padre_id.value || null;
-    const hermanos = estado.categorias.filter((c) => (c.categoria_padre_id || null) === categoriaPadreId);
-    estado.categorias.push(
-      crearCategoria({
-        categoria_nombre: nombre,
-        categoria_descripcion: formulario.categoria_descripcion.value.trim(),
-        categoria_color: formulario.categoria_color.value,
-        categoria_prioridad: hermanos.length,
-        categoria_disfrute: Number(formulario.categoria_disfrute.value),
-        categoria_padre_id: categoriaPadreId,
-      })
-    );
-    await persistirYNotificar();
-  });
+  contenedor.querySelector('#boton-nueva-categoria').addEventListener('click', () => abrirDialogoCategoria());
 
   const listaCategorias = contenedor.querySelector('#lista-categorias');
   if (estado.categorias.length === 0) {
@@ -80,6 +39,7 @@ function renderCategoria(categoria, profundidad) {
       <span class="acciones-prioridad">
         <button type="button" data-accion="subir-prioridad" title="Subir prioridad" ${indice === 0 ? 'disabled' : ''}>▲</button>
         <button type="button" data-accion="bajar-prioridad" title="Bajar prioridad" ${indice === hermanos.length - 1 ? 'disabled' : ''}>▼</button>
+        <button type="button" data-accion="editar-categoria" title="Editar categoría">Editar</button>
         <button type="button" data-accion="eliminar-categoria" title="Eliminar categoría">✕</button>
       </span>
     </div>
@@ -100,6 +60,8 @@ function renderCategoria(categoria, profundidad) {
 
   tarjeta.querySelector('[data-accion="subir-prioridad"]').addEventListener('click', intercambiarPrioridad(indice - 1));
   tarjeta.querySelector('[data-accion="bajar-prioridad"]').addEventListener('click', intercambiarPrioridad(indice + 1));
+
+  tarjeta.querySelector('[data-accion="editar-categoria"]').addEventListener('click', () => abrirDialogoCategoria({ id: categoria.categoria_id }));
 
   tarjeta.querySelector('[data-accion="eliminar-categoria"]').addEventListener('click', async () => {
     if (

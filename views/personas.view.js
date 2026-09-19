@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { crearPersona } from '../assets/js/modelos.js';
+import { abrirDialogoPersona } from '../assets/js/formularios-entidades.js';
 import { escaparHtml, formatearFecha, hoyISO, diasEntreFechas } from '../assets/js/utilidades.js';
 
 function diasDesdeContacto(persona) {
@@ -11,27 +11,11 @@ export function renderVistaPersonas(contenedor) {
   contenedor.innerHTML = `
     <h2>Personas</h2>
     <p class="ayuda">Hace cuánto no te reunís con cada persona, ordenado de mayor a menor tiempo — para no perder el contacto con quienes importan.</p>
-    <form id="form-nueva-persona" class="formulario-en-linea">
-      <input type="text" name="persona_nombre" placeholder="Nombre" required />
-      <label>Último contacto <input type="date" name="persona_ultimo_contacto" /></label>
-      <button type="submit">Agregar persona</button>
-    </form>
+    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-persona" class="boton-primario">＋ Nueva persona</button></div>
     <div id="lista-personas" class="lista-categorias"></div>
   `;
 
-  contenedor.querySelector('#form-nueva-persona').addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-    const formulario = evento.target;
-    const nombre = formulario.persona_nombre.value.trim();
-    if (!nombre) return;
-    estado.personas.push(
-      crearPersona({
-        persona_nombre: nombre,
-        persona_ultimo_contacto: formulario.persona_ultimo_contacto.value,
-      })
-    );
-    await persistirYNotificar();
-  });
+  contenedor.querySelector('#boton-nueva-persona').addEventListener('click', () => abrirDialogoPersona());
 
   const listaPersonas = contenedor.querySelector('#lista-personas');
   if (estado.personas.length === 0) {
@@ -53,7 +37,10 @@ function renderPersona(persona) {
   tarjeta.innerHTML = `
     <div class="encabezado-categoria">
       <strong>${escaparHtml(persona.persona_nombre)}</strong>
-      <button type="button" data-accion="eliminar-persona" title="Eliminar persona">✕</button>
+      <span class="acciones-prioridad">
+        <button type="button" data-accion="editar-persona" title="Editar persona y último contacto">Editar</button>
+        <button type="button" data-accion="eliminar-persona" title="Eliminar persona">✕</button>
+      </span>
     </div>
     <span class="etiquetas">
       <span class="etiqueta-fecha">
@@ -63,6 +50,8 @@ function renderPersona(persona) {
     </span>
     <button type="button" data-accion="marcar-contacto" class="boton-primario">Marcar contacto hoy</button>
   `;
+
+  tarjeta.querySelector('[data-accion="editar-persona"]').addEventListener('click', () => abrirDialogoPersona({ id: persona.persona_id }));
 
   tarjeta.querySelector('[data-accion="marcar-contacto"]').addEventListener('click', async () => {
     persona.persona_ultimo_contacto = hoyISO();

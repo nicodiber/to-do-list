@@ -106,3 +106,9 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Proceso**: `tareasSoloConNombre` (`assets/js/tareas-logica.js`) las cuenta y `actualizarBotonesTareas` (`assets/js/app.js`) muestra u oculta el botón "📝 Completar carga de tareas (X)".
 - **Resultado**: el usuario ve cuántas tareas quedaron incompletas desde cualquier vista, sin buscarlas a mano. Una tarea sale de la cuenta cuando se le carga cualquier dato, se elimina o se marca "Dejar así".
 
+## 18. Aviso de anillo de mantenimiento incompleto
+
+- **Condición**: se guarda (alta, edición o "Completar carga") una tarea de mantenimiento con `tarea_desencadenante` y su cadena de tareas enlazadas llega hasta ese desencadenante, pero alguna tarea de la cadena no es de mantenimiento.
+- **Proceso**: `ofrecerMarcarCadenaMantenimiento` (`assets/js/formulario-tarea.js`, con `tareasDeLaCadenaNoRepetibles` de `assets/js/dependencias.js`) lista esas tareas y pregunta si marcarlas como mantenimiento con el mismo intervalo.
+- **Resultado**: si el usuario acepta, todas las tareas de la cadena se repiten y el anillo se sostiene; si rechaza, nada cambia (la tarea se guarda igual). No vuelve a preguntar una vez resuelto.
+

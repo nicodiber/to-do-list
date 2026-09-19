@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v12';
+const CACHE_NAME = 'super-todo-list-v13';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -30,6 +30,8 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/formulario-tarea.js',
   'assets/js/modal-tarea.js',
   'assets/js/carga-tareas.js',
+  'assets/js/dialogo-formulario.js',
+  'assets/js/formularios-entidades.js',
   'assets/js/ubicacion-actual.js',
   'views/hoy.view.js',
   'views/tres-dias.view.js',
@@ -43,6 +45,7 @@ const ARCHIVOS_PRECACHE = [
   'views/gantt.view.js',
   'views/personas.view.js',
   'views/informes.view.js',
+  'views/configuraciones.view.js',
 ];
 
 self.addEventListener('install', (evento) => {

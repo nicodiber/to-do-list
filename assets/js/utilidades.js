@@ -154,6 +154,27 @@ export function categoriaRaiz(categoria, todasLasCategorias) {
 }
 
 /**
+ * Ids de todas las categorías que cuelgan (a cualquier nivel) de `categoriaId`.
+ * Sirve para no ofrecer como padre de una categoría a ella misma ni a sus
+ * descendientes (crearía un ciclo).
+ */
+export function descendientesDeCategoria(categoriaId, todasLasCategorias) {
+  const ids = new Set();
+  const pendientes = [categoriaId];
+  while (pendientes.length > 0) {
+    const actual = pendientes.pop();
+    todasLasCategorias
+      .filter((c) => c.categoria_padre_id === actual)
+      .forEach((c) => {
+        if (ids.has(c.categoria_id)) return;
+        ids.add(c.categoria_id);
+        pendientes.push(c.categoria_id);
+      });
+  }
+  return ids;
+}
+
+/**
  * Texto legible de una holgura en días (ver `calcularHolguraDias` en
  * tareas-logica.js): cuánto margen queda antes de vencer, o hace cuánto que
  * venció. Recibe el número ya calculado, no la tarea.

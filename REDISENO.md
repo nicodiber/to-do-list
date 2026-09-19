@@ -17,7 +17,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Botón "+" fijo en la cabecera**, visible en todas las vistas: lleva a Tareas y enfoca el input de alta (mismo efecto que el atajo "N"). *(Implementado en v0.53.0.)*
 - ✅ **Contador "Completar carga de tareas (X)"** visible en toda la app, **solo si X > 0** (ver A3 abajo). *(Implementado en v0.53.0.)*
 - ✅ **Estado de guardado siempre visible** en la cabecera (ver "Almacenamiento"). *(Implementado en v0.51.0.)*
-- ✅ **Vista "Configuraciones"**: por ahora solo "Importar JSON" y "Exportar JSON" (que dejan de estar en la cabecera). Drive queda en la cabecera. Importar debe **pedir confirmación** antes de reemplazar todo. *(La confirmación ya está desde v0.51.0; la vista y el traslado de los botones llegan en la Ronda 5.)*
+- ✅ **Vista "Configuraciones"** *(implementada en v0.54.0, con un "Borrar todos los datos" de doble confirmación además)*: por ahora solo "Importar JSON" y "Exportar JSON" (que dejan de estar en la cabecera). Drive queda en la cabecera. Importar debe **pedir confirmación** antes de reemplazar todo. *(La confirmación ya está desde v0.51.0; la vista y el traslado de los botones llegan en la Ronda 5.)*
 - ✅ **Vista nueva "Tablero"** con pestañas: *Progreso por categoría* y *Hábitos* (ver más abajo).
 - ✅ **Vista nueva "Mejoras"** para repasar las notas de mejora de las tareas de mantenimiento (ver A4).
 - ❓ **Semana**: candidata a eliminarse o fusionarse con "8 días" (el usuario considera que 8 días la reemplaza).
@@ -76,9 +76,11 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## C1 / C2 / C3 · ABMs
 
-- ✅ **Editar categorías** ya creadas (todos sus campos), **incluyendo cambiar su categoría padre**.
-- ✅ **Editar ubicaciones** ya creadas.
-- ✅ **Personas**: botón "Editar último contacto" que permite indicar una fecha (hoy solo existe "Marcar contacto hoy").
+- ✅ **Editar categorías** ya creadas (todos sus campos), **incluyendo cambiar su categoría padre**. *(Implementado en v0.54.0: el padre no puede ser la propia categoría ni una descendiente.)*
+- ✅ **Editar ubicaciones** ya creadas. *(v0.54.0)* Las coordenadas se siguen cargando a mano (grados decimales); GPS y buscador de direcciones quedan descartados por ahora.
+- ✅ **Personas**: "Editar" permite cambiar el nombre y la fecha del último contacto; "Marcar contacto hoy" se mantiene. *(v0.54.0)*
+- ✅ **Metas**: también se pueden editar. *(v0.54.0)*
+- ✅ **Crear con botón "＋ Nueva …" y ventana modal**, la misma que se usa para editar y para **crear categoría, ubicación o meta desde el desplegable de la tarea**. *(v0.54.0)* Para tarea previa/próxima no se ofrece "crear nueva tarea" por ahora (ver la idea de usar el modal también para el alta de tareas, en `BACKLOG.md`).
 
 ## Progreso por categoría y hábitos — vista "Tablero"
 
@@ -124,7 +126,7 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 2. ✅ **Modelo de datos** (v0.52.0): entidad `Mejora`, `tarea_exportada_calendar`, registro de cumplimientos, restricción 1 a 1 de dependencias, campo de checklist, `tarea_desencadenante`. Detalle: el checklist es solo para tareas de mantenimiento y aún sin pantalla (llega con la ventana modal de edición de la Ronda 3); los cumplimientos guardan además el vencimiento esperado y si era de mantenimiento; el panel "Dependencia" de Tareas ya tiene "depende de" y "bloquea a" con inserción en medio y rechazo de conflictos (las dependencias **en el alta** siguen en la Ronda 3); reabrir una tarea de mantenimiento borra su copia si sigue sin tocar; tras mezclar cambios de dos dispositivos los enlaces que rompan la regla 1 a 1 se reparan con aviso.
 3. ✅ **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)" (v0.53.0), más la ventana modal de edición, la pantalla del checklist y el botón "Dejar así".
 4. **Hoy**: Próximos por categoría, focus, completadas de hoy, exportar por tarea, ☀️, Posponer en el solapamiento.
-5. **ABMs**: editar categorías y ubicaciones, editar último contacto, vista Configuraciones.
+5. ✅ **ABMs** (v0.54.0, **hecha antes que la 4** a pedido del usuario, para pulir la creación de categorías, ubicaciones y metas antes de cargar datos reales): editar categorías, ubicaciones, metas y personas, crear con ventana modal (también desde el desplegable de la tarea), vista Configuraciones.
 6. **Tablero** (progreso por categoría + hábitos) y vista **Mejoras**.
 7. **Gantt**: todas las tareas + filtros.
 8. **Rediseño visual, emojis y atajos** (transversal).

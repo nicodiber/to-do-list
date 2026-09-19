@@ -1316,3 +1316,62 @@ section h3 {
     box-sizing: border-box;
   }
 }
+
+/* --- Ronda 5: ABMs con ventana modal y Configuraciones --- */
+
+.barra-acciones-vista {
+  margin: 0.75rem 0 1rem;
+}
+
+.barra-acciones-vista button {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radio);
+  border: none;
+  cursor: pointer;
+}
+
+.ayuda-formulario {
+  flex: 1 1 100%;
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+}
+
+.seccion-config {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.seccion-config h3 {
+  margin: 0 0 0.3rem;
+}
+
+.seccion-peligro {
+  border-color: var(--color-peligro);
+}
+
+.acciones-config {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.acciones-config button,
+.acciones-config .boton-archivo {
+  font-size: 0.9rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-borde);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.boton-peligro {
+  background: var(--color-peligro) !important;
+  border-color: var(--color-peligro) !important;
+  color: white !important;
+}

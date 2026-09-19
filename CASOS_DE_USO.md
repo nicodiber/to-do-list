@@ -70,7 +70,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   1. Usuario hace clic en "＋" (o presiona "N", si no está escribiendo en un campo).
   2. Sistema navega a Tareas (si hacía falta) y enfoca el nombre del formulario de alta.
   3. Usuario escribe el nombre. (Si coincide exacto con una tarea ya cargada, el sistema precarga sus demás datos como sugerencia; el usuario los ve debajo y los puede cambiar.)
-  4. Usuario (opcional) completa los demás campos, incluido "depende de (tarea previa)" y "bloquea a (tarea próxima)".
+  4. Usuario (opcional) completa los demás campos, incluido "depende de (tarea previa)" y "bloquea a (tarea próxima)". Si la categoría, la ubicación o la meta que necesita no existe, elige "＋ Crear nueva…" en ese desplegable: se abre la ventana de esa entidad y, al guardarla, la nueva queda seleccionada sin perder lo ya escrito.
   5. Usuario presiona Enter o "Agregar".
   6. Sistema valida: si el pedido de enlaces es contradictorio (regla 1 a 1, ver `REDISENO.md`), muestra el conflicto y **no crea la tarea ni limpia el formulario** para que el usuario reajuste. Si elige una tarea ya enlazada, la nueva se inserta en medio (P→A→N).
   7. Sistema crea la tarea, la guarda, limpia el formulario y devuelve el foco al nombre para cargar la siguiente. Lo que estaba a medio escribir se conserva si el usuario hace otra acción antes de agregar (por ejemplo tildar un paso de un checklist) o cambia un filtro.
@@ -237,44 +237,42 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 ### C1. Gestionar categorías
 
 - **Objetivo**: estructurar las áreas de la vida en un árbol, y decidir su prioridad relativa.
-- **Pasos**: Categorías → alta (nombre, descripción, color, categoría padre opcional — sin límite de niveles —, disfrute 1-5 estrellas) → la nueva entra al final del orden entre sus hermanas → reordenar con ▲/▼ (acotado a hermanas del mismo padre) → eliminar (hijas se promueven a raíz, tareas asociadas quedan sin categoría — ver `PROCESOS_AUTOMATICOS.md`).
+- **Pasos**: Categorías → "＋ Nueva categoría" (ventana modal: nombre, descripción, color, categoría padre opcional — sin límite de niveles —, disfrute 1-5 estrellas) → la nueva entra al final del orden entre sus hermanas → "Editar" en una tarjeta para cambiar cualquier campo, incluido el padre → reordenar con ▲/▼ (acotado a hermanas del mismo padre) → eliminar (hijas se promueven a raíz, tareas asociadas quedan sin categoría — ver `PROCESOS_AUTOMATICOS.md`). También se puede crear una categoría desde el desplegable "＋ Crear nueva categoría…" del formulario de una tarea.
 - **Flujo usuario/sistema**:
-  1. Usuario abre Categorías, completa el formulario (nombre, descripción, color, padre opcional, disfrute) y presiona "Agregar categoría".
-  2. Sistema crea la categoría al final del orden entre sus hermanas, la guarda y redibuja el árbol.
-  3. Usuario presiona ▲ o ▼ en una categoría.
-  4. Sistema intercambia su prioridad con la hermana adyacente (mismo padre), guarda y redibuja.
-  5. Usuario presiona ✕.
-  6. Sistema pide confirmación advirtiendo que las hijas quedan promovidas y las tareas sin categoría.
-  7. Si el usuario acepta, sistema promueve las hijas, desvincula las tareas, elimina la categoría y guarda.
-- **Vistas/funciones**: `views/categorias.view.js`, `assets/js/modelos.js` (`crearCategoria`), `assets/js/utilidades.js` (`arbolCategorias`).
+  1. Usuario abre Categorías y presiona "＋ Nueva categoría"; sistema abre la ventana.
+  2. Usuario completa los campos y presiona "Agregar categoría"; sistema la crea al final del orden entre sus hermanas, la guarda y redibuja el árbol.
+  3. Usuario presiona "Editar" en una categoría; sistema abre la misma ventana con sus datos. El desplegable de padre **no ofrece la propia categoría ni sus descendientes** (crearía un ciclo).
+  4. Usuario cambia lo que quiera y guarda; si cambió el padre, la categoría pasa al final de sus nuevas hermanas. Las tareas conservan su categoría. Si hay cambios sin guardar y cierra la ventana (Esc, clic afuera o Cancelar), el sistema pregunta antes de descartarlos.
+  5. Usuario presiona ▲ o ▼; sistema intercambia su prioridad con la hermana adyacente (mismo padre).
+  6. Usuario presiona ✕; sistema pide confirmación (las hijas quedan promovidas y las tareas sin categoría) y, si acepta, elimina.
+- **Vistas/funciones**: `views/categorias.view.js`, `assets/js/formularios-entidades.js` (`abrirDialogoCategoria`), `assets/js/dialogo-formulario.js`, `assets/js/utilidades.js` (`arbolCategorias`, `descendientesDeCategoria`).
 - **Resultado**: estructura de categorías y/o su orden actualizados.
-- **Fricciones**: **no existe edición** — una vez creada, una categoría solo se puede reordenar o eliminar; para cambiar nombre/color/descripción/disfrute hay que borrarla y recrearla (con el efecto colateral de que sus tareas quedan sin categoría en el medio).
+- **Fricciones**: no se puede mover una categoría a otro lugar del orden más que con ▲/▼ (paso a paso).
 
 ### C2. Gestionar ubicaciones
 
 - **Objetivo**: tener lugares con coordenadas para poder chequear el clima real de las tareas asociadas.
-- **Pasos**: Ubicaciones → alta (nombre, latitud, longitud a mano) → eliminar (tareas asociadas quedan sin ubicación).
+- **Pasos**: Ubicaciones → "＋ Nueva ubicación" (nombre, latitud, longitud a mano) → "Editar" → eliminar (tareas asociadas quedan sin ubicación). También se puede crear desde el desplegable "＋ Crear nueva ubicación…" del formulario de una tarea.
 - **Flujo usuario/sistema**:
-  1. Usuario abre Ubicaciones y completa nombre, latitud y longitud (obtenidas por fuera de la app).
-  2. Usuario presiona "Agregar ubicación".
-  3. Sistema crea la ubicación, la guarda y la lista.
-  4. Usuario presiona ✕ en una ubicación.
-  5. Sistema pide confirmación (las tareas asociadas quedan sin ubicación); si se acepta, desvincula las tareas, elimina y guarda.
-- **Vistas/funciones**: `views/ubicaciones.view.js`, `assets/js/modelos.js` (`crearUbicacion`).
-- **Resultado**: Ubicacion nueva o eliminada.
-- **Fricciones**: coordenadas 100% manuales, sin buscador de dirección ni GPS — hay que conseguirlas afuera y copiar/pegar. Mismo problema que Categorías: **no se puede editar**, solo crear/eliminar.
+  1. Usuario presiona "＋ Nueva ubicación"; sistema abre la ventana, con una ayuda del formato: grados decimales (latitud −90 a 90, longitud −180 a 180, sur y oeste negativos).
+  2. Usuario escribe el nombre y las coordenadas (obtenidas por fuera de la app; si pega el par "lat, lon" que copia Google Maps en Latitud, se reparte solo).
+  3. Sistema valida los rangos, crea la ubicación, la guarda y la lista.
+  4. Usuario presiona "Editar" para cambiar nombre o coordenadas, o ✕ para eliminar (con confirmación; las tareas asociadas quedan sin ubicación).
+- **Vistas/funciones**: `views/ubicaciones.view.js`, `assets/js/formularios-entidades.js` (`abrirDialogoUbicacion`).
+- **Resultado**: Ubicacion nueva, editada o eliminada.
+- **Fricciones**: coordenadas 100% manuales, sin buscador de dirección ni GPS (decisión del usuario por ahora): hay que conseguirlas afuera.
 
 ### C3. Gestionar personas
 
 - **Objetivo**: no perder de vista hace cuánto no se ve/habla con alguien importante.
-- **Pasos**: Personas → alta (nombre, último contacto) → lista ordenada de mayor a menor tiempo sin contacto → botón "Editar último contacto" permite indicar fecha a guardar *(⏳ no existe hoy: solo hay "Marcar contacto hoy", que fija la fecha de hoy — pedido del usuario, ver `REDISENO.md`)* → eliminar.
+- **Pasos**: Personas → alta (nombre, último contacto) → lista ordenada de mayor a menor tiempo sin contacto → "Editar" permite cambiar el nombre y la fecha del último contacto (además de "Marcar contacto hoy", que fija la de hoy) → eliminar.
 - **Flujo usuario/sistema**:
-  1. Usuario abre Personas, completa el nombre (y opcionalmente el último contacto) y presiona "Agregar persona".
+  1. Usuario abre Personas, presiona "＋ Nueva persona", completa el nombre (y opcionalmente el último contacto) y presiona "Agregar persona".
   2. Sistema crea la persona, la guarda y ordena la lista de mayor a menor tiempo sin contacto (sin registro va primero).
   3. Usuario presiona "Marcar contacto hoy" en una persona.
   4. Sistema fija `persona_ultimo_contacto` en la fecha de hoy, guarda y reordena.
-  5. Usuario (alternativa) presiona ✕ y confirma; sistema elimina la persona.
-- **Vistas/funciones**: `views/personas.view.js`, `assets/js/modelos.js` (`crearPersona`).
+  5. Usuario (alternativa) presiona "Editar", cambia el nombre o el último contacto y guarda; o presiona ✕ y confirma y el sistema elimina la persona.
+- **Vistas/funciones**: `views/personas.view.js`, `assets/js/formularios-entidades.js` (`abrirDialogoPersona`).
 - **Resultado**: Persona nueva, actualizada o eliminada.
 - **Fricciones**: sin relación con Tareas — no se puede crear una tarea del tipo "llamar a X" vinculada a una persona; es una lista aislada del resto del sistema.
 
@@ -285,15 +283,16 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 ### D1. Exportar / importar JSON
 
 - **Objetivo**: llevarse una copia de los datos en un archivo propio (respaldo) o restaurar una.
-- **Pasos**: "Exportar JSON" (cabecera) descarga un archivo con la fecha en el nombre; "Importar JSON" pide **confirmación explícita** (reemplaza todo lo que hay en Drive) y, si se acepta, reemplaza todo el estado con el contenido del archivo elegido. El modo "carpeta local" ya no existe: Google Drive es el único destino de los datos (ver D2).
+- **Pasos**: en la vista **Configuraciones**, "Exportar JSON" descarga un archivo con la fecha en el nombre; "Importar JSON" pide **confirmación explícita** (reemplaza todo lo que hay en Drive) y, si se acepta, reemplaza todo el estado con el contenido del archivo elegido. El modo "carpeta local" ya no existe: Google Drive es el único destino de los datos (ver D2).
 - **Flujo usuario/sistema**:
   1. Usuario hace clic en "Exportar JSON"; sistema descarga un archivo con la fecha en el nombre.
   2. Usuario elige un archivo en "Importar JSON".
   3. Sistema muestra una confirmación: "Esto reemplaza todos los datos actuales (también en Drive)".
   4. Usuario confirma; sistema lee el archivo, migra el formato si hace falta, reemplaza el estado y lo guarda como cualquier otro cambio (buffer local → Drive; ver D2).
-- **Vistas/funciones**: `assets/js/almacenamiento.js` (`exportarJSON`, `importarJSON`), botones de cabecera en `assets/js/app.js`.
+- **Vistas/funciones**: `views/configuraciones.view.js`, `assets/js/almacenamiento.js` (`exportarJSON`, `importarJSON`, `borrarTodosLosDatos`).
 - **Resultado**: archivo descargado, o estado reemplazado por el JSON importado (y subido a Drive).
-- **Fricciones**: importar reemplaza todo, no mezcla. ⏳ En el rediseño, Exportar/Importar pasan a la vista Configuraciones (Ronda 5, ver `REDISENO.md`).
+- **Fricciones**: importar reemplaza todo, no mezcla.
+- **Borrar todos los datos** (misma vista): pide una confirmación y luego escribir BORRAR; vacía tareas, categorías, ubicaciones, metas, personas, mejoras y cumplimientos, también en Drive y en los otros dispositivos. Conviene exportar antes una copia.
 
 ### D2. Conectar Google y sincronizar con Drive
 

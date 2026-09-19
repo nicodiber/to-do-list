@@ -12,8 +12,6 @@ import {
   descartarTodosLosAvisos,
   mezclarDatosViejos,
   descartarDatosViejos,
-  exportarJSON,
-  importarJSON,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre } from './tareas-logica.js';
 import { abrirCargaTareas } from './carga-tareas.js';
@@ -30,9 +28,10 @@ import { renderVistaMetas } from '../../views/metas.view.js';
 import { renderVistaGantt } from '../../views/gantt.view.js';
 import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaInformes } from '../../views/informes.view.js';
+import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.53.2';
+const VERSION = 'v0.54.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -58,6 +57,7 @@ const VISTAS = {
   gantt: { etiqueta: 'Gantt', render: renderVistaGantt },
   personas: { etiqueta: 'Personas', render: renderVistaPersonas },
   informes: { etiqueta: 'Informes', render: renderVistaInformes },
+  configuraciones: { etiqueta: 'Configuraciones', render: renderVistaConfiguraciones },
 };
 
 // Nombres viejos de vistas (por enlaces o marcadores guardados) que siguen llevando a la vista actual.
@@ -367,20 +367,6 @@ window.addEventListener('keydown', (evento) => {
   if (BOTON_NUEVA_TAREA.hidden) return; // sin datos listos o en solo lectura no hay alta
   evento.preventDefault();
   irAlAltaDeTarea();
-});
-
-document.getElementById('boton-exportar').addEventListener('click', exportarJSON);
-
-document.getElementById('input-importar').addEventListener('change', async (evento) => {
-  const archivo = evento.target.files[0];
-  if (!archivo) return;
-  try {
-    await importarJSON(archivo);
-  } catch (error) {
-    alert('No se pudo importar el archivo: ' + error.message);
-  } finally {
-    evento.target.value = '';
-  }
 });
 
 function temaEfectivo() {

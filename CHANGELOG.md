@@ -2,6 +2,30 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.54.0] - 2026-09-19
+
+Ronda 5 del rediseño: **ABMs y Configuraciones** (ver `REDISENO.md`, C1/C2/C3). Se hizo antes que la Ronda 4 (Hoy) para poder pulir la creación de categorías, ubicaciones y metas antes de cargar datos reales.
+
+### Agregado
+
+- **Editar categorías, ubicaciones, metas y personas** (antes solo se podían crear o eliminar): botón "Editar" en cada tarjeta. En categorías se puede cambiar cualquier campo, **incluido el padre**: el desplegable no ofrece la propia categoría ni sus descendientes (evita ciclos) y, al cambiar de padre, queda al final de sus nuevas hermanas; las tareas conservan su categoría al renombrarla o moverla. En personas, "Editar" cubre el último contacto.
+- **Crear con botón "＋ Nueva …" y ventana modal** en las cuatro vistas (se quitaron los formularios en línea): la misma ventana sirve para crear y para editar.
+- **Crear categoría, ubicación o meta desde el formulario de la tarea**: los desplegables suman "＋ Crear nueva…"; al guardarla, la nueva queda seleccionada y lo que ya se había escrito en la tarea no se pierde. Funciona en el alta, en la ventana de edición y en "Completar carga" (se puede abrir una ventana encima de otra).
+- **Ubicaciones**: ayuda sobre el formato de las coordenadas (grados decimales, sur y oeste negativos, lo que usa el pronóstico del clima), validación de rangos y, si se pega el par "lat, lon" que copia Google Maps en Latitud, se reparte solo entre latitud y longitud.
+- **Vista "Configuraciones"** (última de la navegación): Exportar JSON, Importar JSON (con confirmación; salen de la cabecera) y **"Borrar todos los datos"** con doble confirmación (aviso y escribir BORRAR): vacía las siete colecciones, también en Drive y en los otros dispositivos.
+- **Aviso de anillo de mantenimiento incompleto**: al guardar una tarea de mantenimiento con desencadenante, si hay tareas de su cadena que no son de mantenimiento (y por eso no se repetirían), la app lo avisa y ofrece marcarlas con el mismo intervalo; nada cambia sin confirmar (`tareasDeLaCadenaNoRepetibles`).
+- `assets/js/dialogo-formulario.js` (diálogo genérico con confirmación de descarte), `assets/js/formularios-entidades.js`, `views/configuraciones.view.js`, `descendientesDeCategoria` (`assets/js/utilidades.js`) y `borrarTodosLosDatos` (`assets/js/almacenamiento.js`).
+
+### Cambiado
+
+- `modal-tarea.js` usa el diálogo genérico (mismo comportamiento) y el diálogo se limpia al cerrar sin depender del evento `close`.
+- El texto de Metas ya no habla de un botón "Metas" que no existe.
+- `sw.js`: `CACHE_NAME` a `v13` y precache de los módulos nuevos.
+
+### Eliminado
+
+- Los formularios en línea de alta de categoría, ubicación, meta y persona, y los botones Exportar/Importar JSON de la cabecera.
+
 ## [v0.53.2] - 2026-09-19
 
 ### Cambiado

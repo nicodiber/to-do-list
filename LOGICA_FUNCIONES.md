@@ -51,6 +51,7 @@ Dependencias entre tareas (lógica pura). Regla 1 a 1: cada tarea bloquea a como
 - **`evaluarEnlace(tareaId, { previaId, proximaId }, lista)` / `aplicarEnlace(...)`**: cada valor puede ser un id, `null` (quitar) o `undefined` (dejar). Si se elige una tarea ya enlazada, se **inserta en medio** (elegir solo la previa P, o solo la próxima N, o ambas cuando son consecutivas → P→A→N); si se eligen las dos y no son consecutivas se **rechaza** con el conflicto explicado (`{ ok: false, motivo }`). También rechaza auto-referencia, ciclos, tareas completadas y el uso simultáneo de desencadenante y previa. `aplicarEnlace` muta las dependencias y recalcula los bloqueos.
 - **`opcionesPrevia(tarea, lista)` / `opcionesProxima(tarea, lista)`**: opciones de los desplegables (tareas sin completar que no crean un ciclo) con `ocupadaPor` (la tarea ya enlazada), para rotular "se inserta en medio".
 - **`reconectarAlEliminar(tarea, lista)`**: al eliminar una tarea del medio, las que dependían de ella pasan a depender de su previa; el desencadenante que la apuntaba pasa a su previa.
+- **`tareasDeLaCadenaNoRepetibles(tarea, lista)`**: sigue las próximas de una tarea de mantenimiento hasta su desencadenante y devuelve las tareas de esa cadena que no son de mantenimiento (`[]` si no hay desencadenante o la cadena no llega hasta él).
 - **`repararEnlaces(tareas)`**: tras mezclar cambios de dos dispositivos, si una previa quedó con más de una tarea activa detrás conserva el enlace de la más antigua y suelta el resto; si se formó un ciclo, lo corta por la más nueva. Devuelve las reparaciones para dejar avisos. Solo la usa la sincronización con Drive.
 
 ## `assets/js/borradores.js`
@@ -236,16 +237,32 @@ La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 Formulario de tarea compartido por el alta, la ventana de edición y "Completar carga de tareas" (antes había tres copias).
 
 - **`htmlFormularioTarea(tarea | null, { modo, botonesNombre, botonesPie })`**: nombre arriba (con autocompletado por nombre solo en el alta) y debajo todos los campos: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, "depende de (tarea previa)" y "bloquea a (tarea próxima)" (`opcionesPrevia`/`opcionesProxima`), clima, mantenimiento con intervalo, desencadenante y checklist editable, y días hábiles. También exporta los helpers de opciones (`htmlOpcionesCategoria`, etc.) y `tareasUnicasPorNombre`.
+- Los desplegables de categoría, ubicación y meta terminan con "＋ Crear nueva…" (`htmlOpcionesCategoria`/`htmlOpcionesUbicacion`/`htmlOpcionesMeta`): al elegirla se vuelve al valor anterior, se abre el diálogo de esa entidad y, al guardarla, el desplegable se reconstruye con la nueva seleccionada por propiedad (así el borrador del alta la conserva).
+- **`ofrecerMarcarCadenaMantenimiento(tarea, lista)`**: si la tarea tiene desencadenante y su cadena tiene tareas que no son de mantenimiento (`tareasDeLaCadenaNoRepetibles`), avisa cuáles y ofrece marcarlas con el mismo intervalo; nada cambia sin confirmar.
 - **`nombreConCategoria(tarea)`**: nombre de la tarea con su categoría ("Revisar · Casa"), para los desplegables y las tarjetas, porque dos tareas distintas pueden llamarse igual.
 - **`conectarFormularioTarea(formulario, { modo })`**: pone en mayúscula la primera letra del nombre mientras se escribe, muestra u oculta lo de mantenimiento, agrega/quita pasos del checklist (Enter en un paso agrega otro en vez de enviar) y, en el alta, precarga los demás campos cuando el nombre coincide exacto con una tarea existente.
 - **`leerFormularioTarea(formulario)`**: devuelve `{ campos, previaId, proximaId }`; **`aplicarCamposATarea(tarea, campos)`** los aplica a una tarea existente.
 - **`validarFormularioTarea(leido, tareaId)`**: antes de cambiar nada, rechaza un desencadenante combinado con una tarea previa y, si la tarea ya existe, valida los enlaces con `evaluarEnlace`. **`firmaFormulario(formulario)`**: texto que identifica el contenido, para detectar cambios sin guardar.
 
+## `assets/js/dialogo-formulario.js`
+
+Ventana modal genérica para un formulario (tareas, categorías, ubicaciones, metas, personas).
+
+- **`abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar, conectar, alGuardar, alCerrar })`**: cada llamada crea su propio `<dialog>` en `document.body` (se pueden apilar) y lo quita al cerrar, sin depender del evento `close`. `alGuardar(formulario)` devuelve `true` para cerrar o `false` para dejarla abierta. Esc, el clic afuera (solo si empezó y terminó afuera) y "Cancelar" preguntan "¿Descartarlos?" solo si el formulario cambió (`firmaFormulario`).
+
+## `assets/js/formularios-entidades.js`
+
+Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCategoria` / `abrirDialogoUbicacion` / `abrirDialogoMeta` / `abrirDialogoPersona`** (`{ id, alCrear }`). Con `id` editan; sin `id` crean y llaman `alCrear(nueva)` antes de guardar, para que quien la pidió (el desplegable de una tarea) la seleccione. La categoría excluye de su desplegable de padre a sí misma y sus descendientes (`descendientesDeCategoria`) y, al cambiar de padre, queda al final de sus nuevas hermanas. La ubicación valida los rangos de las coordenadas y reparte el par "lat, lon" pegado en Latitud.
+
+## `views/configuraciones.view.js`
+
+- **`renderVistaConfiguraciones(contenedor)`**: Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
+
 ## `assets/js/modal-tarea.js`
 
 Ventana modal de edición (`<dialog>` en `document.body`, sobrevive a los redibujados).
 
-- **`abrirEdicionTarea(id)`**: la abre encima de la vista actual (Tareas, Tabla, Gantt o Semana) con el formulario compartido. Esc y el clic afuera pasan por la confirmación "Hay cambios sin guardar. ¿Descartarlos?" solo si el formulario cambió. Al guardar: si la tarea se eliminó mientras se editaba, avisa y cierra; si su `tarea_modificado_en` cambió desde que se abrió (cambio de otro dispositivo), pide confirmar que se pisan esos cambios; valida el nombre y los enlaces; aplica los campos y `aplicarEnlace`, y persiste.
+- **`abrirEdicionTarea(id)`** (sobre `abrirDialogoFormulario`): la abre encima de la vista actual (Tareas, Tabla, Gantt o Semana) con el formulario compartido. Esc y el clic afuera pasan por la confirmación "Hay cambios sin guardar. ¿Descartarlos?" solo si el formulario cambió. Al guardar: si la tarea se eliminó mientras se editaba, avisa y cierra; si su `tarea_modificado_en` cambió desde que se abrió (cambio de otro dispositivo), pide confirmar que se pisan esos cambios; valida el nombre y los enlaces; aplica los campos y `aplicarEnlace`, y persiste.
 
 ## `assets/js/carga-tareas.js`
 
@@ -265,20 +282,20 @@ Vista de referencia y auditoría: todas las tareas (de cualquier estado), con fi
 
 ## `views/categorias.view.js`
 
-ABM de categorías, ahora un árbol (Subcategoria ya no existe como entidad separada).
+ABM de categorías, un árbol (Subcategoria ya no existe como entidad separada).
 
-- **`renderVistaCategorias(contenedor)`**: alta de categoría (nombre/descripción/color/padre/disfrute) y lista renderizada como árbol recursivo (`arbolCategorias`).
-- **`renderCategoria(categoria, profundidad)`**: tarjeta indentada según su profundidad, con botones ▲/▼ para reordenar entre **hermanos** (mismo `categoria_padre_id`, `intercambiarPrioridad` intercambia `categoria_prioridad`), y eliminar (las categorías hijas quedan promovidas — `categoria_padre_id: null` —, y las tareas asociadas quedan sin categoría).
+- **`renderVistaCategorias(contenedor)`**: botón "＋ Nueva categoría" (abre `abrirDialogoCategoria`) y la lista renderizada como árbol recursivo (`arbolCategorias`).
+- **`renderCategoria(categoria, profundidad)`**: tarjeta indentada según su profundidad, con ▲/▼ para reordenar entre **hermanos** (mismo `categoria_padre_id`; `intercambiarPrioridad` intercambia `categoria_prioridad`), "Editar" (`abrirDialogoCategoria({ id })`) y eliminar (las hijas se promueven a raíz y las tareas asociadas quedan sin categoría).
 
 ## `views/ubicaciones.view.js`
 
-- **`renderVistaUbicaciones(contenedor)` / `renderUbicacion(ubicacion)`**: ABM simple (nombre + latitud + longitud). Al eliminar, las tareas que la referenciaban quedan con `ubicacion_id: null`.
+- **`renderVistaUbicaciones(contenedor)` / `renderUbicacion(ubicacion)`**: botón "＋ Nueva ubicación" y tarjetas con "Editar" (nombre + latitud + longitud). Al eliminar, las tareas que la referenciaban quedan con `ubicacion_id: null`.
 
 ## `views/metas.view.js`
 
 ABM de metas, con progreso calculado al vuelo y los flujos de IA conectable.
 
-- **`renderVistaMetas(contenedor)` / `renderMeta(meta)`**: alta de meta y tarjeta con progreso (tareas con `meta_id` igual a esta meta, completadas vs. total).
+- **`renderVistaMetas(contenedor)` / `renderMeta(meta)`**: botón "＋ Nueva meta" y tarjeta (con "Editar") con progreso (tareas con `meta_id` igual a esta meta, completadas vs. total).
 - **`crearPanelIA(meta)`**: flujo de copiar/pegar para sugerir subtareas, con preview antes de confirmarlas.
 - **`crearPanelChatMeta(contenedorPanel)`**: flujo conversacional para definir una meta desde cero.
 
@@ -292,8 +309,8 @@ Diagrama de Gantt por Meta.
 
 ## `views/personas.view.js`
 
-- **`renderVistaPersonas(contenedor)`**: ABM de personas, ordenadas de mayor a menor tiempo sin contacto.
-- **`renderPersona(persona)`**: tarjeta con botón "Marcar contacto hoy".
+- **`renderVistaPersonas(contenedor)`**: botón "＋ Nueva persona" y la lista, ordenada de mayor a menor tiempo sin contacto.
+- **`renderPersona(persona)`**: tarjeta con "Editar" (nombre y último contacto) y "Marcar contacto hoy".
 
 ## `views/informes.view.js`
 
