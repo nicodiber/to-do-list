@@ -59,7 +59,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Avisos en la tarjeta**: "☀️ Buen clima previsto" o "🌧️ Lluvia probable" (solo tareas que piden buen clima, ver `PROCESOS_AUTOMATICOS.md` 8) y "📅 Se superpone con…" con los botones "Posponer" y "Al próximo hueco libre" (ver D3 y `PROCESOS_AUTOMATICOS.md` 9 y 19).
 - **Vistas/funciones**: `views/hoy.view.js` (`renderVistaHoy`, `renderItem`, `renderCompletada`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `mejorTareaPorCategoria`, `calcularHolguraDias`, `esTareaAccionable`), `assets/js/ubicacion-actual.js`, `assets/js/checklist-tarjeta.js`.
 - **Resultado**: no cambia datos, es de solo lectura (salvo que desde acá se accione otro caso de uso, como completar, reprogramar o mover al próximo hueco libre).
-- **Fricciones**: sin atajo de teclado para ir directo a Hoy. "Revisar mi día" (A6) sigue pendiente de redefinir ahora que Hoy ya permite cumplir, no cumplir y reprogramar cada tarea. Las tareas se comparan en hora local, pero `hoyISO()` (usado en "Urgentes" y en otros lados) es UTC: a la noche puede adelantar el día (anotado en el backlog).
+- **Fricciones**: sin atajo de teclado para ir directo a Hoy. "Revisar mi día" (A6) sigue pendiente de redefinir ahora que Hoy ya permite cumplir, no cumplir y reprogramar cada tarea. Los días ("vence hoy", vencidas, Completadas hoy) se calculan en hora local del dispositivo, en 24 h.
 
 ### A2. Cargar una tarea (rápida o completa)
 

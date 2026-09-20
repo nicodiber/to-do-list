@@ -2,6 +2,21 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.56.1] - 2026-09-20
+
+Ajuste de fechas y horas para usar la app en Argentina: todo se calcula en la hora local del dispositivo.
+
+### Corregido
+
+- **El día de un horario ya no se corre entre las 21:00 y las 24:00.** Las fechas con hora se guardan en UTC y la app sacaba "el día" cortando ese texto, por lo que de noche una tarea caía en el día siguiente. Ahora el día de cada instante se toma en hora local (`fechaLocalISO`, `diaLocal`), lo que arregla: "vence hoy" y vencidas (Urgentes), las columnas de Agenda y Semana, las barras de Gantt, las semanas de Estadísticas, la fecha de referencia del pronóstico, los atajos "Hoy" y "Mañana" del panel de reprogramar, el reprogramado automático de fechas vencidas y el nombre del archivo exportado.
+- **Tareas de mantenimiento**: completar una a la noche (por ejemplo a las 22:00) ya no agenda la próxima repetición un día tarde.
+
+### Cambiado
+
+- **Horas en 24 h en todas las pantallas** (`16:30` en lugar de `04:30 p. m.`): hora de un evento de Calendar en Hoy, hora de completada y eventos de "Revisar mi día" (`formatearHora`).
+- `hoyISO()` devuelve el día local (antes el día UTC). Los datos ya guardados no se migran: un instante sigue siendo un instante y un día sigue siendo un día.
+- `sw.js`: `CACHE_NAME` a `v16`.
+
 ## [v0.56.0] - 2026-09-20
 
 Ronda 4 del rediseño: la vista Hoy (ver `REDISENO.md`, A1).

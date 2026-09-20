@@ -92,12 +92,13 @@ Factories y constantes del modelo de datos — es la fuente de verdad de qué ca
 Helpers puros de fecha/formato/id, sin dependencias de `estado`. Reutilizados por casi todos los demás módulos.
 
 - **`generarId()`**: UUID (`crypto.randomUUID` con fallback manual).
-- **`hoyISO()` / `ahoraISO()`**: fecha (`YYYY-MM-DD`) y datetime ISO actuales.
+- **`fechaLocalISO(fecha)`**: el día local de un `Date` como `YYYY-MM-DD`. **`diaLocal(fechaISO)`**: el día local de un valor de tarea (la misma fecha si no lleva hora; el día local del instante si la lleva) — reemplaza a cortar el texto con `.slice(0, 10)`. **`formatearHora(fechaISO)`**: `HH:MM` en 24 h y hora local. La zona de referencia es la del dispositivo (ver `DICCIONARIO_DE_DATOS.md`).
+- **`hoyISO()` / `ahoraISO()`**: el día **local** de hoy (`YYYY-MM-DD`) y el instante actual (datetime ISO en UTC).
 - **`tieneHora(fechaISO)`**: `true` si el string tiene más de 10 caracteres (convención fecha±hora, ver `DICCIONARIO_DE_DATOS.md`).
 - **`formatearFecha(fechaISO)` / `formatearFechaHora(fechaHoraISO)` / `formatearFechaOFechaHora(fechaISO)`**: de formato interno ISO a formato de pantalla `DD/MM/YYYY` (con o sin hora); la tercera elige automáticamente según `tieneHora`.
-- **`esVencida(fechaLimiteISO)` / `esHoy(fechaISO)`**: comparan contra `hoyISO()`. `esHoy` compara solo los primeros 10 caracteres, para que una fecha con hora también matchee "hoy".
+- **`esVencida(fechaLimiteISO)` / `esHoy(fechaISO)`**: comparan el día local (`diaLocal`) del valor contra `hoyISO()`, para que una fecha con hora también matchee "hoy".
 - **`noPuedeEmpezarTodavia(fechaInicioHabilitadaISO)`**: si el valor tiene hora, compara contra el instante actual (`new Date()`); si no, contra `hoyISO()`.
-- **`fechaISOMasDias(dias, desdeISODate)`**: suma/resta días a una fecha.
+- **`fechaISOMasDias(dias, desdeISODate)`**: suma/resta días a una fecha (día local).
 - **`combinarFechaYHora(fechaISODate, horaHHMM)`**: arma un datetime ISO completo a partir de una fecha y una hora sueltas.
 - **`desplazarFecha(fechaISO, deltaMs)`**: desplaza una fecha±hora por un delta en milisegundos, preservando si el resultado queda con o sin hora — usado por la cascada de reprogramación.
 - **`diasEntreFechas(fechaISO1, fechaISO2)`**: diferencia en días enteros entre dos fechas.

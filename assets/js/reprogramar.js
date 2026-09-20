@@ -1,4 +1,4 @@
-import { fechaISOMasDias, combinarFechaYHora, hoyISO } from './utilidades.js';
+import { fechaISOMasDias, combinarFechaYHora, hoyISO, fechaLocalISO } from './utilidades.js';
 
 export const ATAJOS_HORARIO = [
   { etiqueta: 'Mañana', hora: '07:00' },
@@ -22,7 +22,7 @@ function primerDiaSemanaProximoMes(indiceDiaSemana, desde = new Date()) {
   while (fecha.getDay() !== indiceDiaSemana) {
     fecha.setDate(fecha.getDate() + 1);
   }
-  return fecha.toISOString().slice(0, 10);
+  return fechaLocalISO(fecha);
 }
 
 function esDiaHabil(fechaISODate, diasHabiles) {

@@ -5,8 +5,34 @@ export function generarId() {
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
 
+/**
+ * Zona horaria de referencia de toda la app: la del dispositivo (en Argentina, UTC-3 todo el año).
+ * Un valor de solo fecha (`YYYY-MM-DD`) es un día del calendario; uno con hora es un instante en UTC
+ * (`toISOString()`) que se muestra y se agrupa por día en hora local. Para sacar "el día" de un
+ * instante nunca se corta el texto (daría el día UTC, que de 21:00 a 24:00 ya es el siguiente):
+ * se usan `fechaLocalISO` / `diaLocal`.
+ */
+
+/** El día local de un `Date` como `YYYY-MM-DD`. */
+export function fechaLocalISO(fecha = new Date()) {
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
+}
+
+/** El día local de un valor de tarea: la misma fecha si no lleva hora; el día local del instante si la lleva. */
+export function diaLocal(fechaISO) {
+  if (!fechaISO) return '';
+  return tieneHora(fechaISO) ? fechaLocalISO(new Date(fechaISO)) : fechaISO;
+}
+
+/** La hora local de un instante como `HH:MM` (24 horas). */
+export function formatearHora(fechaISO) {
+  const fecha = new Date(fechaISO);
+  return `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
+}
+
+/** Hoy, como día local. */
 export function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
+  return fechaLocalISO();
 }
 
 export function ahoraISO() {
@@ -22,12 +48,12 @@ export function formatearFecha(fechaISO) {
 
 export function esVencida(fechaLimiteISO) {
   if (!fechaLimiteISO) return false;
-  return fechaLimiteISO < hoyISO();
+  return diaLocal(fechaLimiteISO) < hoyISO();
 }
 
 export function esHoy(fechaISO) {
   if (!fechaISO) return false;
-  return fechaISO.slice(0, 10) === hoyISO();
+  return diaLocal(fechaISO) === hoyISO();
 }
 
 /**
@@ -74,7 +100,7 @@ export function formatearFechaOFechaHora(fechaISO) {
 export function fechaISOMasDias(dias, desdeISODate) {
   const base = desdeISODate ? new Date(desdeISODate + 'T00:00:00') : new Date();
   base.setDate(base.getDate() + dias);
-  return base.toISOString().slice(0, 10);
+  return fechaLocalISO(base);
 }
 
 export function combinarFechaYHora(fechaISODate, horaHHMM) {
@@ -111,7 +137,7 @@ export function desplazarFecha(fechaISO, deltaMs) {
   const deltaDias = Math.round(deltaMs / (24 * 60 * 60 * 1000));
   const fecha = new Date(fechaISO + 'T00:00:00');
   fecha.setDate(fecha.getDate() + deltaDias);
-  return fecha.toISOString().slice(0, 10);
+  return fechaLocalISO(fecha);
 }
 
 /**

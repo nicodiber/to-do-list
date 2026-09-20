@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from './modelos.js';
-import { hoyISO, fechaISOMasDias, formatearFecha, formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
+import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
@@ -9,12 +9,12 @@ import { obtenerUbicacionActual, establecerUbicacionActual } from './ubicacion-a
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 /**
- * Fecha (solo la parte de día) por la que se agrupa una tarea en la agenda:
+ * Día (local) por el que se agrupa una tarea en la agenda:
  * `tarea_fecha_sugerida` si tiene valor, si no `tarea_fecha_limite`.
  */
 export function fechaDeReferencia(tarea) {
-  if (tarea.tarea_fecha_sugerida) return tarea.tarea_fecha_sugerida.slice(0, 10);
-  if (tarea.tarea_fecha_limite) return tarea.tarea_fecha_limite.slice(0, 10);
+  if (tarea.tarea_fecha_sugerida) return diaLocal(tarea.tarea_fecha_sugerida);
+  if (tarea.tarea_fecha_limite) return diaLocal(tarea.tarea_fecha_limite);
   return null;
 }
 

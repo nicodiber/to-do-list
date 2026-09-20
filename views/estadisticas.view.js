@@ -1,5 +1,5 @@
 import { estado } from '../assets/js/almacenamiento.js';
-import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml } from '../assets/js/utilidades.js';
+import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, escaparHtml } from '../assets/js/utilidades.js';
 import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
 
@@ -8,7 +8,7 @@ const ESTADOS_ACTIVOS = ['bloqueada', 'pendiente'];
 
 function seCompletoEnVentana(tarea, desde) {
   if (tarea.tarea_estado !== 'completada' || !tarea.tarea_fecha_fin) return false;
-  return tarea.tarea_fecha_fin.slice(0, 10) >= desde;
+  return diaLocal(tarea.tarea_fecha_fin) >= desde;
 }
 
 function calcularPorCategoria(desde) {
@@ -58,8 +58,8 @@ function calcularThroughputSemanal() {
       (t) =>
         t.tarea_estado === 'completada' &&
         t.tarea_fecha_fin &&
-        t.tarea_fecha_fin.slice(0, 10) >= inicio &&
-        t.tarea_fecha_fin.slice(0, 10) <= fin
+        diaLocal(t.tarea_fecha_fin) >= inicio &&
+        diaLocal(t.tarea_fecha_fin) <= fin
     ).length;
     semanas.push({ inicio, fin, cantidad, planificada: false });
   }

@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
+import { formatearFechaOFechaHora, escaparHtml, formatearHora } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { cumplirTarea, reprogramarTareaConCascada } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
@@ -196,8 +196,8 @@ async function renderSeccionCalendario(contenedor) {
         : `<ul class="lista-eventos-revision">
             ${eventos
               .map((evento) => {
-                const inicio = new Date(evento.inicio).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-                const fin = new Date(evento.fin).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                const inicio = formatearHora(evento.inicio);
+                const fin = formatearHora(evento.fin);
                 return `<li>${escaparHtml(evento.resumen)} (${inicio}–${fin})</li>`;
               })
               .join('')}

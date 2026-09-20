@@ -10,6 +10,7 @@ import * as almacenamientoLocal from './almacenamiento-local.js';
 import { COLECCIONES, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
 import { recalcularBloqueo } from './tareas-logica.js';
 import { repararEnlaces } from './dependencias.js';
+import { fechaLocalISO } from './utilidades.js';
 
 const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
 const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
@@ -849,7 +850,7 @@ export function exportarJSON() {
   const url = URL.createObjectURL(blob);
   const enlace = document.createElement('a');
   enlace.href = url;
-  enlace.download = `super-todo-list-${new Date().toISOString().slice(0, 10)}.json`;
+  enlace.download = `super-todo-list-${fechaLocalISO()}.json`;
   document.body.appendChild(enlace);
   enlace.click();
   enlace.remove();
