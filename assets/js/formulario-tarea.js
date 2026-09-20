@@ -15,6 +15,8 @@ import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta } from './formularios-entidades.js';
 
+import { activarMayusculaInicial } from './dialogo-formulario.js';
+
 export { firmaFormulario } from './dialogo-formulario.js';
 
 /** Valor de la opción "＋ Crear nueva…" de los desplegables de categoría, ubicación y meta. */
@@ -269,15 +271,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
   });
 
   // La primera letra del nombre se escribe siempre en mayúscula (sin mover el cursor).
-  formulario.tarea_nombre.addEventListener('input', () => {
-    const campo = formulario.tarea_nombre;
-    const coincidencia = campo.value.match(/^(\s*)(\p{Ll})/u);
-    if (!coincidencia) return;
-    const posicion = campo.selectionStart;
-    const inicio = coincidencia[1].length;
-    campo.value = campo.value.slice(0, inicio) + coincidencia[2].toLocaleUpperCase('es') + campo.value.slice(inicio + 1);
-    campo.setSelectionRange(posicion, posicion);
-  });
+  activarMayusculaInicial(formulario.tarea_nombre);
 
   const lista = formulario.querySelector('.lista-checklist-editor');
   const agregarItem = () => {
@@ -297,29 +291,48 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
   });
 
   if (modo !== 'alta') return;
+
+  // Al escribir un nombre que ya existe se precargan sus datos como sugerencia, pero **nunca se pisa
+  // lo que el usuario ya cargó**: solo se completan los campos que siguen como estaban (o que la
+  // propia precarga había completado antes, por si cambia a otro nombre).
+  const precargados = new WeakMap();
+  const sinTocar = (campo) => {
+    if (precargados.has(campo) && precargados.get(campo) === (campo.type === 'checkbox' ? campo.checked : campo.value)) return true;
+    if (campo.type === 'checkbox') return campo.checked === campo.defaultChecked;
+    if (campo.tagName === 'SELECT') {
+      const porDefecto = Array.from(campo.options).findIndex((o) => o.defaultSelected);
+      return campo.selectedIndex === (porDefecto === -1 ? 0 : porDefecto);
+    }
+    return campo.value === campo.defaultValue;
+  };
+  const precargar = (campo, valor) => {
+    if (!campo || !sinTocar(campo)) return false;
+    if (campo.type === 'checkbox') campo.checked = !!valor;
+    else campo.value = valor;
+    precargados.set(campo, campo.type === 'checkbox' ? campo.checked : campo.value);
+    return true;
+  };
+
   formulario.tarea_nombre.addEventListener('input', () => {
     const coincidencia = tareasUnicasPorNombre().find(
       (t) => t.tarea_nombre.trim().toLowerCase() === formulario.tarea_nombre.value.trim().toLowerCase()
     );
     if (!coincidencia) return;
-    formulario.categoria_id.value = coincidencia.categoria_id || '';
-    formulario.tarea_duracion_min.value = coincidencia.tarea_duracion_min || 15;
-    formulario.tarea_costo_estimado.value = coincidencia.tarea_costo_estimado || '';
-    formulario.tarea_descripcion.value = coincidencia.tarea_descripcion || '';
-    checkbox.checked = !!coincidencia.tarea_mantenimiento;
-    campos.forEach((c) => (c.hidden = !coincidencia.tarea_mantenimiento));
+    precargar(formulario.categoria_id, coincidencia.categoria_id || '');
+    precargar(formulario.tarea_duracion_min, coincidencia.tarea_duracion_min || 15);
+    precargar(formulario.tarea_costo_estimado, coincidencia.tarea_costo_estimado || '');
+    precargar(formulario.tarea_descripcion, coincidencia.tarea_descripcion || '');
+    if (precargar(checkbox, !!coincidencia.tarea_mantenimiento)) campos.forEach((c) => (c.hidden = !coincidencia.tarea_mantenimiento));
     if (coincidencia.tarea_mantenimiento_intervalo) {
-      formulario.mantenimiento_cantidad.value = coincidencia.tarea_mantenimiento_intervalo.cantidad;
-      formulario.mantenimiento_unidad.value = coincidencia.tarea_mantenimiento_intervalo.unidad;
+      precargar(formulario.mantenimiento_cantidad, coincidencia.tarea_mantenimiento_intervalo.cantidad);
+      precargar(formulario.mantenimiento_unidad, coincidencia.tarea_mantenimiento_intervalo.unidad);
     }
-    formulario.tarea_importancia.value = coincidencia.tarea_importancia || '';
-    formulario.tarea_disfrute.value = coincidencia.tarea_disfrute ?? '';
+    precargar(formulario.tarea_importancia, coincidencia.tarea_importancia || '');
+    precargar(formulario.tarea_disfrute, coincidencia.tarea_disfrute ?? '');
     const diasSeleccionados = coincidencia.tarea_dias_habiles || [];
-    formulario.querySelectorAll('input[name="tarea_dias_habiles"]').forEach((c) => {
-      c.checked = diasSeleccionados.includes(Number(c.value));
-    });
-    formulario.ubicacion_id.value = coincidencia.ubicacion_id || '';
-    formulario.tarea_requiere_clima_bueno.checked = !!coincidencia.tarea_requiere_clima_bueno;
+    formulario.querySelectorAll('input[name="tarea_dias_habiles"]').forEach((c) => precargar(c, diasSeleccionados.includes(Number(c.value))));
+    precargar(formulario.ubicacion_id, coincidencia.ubicacion_id || '');
+    precargar(formulario.tarea_requiere_clima_bueno, !!coincidencia.tarea_requiere_clima_bueno);
   });
 }
 

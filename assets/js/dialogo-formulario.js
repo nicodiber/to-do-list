@@ -9,6 +9,21 @@ export function firmaFormulario(formulario) {
 }
 
 /**
+ * Hace que la primera letra de un campo de texto se escriba siempre en mayúscula,
+ * sin mover el cursor (para nombres de tareas, categorías, ubicaciones, metas y personas).
+ */
+export function activarMayusculaInicial(campo) {
+  campo.addEventListener('input', () => {
+    const coincidencia = campo.value.match(/^(\s*)(\p{Ll})/u);
+    if (!coincidencia) return;
+    const posicion = campo.selectionStart;
+    const inicio = coincidencia[1].length;
+    campo.value = campo.value.slice(0, inicio) + coincidencia[2].toLocaleUpperCase('es') + campo.value.slice(inicio + 1);
+    campo.setSelectionRange(posicion, posicion);
+  });
+}
+
+/**
  * Abre la ventana. `alGuardar(formulario)` (puede ser async) devuelve `true` para
  * cerrarla o `false` para dejarla abierta (quien la usa avisa por su cuenta qué
  * pasó). Esc, el clic afuera y "Cancelar" preguntan "¿Descartar los cambios?"
@@ -76,6 +91,15 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = 'Gua
   dialogo.showModal();
   firmaInicial = firmaFormulario(formulario);
   const primerCampo = formulario.querySelector('input:not([type="hidden"]), select, textarea');
-  if (primerCampo) primerCampo.focus();
+  if (primerCampo) {
+    primerCampo.focus();
+    // En un campo de texto con contenido (al editar) el cursor queda al final, no al principio.
+    if (typeof primerCampo.setSelectionRange === 'function' && primerCampo.type === 'text') {
+      const fin = primerCampo.value.length;
+      primerCampo.setSelectionRange(fin, fin);
+    }
+  } else {
+    formulario.querySelector('button[type="submit"]').focus();
+  }
   return dialogo;
 }

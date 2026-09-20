@@ -69,14 +69,14 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Flujo usuario/sistema**:
   1. Usuario hace clic en "＋" (o presiona "N", si no está escribiendo en un campo).
   2. Sistema navega a Tareas (si hacía falta) y enfoca el nombre del formulario de alta.
-  3. Usuario escribe el nombre. (Si coincide exacto con una tarea ya cargada, el sistema precarga sus demás datos como sugerencia; el usuario los ve debajo y los puede cambiar.)
+  3. Usuario escribe el nombre. (Si coincide exacto con una tarea ya cargada, el sistema precarga sus demás datos como sugerencia —solo en los campos que el usuario todavía no tocó—; los ve debajo y los puede cambiar.)
   4. Usuario (opcional) completa los demás campos, incluido "depende de (tarea previa)" y "bloquea a (tarea próxima)". Si la categoría, la ubicación o la meta que necesita no existe, elige "＋ Crear nueva…" en ese desplegable: se abre la ventana de esa entidad y, al guardarla, la nueva queda seleccionada sin perder lo ya escrito.
   5. Usuario presiona Enter o "Agregar".
   6. Sistema valida: si el pedido de enlaces es contradictorio (regla 1 a 1, ver `REDISENO.md`), muestra el conflicto y **no crea la tarea ni limpia el formulario** para que el usuario reajuste. Si elige una tarea ya enlazada, la nueva se inserta en medio (P→A→N).
   7. Sistema crea la tarea, la guarda, limpia el formulario y devuelve el foco al nombre para cargar la siguiente. Lo que estaba a medio escribir se conserva si el usuario hace otra acción antes de agregar (por ejemplo tildar un paso de un checklist) o cambia un filtro.
 - **Vistas/funciones**: `views/tareas.view.js` (`#form-alta`), `assets/js/formulario-tarea.js` (`htmlFormularioTarea`, `leerFormularioTarea`, `validarFormularioTarea`), `assets/js/dependencias.js` (`aplicarEnlace`), `assets/js/modelos.js` (`crearTarea`), botón "＋" y atajo "N" en `assets/js/app.js`.
 - **Resultado**: nueva Tarea en `estado.tareas`, persistida (y enlazada, si se pidió).
-- **Fricciones**: si se escribe en el nombre algo que coincide con una tarea ya cargada, la precarga cambia los demás campos aunque el usuario solo quisiera una alta rápida (los ve debajo y los puede corregir).
+- **Fricciones**: si se escribe en el nombre algo que coincide con una tarea ya cargada, la precarga completa los campos que no se tocaron aunque el usuario solo quisiera una alta rápida (los ve debajo y los puede corregir); nunca pisa lo ya cargado.
 
 ### A3. Completar carga de tareas cargadas rápido
 
@@ -104,7 +104,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   2. Sistema muestra un panel de confirmación (con el campo "¿cómo se podría mejorar…?" solo si la tarea es de mantenimiento).
   3. Usuario (opcional) escribe la nota y presiona "Confirmar".
   4. Sistema marca la tarea completada y fija `tarea_fecha_fin`; si es de mantenimiento, crea la siguiente instancia; desbloquea las tareas que dependían de esta; guarda y redibuja.
-  5. Sistema muestra un cuadro del navegador: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?".
+  5. Sistema muestra una ventana de la página: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?" con los botones "Abrir en Calendar" y "Cancelar".
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
 - **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`).
@@ -323,7 +323,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 ### D3. Conectar y usar Google Calendar
 
 - **Objetivo**: usar Calendar como la fuente de verdad de lo agendado con horario fijo y de lo que realmente pasó, en paralelo a STDL.
-- **Pasos — exportar una completada**: al completar una tarea, un `confirm()` pregunta si se quiere abrir en Calendar con los datos precargados (nombre, tarea_fecha_fin, duración) → si acepta, se abre `calendar.google.com/render` en una pestaña nueva y el usuario la guarda a mano ahí (sin OAuth).
+- **Pasos — exportar una completada**: al completar una tarea, una ventana de la página pregunta si se quiere abrir en Calendar con los datos precargados (nombre, tarea_fecha_fin, duración) → si acepta, se abre `calendar.google.com/render` en una pestaña nueva y el usuario la guarda a mano ahí (sin OAuth).
 - **Pasos — detectar solapamientos**: no hay un botón aparte para Calendar: se concede junto con Drive (D2). Con el permiso concedido, cada tarea con `tarea_fecha_sugerida` con hora se compara contra los eventos reales de **hoy**, y si se superpone se muestra un aviso *(⏳ falta el botón "Posponer" junto al aviso — pedido del usuario, ver `REDISENO.md`)*. Si el usuario desmarcó el permiso de Calendar al autorizar, esos avisos simplemente no aparecen.
 - **Pasos — "Revisar mi día"**: si hay conexión, el paso final muestra los eventos reales del día (ver A6).
 - **Flujo usuario/sistema — detectar solapamientos**:
