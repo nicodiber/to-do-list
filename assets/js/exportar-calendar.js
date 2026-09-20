@@ -1,4 +1,6 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
+import { abrirDialogoFormulario } from './dialogo-formulario.js';
+import { escaparHtml } from './utilidades.js';
 
 function formatoUTCGoogleCalendar(fecha) {
   return fecha.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -34,13 +36,28 @@ export function construirUrlExportarGoogleCalendar(tarea) {
   return `https://calendar.google.com/calendar/render?${parametros.toString()}`;
 }
 
+/**
+ * Ofrece abrir la tarea completada en Google Calendar. Es una ventana de la propia
+ * página (no un `confirm()` del navegador): el clic en "Abrir en Calendar" es un gesto
+ * del usuario y el navegador no bloquea la pestaña nueva, cosa que sí pasaba con
+ * `confirm()` + `window.open()`.
+ */
 export function ofrecerExportarACalendar(tarea) {
-  const quiereExportar = confirm(
-    `¿Abrir "${tarea.tarea_nombre}" en Google Calendar para guardarla como registro histórico?`
-  );
-  if (!quiereExportar) return;
-  window.open(construirUrlExportarGoogleCalendar(tarea), '_blank', 'noopener');
-  // Se marca al abrir Calendar (no se puede verificar que el usuario haya guardado el evento).
-  tarea.tarea_exportada_calendar = true;
-  persistirYNotificar();
+  abrirDialogoFormulario({
+    titulo: 'Guardar en Google Calendar',
+    textoGuardar: 'Abrir en Calendar',
+    cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Abrir «${escaparHtml(tarea.tarea_nombre)}» en Google Calendar para guardarla como registro histórico? Se abre una pestaña con el evento ya cargado y lo guardás vos.</p>`,
+    alGuardar: () => {
+      const ventana = window.open(construirUrlExportarGoogleCalendar(tarea), '_blank');
+      if (!ventana) {
+        alert('El navegador bloqueó la pestaña nueva. Permití las ventanas emergentes para este sitio (ícono en la barra de direcciones) y volvé a intentarlo.');
+        return false;
+      }
+      ventana.opener = null;
+      // Se marca al abrir Calendar (no se puede verificar que el usuario haya guardado el evento).
+      tarea.tarea_exportada_calendar = true;
+      persistirYNotificar();
+      return true;
+    },
+  });
 }

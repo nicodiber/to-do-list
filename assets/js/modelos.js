@@ -35,7 +35,7 @@ export function crearCategoria({
 }) {
   return {
     categoria_id: generarId(),
-    categoria_nombre,
+    categoria_nombre: capitalizarPrimera(categoria_nombre),
     categoria_descripcion,
     categoria_color,
     categoria_prioridad,
@@ -45,13 +45,13 @@ export function crearCategoria({
 }
 
 export function crearUbicacion({ ubicacion_nombre, ubicacion_latitud, ubicacion_longitud }) {
-  return { ubicacion_id: generarId(), ubicacion_nombre, ubicacion_latitud, ubicacion_longitud };
+  return { ubicacion_id: generarId(), ubicacion_nombre: capitalizarPrimera(ubicacion_nombre), ubicacion_latitud, ubicacion_longitud };
 }
 
 export function crearPersona({ persona_nombre, persona_ultimo_contacto = '' }) {
   return {
     persona_id: generarId(),
-    persona_nombre,
+    persona_nombre: capitalizarPrimera(persona_nombre),
     persona_ultimo_contacto,
     persona_creada_en: ahoraISO(),
   };
@@ -68,7 +68,7 @@ export const ETIQUETAS_PLAZO = {
 export function crearMeta({ meta_nombre, meta_plazo = 'mediano', meta_descripcion = '', meta_fecha_estimada = '' }) {
   return {
     meta_id: generarId(),
-    meta_nombre,
+    meta_nombre: capitalizarPrimera(meta_nombre),
     meta_plazo,
     meta_descripcion,
     meta_fecha_estimada,

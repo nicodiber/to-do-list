@@ -2,6 +2,28 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.54.1] - 2026-09-20
+
+Ajustes surgidos de la validación manual de la Ronda 5.
+
+### Corregido
+
+- **"Abrir en Google Calendar" no abría nada al aceptar**: el `confirm()` del navegador vence el permiso para abrir pestañas nuevas y el navegador bloqueaba la ventana. Ahora es una ventana de la propia página ("Abrir en Calendar" / "Cancelar"): el clic es un gesto del usuario y la pestaña se abre. Si el navegador igual la bloquea, avisa cómo permitirla y no marca la tarea como exportada.
+- **La precarga por nombre pisaba lo que ya habías cargado**: al escribir en el alta un nombre que ya existía (por ejemplo al borrar y reescribirlo), se reemplazaban la categoría, la descripción y demás campos. Ahora la precarga solo completa los campos que siguen como estaban (o que ella misma había completado antes) y nunca pisa lo que el usuario cargó.
+- **Celular**: los filtros de la vista Tareas y el gráfico de Throughput semanal de Informes obligaban a desplazar la página hacia la derecha; ahora se acomodan al ancho de la pantalla.
+
+### Cambiado
+
+- **La primera letra del nombre de una categoría, ubicación, meta o persona queda en mayúscula** (como ya pasaba con las tareas): se corrige al escribir (`activarMayusculaInicial`) y en las funciones de creación.
+- **Nueva categoría / Editar categoría**: el orden de los campos ahora es nombre, categoría padre, color, disfrute y descripción.
+- **Al editar, el cursor del primer campo de texto queda al final** (antes al principio) en todas las ventanas.
+- Al no haber campos (por ejemplo la ventana de Calendar), el foco va al botón principal.
+- "Borrar todos los datos": si se escribe una palabra distinta de BORRAR, dice "Palabra incorrecta. No se borró nada."
+
+### Agregado
+
+- Las tarjetas de la vista Tareas muestran también la **meta** de la tarea ("🏁 …"), junto a la ubicación.
+
 ## [v0.54.0] - 2026-09-19
 
 Ronda 5 del rediseño: **ABMs y Configuraciones** (ver `REDISENO.md`, C1/C2/C3). Se hizo antes que la Ronda 4 (Hoy) para poder pulir la creación de categorías, ubicaciones y metas antes de cargar datos reales.

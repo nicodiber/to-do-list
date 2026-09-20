@@ -502,13 +502,15 @@ h1, h2, h3 {
 
 .filtros {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   margin-bottom: 0.75rem;
   font-size: 0.85rem;
   color: var(--color-texto-suave);
 }
 
 .filtros select {
+  max-width: 100%;
   padding: 0.3rem 0.4rem;
   border-radius: 6px;
   border: 1px solid var(--color-borde);
@@ -1374,4 +1376,39 @@ section h3 {
   background: var(--color-peligro) !important;
   border-color: var(--color-peligro) !important;
   color: white !important;
+}
+
+/* Celular: nada debe obligar a desplazar la página hacia la derecha. */
+@media (max-width: 640px) {
+  .filtros > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .filtros label {
+    flex: 1 1 45%;
+  }
+
+  .filtros label select {
+    width: 100%;
+  }
+
+  .filtros button {
+    flex: 1 1 100%;
+  }
+
+  .throughput-semanal {
+    gap: 0.2rem;
+  }
+
+  .barra-throughput-item {
+    min-width: 0;
+  }
+
+  .barra-throughput-etiqueta {
+    font-size: 0.55rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
 }

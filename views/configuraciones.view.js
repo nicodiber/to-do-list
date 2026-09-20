@@ -47,8 +47,12 @@ export function renderVistaConfiguraciones(contenedor) {
     );
     if (!seguro) return;
     const escrito = prompt(`Para confirmar, escribí ${PALABRA_CONFIRMACION}:`);
-    if (escrito === null || escrito.trim().toUpperCase() !== PALABRA_CONFIRMACION) {
+    if (escrito === null) {
       alert('No se borró nada.');
+      return;
+    }
+    if (escrito.trim().toUpperCase() !== PALABRA_CONFIRMACION) {
+      alert('Palabra incorrecta. No se borró nada.');
       return;
     }
     await borrarTodosLosDatos();

@@ -148,7 +148,7 @@ Asistente "Revisar mi día": repasa una por una las tareas activas del día en u
 Exportación puntual de una tarea completada a Google Calendar (sin OAuth).
 
 - **`construirUrlExportarGoogleCalendar(tarea)`**: arma una URL de `calendar.google.com/render` con el evento precargado (inicio = `tarea_fecha_fin` menos `tarea_duracion_min`, detalle con categoría/descripción).
-- **`ofrecerExportarACalendar(tarea)`**: pregunta con un `confirm()` si se quiere abrir esa URL en una pestaña nueva.
+- **`ofrecerExportarACalendar(tarea)`**: abre una ventana de la propia página (`abrirDialogoFormulario`) que pregunta si se quiere abrir esa URL; el clic en "Abrir en Calendar" abre la pestaña (un `confirm()` del navegador vence el permiso y la pestaña se bloqueaba), marca `tarea_exportada_calendar` y persiste. Si el navegador bloquea la pestaña, avisa y no la marca.
 
 ## `assets/js/clima.js`
 
@@ -240,7 +240,7 @@ Formulario de tarea compartido por el alta, la ventana de edición y "Completar 
 - Los desplegables de categoría, ubicación y meta terminan con "＋ Crear nueva…" (`htmlOpcionesCategoria`/`htmlOpcionesUbicacion`/`htmlOpcionesMeta`): al elegirla se vuelve al valor anterior, se abre el diálogo de esa entidad y, al guardarla, el desplegable se reconstruye con la nueva seleccionada por propiedad (así el borrador del alta la conserva).
 - **`ofrecerMarcarCadenaMantenimiento(tarea, lista)`**: si la tarea tiene desencadenante y su cadena tiene tareas que no son de mantenimiento (`tareasDeLaCadenaNoRepetibles`), avisa cuáles y ofrece marcarlas con el mismo intervalo; nada cambia sin confirmar.
 - **`nombreConCategoria(tarea)`**: nombre de la tarea con su categoría ("Revisar · Casa"), para los desplegables y las tarjetas, porque dos tareas distintas pueden llamarse igual.
-- **`conectarFormularioTarea(formulario, { modo })`**: pone en mayúscula la primera letra del nombre mientras se escribe, muestra u oculta lo de mantenimiento, agrega/quita pasos del checklist (Enter en un paso agrega otro en vez de enviar) y, en el alta, precarga los demás campos cuando el nombre coincide exacto con una tarea existente.
+- **`conectarFormularioTarea(formulario, { modo })`**: pone en mayúscula la primera letra del nombre mientras se escribe, muestra u oculta lo de mantenimiento, agrega/quita pasos del checklist (Enter en un paso agrega otro en vez de enviar) y, en el alta, precarga los demás campos cuando el nombre coincide exacto con una tarea existente, **sin pisar lo que el usuario ya cargó** (solo completa campos que siguen como estaban o que la propia precarga había completado).
 - **`leerFormularioTarea(formulario)`**: devuelve `{ campos, previaId, proximaId }`; **`aplicarCamposATarea(tarea, campos)`** los aplica a una tarea existente.
 - **`validarFormularioTarea(leido, tareaId)`**: antes de cambiar nada, rechaza un desencadenante combinado con una tarea previa y, si la tarea ya existe, valida los enlaces con `evaluarEnlace`. **`firmaFormulario(formulario)`**: texto que identifica el contenido, para detectar cambios sin guardar.
 
@@ -248,6 +248,7 @@ Formulario de tarea compartido por el alta, la ventana de edición y "Completar 
 
 Ventana modal genérica para un formulario (tareas, categorías, ubicaciones, metas, personas).
 
+- **`activarMayusculaInicial(campo)`**: la primera letra de un campo de texto se escribe siempre en mayúscula, sin mover el cursor (nombres de tareas, categorías, ubicaciones, metas y personas; también se aplica en las funciones `crearXxx` de `modelos.js`).
 - **`abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar, conectar, alGuardar, alCerrar })`**: cada llamada crea su propio `<dialog>` en `document.body` (se pueden apilar) y lo quita al cerrar, sin depender del evento `close`. `alGuardar(formulario)` devuelve `true` para cerrar o `false` para dejarla abierta. Esc, el clic afuera (solo si empezó y terminó afuera) y "Cancelar" preguntan "¿Descartarlos?" solo si el formulario cambió (`firmaFormulario`).
 
 ## `assets/js/formularios-entidades.js`

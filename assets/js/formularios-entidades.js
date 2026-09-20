@@ -5,8 +5,8 @@
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { crearCategoria, crearUbicacion, crearMeta, crearPersona, PLAZOS_META, ETIQUETAS_PLAZO } from './modelos.js';
-import { escaparHtml, arbolCategorias, descendientesDeCategoria } from './utilidades.js';
-import { abrirDialogoFormulario } from './dialogo-formulario.js';
+import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera } from './utilidades.js';
+import { abrirDialogoFormulario, activarMayusculaInicial } from './dialogo-formulario.js';
 
 function noExiste(nombre) {
   alert(`${nombre} ya no existe (se eliminó mientras la editabas).`);
@@ -44,22 +44,23 @@ export function abrirDialogoCategoria({ id = null, alCrear = null } = {}) {
       <div class="fila-nombre-tarea">
         <input type="text" name="categoria_nombre" value="${escaparHtml(categoria ? categoria.categoria_nombre : '')}" placeholder="Nombre de la categoría" required />
       </div>
-      <input type="text" name="categoria_descripcion" value="${escaparHtml(categoria ? categoria.categoria_descripcion || '' : '')}" placeholder="Descripción (opcional)" />
-      <label>Color <input type="color" name="categoria_color" value="${categoria ? categoria.categoria_color : '#4f7cff'}" /></label>
       <label>Categoría padre
         <select name="categoria_padre_id">
           <option value="">Sin categoría padre</option>
           ${opcionesPadre}
         </select>
       </label>
+      <label>Color <input type="color" name="categoria_color" value="${categoria ? categoria.categoria_color : '#4f7cff'}" /></label>
       <label>Disfrute
         <select name="categoria_disfrute">
           ${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${n === disfrute ? 'selected' : ''}>${'⭐'.repeat(n)} (${n})</option>`).join('')}
         </select>
       </label>
+      <input type="text" name="categoria_descripcion" value="${escaparHtml(categoria ? categoria.categoria_descripcion || '' : '')}" placeholder="Descripción (opcional)" />
     `,
+    conectar: (formulario) => activarMayusculaInicial(formulario.categoria_nombre),
     alGuardar: async (formulario) => {
-      const nombre = formulario.categoria_nombre.value.trim();
+      const nombre = capitalizarPrimera(formulario.categoria_nombre.value.trim());
       if (!nombre) {
         alert('La categoría necesita un nombre.');
         return false;
@@ -122,7 +123,10 @@ export function abrirDialogoUbicacion({ id = null, alCrear = null } = {}) {
   abrirDialogoFormulario({
     titulo: ubicacion ? 'Editar ubicación' : 'Nueva ubicación',
     textoGuardar: ubicacion ? 'Guardar cambios' : 'Agregar ubicación',
-    conectar: (formulario) => formulario.ubicacion_latitud.addEventListener('paste', (evento) => repartirCoordenadasPegadas(evento, formulario)),
+    conectar: (formulario) => {
+      activarMayusculaInicial(formulario.ubicacion_nombre);
+      formulario.ubicacion_latitud.addEventListener('paste', (evento) => repartirCoordenadasPegadas(evento, formulario));
+    },
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
         <input type="text" name="ubicacion_nombre" value="${escaparHtml(ubicacion ? ubicacion.ubicacion_nombre : '')}" placeholder="Nombre (ej. Casa)" required />
@@ -132,7 +136,7 @@ export function abrirDialogoUbicacion({ id = null, alCrear = null } = {}) {
       <p class="ayuda ayuda-formulario">Las coordenadas van en <strong>grados decimales</strong> (es lo que usa el pronóstico del clima): latitud entre −90 y 90 y longitud entre −180 y 180, con signo negativo al sur y al oeste (Buenos Aires: −34.6037 y −58.3816). En Google Maps: clic derecho sobre el punto y tocá las coordenadas para copiarlas; si pegás el par en Latitud, se reparte solo.</p>
     `,
     alGuardar: async (formulario) => {
-      const nombre = formulario.ubicacion_nombre.value.trim();
+      const nombre = capitalizarPrimera(formulario.ubicacion_nombre.value.trim());
       const latitud = Number(formulario.ubicacion_latitud.value);
       const longitud = Number(formulario.ubicacion_longitud.value);
       if (!nombre) {
@@ -177,6 +181,7 @@ export function abrirDialogoMeta({ id = null, alCrear = null } = {}) {
   abrirDialogoFormulario({
     titulo: meta ? 'Editar meta' : 'Nueva meta',
     textoGuardar: meta ? 'Guardar cambios' : 'Agregar meta',
+    conectar: (formulario) => activarMayusculaInicial(formulario.meta_nombre),
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
         <input type="text" name="meta_nombre" value="${escaparHtml(meta ? meta.meta_nombre : '')}" placeholder="Nombre de la meta" required />
@@ -190,7 +195,7 @@ export function abrirDialogoMeta({ id = null, alCrear = null } = {}) {
       <input type="text" name="meta_descripcion" value="${escaparHtml(meta ? meta.meta_descripcion || '' : '')}" placeholder="Descripción (opcional)" />
     `,
     alGuardar: async (formulario) => {
-      const nombre = formulario.meta_nombre.value.trim();
+      const nombre = capitalizarPrimera(formulario.meta_nombre.value.trim());
       if (!nombre) {
         alert('La meta necesita un nombre.');
         return false;
@@ -230,6 +235,7 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
   abrirDialogoFormulario({
     titulo: persona ? 'Editar persona' : 'Nueva persona',
     textoGuardar: persona ? 'Guardar cambios' : 'Agregar persona',
+    conectar: (formulario) => activarMayusculaInicial(formulario.persona_nombre),
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
         <input type="text" name="persona_nombre" value="${escaparHtml(persona ? persona.persona_nombre : '')}" placeholder="Nombre" required />
@@ -237,7 +243,7 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
       <label>Último contacto <input type="date" name="persona_ultimo_contacto" value="${persona ? persona.persona_ultimo_contacto || '' : ''}" /></label>
     `,
     alGuardar: async (formulario) => {
-      const nombre = formulario.persona_nombre.value.trim();
+      const nombre = capitalizarPrimera(formulario.persona_nombre.value.trim());
       if (!nombre) {
         alert('La persona necesita un nombre.');
         return false;
