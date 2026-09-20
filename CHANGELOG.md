@@ -2,6 +2,24 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.57.0] - 2026-09-20
+
+Ronda 6 del rediseño: hábitos, progreso por categoría y Mejoras (ver `REDISENO.md`).
+
+### Agregado
+
+- **Estadísticas con solapas internas**: Resumen (lo de siempre) · Progreso por categoría · Hábitos.
+- **Solapa "Hábitos"**: matriz con un hábito (tarea de mantenimiento) por fila y un día por columna, con período de 7 · 30 · 90 días (recuerda la elección; arranca en 30). Cada celda lleva color y símbolo: ✓ cumplido, ✗ incumplido (día hábil sin hacer en un hábito diario, o vencimiento que se cumplió tarde o sigue vencido), ▫ pendiente hoy, · no aplica. Junto a cada hábito, la **racha** 🔥 y el **porcentaje** de cumplimiento del período (solo sobre los días que tocaban). Debajo, la **actividad por categoría** (un día cuenta si se cumplió alguna tarea de la categoría o de sus subcategorías). En celular la matriz se desplaza hacia el costado y arranca mostrando los últimos días. `assets/js/habitos.js`.
+- **Solapa "Progreso por categoría"**: una tarjeta por categoría principal, sumando sus subcategorías, con completadas de total (barra), tareas vencidas y el tiempo a la próxima fecha límite, a la próxima fecha sugerida y a la última fecha límite; un desplegable muestra lo mismo por cada subcategoría. `assets/js/progreso-categorias.js`.
+- **Vista "Mejoras"** (nueva solapa, después de Tareas): las notas de "¿qué podrías mejorar la próxima vez?", agrupadas por tarea y con filtro Pendientes / Aplicadas / Todas. Se pueden **marcar como aplicadas**, **editar** y **eliminar**.
+- **"💡 Mejora pendiente"** en la tarjeta de Hoy de una tarea de mantenimiento (hasta 2 notas, las más recientes).
+- **Renombrar una tarea de mantenimiento actualiza su historial**: los cumplimientos y las mejoras con el nombre viejo pasan al nuevo y la ventana avisa cuántos registros se actualizaron; el hábito no se parte en dos. `renombrarHistorial`.
+
+### Cambiado
+
+- Modelo: cada **cumplimiento** guarda además `cumplimiento_intervalo` y `cumplimiento_dias_habiles` (los de la tarea al cumplirla), y cada **mejora** suma `mejora_aplicada` (por defecto `false`). Los registros anteriores se completan con `null` / `[]` / `false` al cargarlos; no hace falta migrar nada.
+- `sw.js`: `CACHE_NAME` a `v17` y precache con los cinco archivos nuevos.
+
 ## [v0.56.1] - 2026-09-20
 
 Ajuste de fechas y horas para usar la app en Argentina: todo se calcula en la hora local del dispositivo.

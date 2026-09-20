@@ -2,6 +2,8 @@ import { estado } from '../assets/js/almacenamiento.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, escaparHtml } from '../assets/js/utilidades.js';
 import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
+import { renderVistaProgreso } from './progreso.view.js';
+import { renderVistaHabitos } from './habitos.view.js';
 
 const DIAS_VENTANA = 7;
 const ESTADOS_ACTIVOS = ['bloqueada', 'pendiente'];
@@ -81,7 +83,8 @@ function fechaCorta(iso) {
   return formatearFecha(iso).slice(0, 5);
 }
 
-export function renderVistaEstadisticas(contenedor) {
+/** Solapa "Resumen": completadas vs. pendientes, costos y throughput semanal. */
+function renderResumen(contenedor) {
   const desde = fechaISOMasDias(-(DIAS_VENTANA - 1), hoyISO());
   const porCategoria = calcularPorCategoria(desde);
   const proyeccionCostos = calcularProyeccionCostos();
@@ -91,7 +94,6 @@ export function renderVistaEstadisticas(contenedor) {
   const totalPlanificadas = throughput.filter((s) => s.planificada).reduce((suma, s) => suma + s.cantidad, 0);
 
   contenedor.innerHTML = `
-    <h2>Estadísticas</h2>
     <p class="ayuda">Calculados sobre los últimos ${DIAS_VENTANA} días. Es un primer corte simple, no un histórico completo de eventos.</p>
 
     <section>
@@ -153,4 +155,29 @@ export function renderVistaEstadisticas(contenedor) {
       }
     </section>
   `;
+}
+
+// Solapas internas de Estadísticas. La activa se recuerda mientras la página está abierta.
+const SOLAPAS = [
+  { clave: 'resumen', etiqueta: 'Resumen', render: renderResumen },
+  { clave: 'progreso', etiqueta: 'Progreso por categoría', render: renderVistaProgreso },
+  { clave: 'habitos', etiqueta: 'Hábitos', render: renderVistaHabitos },
+];
+let solapaActiva = 'resumen';
+
+export function renderVistaEstadisticas(contenedor) {
+  contenedor.innerHTML = `
+    <h2>Estadísticas</h2>
+    <div class="solapas" role="tablist">
+      ${SOLAPAS.map((sol) => `<button type="button" role="tab" data-solapa="${sol.clave}" aria-selected="${sol.clave === solapaActiva}" class="${sol.clave === solapaActiva ? 'activa' : ''}">${sol.etiqueta}</button>`).join('')}
+    </div>
+    <div class="contenido-solapa"></div>
+  `;
+  contenedor.querySelectorAll('.solapas button').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      solapaActiva = boton.dataset.solapa;
+      renderVistaEstadisticas(contenedor);
+    });
+  });
+  SOLAPAS.find((sol) => sol.clave === solapaActiva).render(contenedor.querySelector('.contenido-solapa'));
 }

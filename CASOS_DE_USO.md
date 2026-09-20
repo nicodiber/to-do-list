@@ -25,12 +25,13 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 | Semana | Visualizador | A7 |
 | Gantt | Visualizador | B2 |
 | Tabla | Visualizador | A8 |
-| Estadísticas (antes Informes) | Visualizador | E1 |
+| Estadísticas (antes Informes; solapas Resumen, Progreso por categoría y Hábitos) | Visualizador | E1, E2, E3 |
 | Tareas (listado + alta/edición) | ABM | A2, A3, A4, A5, B1 |
 | Categorías | ABM | C1 |
 | Ubicaciones | ABM | C2 |
 | Metas | ABM | B1 |
 | Personas | ABM | C3 |
+| Mejoras | ABM | E4 |
 | "Revisar mi día" | Asistente / flujo guiado | A6 |
 | IA conectable (paneles en Metas/Tareas) | Asistente / flujo guiado — **suspendido** | — |
 | Exportar / Importar JSON | Configuración / integración | D1 |
@@ -56,7 +57,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   5. Usuario (opcional) elige su ubicación actual; el sistema guarda esa preferencia (fuera de los datos de la app) y redibuja Hoy filtrada.
   6. Usuario (opcional) enciende o apaga "🎯 Enfoque"; el sistema recuerda la elección en este dispositivo.
   7. Usuario elige una tarea y sigue con A4 (completar) o A5 (reprogramar). En las tareas de mantenimiento puede tildar los pasos del checklist ahí mismo.
-- **Avisos en la tarjeta**: "☀️ Buen clima previsto" o "🌧️ Lluvia probable" (solo tareas que piden buen clima, ver `PROCESOS_AUTOMATICOS.md` 8) y "📅 Se superpone con…" con los botones "Posponer" y "Al próximo hueco libre" (ver D3 y `PROCESOS_AUTOMATICOS.md` 9 y 19).
+- **Avisos en la tarjeta**: "💡 Mejora pendiente" (las notas de mejora sin aplicar de una tarea de mantenimiento, hasta 2), "☀️ Buen clima previsto" o "🌧️ Lluvia probable" (solo tareas que piden buen clima, ver `PROCESOS_AUTOMATICOS.md` 8) y "📅 Se superpone con…" con los botones "Posponer" y "Al próximo hueco libre" (ver D3 y `PROCESOS_AUTOMATICOS.md` 9 y 19).
 - **Vistas/funciones**: `views/hoy.view.js` (`renderVistaHoy`, `renderItem`, `renderCompletada`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `mejorTareaPorCategoria`, `calcularHolguraDias`, `esTareaAccionable`), `assets/js/ubicacion-actual.js`, `assets/js/checklist-tarjeta.js`.
 - **Resultado**: no cambia datos, es de solo lectura (salvo que desde acá se accione otro caso de uso, como completar, reprogramar o mover al próximo hueco libre).
 - **Fricciones**: sin atajo de teclado para ir directo a Hoy. "Revisar mi día" (A6) sigue pendiente de redefinir ahora que Hoy ya permite cumplir, no cumplir y reprogramar cada tarea. Los días ("vence hoy", vencidas, Completadas hoy) se calculan en hora local del dispositivo, en 24 h.
@@ -341,7 +342,9 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ## Bloque E — Analítica
 
-### E1. Ver Estadísticas
+### E1. Ver Estadísticas (solapa Resumen)
+
+*(Estadísticas tiene tres solapas internas: Resumen, Progreso por categoría —E3— y Hábitos —E2—. Este caso describe el Resumen.)*
 
 - **Objetivo**: entender de un vistazo cómo viene la carga de trabajo y el uso del tiempo.
 - **Pasos**: ir a Estadísticas → 3 secciones: completadas (últimos 7 días) vs. pendientes por categoría; costo estimado total de pendientes; throughput semanal (las 2 últimas semanas completadas y las 6 próximas planificadas, gráfico de barras con leyenda).
@@ -353,6 +356,36 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Resultado**: no cambia datos, es de solo lectura con datos y gráficos.
 - **Nota abierta para rediseño** (del usuario): evaluar que el historial "real" de lo ocurrido viva en Google Calendar (agenda fija + registro de lo que pasó) en vez de en STDL, ya que STDL está pensado para gestionar pendientes, no como bitácora histórica. Hoy Informes depende 100% de `tarea_fecha_fin`/`tarea_estado` propios de STDL; migrar a Calendar como fuente implicaría leer un **rango histórico** de eventos (hoy `google-calendar.js` solo lee el día de hoy, ver D3) y resolver cómo cruzar esos eventos con categorías/costos de STDL.
 - **Fricciones**: throughput y completadas dependen enteramente de que el usuario complete las tareas *dentro* de STDL — si termina algo y lo anota directo en Calendar sin pasar por acá, no cuenta para estas métricas (tensión directa con la nota de arriba).
+
+---
+
+### E2. Seguir mis hábitos
+
+- **Objetivo**: ver de un vistazo si estoy cumpliendo las tareas que se repiten ("lo que no se mide no se mejora").
+- **Pasos**: Estadísticas → solapa "Hábitos" → elegir el período (7 · 30 · 90 días) → leer la matriz: una fila por hábito (tarea de mantenimiento), una columna por día, hoy al final; a la derecha del nombre, la racha 🔥 y el porcentaje de cumplimiento.
+- **Flujo usuario/sistema**:
+  1. Usuario abre la solapa "Hábitos".
+  2. Sistema arma (`calcularMapaHabitos`, `assets/js/habitos.js`) una fila por cada tarea de mantenimiento con cumplimientos o con su repetición abierta, y una celda por día: ✓ cumplido, ✗ incumplido (en un hábito diario, un día hábil sin hacer; en los demás, un vencimiento que se cumplió tarde o sigue vencido), ▫ pendiente hoy, · no aplica (días no hábiles, antes del primer registro, entre vencimientos).
+  3. Sistema calcula la racha (días hábiles seguidos cumplidos; en hábitos no diarios, veces seguidas a tiempo) y el porcentaje del período solo sobre los días que tocaban.
+  4. Sistema muestra debajo la **actividad por categoría** (una fila por categoría raíz; ✓ si ese día se cumplió alguna tarea de la categoría o de sus subcategorías; sin actividad queda en blanco).
+  5. Usuario cambia el período; el sistema recuerda la elección en este dispositivo. En celular la matriz se desplaza hacia el costado y arranca mostrando los últimos días.
+- **Vistas/funciones**: `views/habitos.view.js`, `assets/js/habitos.js`.
+- **Resultado**: no cambia datos, es de solo lectura sobre los cumplimientos (que se registran al cumplir una tarea, ver A4).
+- **Fricciones**: un hábito que dejaste de hacer sigue apareciendo (ocultar/archivar hábitos está en el backlog); la identidad del hábito es el nombre, aunque al renombrar la tarea el historial se actualiza solo; los días no hábiles se marcan "no aplica" en lugar de quitar la columna; no hay calendario anual por hábito todavía (backlog).
+
+### E3. Ver el progreso por categoría
+
+- **Objetivo**: saber cuánto falta en cada área y cuándo vence lo que queda.
+- **Pasos**: Estadísticas → solapa "Progreso por categoría" → una tarjeta por categoría principal (con todas sus subcategorías sumadas): completadas de total con barra, tareas vencidas, tiempo a la próxima fecha límite, a la próxima fecha sugerida y a la última fecha límite; "Ver subcategorías" muestra lo mismo por cada una.
+- **Vistas/funciones**: `views/progreso.view.js`, `assets/js/progreso-categorias.js` (`calcularProgresoPorCategoria`, `calcularMetricas`).
+- **Resultado**: no cambia datos. Las tareas sin categoría van en una tarjeta aparte.
+
+### E4. Repasar y aplicar mejoras
+
+- **Objetivo**: convertir las notas de "¿qué podrías mejorar la próxima vez?" en mejoras reales de la rutina.
+- **Pasos**: al cumplir una tarea de mantenimiento se anota la mejora (A4) → vista **Mejoras** (después de Tareas) → filtro Pendientes / Aplicadas / Todas → notas agrupadas por tarea, cada una con su fecha → "Marcar aplicada" cuando ya se incorporó (o "Volver a pendiente"), "Editar" para corregir el texto, "Eliminar" para quitarla. Mientras estén pendientes, se ven también en la tarjeta de Hoy de esa tarea ("💡 Mejora pendiente").
+- **Vistas/funciones**: `views/mejoras.view.js`; `views/hoy.view.js` (`htmlMejorasPendientes`).
+- **Resultado**: cambia `mejora_aplicada` o `mejora_texto`, o elimina la nota (queda registrada la eliminación para las demás pantallas y dispositivos, como cualquier baja).
 
 ---
 
