@@ -15,6 +15,7 @@ import {
 } from './formulario-tarea.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
+import { renombrarHistorial } from './tareas-logica.js';
 
 let edicionAbierta = false;
 
@@ -58,10 +59,17 @@ export function abrirEdicionTarea(id) {
         return false;
       }
 
+      const nombreAnterior = actual.tarea_nombre;
+      const eraMantenimiento = actual.tarea_mantenimiento;
       aplicarCamposATarea(actual, leido.campos);
       aplicarEnlace(actual.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
       ofrecerMarcarCadenaMantenimiento(actual, estado.tareas);
+      // El hábito se identifica por el nombre: al renombrar una tarea de mantenimiento, su historial la sigue.
+      const registrosActualizados = eraMantenimiento ? renombrarHistorial(estado, nombreAnterior, actual.tarea_nombre) : 0;
       await persistirYNotificar();
+      if (registrosActualizados > 0) {
+        alert(`Se actualizaron ${registrosActualizados} registro${registrosActualizados === 1 ? '' : 's'} del historial (cumplimientos y mejoras) al nuevo nombre.`);
+      }
       return true;
     },
   });

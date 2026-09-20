@@ -244,6 +244,16 @@ function renderCompletada(tarea) {
   return li;
 }
 
+/** Las notas de mejora pendientes de una tarea de mantenimiento (hasta 2, las más recientes), para tenerlas presentes al hacerla. */
+function htmlMejorasPendientes(tarea) {
+  if (!tarea.tarea_mantenimiento) return '';
+  const pendientes = (estado.mejoras || [])
+    .filter((m) => m.mejora_tarea_nombre === tarea.tarea_nombre && !m.mejora_aplicada)
+    .sort((a, b) => b.mejora_fecha.localeCompare(a.mejora_fecha))
+    .slice(0, 2);
+  return pendientes.map((m) => `<p class="mejora-pendiente-hoy">💡 Mejora pendiente: «${escaparHtml(m.mejora_texto)}»</p>`).join('');
+}
+
 function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
@@ -275,6 +285,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
         }
       </div>
       ${dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
+      ${htmlMejorasPendientes(tarea)}
       ${htmlChecklistTarjeta(tarea)}
       <div class="contenedor-cierre" hidden></div>
       <div class="contenedor-panel-reprogramar" hidden></div>

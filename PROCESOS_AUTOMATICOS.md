@@ -115,3 +115,9 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Condición**: (a) una tarea con horario se superpone con un evento y el usuario aprieta "Al próximo hueco libre" en Hoy; (b) el usuario usa "Sincronizar ahora" o vuelve a la pestaña con la conexión de Calendar activa.
 - **Proceso**: (a) `buscarHuecoLibre` (`assets/js/google-calendar.js`) recorre día por día los eventos del horizonte, dentro de la franja horaria de Configuraciones (`obtenerFranjaHoraria`) y solo en días hábiles de la tarea, y devuelve el primer inicio (en pasos de 15 minutos, desde la hora sugerida y nunca antes de ahora) cuya ventana no choca con ningún evento. (b) `refrescarCalendar` (`assets/js/app.js`) llama a `invalidarCacheEventos` y, si se está mirando Hoy sin ventanas ni paneles abiertos ni texto en edición, redibuja.
 - **Resultado**: (a) la tarea se reprograma con `reprogramarTareaConCascada` (las tareas que dependen de ella se corren en cascada) y se guarda; si no hay hueco en 15 días avisa y ofrece el panel de fecha. (b) los avisos de superposición reflejan lo que hay ahora en Calendar sin esperar los 5 minutos de la caché.
+
+## 20. El historial de un hábito sigue a la tarea cuando se la renombra
+
+- **Condición**: se guarda la edición de una tarea que era de mantenimiento con un nombre distinto al anterior.
+- **Proceso**: `renombrarHistorial` (`assets/js/tareas-logica.js`), llamado desde `abrirEdicionTarea` (`assets/js/modal-tarea.js`), pasa al nombre nuevo los `cumplimiento_tarea_nombre` y los `mejora_tarea_nombre` que tenían el viejo.
+- **Resultado**: el hábito (identificado por el nombre) no se parte en dos y el mapa de hábitos y la vista Mejoras siguen agrupando todo junto; la ventana avisa cuántos registros se actualizaron. Editar una tarea que no era de mantenimiento no toca el historial.

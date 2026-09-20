@@ -114,6 +114,7 @@
         "mejora_tarea_nombre": { "type": "string", "minLength": 1 },
         "mejora_texto": { "type": "string" },
         "mejora_fecha": { "type": "string" },
+        "mejora_aplicada": { "type": "boolean" },
         "mejora_modificado_en": { "type": "string" }
       }
     },
@@ -128,6 +129,17 @@
         "cumplimiento_fecha": { "type": "string" },
         "cumplimiento_fecha_limite": { "type": "string" },
         "cumplimiento_mantenimiento": { "type": "boolean" },
+        "cumplimiento_intervalo": {
+          "type": ["object", "null"],
+          "properties": {
+            "cantidad": { "type": "number", "minimum": 1 },
+            "unidad": { "type": "string", "enum": ["dias", "semanas", "meses"] }
+          }
+        },
+        "cumplimiento_dias_habiles": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0, "maximum": 6 }
+        },
         "cumplimiento_modificado_en": { "type": "string" }
       }
     }

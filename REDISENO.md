@@ -19,8 +19,8 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Contador "Completar carga de tareas (X)"** visible en toda la app, **solo si X > 0** (ver A3 abajo). *(Implementado en v0.53.0.)*
 - ✅ **Estado de guardado siempre visible** en la cabecera (ver "Almacenamiento"). *(Implementado en v0.51.0.)*
 - ✅ **Vista "Configuraciones"** *(implementada en v0.54.0, con un "Borrar todos los datos" de doble confirmación además)*: por ahora solo "Importar JSON" y "Exportar JSON" (que dejan de estar en la cabecera). Drive queda en la cabecera. Importar debe **pedir confirmación** antes de reemplazar todo. *(La confirmación ya está desde v0.51.0; la vista y el traslado de los botones llegan en la Ronda 5.)*
-- ✅ **Vista nueva "Tablero"** con pestañas: *Progreso por categoría* y *Hábitos* (ver más abajo).
-- ✅ **Vista nueva "Mejoras"** para repasar las notas de mejora de las tareas de mantenimiento (ver A4).
+- ✅ **Progreso por categoría y Hábitos, como solapas de Estadísticas** *(implementado en v0.57.0; en lugar de una vista "Tablero" aparte)*: Estadísticas tiene tres solapas internas: Resumen · Progreso por categoría · Hábitos (ver "Progreso por categoría y hábitos" más abajo).
+- ✅ **Vista nueva "Mejoras"** *(implementada en v0.57.0)*: solapa propia, después de Tareas, para repasar las notas de mejora de las tareas de mantenimiento: agrupadas por tarea, con filtro Pendientes / Aplicadas / Todas y las acciones marcar como aplicada, editar y eliminar (ver A4).
 - ✅ **Pestañas** *(v0.55.0)*: Hoy · Agenda (unifica 3 y 8 días, con selector 3 · 8 · 15) · Semana · Gantt · Tabla · Estadísticas (antes Informes) · Categorías · Ubicaciones · Metas · Tareas · Personas · Configuraciones. Semana se mantiene (grilla por horas).
 
 ## A1 · Hoy
@@ -59,7 +59,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## A4 · Cumplir tareas, mejora continua y exportación a Calendar
 
-- ✅ **Notas de mejora** ("¿cómo se podría mejorar para la próxima vez?"): se asocian al **nombre de la tarea** y, por ahora, solo aplican a tareas de mantenimiento. Se guardan en una **entidad nueva `Mejora`** (`tarea_nombre`, texto, fecha), independiente de las instancias, para que sobrevivan al archivado. Vista dedicada "Mejoras" para repasarlas. Además se sigue anexando la última nota a la descripción de la instancia clonada.
+- ✅ **Notas de mejora** ("¿cómo se podría mejorar para la próxima vez?"): se asocian al **nombre de la tarea** y, por ahora, solo aplican a tareas de mantenimiento. Se guardan en una **entidad nueva `Mejora`** (`tarea_nombre`, texto, fecha), independiente de las instancias, para que sobrevivan al archivado. Vista dedicada "Mejoras" para repasarlas. Además se sigue anexando la última nota a la descripción de la instancia clonada. *(La vista "Mejoras", con marcar aplicada, editar y eliminar, y una línea "💡 Mejora pendiente" en la tarjeta de Hoy de la tarea, se implementó en v0.57.0.)*
 - ✅ **Botón "Exportar a Calendar" dentro de cada tarea**, habilitado una vez completada. El usuario **conserva el control** de qué se escribe en Calendar: se mantiene el mecanismo actual (pestaña de Calendar con el evento precargado); se descartó escribir vía API.
 - ✅ **Campo nuevo `tarea_exportada_calendar`** (booleano): se marca al usar el botón (no verifica que el usuario haya guardado el evento).
 - ✅ **La pregunta al completar se mantiene** ("¿Abrir «tarea» en Google Calendar…?"): el usuario no la considera una interrupción. *(Desde v0.54.1 es una ventana de la página y no un `confirm()` del navegador, porque este último hacía que el navegador bloqueara la pestaña de Calendar.)* El botón "Exportar a Calendar" por tarea **se suma**, no lo reemplaza.
@@ -91,10 +91,19 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Metas**: también se pueden editar. *(v0.54.0)*
 - ✅ **Crear con botón "＋ Nueva …" y ventana modal**, la misma que se usa para editar y para **crear categoría, ubicación o meta desde el desplegable de la tarea**. *(v0.54.0)* Para tarea previa/próxima no se ofrece "crear nueva tarea" por ahora (ver la idea de usar el modal también para el alta de tareas, en `BACKLOG.md`).
 
-## Progreso por categoría y hábitos — vista "Tablero"
+## Progreso por categoría y hábitos — solapas de Estadísticas
 
-- ✅ **Pestaña "Progreso por categoría"**, con todas las métricas, en este orden: (1) tareas restantes vs. completadas, (2) tiempo a la próxima `tarea_fecha_limite`, (3) tiempo a la próxima `tarea_fecha_sugerida`, (4) tiempo a la última `tarea_fecha_limite`.
-- ✅ **Pestaña "Hábitos"**: mapa de calor (una celda por día, coloreada según se cumplió o no), principalmente para tareas de mantenimiento, con el lema **"lo que no se mide no se mejora"**.
+*(Implementado en v0.57.0, Ronda 6.)* Decisiones tomadas con el usuario al implementarlo, que ajustan lo de abajo:
+
+- ✅ **Ubicación**: no hay una vista "Tablero" aparte. Estadísticas tiene solapas internas (Resumen · Progreso por categoría · Hábitos) y Mejoras es una solapa propia de la barra.
+- ✅ **Modelo**: cada `Cumplimiento` guarda además el intervalo (`cumplimiento_intervalo`) y los días hábiles (`cumplimiento_dias_habiles`) de la tarea al cumplirla; sin eso no se puede saber si un día sin registro fue un incumplimiento (hábito diario) o simplemente no tocaba. Se hizo antes de cargar datos reales para que el historial nazca completo.
+- ✅ **Mapa de hábitos en matriz**: un hábito por fila y un día por columna (7 · 30 · 90 días, por defecto 30, preferencia del dispositivo), con color **y** símbolo (✓ cumplido, ✗ incumplido, ▫ pendiente hoy, · no aplica). Como las columnas son fechas compartidas por todos los hábitos, "compactar a días hábiles" se resuelve marcando los días no hábiles de cada hábito como "no aplica" y calculando racha y porcentaje solo sobre los días que aplican. Junto a cada hábito: **racha actual y porcentaje de cumplimiento** del período. El calendario por hábito (estilo GitHub) queda en el backlog.
+- ✅ **Mapa por categoría**: por categoría raíz, un día cuenta si se cumplió cualquier tarea (de mantenimiento o no) de la categoría o de sus descendientes; los días sin actividad quedan en blanco, nunca "incumplidos".
+- ✅ **Progreso por categoría**: una tarjeta por categoría raíz que suma toda su rama, con un desplegable de subcategorías y las 4 métricas de abajo; las tareas sin categoría van en una tarjeta aparte.
+- ✅ **Renombrar** una tarea de mantenimiento actualiza solo su historial (cumplimientos y mejoras) al nuevo nombre, con un aviso; el hábito no se parte.
+
+- ✅ **Solapa "Progreso por categoría"**, con todas las métricas, en este orden: (1) tareas restantes vs. completadas, (2) tiempo a la próxima `tarea_fecha_limite`, (3) tiempo a la próxima `tarea_fecha_sugerida`, (4) tiempo a la última `tarea_fecha_limite`.
+- ✅ **Solapa "Hábitos"**: mapa de calor (una celda por día, coloreada según se cumplió o no), principalmente para tareas de mantenimiento, con el lema **"lo que no se mide no se mejora"**.
   - **Semántica v1** (se ajustará después): 3 estados — cumplido, incumplido (había vencimiento y no se hizo) y "no aplica" (gris). En intervalos no diarios se muestran los cumplidos y el vencimiento esperado.
   - **Identidad del hábito** = `tarea_nombre` (renombrar corta el historial).
   - Se compacta a los **días hábiles** de la tarea (una tarea de fin de semana compara fines de semana, no semanas enteras).
@@ -136,7 +145,7 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 3. ✅ **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)" (v0.53.0), más la ventana modal de edición, la pantalla del checklist y el botón "Dejar así".
 4. ✅ **Hoy** (v0.56.0): Próximos por categoría sin duplicados, Enfoque, completadas de hoy con exportar a Calendar por tarea, ☀️, Posponer y "Al próximo hueco libre" en el solapamiento (lectura de Calendar por rango, franja horaria configurable) y refresco de los avisos de Calendar.
 5. ✅ **ABMs** (v0.54.0, **hecha antes que la 4** a pedido del usuario, para pulir la creación de categorías, ubicaciones y metas antes de cargar datos reales): editar categorías, ubicaciones, metas y personas, crear con ventana modal (también desde el desplegable de la tarea), vista Configuraciones.
-6. **Tablero** (progreso por categoría + hábitos) y vista **Mejoras**.
+6. ✅ **Hábitos, Progreso por categoría y Mejoras** (v0.57.0): solapas de Estadísticas (Resumen · Progreso por categoría · Hábitos con mapa de calor en matriz) y la vista Mejoras; el modelo suma el intervalo y los días hábiles a cada cumplimiento y `mejora_aplicada`.
 7. **Gantt**: todas las tareas + filtros.
 8. **Rediseño visual, emojis y atajos** (transversal).
 

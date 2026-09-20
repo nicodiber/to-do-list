@@ -129,6 +129,7 @@ Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dep
 - **`reprogramarFechasSugeridasVencidas(listaTareas)`**: reprograma automáticamente la `tarea_fecha_sugerida` vencida de toda tarea activa a la próxima fecha disponible (`calcularProximaFechaSugerida`, interna, reusa `siguienteDiaHabil` de `reprogramar.js`), en cascada vía `reprogramarTareaConCascada`. Se llama una vez al iniciar la app (`app.js`). Devuelve las tareas afectadas, para avisar al usuario. Ver `REGLAS_DE_PRIORIDAD.md`.
 - **`puedeAgregarDependencia(tareaId, candidatoId, listaTareas)`** (ahora en `dependencias.js`, reexportada): valida que asignar `candidatoId` como `tarea_dependiente` de `tareaId` no cierre un ciclo, recorriendo la cadena de `tarea_dependiente` hacia atrás desde `candidatoId`.
 - **`esTareaAccionable(tarea)`**: `true` si `tarea_estado === 'pendiente'` y ya se alcanzó `tarea_fecha_inicio_habilitada`.
+- **`renombrarHistorial(estado, nombreViejo, nombreNuevo)`**: pasa al nombre nuevo los cumplimientos y las notas de mejora de una tarea de mantenimiento (la identidad de un hábito es el nombre) y devuelve cuántos registros cambió; la llama la ventana de edición (`modal-tarea.js`) al renombrar una tarea que era de mantenimiento.
 
 ## `assets/js/reprogramar.js`
 
@@ -224,6 +225,7 @@ Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (
 Vista "Hoy": separa tareas urgentes del resto (ver `REGLAS_DE_PRIORIDAD.md`), con un asistente de cierre por tarjeta.
 
 - **`renderVistaHoy(contenedor)`**: arma las secciones Urgentes / Próximos por categoría (`mejorTareaPorCategoria`, con el camino de la categoría) / Resto (sin repetir los próximos; no aparece si no queda nada) / Todavía no pueden empezar / Bloqueadas / Completadas hoy, filtradas por la ubicación actual. El botón "🎯 Enfoque" (preferencia `super-todo-list:hoy-enfoque` en `localStorage`, apagado por defecto) oculta las completadas. "Completadas hoy" son las de `tarea_fecha_fin` en el día local de hoy (`seCompletoHoy`).
+- **`htmlMejorasPendientes(tarea)`** (privada): las notas de mejora sin aplicar de una tarea de mantenimiento (hasta 2, las más recientes) como líneas "💡 Mejora pendiente".
 - **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, categoría, fechas, holgura, estado, ubicación, costo, clima ☀️/🌧️), el checklist tildable y el aviso de superposición con Calendar con sus botones "Posponer" y "Al próximo hueco libre" (este usa `obtenerEventosDelHorizonte`, `buscarHuecoLibre`, `obtenerFranjaHoraria` y `reprogramarTareaConCascada`). Si es accionable, agrega los botones "Cumplida"/"No cumplida"; si además está vencida, agrega "📅 Revalorizar fecha límite" (escribe directo `tarea.tarea_fecha_limite` sin cascada a dependientes — ver `REGLAS_DE_PRIORIDAD.md`).
 - **`renderCompletada(tarea)`**: tarjeta apagada de una tarea completada hoy, con la hora y "📅 Exportar a Calendar" (`ofrecerExportarACalendar`).
 - **`abrirPanelReprogramar(contenedorPanel, tarea, alConfirmar)`** (privada): muestra `crearPanelReprogramar` en la tarjeta; la usan "No cumplida → Reprogramar", "Revalorizar fecha límite" y "Posponer".
@@ -336,12 +338,31 @@ Diagrama de Gantt por Meta.
 
 (Antes "Informes", `views/informes.view.js`; renombrada en v0.55.0. `#/informes` sigue llevando a esta vista.)
 
-Métricas calculadas al vuelo sobre `estado.tareas`, sin histórico propio guardado.
+Tiene tres solapas internas (`SOLAPAS`; la activa se recuerda mientras la página está abierta): **Resumen**, **Progreso por categoría** (`views/progreso.view.js`) y **Hábitos** (`views/habitos.view.js`). Todo se calcula al vuelo, sin histórico propio.
 
 - **`calcularPorCategoria(desde)`**: completadas en la ventana vs. pendientes actuales (`ESTADOS_ACTIVOS = ['bloqueada', 'pendiente']`), por categoría.
 - **`calcularProyeccionCostos()`**: suma de `tarea_costo_estimado` de las tareas pendientes activas.
 - **`calcularThroughputSemanal()`**: 8 barras semanales: las 2 últimas semanas (bloques de 7 días que terminan hoy) con las tareas completadas según `tarea_fecha_fin`, y las 6 próximas (bloques de 7 días desde mañana) con las tareas sin completar cuya `fechaDeReferencia` (sugerida > límite) cae en cada bloque.
-- **`renderVistaEstadisticas(contenedor)`**: arma las secciones Completadas vs. pendientes / Costos (proyección de pendientes) / Throughput semanal. Ya no incluye comparación de duración/costo real vs. estimado (esos campos se eliminaron del modelo).
+- **`renderResumen(contenedor)`** (privada): Completadas vs. pendientes / Costos / Throughput semanal. **`renderVistaEstadisticas(contenedor)`**: dibuja el título, la barra de solapas y delega en la activa.
+
+## `assets/js/habitos.js`
+
+Lógica pura (sin DOM) del mapa de hábitos. Un hábito es una tarea de mantenimiento identificada por su nombre; su historial son los `Cumplimiento`.
+
+- **`calcularHabito(nombre, estado, { dias, hasta })`**: la fila de un hábito: `celdas` (`{ dia, estado, titulo }` con `ESTADOS_CELDA`: cumplido, incumplido, vence, no-aplica), `racha` y `porcentaje` (`null` si nada tocaba). Cada día toma el intervalo y los días hábiles del último cumplimiento hasta entonces (después del último, los de la repetición abierta). Diario: ✗ en los días hábiles posteriores al primer registro y anteriores a hoy sin cumplimiento. No diario: ✗ en el vencimiento esperado que se cumplió tarde o sigue vencido. `hasta` (hoy por defecto) es el último día y todavía está en curso.
+- **`calcularMapaHabitos(estado, opciones)`**: una fila por cada nombre de tarea de mantenimiento con cumplimientos, más las que solo tienen la repetición abierta.
+- **`calcularMapaCategorias(estado, opciones)`**: por categoría raíz con cumplimientos, la cantidad de cumplimientos de cada día (de la categoría o de sus descendientes) y `diasActivos`.
+
+## `assets/js/progreso-categorias.js`
+
+- **`calcularMetricas(tareas, hoy)`**: restantes vs. completadas, vencidas y, entre las sin completar con fecha vigente, la próxima fecha límite, la próxima fecha sugerida y la última fecha límite (`{ tarea, dias }`).
+- **`calcularProgresoPorCategoria(estado, hoy)`**: una tarjeta por categoría raíz (suma toda su rama con `descendientesDeCategoria`) con sus subcategorías, y una tarjeta "sin categoría" al final.
+
+## `views/habitos.view.js`, `views/progreso.view.js`, `views/mejoras.view.js`
+
+- **`renderVistaHabitos`**: selector 7 · 30 · 90 días (`super-todo-list:habitos-dias` en `localStorage`), matriz de hábitos y matriz de actividad por categoría, con la leyenda; la matriz se desplaza hacia el costado y arranca en el final (hoy).
+- **`renderVistaProgreso`**: tarjetas con las métricas de `progreso-categorias.js` y el desplegable de subcategorías.
+- **`renderVistaMejoras`**: filtro Pendientes / Aplicadas / Todas (variable del módulo), notas agrupadas por nombre de tarea; "Marcar aplicada" / "Volver a pendiente" (`mejora_aplicada`), "Editar" (diálogo con un `textarea`; busca la nota por id al guardar) y "Eliminar" (saca la nota de `estado.mejoras`).
 
 ## `sw.js`
 

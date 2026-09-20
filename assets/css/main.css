@@ -1621,3 +1621,189 @@ span.etiqueta-exportada {
   gap: 0.4rem;
   font-size: 0.9rem;
 }
+
+/* Estadísticas: solapas internas, matriz de hábitos, progreso por categoría y Mejoras. */
+.solapas {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.5rem 0 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.solapas button {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.solapas button.activa {
+  background: var(--color-primario);
+  border-color: var(--color-primario);
+  color: white;
+}
+
+.matriz-habitos-contenedor {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.matriz-habitos {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 0.75rem;
+}
+
+.matriz-habitos th,
+.matriz-habitos td {
+  text-align: center;
+  padding: 0.15rem;
+  font-weight: 400;
+}
+
+.matriz-habitos .nombre-habito {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-superficie);
+  text-align: left;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  min-width: 7rem;
+  max-width: 11rem;
+  white-space: normal;
+}
+
+.matriz-habitos .dato-habito {
+  white-space: nowrap;
+  padding: 0 0.4rem;
+  color: var(--color-texto-suave);
+}
+
+.matriz-habitos .dia-habito {
+  font-size: 0.65rem;
+  color: var(--color-texto-suave);
+  min-width: 1.4rem;
+}
+
+.celda-habito {
+  min-width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.4rem;
+}
+
+.celda-habito.cumplido {
+  background: var(--color-fondo-exito);
+  color: var(--color-texto-exito);
+  font-weight: 700;
+}
+
+.celda-habito.incumplido {
+  background: var(--color-fondo-alerta);
+  color: var(--color-texto-alerta);
+  font-weight: 700;
+}
+
+.celda-habito.vence {
+  border: 1px dashed var(--color-primario);
+  color: var(--color-primario);
+}
+
+.celda-habito.no-aplica {
+  background: var(--color-fondo);
+  color: var(--color-texto-suave);
+}
+
+.leyenda-habitos {
+  margin-top: 0.5rem;
+}
+
+.tarjetas-progreso {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tarjeta-progreso {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-left: 5px solid var(--color-categoria, var(--color-borde));
+  border-radius: var(--radio);
+  padding: 0.75rem 1rem;
+}
+
+.tarjeta-progreso h3,
+.subcategoria-progreso h4 {
+  margin: 0 0 0.3rem;
+}
+
+.progreso-resumen {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+}
+
+.metricas-progreso {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.metricas-progreso li {
+  margin: 0.15rem 0;
+}
+
+.metrica-etiqueta {
+  color: var(--color-texto-suave);
+}
+
+.metrica-valor {
+  font-weight: 600;
+}
+
+.metrica-detalle {
+  color: var(--color-texto-suave);
+}
+
+.subcategorias-progreso {
+  margin-top: 0.6rem;
+}
+
+.subcategorias-progreso summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-primario);
+}
+
+.subcategoria-progreso {
+  border-top: 1px solid var(--color-borde);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.item-mejora.aplicada {
+  opacity: 0.65;
+}
+
+.texto-mejora {
+  margin: 0 0 0.3rem;
+  white-space: pre-wrap;
+}
+
+.mejora-pendiente-hoy {
+  margin: 0.25rem 0;
+  font-size: 0.8rem;
+  color: var(--color-texto-info);
+  background: var(--color-fondo-info);
+  border-radius: 8px;
+  padding: 0.25rem 0.6rem;
+}

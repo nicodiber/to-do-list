@@ -265,7 +265,7 @@ function migrarTarea(t) {
 
 /** `mejoras` y `cumplimientos` nacieron en la Ronda 2: no hay formatos anteriores que migrar. */
 function migrarMejora(m) {
-  return { ...m, mejora_texto: m.mejora_texto || '' };
+  return { ...m, mejora_texto: m.mejora_texto || '', mejora_aplicada: !!m.mejora_aplicada };
 }
 
 function migrarCumplimiento(c) {
@@ -274,6 +274,9 @@ function migrarCumplimiento(c) {
     categoria_id: c.categoria_id || null,
     cumplimiento_fecha_limite: c.cumplimiento_fecha_limite || '',
     cumplimiento_mantenimiento: !!c.cumplimiento_mantenimiento,
+    // Campos de la Ronda 6: ausentes en registros anteriores.
+    cumplimiento_intervalo: c.cumplimiento_intervalo || null,
+    cumplimiento_dias_habiles: Array.isArray(c.cumplimiento_dias_habiles) ? c.cumplimiento_dias_habiles : [],
   };
 }
 

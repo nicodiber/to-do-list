@@ -151,6 +151,7 @@ export function crearMejora({ mejora_tarea_nombre, mejora_texto }) {
     mejora_tarea_nombre,
     mejora_texto,
     mejora_fecha: ahoraISO(),
+    mejora_aplicada: false,
   };
 }
 
@@ -167,5 +168,9 @@ export function crearCumplimiento({ tarea, fecha }) {
     cumplimiento_fecha: fecha,
     cumplimiento_fecha_limite: tarea.tarea_fecha_limite || '',
     cumplimiento_mantenimiento: !!tarea.tarea_mantenimiento,
+    // Cada cuánto se repetía y qué días se podía hacer al cumplirla: hacen falta para saber, más tarde,
+    // si un día sin registro fue un incumplimiento (hábito diario) o simplemente no tocaba.
+    cumplimiento_intervalo: tarea.tarea_mantenimiento_intervalo ? { ...tarea.tarea_mantenimiento_intervalo } : null,
+    cumplimiento_dias_habiles: [...(tarea.tarea_dias_habiles || [])],
   };
 }

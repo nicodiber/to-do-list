@@ -142,6 +142,29 @@ export function cumplirTarea(tarea, estado, { notaMejora = '' } = {}) {
   return copia;
 }
 
+/**
+ * Pasa al nombre nuevo el historial de una tarea de mantenimiento (sus cumplimientos y sus notas de
+ * mejora), porque la identidad de un hábito es el nombre de la tarea: sin esto, renombrarla lo
+ * partiría en dos. Devuelve cuántos registros cambió.
+ */
+export function renombrarHistorial(estado, nombreViejo, nombreNuevo) {
+  if (!nombreViejo || nombreViejo === nombreNuevo) return 0;
+  let cambiados = 0;
+  (estado.cumplimientos || []).forEach((c) => {
+    if (c.cumplimiento_tarea_nombre === nombreViejo) {
+      c.cumplimiento_tarea_nombre = nombreNuevo;
+      cambiados += 1;
+    }
+  });
+  (estado.mejoras || []).forEach((m) => {
+    if (m.mejora_tarea_nombre === nombreViejo) {
+      m.mejora_tarea_nombre = nombreNuevo;
+      cambiados += 1;
+    }
+  });
+  return cambiados;
+}
+
 const MS_COPIA_SIN_TOCAR = 10 * 1000;
 
 /** ¿La copia se creó y no se volvió a modificar (su sello es de la misma guardada que la creó)? */

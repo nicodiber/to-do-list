@@ -30,10 +30,11 @@ import { renderVistaMetas } from '../../views/metas.view.js';
 import { renderVistaGantt } from '../../views/gantt.view.js';
 import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaEstadisticas } from '../../views/estadisticas.view.js';
+import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.56.1';
+const VERSION = 'v0.57.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -58,6 +59,7 @@ const VISTAS = {
   ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },
   metas: { etiqueta: 'Metas', render: renderVistaMetas },
   tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
+  mejoras: { etiqueta: 'Mejoras', render: renderVistaMejoras },
   personas: { etiqueta: 'Personas', render: renderVistaPersonas },
   configuraciones: { etiqueta: 'Configuraciones', render: renderVistaConfiguraciones },
 };

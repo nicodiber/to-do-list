@@ -99,9 +99,10 @@ Se administra desde el ABM en la vista "Personas", sin relación con Tareas por 
 | `mejora_tarea_nombre` | string | MVP | Nombre de la tarea de mantenimiento a la que se refiere la nota. La identidad de una tarea que se repite es su nombre (renombrarla corta la relación) |
 | `mejora_texto` | string | MVP | "¿Cómo se podría mejorar para la próxima vez?" |
 | `mejora_fecha` | string (ISO datetime) | MVP | Cuándo se escribió la nota |
+| `mejora_aplicada` | boolean (default `false`) | MVP | Si la nota ya se incorporó a la tarea. Se marca y desmarca desde la vista Mejoras |
 | `mejora_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
-Se crea sola al cumplir una tarea de mantenimiento con nota. Es independiente de las instancias de la tarea (sobrevive cuando las completadas se archiven); además la última nota se sigue anexando a la descripción de la copia. La vista para repasarlas llega en la Ronda 6 del rediseño.
+Se crea sola al cumplir una tarea de mantenimiento con nota. Es independiente de las instancias de la tarea (sobrevive cuando las completadas se archiven); además la última nota se sigue anexando a la descripción de la copia. Se repasan en la vista **Mejoras** (Ronda 6, v0.57.0): se pueden marcar como aplicadas, editar y eliminar; las pendientes de una tarea de mantenimiento también se muestran en su tarjeta de Hoy.
 
 ## Cumplimiento
 
@@ -114,9 +115,11 @@ Se crea sola al cumplir una tarea de mantenimiento con nota. Es independiente de
 | `cumplimiento_fecha` | string (ISO datetime) | MVP | Cuándo se cumplió (`tarea_fecha_fin`) |
 | `cumplimiento_fecha_limite` | fecha±hora \| "" | MVP | Vencimiento esperado (`tarea_fecha_limite`) al cumplirse, para distinguir "a tiempo" de "tarde" |
 | `cumplimiento_mantenimiento` | boolean | MVP | Si la tarea era de mantenimiento (para filtrar el mapa de hábitos) |
+| `cumplimiento_intervalo` | `{ cantidad, unidad }` \| null | MVP | Cada cuánto se repetía la tarea (`tarea_mantenimiento_intervalo`) al cumplirla. Permite saber si un hábito era diario (y entonces un día sin registro es un incumplimiento) |
+| `cumplimiento_dias_habiles` | number[] (0-6), vacío = todos | MVP | Días de la semana en que la tarea podía hacerse (`tarea_dias_habiles`) al cumplirla: los demás días no cuentan en el mapa de hábitos |
 | `cumplimiento_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
-Registro liviano, una entrada por cada tarea que se completa. Reabrir la tarea borra su registro. Es la base del mapa de hábitos de la vista Tablero (Ronda 6 del rediseño) y sobrevive al archivado de las tareas completadas.
+Registro liviano, una entrada por cada tarea que se completa. Reabrir la tarea borra su registro. Es la base del mapa de hábitos (solapa Hábitos de Estadísticas) y sobrevive al archivado de las tareas completadas. Un **hábito** es una tarea de mantenimiento, identificada por su nombre: los registros con `cumplimiento_mantenimiento = true` y el mismo `cumplimiento_tarea_nombre`. Al renombrar una tarea de mantenimiento, los registros con el nombre viejo pasan al nuevo.
 
 ## Sincronización: sellos de modificación y archivo de Drive
 
