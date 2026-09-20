@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas } from '../assets/js/utilidades.js';
+import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, diaLocal } from '../assets/js/utilidades.js';
 import { compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 
@@ -8,13 +8,13 @@ let metaSeleccionada = '';
 function fechaInicioTarea(tarea) {
   const fecha =
     tarea.tarea_fecha_inicio_habilitada || tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || tarea.tarea_creada_en;
-  return fecha.slice(0, 10);
+  return diaLocal(fecha);
 }
 
 function fechaFinTarea(tarea) {
   const inicio = fechaInicioTarea(tarea);
   const fin = tarea.tarea_fecha_limite || tarea.tarea_fecha_sugerida || inicio;
-  const finDia = fin.slice(0, 10);
+  const finDia = diaLocal(fin);
   return finDia < inicio ? inicio : finDia;
 }
 

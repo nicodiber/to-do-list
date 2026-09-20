@@ -10,7 +10,7 @@ import {
   ETIQUETAS_IMPORTANCIA,
   ICONOS_IMPORTANCIA,
 } from './modelos.js';
-import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera } from './utilidades.js';
+import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta } from './formularios-entidades.js';
@@ -80,10 +80,7 @@ export function htmlDiasHabiles(seleccionados = []) {
 export function partesFechaHora(valorISO) {
   if (!valorISO) return { fecha: '', hora: '' };
   if (!tieneHora(valorISO)) return { fecha: valorISO, hora: '' };
-  const d = new Date(valorISO);
-  const fecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const hora = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  return { fecha, hora };
+  return { fecha: fechaLocalISO(new Date(valorISO)), hora: formatearHora(valorISO) };
 }
 
 function htmlParFechaHora(nombreCampo, valorISO, etiqueta) {

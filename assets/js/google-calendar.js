@@ -1,4 +1,5 @@
 import { soportaGoogle, hayToken, tieneScope, obtenerTokenAcceso, invalidarToken } from './google-auth.js';
+import { fechaLocalISO } from './utilidades.js';
 
 const DURACION_CACHE_MS = 5 * 60 * 1000;
 const EVENTOS_POR_PAGINA = 250;
@@ -22,11 +23,6 @@ export function soportaGoogleCalendar() {
  */
 export function hayConexionGoogleCalendar() {
   return hayToken() && tieneScope('calendar');
-}
-
-/** Fecha local `YYYY-MM-DD` (no la UTC de `hoyISO`, que a la noche ya es "mañana" en Argentina). */
-function fechaLocalISO(fecha) {
-  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
 }
 
 function inicioDelDia(fechaISODate) {

@@ -1,5 +1,5 @@
 import { crearTarea, crearMejora, crearCumplimiento, ORDEN_IMPORTANCIA } from './modelos.js';
-import { ahoraISO, hoyISO, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz, combinarFechaYHora } from './utilidades.js';
+import { ahoraISO, hoyISO, fechaLocalISO, diaLocal, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz, combinarFechaYHora } from './utilidades.js';
 import { siguienteDiaHabil } from './reprogramar.js';
 import { recalcularBloqueo, puedeAgregarDependencia, proximasActivas, reconectarAlEliminar } from './dependencias.js';
 
@@ -20,7 +20,7 @@ export function calcularProximaFechaMantenimiento(desdeISODatetime, intervalo) {
   } else {
     fecha.setDate(fecha.getDate() + cantidad);
   }
-  return fecha.toISOString().slice(0, 10);
+  return fechaLocalISO(fecha);
 }
 
 /**
@@ -245,8 +245,8 @@ function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados) {
  */
 function calcularProximaFechaSugerida(tarea) {
   let dia = siguienteDiaHabil(hoyISO(), tarea.tarea_dias_habiles);
-  if (tarea.tarea_fecha_limite && dia > tarea.tarea_fecha_limite.slice(0, 10)) {
-    dia = tarea.tarea_fecha_limite.slice(0, 10);
+  if (tarea.tarea_fecha_limite && dia > diaLocal(tarea.tarea_fecha_limite)) {
+    dia = diaLocal(tarea.tarea_fecha_limite);
   }
   if (!tieneHora(tarea.tarea_fecha_sugerida)) return dia;
 
@@ -269,7 +269,7 @@ function calcularProximaFechaSugerida(tarea) {
 export function reprogramarFechasSugeridasVencidas(listaTareas) {
   const afectadas = [];
   listaTareas
-    .filter((t) => t.tarea_estado !== 'completada' && t.tarea_fecha_sugerida && t.tarea_fecha_sugerida.slice(0, 10) < hoyISO())
+    .filter((t) => t.tarea_estado !== 'completada' && t.tarea_fecha_sugerida && diaLocal(t.tarea_fecha_sugerida) < hoyISO())
     .forEach((tarea) => {
       reprogramarTareaConCascada(tarea, calcularProximaFechaSugerida(tarea), listaTareas);
       afectadas.push(tarea);

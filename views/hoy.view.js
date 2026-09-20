@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
-import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria } from '../assets/js/utilidades.js';
+import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
   cumplirTarea,
@@ -36,9 +36,9 @@ function guardarEnfoque(activo) {
   }
 }
 
-/** ¿Se completó en el día de hoy (hora local)? `hoyISO()` es UTC y a la noche ya devuelve el día siguiente. */
+/** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
-  return !!tarea.tarea_fecha_fin && new Date(tarea.tarea_fecha_fin).toDateString() === new Date().toDateString();
+  return !!tarea.tarea_fecha_fin && diaLocal(tarea.tarea_fecha_fin) === hoyISO();
 }
 
 export function renderVistaHoy(contenedor) {
@@ -224,7 +224,7 @@ function abrirPanelReprogramar(contenedorPanel, tarea, alConfirmar) {
 /** Tarjeta de una tarea ya completada hoy: apagada, con la hora y el botón para exportarla a Calendar. */
 function renderCompletada(tarea) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  const hora = new Date(tarea.tarea_fecha_fin).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const hora = formatearHora(tarea.tarea_fecha_fin);
   const li = document.createElement('li');
   li.className = 'item-tarea completada-hoy';
   li.innerHTML = `
@@ -316,8 +316,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
         const solapamiento = calcularSolapamiento(tarea, eventos);
         if (!solapamiento) return;
         const inicioEvento = new Date(solapamiento.inicio);
-        const horaEvento = inicioEvento.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        const diaEvento = inicioEvento.toDateString() === new Date().toDateString() ? '' : `${inicioEvento.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit' })} `;
+        const horaEvento = formatearHora(solapamiento.inicio);
+        const diaEvento = diaLocal(solapamiento.inicio) === hoyISO() ? '' : `${inicioEvento.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit' })} `;
         avisoCalendar.querySelector('.texto-solapamiento').textContent = `📅 Se superpone con "${solapamiento.resumen}" (${diaEvento}${horaEvento})`;
         avisoCalendar.hidden = false;
       })

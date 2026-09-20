@@ -10,6 +10,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Emojis representativos** complementando todos los textos de la interfaz, de forma consistente.
 - ✅ **Los datos de tareas nunca dependen solo de `localStorage`.** `localStorage` queda solo para preferencias (tema, ubicación actual). *(Implementado en v0.51.0.)*
 - ✅ **La UI nunca dice "guardado" hasta que sea cierto** (confirmado en el destino real). *(Implementado en v0.51.0.)*
+- ✅ **Hora local y en 24 h**: la app toma como referencia la zona horaria del dispositivo (en Argentina, UTC-3 sin horario de verano) y muestra las horas en 24 h en todas las pantallas; el día de un instante nunca se saca cortando el texto UTC. *(Implementado en v0.56.1.)* Feriados nacionales y días no laborables: pendiente (ver `BACKLOG.md`).
 - ✅ **Plantear casos borde**: al definir cada funcionalidad se anticipan los escenarios que el usuario no mencionó (ver `AGENTS.md`).
 
 ## Cabecera y navegación

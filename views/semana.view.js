@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
+import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
 import { esTareaAccionable, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 
@@ -12,7 +12,7 @@ const MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
 
 function fechaDeReferenciaProyectada(tarea) {
   const fecha = tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || null;
-  return fecha ? fecha.slice(0, 10) : null;
+  return fecha ? diaLocal(fecha) : null;
 }
 
 // En pantallas angostas los 7 días no entran: se muestran 3 (o 4 desde 480 px) por vez, con flechas.
@@ -99,7 +99,7 @@ function renderColumnaDia(fechaDia, hoy) {
   const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
 
   const fijas = pendientesActivas.filter(
-    (t) => tieneHora(t.tarea_fecha_sugerida) && t.tarea_fecha_sugerida.slice(0, 10) === fechaDia
+    (t) => tieneHora(t.tarea_fecha_sugerida) && diaLocal(t.tarea_fecha_sugerida) === fechaDia
   );
   fijas.forEach((tarea) => {
     const fecha = new Date(tarea.tarea_fecha_sugerida);
