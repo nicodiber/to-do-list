@@ -44,19 +44,17 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Proceso**: cada tarea que la referenciaba (`categoria_id`, `ubicacion_id` o `meta_id`, respectivamente) pasa esa referencia a `null`.
 - **Resultado**: las tareas no se eliminan — quedan sin esa referencia puntual.
 
-## 8. Aviso de clima desfavorable
+## 8. Aviso de clima (desfavorable o favorable)
 
 - **Condición**: una tarea tiene `tarea_requiere_clima_bueno = true`, con `ubicacion_id` de coordenadas conocidas y una fecha de referencia dentro de los próximos 16 días.
 - **Proceso**: `evaluarClimaTarea` (`assets/js/clima.js`) consulta el pronóstico real (Open-Meteo, sin API key) para esa fecha/hora y ubicación.
-- **Resultado (hoy)**: si la probabilidad de lluvia es mayor a 50%, se muestra un aviso "🌧️" en la tarjeta de la tarea sugiriendo posponerla. Si el clima es favorable, no se muestra nada.
-- **⏳ Pendiente de implementar (pedido del usuario)**: si la probabilidad de lluvia es menor al 50%, mostrar un aviso "☀️" (clima favorable) en la tarjeta de la tarea.
+- **Resultado**: si la probabilidad de lluvia es mayor a 50%, se muestra un aviso "🌧️" en la tarjeta de Hoy sugiriendo posponerla; si es de 50% o menos, un aviso "☀️ Buen clima previsto (N% de lluvia)". *(El aviso ☀️ llegó en v0.56.0.)*
 
 ## 9. Detección de solapamiento con Google Calendar
 
 - **Condición**: hay conexión activa con Google Calendar (se concede junto con Drive, con el mismo permiso único; ver proceso 10) y una tarea tiene `tarea_fecha_sugerida` con hora.
-- **Proceso**: `calcularSolapamiento` (`assets/js/google-calendar.js`) compara la ventana `[tarea_fecha_sugerida, tarea_fecha_sugerida + tarea_duracion_min]` contra los eventos reales de hoy.
-- **Resultado (hoy)**: si se superpone con algún evento, se muestra un aviso "📅 Se superpone con...".
-- **⏳ Pendiente de implementar (pedido del usuario)**: sumar junto a ese aviso un botón "Posponer" para reprogramar la tarea directamente desde ahí.
+- **Proceso**: `calcularSolapamiento` (`assets/js/google-calendar.js`) compara la ventana `[tarea_fecha_sugerida, tarea_fecha_sugerida + tarea_duracion_min]` contra los eventos reales de hoy y de los próximos 15 días (`obtenerEventosDelHorizonte`, una sola consulta por rango con caché de 5 minutos).
+- **Resultado**: si se superpone con algún evento, la tarjeta de Hoy muestra "📅 Se superpone con..." con los botones "Posponer" y "Al próximo hueco libre" (proceso 19). *(Los botones y la lectura de varios días llegaron en v0.56.0.)*
 
 ## 10. Guardado en Google Drive con buffer local durable
 
@@ -112,3 +110,8 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Proceso**: `ofrecerMarcarCadenaMantenimiento` (`assets/js/formulario-tarea.js`, con `tareasDeLaCadenaNoRepetibles` de `assets/js/dependencias.js`) lista esas tareas y pregunta si marcarlas como mantenimiento con el mismo intervalo.
 - **Resultado**: si el usuario acepta, todas las tareas de la cadena se repiten y el anillo se sostiene; si rechaza, nada cambia (la tarea se guarda igual). No vuelve a preguntar una vez resuelto.
 
+## 19. Búsqueda del próximo hueco libre y refresco de los eventos de Calendar
+
+- **Condición**: (a) una tarea con horario se superpone con un evento y el usuario aprieta "Al próximo hueco libre" en Hoy; (b) el usuario usa "Sincronizar ahora" o vuelve a la pestaña con la conexión de Calendar activa.
+- **Proceso**: (a) `buscarHuecoLibre` (`assets/js/google-calendar.js`) recorre día por día los eventos del horizonte, dentro de la franja horaria de Configuraciones (`obtenerFranjaHoraria`) y solo en días hábiles de la tarea, y devuelve el primer inicio (en pasos de 15 minutos, desde la hora sugerida y nunca antes de ahora) cuya ventana no choca con ningún evento. (b) `refrescarCalendar` (`assets/js/app.js`) llama a `invalidarCacheEventos` y, si se está mirando Hoy sin ventanas ni paneles abiertos ni texto en edición, redibuja.
+- **Resultado**: (a) la tarea se reprograma con `reprogramarTareaConCascada` (las tareas que dependen de ella se corren en cascada) y se guarda; si no hay hueco en 15 días avisa y ofrece el panel de fecha. (b) los avisos de superposición reflejan lo que hay ahora en Calendar sin esperar los 5 minutos de la caché.

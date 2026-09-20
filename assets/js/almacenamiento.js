@@ -327,7 +327,7 @@ function aplicarDatosAlEstado(datos, ahora) {
  * ¿Hay texto a medio escribir en un campo? Las vistas se redibujan enteras al
  * aplicar cambios, lo que borraría lo tipeado: en ese caso se difiere.
  */
-function hayTextoEnEdicion() {
+export function hayTextoEnEdicion() {
   const elemento = typeof document !== 'undefined' ? document.activeElement : null;
   if (!elemento) return false;
   if (elemento.tagName === 'TEXTAREA') return elemento.value !== '';

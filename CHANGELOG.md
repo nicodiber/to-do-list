@@ -2,6 +2,27 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.56.0] - 2026-09-20
+
+Ronda 4 del rediseño: la vista Hoy (ver `REDISENO.md`, A1).
+
+### Agregado
+
+- **"Completadas hoy"** al final de Hoy: las tareas completadas en el día (hora local), apagadas y con el botón **"📅 Exportar a Calendar"** por tarea (queda "📅 Exportada" y el botón pasa a "Exportar de nuevo").
+- **Botón "🎯 Enfoque"** en Hoy (apagado por defecto, se recuerda en el dispositivo): encendido oculta las completadas de hoy.
+- **Aviso "☀️ Buen clima previsto (N% de lluvia)"** en las tareas que piden buen clima cuando el pronóstico acompaña (hasta 50% de lluvia).
+- **"Posponer" y "Al próximo hueco libre"** junto al aviso "📅 Se superpone con…". El segundo mueve la tarea al primer momento sin choques con ningún evento de Calendar: busca desde la hora sugerida en adelante (no se limita a hoy: mira los próximos 15 días), en días hábiles de la tarea y dentro de una franja horaria elegible; si no hay hueco, avisa y abre el panel de fecha. `buscarHuecoLibre` (`assets/js/google-calendar.js`).
+- **Franja horaria configurable** en Configuraciones ("Agenda y Calendar": desde/hasta cada 30 minutos, por defecto 00:00 a 24:00; se guarda en el dispositivo). `assets/js/preferencias-horario.js`.
+- **Checklist tildable desde Hoy**, en las tareas de mantenimiento (componente compartido `assets/js/checklist-tarjeta.js`, que ahora usa también la vista Tareas).
+- Los avisos de superposición ahora también marcan **tareas de los próximos días** (la lectura de Calendar pasó de "solo hoy" a un rango de 15 días, `obtenerEventos(desde, hasta)`, con paginación).
+
+### Cambiado
+
+- **"Elegí por categoría" pasa a "Próximos por categoría"** y va **antes** de "Resto de tus pendientes", con el camino de la categoría en la etiqueta (por ejemplo "Facultad / IR"). "Resto" ya no repite esas tareas y no aparece si no queda nada.
+- **Los avisos de Calendar se actualizan solos**: "Sincronizar ahora" y volver a la pestaña olvidan los eventos guardados y redibujan Hoy (sin ventanas ni paneles abiertos ni texto a medio escribir). Antes podían tardar hasta 5 minutos en reflejar un cambio hecho en Calendar.
+- Las tarjetas de un mismo dibujo comparten una sola consulta a Calendar (antes cada tarjeta con horario pedía la suya al llegar la primera respuesta).
+- `sw.js`: `CACHE_NAME` a `v15` y precache con los dos módulos nuevos.
+
 ## [v0.55.0] - 2026-09-20
 
 Ronda de diseño: pestañas, vista Tareas y estadísticas (pedidos surgidos de la validación de la Ronda 5; ver `REDISENO.md`).
