@@ -1061,125 +1061,6 @@ section h3 {
   bottom: 0;
 }
 
-.grilla-gantt-contenedor {
-  overflow-x: auto;
-}
-
-.grilla-gantt {
-  min-width: 50rem;
-}
-
-.encabezado-gantt,
-.fila-gantt {
-  display: flex;
-  align-items: stretch;
-}
-
-.fila-gantt-info {
-  flex: 0 0 12rem;
-  padding: 0.5rem 0.75rem 0.5rem 0;
-}
-
-.fila-gantt-pista {
-  flex: 1;
-  position: relative;
-  min-height: 2.5rem;
-}
-
-.encabezado-gantt .fila-gantt-pista {
-  min-height: 1.4rem;
-  border-bottom: 1px solid var(--color-borde);
-  margin-bottom: 0.4rem;
-}
-
-.marca-fecha-gantt {
-  position: absolute;
-  top: 0;
-  font-size: 0.7rem;
-  color: var(--color-texto-suave);
-  white-space: nowrap;
-  transform: translateX(-2px);
-}
-
-.filas-gantt {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  position: relative;
-}
-
-.flechas-gantt {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.flecha-gantt {
-  stroke: var(--color-peligro);
-  stroke-width: 1.5;
-  fill: none;
-  opacity: 0.8;
-}
-
-.flecha-gantt-punta {
-  fill: var(--color-peligro);
-  opacity: 0.8;
-}
-
-.separador-meta-gantt {
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--color-texto-suave);
-  padding: 0.3rem 0;
-  border-top: 1px solid var(--color-borde);
-}
-
-.separador-meta-gantt:first-child {
-  border-top: none;
-}
-
-.barra-gantt {
-  position: absolute;
-  top: 0.3rem;
-  min-width: 1.5rem;
-  height: 1.9rem;
-  border-radius: 6px;
-  padding: 0.2rem 0.5rem;
-  overflow: hidden;
-  cursor: pointer;
-  color: white;
-  font-size: 0.75rem;
-  display: flex;
-  align-items: center;
-}
-
-.barra-gantt-nombre {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.asa-gantt {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-  touch-action: none;
-}
-
-.asa-gantt.izquierda {
-  left: 0;
-}
-
-.asa-gantt.derecha {
-  right: 0;
-}
-
 /* --- Ronda 3: alta unificada, modal de edición, completar carga, checklist --- */
 
 .boton-mas {
@@ -1806,4 +1687,298 @@ span.etiqueta-exportada {
   background: var(--color-fondo-info);
   border-radius: 8px;
   padding: 0.25rem 0.6rem;
+}
+
+/* Gantt: controles, lienzo con columna de nombres y cabecera fijas, barras, marcas y flechas. */
+.controles-gantt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+}
+
+.filtros-gantt input[type="search"] {
+  min-width: 10rem;
+}
+
+.leyenda-gantt {
+  font-size: 0.78rem;
+}
+
+.gantt-desplazable {
+  position: relative;
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.gantt-lienzo {
+  position: relative;
+  min-width: 100%;
+}
+
+.gantt-cabecera {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--color-superficie);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.gantt-esquina {
+  flex: 0 0 auto;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--color-superficie);
+  border-right: 1px solid var(--color-borde);
+}
+
+.gantt-fechas {
+  position: relative;
+  flex: 0 0 auto;
+  background-image: linear-gradient(to right, var(--color-borde) 1px, transparent 1px);
+}
+
+.gantt-marca {
+  position: absolute;
+  top: 4px;
+  text-align: center;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  color: var(--color-texto-suave);
+}
+
+.gantt-marca small {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-texto);
+}
+
+.gantt-marca.hoy small {
+  color: var(--color-primario);
+  font-weight: 700;
+}
+
+.gantt-marca.semana {
+  text-align: left;
+  padding-left: 3px;
+  white-space: nowrap;
+}
+
+.gantt-cuerpo {
+  position: relative;
+}
+
+.gantt-fila {
+  display: flex;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.gantt-nombre {
+  flex: 0 0 auto;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-superficie);
+  border-right: 1px solid var(--color-borde);
+  box-sizing: border-box;
+}
+
+.gantt-nombre-texto {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.gantt-fijar {
+  flex: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  font-size: 0.85rem;
+}
+
+.gantt-pista {
+  position: relative;
+  flex: 0 0 auto;
+  background-image: linear-gradient(to right, var(--color-borde) 1px, transparent 1px);
+  background-size: var(--ancho-semana) 100%;
+  background-position: var(--desfase-semana) 0;
+}
+
+.gantt-carril {
+  display: flex;
+  align-items: center;
+  background: var(--color-fondo);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.gantt-carril span {
+  position: sticky;
+  left: 0;
+  padding: 0 0.6rem;
+  border-left: 4px solid var(--color-borde);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-texto-suave);
+}
+
+.gantt-barra {
+  position: absolute;
+  top: 5px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 0.4rem;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--color-barra);
+  color: white;
+  font-size: 0.72rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.gantt-barra.arrastrando {
+  z-index: 6;
+  opacity: 0.8;
+  cursor: grabbing;
+}
+
+.gantt-barra.virtual {
+  background: transparent;
+  border: 2px dashed var(--color-barra);
+  color: var(--color-texto);
+}
+
+.gantt-barra.completada {
+  background: var(--color-borde);
+  color: var(--color-texto-suave);
+  cursor: pointer;
+}
+
+.gantt-barra.ventana {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.gantt-barra.vencida {
+  opacity: 1;
+  border: 1px solid var(--color-peligro);
+  background: repeating-linear-gradient(45deg, var(--color-peligro) 0 5px, transparent 5px 10px);
+}
+
+.gantt-barra-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-punta {
+  margin-right: 2px;
+  font-size: 0.6rem;
+}
+
+.gantt-asa {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.gantt-asa.izquierda {
+  left: 0;
+}
+
+.gantt-asa.derecha {
+  right: 0;
+}
+
+.gantt-rombo,
+.gantt-limite {
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.gantt-rombo {
+  font-size: 0.95rem;
+  color: var(--color-texto);
+}
+
+.gantt-limite {
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.gantt-limite.roja {
+  color: var(--color-peligro);
+}
+
+.gantt-superposicion {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gantt-linea-hoy {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-primario);
+  opacity: 0.7;
+}
+
+.gantt-flechas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+}
+
+.gantt-flecha {
+  fill: none;
+  stroke: var(--color-texto-suave);
+  stroke-width: 1.4;
+}
+
+.gantt-flecha.anillo {
+  stroke: var(--color-primario);
+  stroke-dasharray: 5 4;
+}
+
+.gantt-flecha.invertida {
+  stroke: var(--color-peligro);
+  stroke-width: 2;
+}
+
+.gantt-punta-flecha {
+  fill: var(--color-texto-suave);
+}
+
+.gantt-punta-flecha.roja {
+  fill: var(--color-peligro);
 }
