@@ -24,11 +24,17 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## A1 · Hoy
 
-- ✅ **"Elegí por categoría" pasa a llamarse "Próximos por categoría"**: la mejor tarea del subárbol de cada categoría **raíz** (ver `mejorTareaPorCategoria`), con el camino de la categoría en la etiqueta.
-- ✅ **Sin duplicados**: "Próximos por categoría" va primero, y "Resto" muestra el remanente **sin** las tareas ya mostradas arriba.
-- ✅ **Filtro "focus" en Hoy** (botón), **arranca en `false`**: `true` = solo las tareas de Hoy sin completar; `false` = esas más las completadas **de hoy** (por `tarea_fecha_fin`), que además muestran su botón de exportar a Calendar. ❓ Pendiente de evaluar con uso real: si las completadas van en una sección aparte abajo o tachadas en su lugar.
-- ✅ **Aviso "☀️" de clima favorable** (probabilidad de lluvia menor a 50%) en la tarjeta de la tarea. Hoy solo existe el aviso desfavorable.
-- ✅ **Botón "Posponer" junto al aviso de solapamiento con Calendar.**
+*(Implementado en v0.56.0, Ronda 4.)*
+
+- ✅ **"Elegí por categoría" pasa a llamarse "Próximos por categoría"**: la mejor tarea del subárbol de cada categoría **raíz** (ver `mejorTareaPorCategoria`), con el camino de la categoría en la etiqueta (por ejemplo "Facultad / IR").
+- ✅ **Sin duplicados**: "Próximos por categoría" va primero (después de "Urgentes"), y "Resto" muestra el remanente **sin** las tareas ya mostradas arriba; si no queda nada, la sección "Resto" no aparece.
+- ✅ **Botón "🎯 Enfoque" en Hoy**, **arranca apagado** (preferencia de este dispositivo): encendido = solo las tareas de Hoy sin completar; apagado = esas más las completadas **de hoy** (por `tarea_fecha_fin`, en el día local), en una **sección aparte al final, visible** ("Completadas hoy (N)"), con la tarjeta apagada y un botón **"📅 Exportar a Calendar"** por tarea (queda "📅 Exportada" y el botón pasa a "Exportar de nuevo"). Decidido con el usuario: sección aparte y visible, no tachadas en su lugar; se reevalúa con uso real.
+- ✅ **Aviso "☀️" de clima favorable** ("Buen clima previsto (N% de lluvia)", con lluvia de hasta 50%) en la tarjeta de las tareas que piden buen clima; con más de 50% sigue el aviso de lluvia.
+- ✅ **Botones "Posponer" y "Al próximo hueco libre" junto al aviso de solapamiento con Calendar.** "Posponer" abre el panel de fecha y hora de siempre. "Al próximo hueco libre" busca **desde la hora sugerida en adelante** (nunca antes de ahora) el primer momento en que la tarea, con su duración, no choque con ningún evento; **no se limita a hoy** (mira los próximos 15 días de Calendar, `DIAS_HORIZONTE_CALENDAR`), respeta los días hábiles de la tarea y una **franja horaria configurable** en Configuraciones (por defecto todo el día, 00:00 a 24:00). Si no hay hueco en todo el horizonte avisa y abre el panel de Posponer.
+- ✅ **El aviso de solapamiento ahora también marca las tareas de los próximos días** (antes solo se comparaba contra los eventos de hoy), porque la lectura de Calendar pasó a ser por rango de fechas.
+- ✅ **Los avisos de Calendar se actualizan solos**: "Sincronizar ahora" y volver a la pestaña olvidan los eventos guardados y, si se está mirando Hoy (sin ventanas ni paneles abiertos ni texto a medio escribir), redibujan.
+- ✅ **Checklist de mantenimiento se tilda desde Hoy** (mismo componente que la vista Tareas).
+- 🔮 **Pendiente**: horizonte de Calendar configurable (7 / 15 / 30 días), mostrar los eventos de varios días en Agenda y Semana, y "Reabrir" desde "Completadas hoy". "Revisar mi día" sigue igual (se redefine con uso real).
 
 ## A2 · Alta de tareas
 
@@ -127,7 +133,7 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 1. ✅ **Almacenamiento** (v0.51.0): Drive único, pantalla inicial obligatoria, cabecera con estado, buffer pendiente, sincronización manual, verificación automática y mezcla por tarea.
 2. ✅ **Modelo de datos** (v0.52.0): entidad `Mejora`, `tarea_exportada_calendar`, registro de cumplimientos, restricción 1 a 1 de dependencias, campo de checklist, `tarea_desencadenante`. Detalle: el checklist es solo para tareas de mantenimiento y aún sin pantalla (llega con la ventana modal de edición de la Ronda 3); los cumplimientos guardan además el vencimiento esperado y si era de mantenimiento; el panel "Dependencia" de Tareas ya tiene "depende de" y "bloquea a" con inserción en medio y rechazo de conflictos (las dependencias **en el alta** siguen en la Ronda 3); reabrir una tarea de mantenimiento borra su copia si sigue sin tocar; tras mezclar cambios de dos dispositivos los enlaces que rompan la regla 1 a 1 se reparan con aviso.
 3. ✅ **Alta unificada** + botón "+" + dependencias en el alta + "Completar carga de tareas (X)" (v0.53.0), más la ventana modal de edición, la pantalla del checklist y el botón "Dejar así".
-4. **Hoy**: Próximos por categoría, focus, completadas de hoy, exportar por tarea, ☀️, Posponer en el solapamiento.
+4. ✅ **Hoy** (v0.56.0): Próximos por categoría sin duplicados, Enfoque, completadas de hoy con exportar a Calendar por tarea, ☀️, Posponer y "Al próximo hueco libre" en el solapamiento (lectura de Calendar por rango, franja horaria configurable) y refresco de los avisos de Calendar.
 5. ✅ **ABMs** (v0.54.0, **hecha antes que la 4** a pedido del usuario, para pulir la creación de categorías, ubicaciones y metas antes de cargar datos reales): editar categorías, ubicaciones, metas y personas, crear con ventana modal (también desde el desplegable de la tarea), vista Configuraciones.
 6. **Tablero** (progreso por categoría + hábitos) y vista **Mejoras**.
 7. **Gantt**: todas las tareas + filtros.

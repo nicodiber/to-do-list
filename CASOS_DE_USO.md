@@ -47,18 +47,19 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: saber qué tarea atacar en este momento, sin tener que pensar el orden a mano.
 - **Disparador**: arranca el día, haber finalizado una tarea o aparece un rato libre.
-- **Pasos**: abre Hoy (vista por defecto) → mira "Urgentes" (vencidas o con `tarea_fecha_limite` hoy, con su holgura en texto) → si no hay nada ahí, mira "Resto de tus pendientes" (todo lo demás ordenado por `compararPorPrioridad`) → si tiene tiempo libre y no hay apuro, mira el apartado "Elegí por categoría" dentro de Resto → opcionalmente filtra por ubicación actual (compartido con Tareas y 3/8 días).
+- **Pasos**: abre Hoy (vista por defecto) → mira "Urgentes" (vencidas o con `tarea_fecha_limite` hoy, con su holgura en texto) → si no hay nada ahí, mira "Próximos por categoría" (la tarea que más conviene de cada categoría raíz, con el camino de la categoría) → y "Resto de tus pendientes" (lo demás, ordenado por `compararPorPrioridad`, sin repetir lo de arriba) → opcionalmente filtra por ubicación actual (compartido con Tareas y Agenda) o enciende "🎯 Enfoque" para ocultar lo ya completado hoy.
 - **Flujo usuario/sistema**:
   1. Usuario abre la app (o navega a Hoy).
-  2. Sistema muestra Hoy: filtro "¿Dónde estás?" (si hay ubicaciones cargadas), sección "Urgentes", sección "Resto de tus pendientes" y, dentro de Resto, "Elegí por categoría".
+  2. Sistema muestra Hoy: filtro "¿Dónde estás?" (si hay ubicaciones cargadas), botón "🎯 Enfoque", "Revisar mi día" y las secciones "Urgentes", "Próximos por categoría", "Resto de tus pendientes", "Todavía no pueden empezar", "Bloqueadas por otras tareas" y, al final, "Completadas hoy (N)" (solo con el enfoque apagado).
   3. Usuario lee "Urgentes" (cada ítem con su holgura) y, si hay, decide cuál atacar.
-  4. Si no hay urgentes, usuario mira "Resto" (orden `compararPorPrioridad`); con tiempo libre y sin apuro, mira "Elegí por categoría".
-  5. Usuario (opcional) elige su ubicación actual.
-  6. Sistema guarda esa preferencia (fuera de los datos de la app) y redibuja Hoy filtrada por ubicación.
-  7. Usuario elige una tarea y sigue con A4 (completar) o A5 (reprogramar).
-- **Vistas/funciones**: `views/hoy.view.js` (`renderVistaHoy`, `renderItem`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `mejorTareaPorCategoria`, `calcularHolguraDias`, `esTareaAccionable`), `assets/js/ubicacion-actual.js`.
-- **Resultado**: no cambia datos, es de solo lectura (salvo que desde acá se accione otro caso de uso, como completar o reprogramar).
-- **Fricciones**: sin atajo de teclado para ir directo a Hoy. "Elegí por categoría" puede repetir una tarea que ya aparece en "Resto" (redundancia visual, ya conocida y aceptada por diseño).
+  4. Si no hay urgentes, mira "Próximos por categoría" (un rato libre sin apuro) o "Resto" (orden `compararPorPrioridad`).
+  5. Usuario (opcional) elige su ubicación actual; el sistema guarda esa preferencia (fuera de los datos de la app) y redibuja Hoy filtrada.
+  6. Usuario (opcional) enciende o apaga "🎯 Enfoque"; el sistema recuerda la elección en este dispositivo.
+  7. Usuario elige una tarea y sigue con A4 (completar) o A5 (reprogramar). En las tareas de mantenimiento puede tildar los pasos del checklist ahí mismo.
+- **Avisos en la tarjeta**: "☀️ Buen clima previsto" o "🌧️ Lluvia probable" (solo tareas que piden buen clima, ver `PROCESOS_AUTOMATICOS.md` 8) y "📅 Se superpone con…" con los botones "Posponer" y "Al próximo hueco libre" (ver D3 y `PROCESOS_AUTOMATICOS.md` 9 y 19).
+- **Vistas/funciones**: `views/hoy.view.js` (`renderVistaHoy`, `renderItem`, `renderCompletada`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `mejorTareaPorCategoria`, `calcularHolguraDias`, `esTareaAccionable`), `assets/js/ubicacion-actual.js`, `assets/js/checklist-tarjeta.js`.
+- **Resultado**: no cambia datos, es de solo lectura (salvo que desde acá se accione otro caso de uso, como completar, reprogramar o mover al próximo hueco libre).
+- **Fricciones**: sin atajo de teclado para ir directo a Hoy. "Revisar mi día" (A6) sigue pendiente de redefinir ahora que Hoy ya permite cumplir, no cumplir y reprogramar cada tarea. Las tareas se comparan en hora local, pero `hoyISO()` (usado en "Urgentes" y en otros lados) es UTC: a la noche puede adelantar el día (anotado en el backlog).
 
 ### A2. Cargar una tarea (rápida o completa)
 
@@ -103,10 +104,10 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   2. Sistema muestra un panel de confirmación (con el campo "¿cómo se podría mejorar…?" solo si la tarea es de mantenimiento).
   3. Usuario (opcional) escribe la nota y presiona "Confirmar".
   4. Sistema marca la tarea completada y fija `tarea_fecha_fin`; si es de mantenimiento, crea la siguiente instancia; desbloquea las tareas que dependían de esta; guarda y redibuja.
-  5. Sistema muestra una ventana de la página: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?" con los botones "Abrir en Calendar" y "Cancelar".
+  5. Sistema muestra una ventana de la página: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?" con los botones "Abrir en Calendar" y "Cancelar". La tarea pasa a la sección "Completadas hoy" de Hoy, donde queda el botón "📅 Exportar a Calendar" (o "Exportar de nuevo", con la etiqueta "📅 Exportada") para hacerlo más tarde o repetirlo.
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
-- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`).
+- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); la sección "Completadas hoy" de `views/hoy.view.js`.
 - **Resultado**: `tarea_estado='completada'`, `tarea_fecha_fin` seteada; se registra un cumplimiento; posible Mejora (si hay nota) y posible clon nuevo, enlazado a la cadena o al desencadenante (ver `PROCESOS_AUTOMATICOS.md`, procesos 1 y 15); posibles dependientes desbloqueadas; si se acepta abrir Calendar, `tarea_exportada_calendar` queda en `true`. **Reabrir** una completada (desplegable "Cambiar estado" → Pendiente en Tareas) deshace el cumplimiento y la marca de exportada, y borra la copia de mantenimiento si sigue sin tocar (si se modificó, se conserva y se avisa).
 - **Fricciones**: las 3 vistas comparten ahora `cumplirTarea` (la lógica ya no está duplicada; el panel de confirmación sí sigue repetido en cada vista). (La sugerencia de tarea de alto disfrute — Premack — se eliminó; el `confirm()` de exportar a Calendar no resulta invasivo según el usuario.)
 
@@ -323,16 +324,18 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: usar Calendar como la fuente de verdad de lo agendado con horario fijo y de lo que realmente pasó, en paralelo a STDL.
 - **Pasos — exportar una completada**: al completar una tarea, una ventana de la página pregunta si se quiere abrir en Calendar con los datos precargados (nombre, tarea_fecha_fin, duración) → si acepta, se abre `calendar.google.com/render` en una pestaña nueva y el usuario la guarda a mano ahí (sin OAuth).
-- **Pasos — detectar solapamientos**: no hay un botón aparte para Calendar: se concede junto con Drive (D2). Con el permiso concedido, cada tarea con `tarea_fecha_sugerida` con hora se compara contra los eventos reales de **hoy**, y si se superpone se muestra un aviso *(⏳ falta el botón "Posponer" junto al aviso — pedido del usuario, ver `REDISENO.md`)*. Si el usuario desmarcó el permiso de Calendar al autorizar, esos avisos simplemente no aparecen.
+- **Pasos — detectar solapamientos**: no hay un botón aparte para Calendar: se concede junto con Drive (D2). Con el permiso concedido, cada tarea con `tarea_fecha_sugerida` con hora se compara contra los eventos reales de **hoy y los próximos 15 días** (`DIAS_HORIZONTE_CALENDAR`), y si se superpone se muestra un aviso con dos botones: **"Posponer"** (panel de fecha y hora) y **"Al próximo hueco libre"** (la mueve al primer momento sin choques). Si el usuario desmarcó el permiso de Calendar al autorizar, esos avisos simplemente no aparecen.
 - **Pasos — "Revisar mi día"**: si hay conexión, el paso final muestra los eventos reales del día (ver A6).
 - **Flujo usuario/sistema — detectar solapamientos**:
   1. Usuario autoriza Google (Drive y Calendar de solo lectura, ver D2).
   2. Sistema guarda el token en memoria (no persiste) y redibuja Hoy.
-  3. Sistema, por cada tarea con `tarea_fecha_sugerida` con hora, consulta los eventos de hoy (con caché en memoria por día) y compara ventanas.
-  4. Sistema muestra "📅 Se superpone con…" en las tareas que chocan con un evento. (El flujo de exportar una completada está en A4, pasos 5-7.)
-- **Vistas/funciones**: `assets/js/exportar-calendar.js`, `assets/js/google-calendar.js`, `assets/js/google-auth.js`, `views/hoy.view.js`, `assets/js/revision-dia.js`.
+  3. Sistema, por cada tarea con `tarea_fecha_sugerida` con hora, consulta los eventos de los próximos 15 días (una sola consulta por rango, con caché en memoria de 5 minutos) y compara ventanas.
+  4. Sistema muestra "📅 Se superpone con…" (con el día si no es hoy) y los botones "Posponer" y "Al próximo hueco libre" en las tareas que chocan con un evento. (El flujo de exportar una completada está en A4, pasos 5-7.)
+  5. Si el usuario elige "Al próximo hueco libre", el sistema busca desde la hora sugerida (nunca antes de ahora), en pasos de 15 minutos, el primer momento en que la ventana `[inicio, inicio + tarea_duracion_min]` cae dentro de la franja horaria elegida en Configuraciones, en un día hábil de la tarea, y no choca con ningún evento; reprograma con `reprogramarTareaConCascada`. Si no hay hueco en el horizonte, avisa y abre el panel de Posponer.
+  6. Al usar "Sincronizar ahora" o volver a la pestaña, el sistema olvida los eventos guardados y (si se está mirando Hoy) redibuja: los avisos aparecen o desaparecen según lo que hay ahora en Calendar.
+- **Vistas/funciones**: `assets/js/exportar-calendar.js`, `assets/js/google-calendar.js`, `assets/js/google-auth.js`, `views/hoy.view.js`, `assets/js/revision-dia.js`, `assets/js/preferencias-horario.js`.
 - **Resultado**: eventos creados en Calendar (fuera de STDL); ningún dato de STDL cambia por esto, salvo que el usuario reprograme a partir del aviso de solapamiento.
-- **Fricciones**: la lectura de eventos hoy solo cubre **el día de hoy** — no hay lectura de eventos pasados ni de rangos futuros (relevante para la nota abierta de Informes, E1). Exportar es manual paso a paso (abrir pestaña, guardar a mano); no queda una confirmación de que efectivamente se guardó.
+- **Fricciones**: la lectura de eventos cubre desde hoy hasta 15 días adelante (constante `DIAS_HORIZONTE_CALENDAR`, todavía no configurable) — no hay lectura de eventos pasados (relevante para la nota abierta de Estadísticas, E1), y Agenda y Semana todavía no muestran los eventos de Calendar. La franja horaria del "próximo hueco libre" se elige en **Configuraciones** ("Agenda y Calendar", desde/hasta en tramos de 30 minutos; por defecto 00:00 a 24:00; se guarda en este dispositivo). Exportar es manual paso a paso (abrir pestaña, guardar a mano); no queda una confirmación de que efectivamente se guardó.
 
 ---
 

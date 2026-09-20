@@ -18,6 +18,7 @@ Bootstrap y router de toda la app.
 - **`renderPantallaInicial()`**: pantalla previa a tener datos (sin sesión de Google, o conectando): explica que los datos se guardan en el Drive del usuario y ofrece "Conectar con Google Drive". No se puede cargar tareas hasta conectar.
 - **Botón "＋" y "Completar carga de tareas (X)"** (`actualizarBotonesTareas`, en cada `render()`): el "＋" se muestra siempre que haya datos y no sea una pestaña de solo lectura, y hace lo mismo que el atajo "N" (`irAlAltaDeTarea`); el botón de completar carga aparece solo si `tareasSoloConNombre` devuelve al menos una tarea y abre `abrirCargaTareas`.
 - **Borradores en `render()`**: en redibujados por cambios de otro dispositivo se conserva todo lo escrito; en redibujados locales solo los formularios marcados `data-conservar-borrador` (el alta de tareas).
+- **Refresco de Calendar** (`refrescarCalendar()`): al usar "Sincronizar ahora" y al volver a la pestaña (`visibilitychange`), si hay conexión con Calendar llama a `invalidarCacheEventos()` y, si la vista actual es Hoy, redibuja (salvo con una ventana abierta, texto a medio escribir o un panel de cierre/reprogramación abierto en una tarjeta).
 - **Atajo de teclado "N"**: un listener global de `keydown` que, si no hay modificadores (`Ctrl`/`Alt`/`Meta`) y el foco no está en un campo editable (`INPUT`/`TEXTAREA`/`SELECT`/`contentEditable`), navega a la vista Tareas (si no se está ya ahí) y enfoca el nombre del formulario de alta (`#form-alta input[name="tarea_nombre"]`); no hace nada si no hay datos listos o es una pestaña de solo lectura. Usa un flag módulo (`enfocarAltaRapidaAlEntrar`) para enfocar recién después de que el cambio de hash haya disparado el re-render de la vista.
 - **Tema claro/oscuro**: `temaEfectivo()`/`aplicarTema()` leen/aplican la preferencia guardada en `localStorage` (una preferencia, nunca datos de tareas), con fallback a `prefers-color-scheme` del sistema.
 - **Reprogramado automático al iniciar** (`reprogramarSiCorresponde()`): una sola vez, cuando los datos ya están listos (después de `inicializarAlmacenamiento()` o de conectar), se llama `reprogramarFechasSugeridasVencidas(estado.tareas)` (`tareas-logica.js`) y, si afectó alguna tarea, se persiste y se avisa con un `alert()`. Ver `REGLAS_DE_PRIORIDAD.md`.
@@ -195,9 +196,21 @@ Cliente mínimo de Google Drive API v3 con `fetch`. El único destino de los dat
 
 Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (ya no tiene conexión propia).
 
+- **`DIAS_HORIZONTE_CALENDAR`** (15): cuántos días hacia adelante se leen los eventos (para los avisos de superposición y para buscar huecos).
 - **`soportaGoogleCalendar()` / `hayConexionGoogleCalendar()`**: `hayConexionGoogleCalendar` es verdadero si hay token y el usuario concedió el scope de Calendar.
-- **`obtenerEventosDeHoy()`**: trae los eventos del día actual, con caché en memoria por día.
-- **`calcularSolapamiento(tarea, eventos)`**: compara la ventana `[tarea_fecha_sugerida (con hora), +tarea_duracion_min]` contra cada evento y devuelve el primero que se superpone (usado en Hoy).
+- **`obtenerEventos(desde, hasta)`**: eventos con horario (se descartan los de todo el día) del calendario principal entre dos fechas locales `YYYY-MM-DD`, ambas incluidas. Pagina con `nextPageToken` (250 por página) y guarda en caché la **promesa** por rango durante 5 minutos (así todas las tarjetas de un mismo dibujo comparten una sola consulta); un error no se cachea. Sin permiso devuelve `[]`.
+- **`obtenerEventosDeHoy()` / `obtenerEventosDelHorizonte()`**: atajos de `obtenerEventos` para hoy y para hoy + 15 días (este último es el que usa Hoy).
+- **`invalidarCacheEventos()`**: vacía la caché; la usa `app.js` al sincronizar y al volver a la pestaña.
+- **`calcularSolapamiento(tarea, eventos)`**: compara la ventana `[tarea_fecha_sugerida (con hora), +tarea_duracion_min]` contra cada evento y devuelve el primero que se superpone (usado en Hoy). Pura.
+- **`buscarHuecoLibre(eventos, duracionMin, { desde, dias, franja, diasHabiles })`**: primer inicio (datetime ISO) en pasos de 15 minutos, desde `desde` durante `dias` días, cuya ventana entera cae dentro de la franja horaria del día (`{ inicio: 'HH:MM', fin: 'HH:MM' }`, el fin puede ser `24:00`), en un día hábil (`diasHabiles` vacío = todos) y sin choque con ningún evento; ante un choque salta al final de ese evento redondeado a 15 minutos. Devuelve `null` si no hay hueco. Pura, sin red.
+
+## `assets/js/preferencias-horario.js`
+
+- **`obtenerFranjaHoraria()` / `establecerFranjaHoraria({ inicio, fin })`**: franja del día en la que se buscan horarios libres, en una clave propia de `localStorage` (preferencia de este dispositivo, no dato de la app). Por defecto `00:00`–`24:00` (`FRANJA_POR_DEFECTO`); `establecerFranjaHoraria` devuelve `false` sin guardar si el inicio no es anterior al fin. `HORAS_FRANJA` son las opciones de Configuraciones (cada 30 minutos).
+
+## `assets/js/checklist-tarjeta.js`
+
+- **`htmlChecklistTarjeta(tarea)` / `conectarChecklistTarjeta(li, tarea)`**: la lista de casillas del checklist de una tarea de mantenimiento dentro de su tarjeta y el guardado al tildar (`persistirYNotificar`). La comparten Hoy y Tareas.
 
 ## `assets/js/ubicacion-actual.js`
 
@@ -209,8 +222,10 @@ Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (
 
 Vista "Hoy": separa tareas urgentes del resto (ver `REGLAS_DE_PRIORIDAD.md`), con un asistente de cierre por tarjeta.
 
-- **`renderVistaHoy(contenedor)`**: arma las secciones Urgentes / Resto (con el apartado "Elegí por categoría" vía `mejorTareaPorCategoria`) / Todavía no pueden empezar / Bloqueadas, filtradas por la ubicación actual. `bloqueadas` y `accionables` se separan directamente por `tarea_estado`.
-- **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, categoría, fechas, holgura, estado, ubicación, costo, clima, solapamiento con Calendar). Si es accionable, agrega los botones "Cumplida"/"No cumplida" (sin pedir duración/costo real — se eliminaron de la app); si además está vencida, agrega "📅 Revalorizar fecha límite" (reusa `crearPanelReprogramar`, pero escribe directo `tarea.tarea_fecha_limite` sin cascada a dependientes — ver `REGLAS_DE_PRIORIDAD.md`).
+- **`renderVistaHoy(contenedor)`**: arma las secciones Urgentes / Próximos por categoría (`mejorTareaPorCategoria`, con el camino de la categoría) / Resto (sin repetir los próximos; no aparece si no queda nada) / Todavía no pueden empezar / Bloqueadas / Completadas hoy, filtradas por la ubicación actual. El botón "🎯 Enfoque" (preferencia `super-todo-list:hoy-enfoque` en `localStorage`, apagado por defecto) oculta las completadas. "Completadas hoy" son las de `tarea_fecha_fin` en el día local de hoy (`seCompletoHoy`).
+- **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, categoría, fechas, holgura, estado, ubicación, costo, clima ☀️/🌧️), el checklist tildable y el aviso de superposición con Calendar con sus botones "Posponer" y "Al próximo hueco libre" (este usa `obtenerEventosDelHorizonte`, `buscarHuecoLibre`, `obtenerFranjaHoraria` y `reprogramarTareaConCascada`). Si es accionable, agrega los botones "Cumplida"/"No cumplida"; si además está vencida, agrega "📅 Revalorizar fecha límite" (escribe directo `tarea.tarea_fecha_limite` sin cascada a dependientes — ver `REGLAS_DE_PRIORIDAD.md`).
+- **`renderCompletada(tarea)`**: tarjeta apagada de una tarea completada hoy, con la hora y "📅 Exportar a Calendar" (`ofrecerExportarACalendar`).
+- **`abrirPanelReprogramar(contenedorPanel, tarea, alConfirmar)`** (privada): muestra `crearPanelReprogramar` en la tarjeta; la usan "No cumplida → Reprogramar", "Revalorizar fecha límite" y "Posponer".
 
 ## `views/agenda.view.js`
 
@@ -229,7 +244,7 @@ Vista "Semana": grilla horaria de 7 días (07:00-23:00) con tareas fijas y proye
 La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 
 - **`renderVistaTareas(contenedor)`**: botón "＋ Nueva tarea" (abre `abrirAltaTarea`), los filtros y la lista. Orden: pendientes → bloqueadas (por prioridad dentro de cada grupo) y, al final, las completadas plegadas en un `<details class="completadas-plegadas">` "Completadas (N)" que recuerda si estaba abierto (y se muestra abierto con el filtro Estado = Completada).
-- **`renderTarea(tarea)`**: tarjeta con el borde izquierdo del color de la categoría (`--color-categoria`), etiqueta "⚠️ Vencida" y fondo rojizo si está vencida, los badges, el checklist con casillas que se tildan ahí mismo (persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
+- **`renderTarea(tarea)`**: tarjeta con el borde izquierdo del color de la categoría (`--color-categoria`), etiqueta "⚠️ Vencida" y fondo rojizo si está vencida, los badges, el checklist con casillas que se tildan ahí mismo (`checklist-tarjeta.js`, persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
 ## `assets/js/formulario-tarea.js`
@@ -257,7 +272,7 @@ Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCatego
 
 ## `views/configuraciones.view.js`
 
-- **`renderVistaConfiguraciones(contenedor)`**: Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
+- **`renderVistaConfiguraciones(contenedor)`**: sección "Agenda y Calendar" (franja horaria para buscar horarios libres, desde/hasta; se guarda al cambiar y no acepta un inicio posterior al fin), Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
 
 ## `assets/js/modal-tarea.js`
 

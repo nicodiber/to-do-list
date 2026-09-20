@@ -12,10 +12,12 @@ import {
   descartarTodosLosAvisos,
   mezclarDatosViejos,
   descartarDatosViejos,
+  hayTextoEnEdicion,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre } from './tareas-logica.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
+import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
@@ -31,7 +33,7 @@ import { renderVistaEstadisticas } from '../../views/estadisticas.view.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.55.0';
+const VERSION = 'v0.56.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -237,7 +239,30 @@ document.addEventListener('click', async (evento) => {
   }
 });
 
-BOTON_SYNC.addEventListener('click', () => sincronizarAhora({ forzar: true }));
+BOTON_SYNC.addEventListener('click', () => {
+  refrescarCalendar();
+  sincronizarAhora({ forzar: true });
+});
+
+/**
+ * Los eventos de Calendar se guardan unos minutos en memoria. Al sincronizar o volver a la pestaña se
+ * olvidan y, si se está mirando Hoy (donde aparecen los avisos de superposición), se redibuja para
+ * que reflejen lo que hay ahora en Calendar. No se redibuja con un diálogo abierto ni con texto a medio escribir.
+ */
+function refrescarCalendar() {
+  if (!hayConexionGoogleCalendar()) return;
+  invalidarCacheEventos();
+  const s = obtenerEstadoSync();
+  if (vistaActual() !== 'hoy' || !s.datosListos || s.soloLectura) return;
+  if (document.querySelector('dialog[open]') || hayTextoEnEdicion()) return;
+  // Tampoco si hay un panel a medio usar en la tarjeta (cerrar la tarea o elegir otra fecha).
+  if (CONTENEDOR.querySelector('.panel-cierre, .panel-reprogramar')) return;
+  render();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refrescarCalendar();
+});
 
 function renderPantallaInicial(contenedor) {
   const s = obtenerEstadoSync();

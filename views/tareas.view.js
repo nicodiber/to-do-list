@@ -15,6 +15,7 @@ import { abrirEdicionTarea, abrirAltaTarea } from '../assets/js/modal-tarea.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
+import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 
 const ESTADOS_SELECCIONABLES = ['pendiente', 'completada'];
 const ETIQUETAS_ESTADO_SELECCIONABLE = { pendiente: 'Pendiente', completada: 'Completada' };
@@ -225,16 +226,7 @@ function renderTarea(tarea) {
       ${!bloqueada && dependeDe ? `<p class="enlace-tarea">⬅️ Depende de: ${escaparHtml(nombreConCategoria(dependeDe))}${dependeDe.tarea_estado === 'completada' ? ' (completada)' : ''}</p>` : ''}
       ${proxima ? `<p class="enlace-tarea">➡️ Bloquea a: ${escaparHtml(nombreConCategoria(proxima))}</p>` : ''}
       ${tarea.tarea_descripcion ? `<p class="notas-tarea">${escaparHtml(tarea.tarea_descripcion)}</p>` : ''}
-      ${
-        (tarea.tarea_checklist || []).length > 0
-          ? `<ul class="checklist-tarjeta">${tarea.tarea_checklist
-              .map(
-                (item, indice) =>
-                  `<li><label><input type="checkbox" data-checklist-indice="${indice}" ${item.hecho ? 'checked' : ''} /> ${escaparHtml(item.texto)}</label></li>`
-              )
-              .join('')}</ul>`
-          : ''
-      }
+      ${htmlChecklistTarjeta(tarea)}
       <div class="contenedor-panel-reprogramar" hidden></div>
       <div class="contenedor-panel-mejora" hidden></div>
     </div>
@@ -316,12 +308,7 @@ function renderTarea(tarea) {
 
   li.querySelector('[data-accion="editar"]').addEventListener('click', () => abrirEdicionTarea(tarea.tarea_id));
 
-  li.querySelectorAll('[data-checklist-indice]').forEach((casilla) => {
-    casilla.addEventListener('change', async () => {
-      tarea.tarea_checklist[Number(casilla.dataset.checklistIndice)].hecho = casilla.checked;
-      await persistirYNotificar();
-    });
-  });
+  conectarChecklistTarjeta(li, tarea);
 
   li.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;

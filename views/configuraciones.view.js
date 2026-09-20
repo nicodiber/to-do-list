@@ -1,10 +1,26 @@
 import { exportarJSON, importarJSON, borrarTodosLosDatos } from '../assets/js/almacenamiento.js';
+import { obtenerFranjaHoraria, establecerFranjaHoraria, HORAS_FRANJA } from '../assets/js/preferencias-horario.js';
 
 const PALABRA_CONFIRMACION = 'BORRAR';
 
 export function renderVistaConfiguraciones(contenedor) {
+  const franja = obtenerFranjaHoraria();
   contenedor.innerHTML = `
     <h2>Configuraciones</h2>
+
+    <section class="seccion-config">
+      <h3>Agenda y Calendar</h3>
+      <p class="ayuda">Al buscar «el próximo hueco libre» de una tarea (botón que aparece cuando se superpone con un evento de Calendar), solo se proponen horarios dentro de esta franja del día. Se guarda en este dispositivo.</p>
+      <div class="acciones-config franja-horaria">
+        <label>Desde
+          <select id="franja-inicio">${HORAS_FRANJA.slice(0, -1).map((h) => `<option value="${h}" ${h === franja.inicio ? 'selected' : ''}>${h}</option>`).join('')}</select>
+        </label>
+        <label>Hasta
+          <select id="franja-fin">${HORAS_FRANJA.slice(1).map((h) => `<option value="${h}" ${h === franja.fin ? 'selected' : ''}>${h}</option>`).join('')}</select>
+        </label>
+      </div>
+      <p class="ayuda" id="mensaje-franja" hidden></p>
+    </section>
 
     <section class="seccion-config">
       <h3>Copia de seguridad</h3>
@@ -26,6 +42,17 @@ export function renderVistaConfiguraciones(contenedor) {
       </div>
     </section>
   `;
+
+  const campoInicio = contenedor.querySelector('#franja-inicio');
+  const campoFin = contenedor.querySelector('#franja-fin');
+  const mensajeFranja = contenedor.querySelector('#mensaje-franja');
+  const guardarFranja = () => {
+    const guardada = establecerFranjaHoraria({ inicio: campoInicio.value, fin: campoFin.value });
+    mensajeFranja.textContent = guardada ? '✓ Guardado en este dispositivo.' : 'El «Desde» tiene que ser anterior al «Hasta»: no se guardó.';
+    mensajeFranja.hidden = false;
+  };
+  campoInicio.addEventListener('change', guardarFranja);
+  campoFin.addEventListener('change', guardarFranja);
 
   contenedor.querySelector('#boton-exportar').addEventListener('click', exportarJSON);
 
