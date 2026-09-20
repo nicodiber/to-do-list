@@ -3,7 +3,7 @@
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { tareasSoloConNombre } from './tareas-logica.js';
-import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, aplicarCamposATarea, validarFormularioTarea } from './formulario-tarea.js';
+import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, aplicarCamposATarea, validarFormularioTarea, ofrecerMarcarCadenaMantenimiento } from './formulario-tarea.js';
 import { aplicarEnlace } from './dependencias.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 
@@ -85,6 +85,7 @@ async function actualizar(evento, id) {
   }
   aplicarCamposATarea(tarea, leido.campos);
   aplicarEnlace(tarea.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
+  ofrecerMarcarCadenaMantenimiento(tarea, estado.tareas);
   await persistirYNotificar();
   renderLista();
 }

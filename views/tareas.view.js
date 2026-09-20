@@ -11,7 +11,7 @@ import {
   esTareaAccionable,
 } from '../assets/js/tareas-logica.js';
 import { aplicarEnlace } from '../assets/js/dependencias.js';
-import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, validarFormularioTarea, nombreConCategoria } from '../assets/js/formulario-tarea.js';
+import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, validarFormularioTarea, nombreConCategoria, ofrecerMarcarCadenaMantenimiento } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { capturarBorradores, restaurarBorradores } from '../assets/js/borradores.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
@@ -113,6 +113,7 @@ export function renderVistaTareas(contenedor) {
       alert(enlace.motivo);
       return;
     }
+    ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
     await persistirYNotificar();
 
     // La vista se redibujó conservando lo escrito (borrador): ahora sí se limpia para la próxima tarea.

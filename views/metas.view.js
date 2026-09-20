@@ -1,6 +1,7 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { crearMeta, crearTarea, PLAZOS_META, ETIQUETAS_PLAZO, ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
+import { crearMeta, crearTarea, ETIQUETAS_PLAZO, ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { escaparHtml, formatearFecha, hoyISO, fechaISOMasDias } from '../assets/js/utilidades.js';
+import { abrirDialogoMeta } from '../assets/js/formularios-entidades.js';
 import {
   construirPromptSubtareas,
   parsearRespuestaSubtareas,
@@ -13,36 +14,14 @@ import {
 export function renderVistaMetas(contenedor) {
   contenedor.innerHTML = `
     <h2>Metas</h2>
-    <p class="ayuda">Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el botón "Metas" en la vista Tareas.</p>
-    <form id="form-nueva-meta" class="formulario-tarea">
-      <input type="text" name="meta_nombre" placeholder="Nueva meta" required />
-      <select name="meta_plazo">
-        ${PLAZOS_META.map((p) => `<option value="${p}">${ETIQUETAS_PLAZO[p]}</option>`).join('')}
-      </select>
-      <label>Fecha objetivo <input type="date" name="meta_fecha_estimada" /></label>
-      <input type="text" name="meta_descripcion" placeholder="Descripción (opcional)" />
-      <button type="submit">Agregar meta</button>
-    </form>
+    <p class="ayuda">Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el campo "Meta" del formulario de la tarea.</p>
+    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-meta" class="boton-primario">＋ Nueva meta</button></div>
     <button type="button" id="boton-chat-meta">Definir meta charlando con IA</button>
     <div id="contenedor-panel-chat-meta" hidden></div>
     <div id="lista-metas" class="lista-categorias"></div>
   `;
 
-  contenedor.querySelector('#form-nueva-meta').addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-    const formulario = evento.target;
-    const nombre = formulario.meta_nombre.value.trim();
-    if (!nombre) return;
-    estado.metas.push(
-      crearMeta({
-        meta_nombre: nombre,
-        meta_plazo: formulario.meta_plazo.value,
-        meta_fecha_estimada: formulario.meta_fecha_estimada.value,
-        meta_descripcion: formulario.meta_descripcion.value.trim(),
-      })
-    );
-    await persistirYNotificar();
-  });
+  contenedor.querySelector('#boton-nueva-meta').addEventListener('click', () => abrirDialogoMeta());
 
   const contenedorPanelChat = contenedor.querySelector('#contenedor-panel-chat-meta');
   contenedor.querySelector('#boton-chat-meta').addEventListener('click', () => {
@@ -76,6 +55,7 @@ function renderMeta(meta) {
       <strong>${escaparHtml(meta.meta_nombre)}</strong>
       <span class="acciones-prioridad">
         <button type="button" data-accion="sugerir-ia">Sugerir tareas con IA</button>
+        <button type="button" data-accion="editar-meta" title="Editar meta">Editar</button>
         <button type="button" data-accion="eliminar-meta" title="Eliminar meta">✕</button>
       </span>
     </div>
@@ -107,6 +87,8 @@ function renderMeta(meta) {
     contenedorIA.appendChild(crearPanelIA(meta));
     contenedorIA.hidden = false;
   });
+
+  tarjeta.querySelector('[data-accion="editar-meta"]').addEventListener('click', () => abrirDialogoMeta({ id: meta.meta_id }));
 
   tarjeta.querySelector('[data-accion="eliminar-meta"]').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar la meta "${meta.meta_nombre}"? Las tareas asociadas quedan sin esta meta.`)) return;

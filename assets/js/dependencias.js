@@ -279,3 +279,34 @@ export function repararEnlaces(listaTareas) {
   }
   return reparaciones;
 }
+
+/**
+ * Para que un anillo de mantenimiento se sostenga (A→B→C→D y D vuelve a activar
+ * a A) **todas** las tareas de la cadena deben ser de mantenimiento: cada copia se
+ * enlaza a la copia anterior. Devuelve las tareas que, siguiendo las próximas de
+ * `tarea` hasta su `tarea_desencadenante`, no son de mantenimiento. Si la tarea no
+ * es de mantenimiento, no tiene desencadenante o su cadena no llega hasta él,
+ * devuelve `[]`.
+ */
+export function tareasDeLaCadenaNoRepetibles(tarea, listaTareas) {
+  if (!tarea.tarea_mantenimiento || !tarea.tarea_desencadenante) return [];
+  const desencadenante = porId(listaTareas, tarea.tarea_desencadenante);
+  if (!desencadenante) return [];
+
+  const cadena = [];
+  const visitados = new Set([tarea.tarea_id]);
+  let actual = tarea;
+  for (;;) {
+    const proxima = tareaProxima(actual.tarea_id, listaTareas);
+    if (!proxima || visitados.has(proxima.tarea_id)) return [];
+    cadena.push(proxima);
+    visitados.add(proxima.tarea_id);
+    // El desencadenante puede ser una instancia ya completada: cuenta también su copia vigente (mismo nombre).
+    const esElDesencadenante =
+      proxima.tarea_id === desencadenante.tarea_id ||
+      (desencadenante.tarea_estado === 'completada' && proxima.tarea_mantenimiento && proxima.tarea_nombre === desencadenante.tarea_nombre);
+    if (esElDesencadenante) break;
+    actual = proxima;
+  }
+  return cadena.filter((t) => !t.tarea_mantenimiento);
+}

@@ -12,7 +12,13 @@ import {
 } from './modelos.js';
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
-import { opcionesPrevia, opcionesProxima, evaluarEnlace } from './dependencias.js';
+import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
+import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta } from './formularios-entidades.js';
+
+export { firmaFormulario } from './dialogo-formulario.js';
+
+/** Valor de la opción "＋ Crear nueva…" de los desplegables de categoría, ubicación y meta. */
+const CREAR_NUEVA = '__nueva__';
 
 export function htmlOpcionesImportancia(seleccionada = '') {
   const opciones = [`<option value="" ${!seleccionada ? 'selected' : ''}>Importancia: sin definir</option>`];
@@ -39,7 +45,24 @@ export function htmlOpcionesCategoria(seleccionada = '') {
       `<option value="${categoria.categoria_id}" ${categoria.categoria_id === seleccionada ? 'selected' : ''}>${'　'.repeat(profundidad)}${escaparHtml(categoria.categoria_nombre)}</option>`
     );
   });
+  opciones.push(`<option value="${CREAR_NUEVA}">＋ Crear nueva categoría…</option>`);
   return opciones.join('');
+}
+
+export function htmlOpcionesUbicacion(seleccionada = '') {
+  return [
+    '<option value="">Sin ubicación</option>',
+    ...estado.ubicaciones.map((u) => `<option value="${u.ubicacion_id}" ${u.ubicacion_id === seleccionada ? 'selected' : ''}>${escaparHtml(u.ubicacion_nombre)}</option>`),
+    `<option value="${CREAR_NUEVA}">＋ Crear nueva ubicación…</option>`,
+  ].join('');
+}
+
+export function htmlOpcionesMeta(seleccionada = '') {
+  return [
+    '<option value="">Sin meta</option>',
+    ...estado.metas.map((m) => `<option value="${m.meta_id}" ${m.meta_id === seleccionada ? 'selected' : ''}>${escaparHtml(m.meta_nombre)}</option>`),
+    `<option value="${CREAR_NUEVA}">＋ Crear nueva meta…</option>`,
+  ].join('');
 }
 
 export function htmlDiasHabiles(seleccionados = []) {
@@ -159,14 +182,8 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
     <label>Duración (min) <input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 15}" min="0" step="15" /></label>
     <input type="number" name="tarea_costo_estimado" min="0" placeholder="Costo estimado ($)" value="${t.tarea_costo_estimado || ''}" />
     <input type="text" name="tarea_descripcion" placeholder="Descripción / notas / links" value="${escaparHtml(t.tarea_descripcion || '')}" />
-    <select name="ubicacion_id">
-      <option value="">Sin ubicación</option>
-      ${estado.ubicaciones.map((u) => `<option value="${u.ubicacion_id}" ${u.ubicacion_id === t.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.ubicacion_nombre)}</option>`).join('')}
-    </select>
-    <select name="meta_id">
-      <option value="">Sin meta</option>
-      ${estado.metas.map((m) => `<option value="${m.meta_id}" ${m.meta_id === t.meta_id ? 'selected' : ''}>${escaparHtml(m.meta_nombre)}</option>`).join('')}
-    </select>
+    <select name="ubicacion_id">${htmlOpcionesUbicacion(t.ubicacion_id || '')}</select>
+    <select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select>
     ${htmlSelectEnlace('tarea_previa', 'Depende de (tarea previa)', opcionesPrevia(referencia, estado.tareas), previaActual, 'ya bloquea a', 'Sin tarea previa')}
     ${htmlSelectEnlace('tarea_proxima', 'Bloquea a (tarea próxima)', opcionesProxima(referencia, estado.tareas), proximaActual, 'ya depende de', 'Sin tarea próxima')}
     <label class="opcion-mantenimiento">
@@ -218,6 +235,38 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;
   checkbox.addEventListener('change', () => campos.forEach((c) => (c.hidden = !checkbox.checked)));
+
+  // "＋ Crear nueva…" en categoría, ubicación y meta: abre el diálogo de esa entidad y, al guardarla,
+  // reconstruye el desplegable con la nueva ya seleccionada.
+  [
+    ['categoria_id', htmlOpcionesCategoria, abrirDialogoCategoria],
+    ['ubicacion_id', htmlOpcionesUbicacion, abrirDialogoUbicacion],
+    ['meta_id', htmlOpcionesMeta, abrirDialogoMeta],
+  ].forEach(([nombre, htmlOpciones, abrirDialogo]) => {
+    const select = formulario[nombre];
+    select.dataset.previo = select.value;
+    select.addEventListener('focus', () => {
+      if (select.value !== CREAR_NUEVA) select.dataset.previo = select.value;
+    });
+    select.addEventListener('change', () => {
+      if (select.value !== CREAR_NUEVA) {
+        select.dataset.previo = select.value;
+        return;
+      }
+      // Se vuelve al valor anterior: así un borrador nunca guarda "Crear nueva…".
+      select.value = select.dataset.previo || '';
+      abrirDialogo({
+        alCrear: (nueva) => {
+          const id = nueva.categoria_id || nueva.ubicacion_id || nueva.meta_id;
+          // Se selecciona por propiedad (no por el atributo `selected`): así cuenta como un cambio del usuario y el
+          // borrador del alta lo conserva cuando la vista se redibuja al guardar la entidad.
+          select.innerHTML = htmlOpciones('');
+          select.value = id;
+          select.dataset.previo = id;
+        },
+      });
+    });
+  });
 
   // La primera letra del nombre se escribe siempre en mayúscula (sin mover el cursor).
   formulario.tarea_nombre.addEventListener('input', () => {
@@ -274,6 +323,11 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
   });
 }
 
+/** Valor de un desplegable de referencia: vacío o "Crear nueva…" (sin resolver) significan "sin valor". */
+function valorSeleccion(valor) {
+  return !valor || valor === CREAR_NUEVA ? null : valor;
+}
+
 /**
  * Lee el formulario: `campos` (para `crearTarea` o `aplicarCamposATarea`) y los
  * enlaces pedidos (`previaId`/`proximaId`, `null` = sin enlace). Si el
@@ -294,7 +348,7 @@ export function leerFormularioTarea(formulario) {
   return {
     campos: {
       tarea_nombre: capitalizarPrimera(String(datos.get('tarea_nombre') || '').trim()),
-      categoria_id: datos.get('categoria_id') || null,
+      categoria_id: valorSeleccion(datos.get('categoria_id')),
       tarea_importancia: datos.get('tarea_importancia') || null,
       tarea_disfrute: datos.get('tarea_disfrute') ? Number(datos.get('tarea_disfrute')) : null,
       tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
@@ -303,8 +357,8 @@ export function leerFormularioTarea(formulario) {
       tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 15,
       tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,
       tarea_descripcion: String(datos.get('tarea_descripcion') || '').trim(),
-      ubicacion_id: datos.get('ubicacion_id') || null,
-      meta_id: datos.get('meta_id') || null,
+      ubicacion_id: valorSeleccion(datos.get('ubicacion_id')),
+      meta_id: valorSeleccion(datos.get('meta_id')),
       tarea_requiere_clima_bueno: datos.get('tarea_requiere_clima_bueno') === 'on',
       tarea_mantenimiento: esMantenimiento,
       tarea_mantenimiento_intervalo: esMantenimiento
@@ -341,7 +395,25 @@ export function validarFormularioTarea(leido, tareaId = null) {
   return { ok: true };
 }
 
-/** Texto que identifica el contenido del formulario, para saber si el usuario cambió algo. */
-export function firmaFormulario(formulario) {
-  return JSON.stringify([...new FormData(formulario).entries()].map(([clave, valor]) => [clave, typeof valor === 'string' ? valor : '']));
+/**
+ * Para que un anillo de mantenimiento se sostenga, todas las tareas de su cadena
+ * deben ser de mantenimiento. Si la tarea tiene desencadenante y la cadena tiene
+ * tareas que no lo son, avisa cuáles y ofrece marcarlas con el mismo intervalo.
+ * Nada cambia sin confirmar; si se rechaza, la tarea se guarda igual. Muta las
+ * tareas (quien llama persiste). Devuelve las tareas marcadas.
+ */
+export function ofrecerMarcarCadenaMantenimiento(tarea, listaTareas) {
+  const faltantes = tareasDeLaCadenaNoRepetibles(tarea, listaTareas);
+  if (faltantes.length === 0) return [];
+  const intervalo = tarea.tarea_mantenimiento_intervalo || { cantidad: 1, unidad: 'dias' };
+  const texto = `cada ${intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[intervalo.unidad] || intervalo.unidad}`;
+  const quiere = confirm(
+    `Para que la cadena de «${tarea.tarea_nombre}» se repita entera, estas tareas también deben ser de mantenimiento: ${faltantes.map((t) => `«${t.tarea_nombre}»`).join(', ')}.\n\n¿Marcarlas como tareas de mantenimiento (${texto})? Después podés ajustar el intervalo de cada una.`
+  );
+  if (!quiere) return [];
+  faltantes.forEach((t) => {
+    t.tarea_mantenimiento = true;
+    t.tarea_mantenimiento_intervalo = { ...intervalo };
+  });
+  return faltantes;
 }

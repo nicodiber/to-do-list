@@ -867,3 +867,14 @@ export async function importarJSON(archivo) {
   for (const cfg of COLECCIONES) estado[cfg.clave] = normalizados[cfg.clave];
   await persistirYNotificar();
 }
+
+/**
+ * Vacía las colecciones (tareas, categorías, ubicaciones, metas, personas, mejoras
+ * y cumplimientos) y lo guarda como cualquier otro cambio: el estado y el archivo de
+ * Drive quedan vacíos y los otros dispositivos también borran (las bajas quedan
+ * registradas como eliminadas). Quien la llama debe pedir la confirmación.
+ */
+export async function borrarTodosLosDatos() {
+  for (const cfg of COLECCIONES) estado[cfg.clave] = [];
+  await persistirYNotificar();
+}
