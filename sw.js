@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v13';
+const CACHE_NAME = 'super-todo-list-v14';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -34,8 +34,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/formularios-entidades.js',
   'assets/js/ubicacion-actual.js',
   'views/hoy.view.js',
-  'views/tres-dias.view.js',
-  'views/ocho-dias.view.js',
+  'views/agenda.view.js',
   'views/semana.view.js',
   'views/tareas.view.js',
   'views/tabla.view.js',
@@ -44,7 +43,7 @@ const ARCHIVOS_PRECACHE = [
   'views/metas.view.js',
   'views/gantt.view.js',
   'views/personas.view.js',
-  'views/informes.view.js',
+  'views/estadisticas.view.js',
   'views/configuraciones.view.js',
 ];
 

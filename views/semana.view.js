@@ -15,20 +15,59 @@ function fechaDeReferenciaProyectada(tarea) {
   return fecha ? fecha.slice(0, 10) : null;
 }
 
+// En pantallas angostas los 7 días no entran: se muestran 3 (o 4 desde 480 px) por vez, con flechas.
+const PANTALLA_ANGOSTA = window.matchMedia('(max-width: 640px)');
+const PANTALLA_MUY_ANGOSTA = window.matchMedia('(max-width: 480px)');
+let primerDiaVisible = 0;
+let ultimoContenedor = null;
+
+function cantidadDiasVisibles() {
+  if (!PANTALLA_ANGOSTA.matches) return 7;
+  return PANTALLA_MUY_ANGOSTA.matches ? 3 : 4;
+}
+
+// Si cambia el ancho (girar el celular, cambiar el tamaño de la ventana) se redibuja con los días que caben.
+[PANTALLA_ANGOSTA, PANTALLA_MUY_ANGOSTA].forEach((mq) =>
+  mq.addEventListener('change', () => {
+    if (ultimoContenedor && ultimoContenedor.querySelector('.grilla-semana')) renderVistaSemana(ultimoContenedor);
+  })
+);
+
 export function renderVistaSemana(contenedor) {
+  ultimoContenedor = contenedor;
   const hoy = hoyISO();
-  const dias = Array.from({ length: 7 }, (_, i) => fechaISOMasDias(i, hoy));
+  const todosLosDias = Array.from({ length: 7 }, (_, i) => fechaISOMasDias(i, hoy));
+  const visibles = cantidadDiasVisibles();
+  primerDiaVisible = Math.max(0, Math.min(primerDiaVisible, 7 - visibles));
+  const dias = todosLosDias.slice(primerDiaVisible, primerDiaVisible + visibles);
 
   contenedor.innerHTML = `
     <h2>Semana</h2>
     <p class="ayuda">Tareas fijas (con horario agendado) y proyección de las pendientes según su fecha sugerida o límite. Hacé clic en una tarea para editarla.</p>
+    ${
+      visibles < 7
+        ? `<div class="navegacion-semana">
+            <button type="button" data-paso="-1" aria-label="Días anteriores" ${primerDiaVisible === 0 ? 'disabled' : ''}>‹</button>
+            <span>${formatearFecha(dias[0])} – ${formatearFecha(dias[dias.length - 1])}</span>
+            <button type="button" data-paso="1" aria-label="Días siguientes" ${primerDiaVisible >= 7 - visibles ? 'disabled' : ''}>›</button>
+          </div>`
+        : ''
+    }
     <div class="grilla-semana-contenedor">
       <div class="grilla-semana"></div>
     </div>
   `;
 
+  contenedor.querySelectorAll('.navegacion-semana button').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      primerDiaVisible += Number(boton.dataset.paso) * visibles;
+      renderVistaSemana(contenedor);
+    });
+  });
+
   const grilla = contenedor.querySelector('.grilla-semana');
   grilla.style.setProperty('--alto-hora', `${ALTO_HORA_PX}px`);
+  grilla.style.setProperty('--dias-visibles', String(dias.length));
   grilla.appendChild(renderColumnaHoras());
   dias.forEach((fechaDia) => grilla.appendChild(renderColumnaDia(fechaDia, hoy)));
 }

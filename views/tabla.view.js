@@ -1,9 +1,11 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, NIVELES_IMPORTANCIA, ORDEN_IMPORTANCIA, ESTADOS_TAREA } from '../assets/js/modelos.js';
+import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, NIVELES_IMPORTANCIA, ORDEN_IMPORTANCIA, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, escaparHtml } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
 import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
+import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
+import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 
 let filtroCategoria = '';
 let filtroEstado = '';
@@ -13,15 +15,6 @@ let columnaOrden = null; // null = orden de prioridad real de la app; o 'nombre'
 let direccionOrden = 'asc';
 let paresOmitidos = new Set(); // claves "idA|idB" (ordenados) omitidas en esta sesión de Versus, para no re-ofrecer el mismo par
 let panelVersusAbierto = false;
-
-const COLUMNAS = [
-  { clave: 'nombre', etiqueta: 'Nombre' },
-  { clave: 'categoria', etiqueta: 'Categoría' },
-  { clave: 'importancia', etiqueta: 'Importancia' },
-  { clave: 'estado', etiqueta: 'Estado' },
-  { clave: 'fecha', etiqueta: 'Fecha' },
-  { clave: 'holgura', etiqueta: 'Holgura' },
-];
 
 /**
  * IDs de una categoría y todas sus descendientes (recorriendo
@@ -56,14 +49,155 @@ function compararHolguraAsc(a, b) {
   return diasA - diasB;
 }
 
-const COMPARADORES = {
-  nombre: (a, b) => a.tarea_nombre.localeCompare(b.tarea_nombre),
-  categoria: (a, b) => caminoCategoria(categoriaDe(a), estado.categorias).localeCompare(caminoCategoria(categoriaDe(b), estado.categorias)),
-  importancia: (a, b) => (ORDEN_IMPORTANCIA[a.tarea_importancia] ?? 2) - (ORDEN_IMPORTANCIA[b.tarea_importancia] ?? 2),
-  estado: (a, b) => ESTADOS_TAREA.indexOf(a.tarea_estado) - ESTADOS_TAREA.indexOf(b.tarea_estado),
-  fecha: (a, b) => (fechaDeReferencia(a) || '9999-99-99').localeCompare(fechaDeReferencia(b) || '9999-99-99'),
-  holgura: compararHolguraAsc,
+const texto = (valor) => escaparHtml(valor == null ? '' : String(valor));
+const porTexto = (a, b) => String(a || '').localeCompare(String(b || ''));
+const porNumero = (a, b) => (a ?? 0) - (b ?? 0);
+const porFecha = (a, b) => (a || '9999-99-99').localeCompare(b || '9999-99-99');
+const nombreDe = (lista, idClave, idValor, campoNombre) => {
+  const encontrado = lista.find((x) => x[idClave] === idValor);
+  return encontrado ? encontrado[campoNombre] : '';
 };
+const nombrePrevia = (t) => {
+  const previa = t.tarea_dependiente ? estado.tareas.find((x) => x.tarea_id === t.tarea_dependiente) : null;
+  return previa ? previa.tarea_nombre : '';
+};
+const nombreProxima = (t) => {
+  const proxima = estado.tareas.find((x) => x.tarea_dependiente === t.tarea_id && x.tarea_estado !== 'completada');
+  return proxima ? proxima.tarea_nombre : '';
+};
+const fechaOVacia = (valor) => (valor ? formatearFechaOFechaHora(valor) : '');
+
+/**
+ * Todas las columnas posibles de la tabla. `defecto` marca las que se ven al empezar; el botón
+ * "Columnas" deja elegir cuáles mostrar. `valor` devuelve el HTML de la celda y `comparar` el orden.
+ */
+const COLUMNAS = [
+  { clave: 'nombre', etiqueta: 'Nombre', defecto: true, valor: (t) => texto(t.tarea_nombre), comparar: (a, b) => a.tarea_nombre.localeCompare(b.tarea_nombre) },
+  {
+    clave: 'categoria',
+    etiqueta: 'Categoría',
+    defecto: true,
+    // Con categorías anidadas se muestra la cadena completa (Facultad / IR / Prácticos).
+    valor: (t) => {
+      const categoria = categoriaDe(t);
+      return categoria ? texto(caminoCategoria(categoria, estado.categorias)) : '';
+    },
+    comparar: (a, b) => caminoCategoria(categoriaDe(a), estado.categorias).localeCompare(caminoCategoria(categoriaDe(b), estado.categorias)),
+  },
+  {
+    clave: 'importancia',
+    etiqueta: 'Importancia',
+    defecto: true,
+    valor: (t) => (t.tarea_importancia ? `${ICONOS_IMPORTANCIA[t.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[t.tarea_importancia]}` : ''),
+    comparar: (a, b) => (ORDEN_IMPORTANCIA[a.tarea_importancia] ?? 2) - (ORDEN_IMPORTANCIA[b.tarea_importancia] ?? 2),
+  },
+  { clave: 'estado', etiqueta: 'Estado', defecto: true, valor: (t) => ETIQUETAS_ESTADO[t.tarea_estado], comparar: (a, b) => ESTADOS_TAREA.indexOf(a.tarea_estado) - ESTADOS_TAREA.indexOf(b.tarea_estado) },
+  {
+    clave: 'fecha',
+    etiqueta: 'Fecha',
+    defecto: true,
+    valor: (t) => {
+      const fechaRef = fechaDeReferencia(t);
+      const fechaCompleta = t.tarea_fecha_sugerida || t.tarea_fecha_limite || null;
+      return fechaRef && fechaCompleta ? formatearFechaOFechaHora(fechaCompleta) : 'Sin fecha';
+    },
+    comparar: (a, b) => porFecha(fechaDeReferencia(a), fechaDeReferencia(b)),
+  },
+  { clave: 'holgura', etiqueta: 'Holgura', defecto: true, valor: (t) => (calcularHolguraDias(t) === Infinity ? '—' : textoHolgura(calcularHolguraDias(t))), comparar: compararHolguraAsc },
+  { clave: 'disfrute', etiqueta: 'Disfrute', valor: (t) => (t.tarea_disfrute ? '⭐'.repeat(t.tarea_disfrute) : ''), comparar: (a, b) => porNumero(a.tarea_disfrute, b.tarea_disfrute) },
+  { clave: 'inicio', etiqueta: 'Habilitada desde', valor: (t) => fechaOVacia(t.tarea_fecha_inicio_habilitada), comparar: (a, b) => porFecha(a.tarea_fecha_inicio_habilitada, b.tarea_fecha_inicio_habilitada) },
+  { clave: 'sugerida', etiqueta: 'Sugerida', valor: (t) => fechaOVacia(t.tarea_fecha_sugerida), comparar: (a, b) => porFecha(a.tarea_fecha_sugerida, b.tarea_fecha_sugerida) },
+  { clave: 'limite', etiqueta: 'Límite', valor: (t) => fechaOVacia(t.tarea_fecha_limite), comparar: (a, b) => porFecha(a.tarea_fecha_limite, b.tarea_fecha_limite) },
+  { clave: 'duracion', etiqueta: 'Duración (min)', valor: (t) => texto(t.tarea_duracion_min), comparar: (a, b) => porNumero(a.tarea_duracion_min, b.tarea_duracion_min) },
+  { clave: 'costo', etiqueta: 'Costo', valor: (t) => (t.tarea_costo_estimado ? `$${texto(t.tarea_costo_estimado)}` : ''), comparar: (a, b) => porNumero(a.tarea_costo_estimado, b.tarea_costo_estimado) },
+  {
+    clave: 'ubicacion',
+    etiqueta: 'Ubicación',
+    valor: (t) => texto(nombreDe(estado.ubicaciones, 'ubicacion_id', t.ubicacion_id, 'ubicacion_nombre')),
+    comparar: (a, b) => porTexto(nombreDe(estado.ubicaciones, 'ubicacion_id', a.ubicacion_id, 'ubicacion_nombre'), nombreDe(estado.ubicaciones, 'ubicacion_id', b.ubicacion_id, 'ubicacion_nombre')),
+  },
+  {
+    clave: 'meta',
+    etiqueta: 'Meta',
+    valor: (t) => texto(nombreDe(estado.metas, 'meta_id', t.meta_id, 'meta_nombre')),
+    comparar: (a, b) => porTexto(nombreDe(estado.metas, 'meta_id', a.meta_id, 'meta_nombre'), nombreDe(estado.metas, 'meta_id', b.meta_id, 'meta_nombre')),
+  },
+  {
+    clave: 'mantenimiento',
+    etiqueta: 'Mantenimiento',
+    valor: (t) => (t.tarea_mantenimiento && t.tarea_mantenimiento_intervalo ? `🔁 cada ${t.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[t.tarea_mantenimiento_intervalo.unidad]}` : ''),
+    comparar: (a, b) => Number(!!b.tarea_mantenimiento) - Number(!!a.tarea_mantenimiento),
+  },
+  {
+    clave: 'dias',
+    etiqueta: 'Días hábiles',
+    valor: (t) =>
+      t.tarea_dias_habiles && t.tarea_dias_habiles.length > 0
+        ? t.tarea_dias_habiles
+            .slice()
+            .sort()
+            .map((i) => DIAS_SEMANA[i].slice(0, 3))
+            .join(', ')
+        : '',
+    comparar: (a, b) => porNumero((a.tarea_dias_habiles || []).length, (b.tarea_dias_habiles || []).length),
+  },
+  { clave: 'previa', etiqueta: 'Depende de', valor: (t) => texto(nombrePrevia(t)), comparar: (a, b) => porTexto(nombrePrevia(a), nombrePrevia(b)) },
+  { clave: 'proxima', etiqueta: 'Bloquea a', valor: (t) => texto(nombreProxima(t)), comparar: (a, b) => porTexto(nombreProxima(a), nombreProxima(b)) },
+  { clave: 'creada', etiqueta: 'Creada', valor: (t) => fechaOVacia(t.tarea_creada_en), comparar: (a, b) => porFecha(a.tarea_creada_en, b.tarea_creada_en) },
+  { clave: 'completada', etiqueta: 'Completada el', valor: (t) => fechaOVacia(t.tarea_fecha_fin), comparar: (a, b) => porFecha(a.tarea_fecha_fin, b.tarea_fecha_fin) },
+];
+
+const COMPARADORES = Object.fromEntries(COLUMNAS.map((c) => [c.clave, c.comparar]));
+
+// La elección de columnas es una preferencia de UI (no un dato de la app).
+const CLAVE_COLUMNAS = 'super-todo-list:tabla-columnas';
+
+/** Columnas visibles según la preferencia guardada (o las de por defecto). */
+function columnasVisibles() {
+  try {
+    const guardadas = JSON.parse(localStorage.getItem(CLAVE_COLUMNAS));
+    if (Array.isArray(guardadas)) {
+      const validas = COLUMNAS.filter((c) => guardadas.includes(c.clave));
+      if (validas.length > 0) return validas;
+    }
+  } catch {
+    // Sin preferencia guardada o ilegible: se usan las de por defecto.
+  }
+  return COLUMNAS.filter((c) => c.defecto);
+}
+
+function guardarColumnasVisibles(claves) {
+  try {
+    localStorage.setItem(CLAVE_COLUMNAS, JSON.stringify(claves));
+  } catch {
+    // Es solo una preferencia.
+  }
+}
+
+/** Diálogo con una casilla por columna para elegir cuáles se ven. */
+function abrirSelectorColumnas(alCambiar) {
+  const visibles = new Set(columnasVisibles().map((c) => c.clave));
+  abrirDialogoFormulario({
+    titulo: 'Columnas de la tabla',
+    textoGuardar: 'Guardar',
+    cuerpoHtml: `
+      <p class="ayuda ayuda-formulario">Elegí qué columnas mostrar. Se recuerda tu elección en este dispositivo.</p>
+      <fieldset class="dias-habiles selector-columnas">
+        ${COLUMNAS.map((c) => `<label class="dia-habil"><input type="checkbox" name="columna" value="${c.clave}" ${visibles.has(c.clave) ? 'checked' : ''} /> ${c.etiqueta}</label>`).join('')}
+      </fieldset>
+    `,
+    alGuardar: (formulario) => {
+      const elegidas = [...formulario.querySelectorAll('input[name="columna"]:checked')].map((i) => i.value);
+      if (elegidas.length === 0) {
+        alert('Elegí al menos una columna.');
+        return false;
+      }
+      guardarColumnasVisibles(elegidas);
+      alCambiar();
+      return true;
+    },
+  });
+}
 
 /**
  * Vista de referencia y auditoría: todas las tareas (de cualquier estado),
@@ -73,6 +207,9 @@ const COMPARADORES = {
  * editarla.
  */
 export function renderVistaTabla(contenedor) {
+  const columnas = columnasVisibles();
+  // Si la columna elegida para ordenar se ocultó, vuelve el orden de prioridad.
+  if (columnaOrden !== null && !columnas.some((c) => c.clave === columnaOrden)) columnaOrden = null;
   const filas = estado.tareas
     .filter((t) => !filtroCategoria || idsCategoriaYDescendientes(filtroCategoria, estado.categorias).has(t.categoria_id))
     .filter((t) => !filtroEstado || t.tarea_estado === filtroEstado)
@@ -121,6 +258,7 @@ export function renderVistaTabla(contenedor) {
       <label>Buscar
         <input type="search" id="buscador-nombre-todas" placeholder="Nombre de la tarea..." value="${escaparHtml(textoBusqueda)}" />
       </label>
+      <button type="button" id="boton-columnas-tabla">Columnas</button>
       <button type="button" id="boton-reset-orden-todas">↺ Prioridad</button>
       <button type="button" id="boton-versus-todas">⚔️ Versus</button>
     </div>
@@ -129,7 +267,7 @@ export function renderVistaTabla(contenedor) {
       <table class="tabla-informe">
         <thead>
           <tr>
-            ${COLUMNAS.map(({ clave, etiqueta }) => {
+            ${columnas.map(({ clave, etiqueta }) => {
               const activa = columnaOrden === clave;
               const flecha = activa ? (direccionOrden === 'asc' ? ' ▲' : ' ▼') : '';
               return `<th data-columna="${clave}" class="th-ordenable${activa ? ' activa' : ''}">${etiqueta}${flecha}</th>`;
@@ -185,31 +323,21 @@ export function renderVistaTabla(contenedor) {
     });
   });
 
+  contenedor.querySelector('#boton-columnas-tabla').addEventListener('click', () => abrirSelectorColumnas(() => renderVistaTabla(contenedor)));
+
   const cuerpo = contenedor.querySelector('#cuerpo-tabla-todas');
   if (filas.length === 0) {
-    cuerpo.innerHTML = '<tr><td colspan="6" class="mensaje-vacio">No hay tareas que coincidan con el filtro.</td></tr>';
+    cuerpo.innerHTML = '<tr><td colspan="${columnas.length}" class="mensaje-vacio">No hay tareas que coincidan con el filtro.</td></tr>';
     return;
   }
 
-  filas.forEach((tarea) => cuerpo.appendChild(renderFila(tarea)));
+  filas.forEach((tarea) => cuerpo.appendChild(renderFila(tarea, columnas)));
 }
 
-function renderFila(tarea) {
-  const categoria = categoriaDe(tarea);
-  const fechaRef = fechaDeReferencia(tarea);
-  const fechaCompleta = tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || null;
-  const holgura = calcularHolguraDias(tarea);
-
+function renderFila(tarea, columnas) {
   const fila = document.createElement('tr');
   fila.className = 'fila-tabla-tarea';
-  fila.innerHTML = `
-    <td>${escaparHtml(tarea.tarea_nombre)}</td>
-    <td>${categoria ? escaparHtml(caminoCategoria(categoria, estado.categorias)) : ''}</td>
-    <td>${tarea.tarea_importancia ? `${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}` : ''}</td>
-    <td>${ETIQUETAS_ESTADO[tarea.tarea_estado]}</td>
-    <td>${fechaRef && fechaCompleta ? formatearFechaOFechaHora(fechaCompleta) : 'Sin fecha'}</td>
-    <td>${holgura === Infinity ? '—' : textoHolgura(holgura)}</td>
-  `;
+  fila.innerHTML = columnas.map((c) => `<td>${c.valor(tarea)}</td>`).join('');
   fila.addEventListener('click', () => {
     abrirEdicionTarea(tarea.tarea_id);
   });

@@ -1,6 +1,7 @@
 import { estado } from '../assets/js/almacenamiento.js';
 import { hoyISO, fechaISOMasDias, formatearFecha, escaparHtml } from '../assets/js/utilidades.js';
 import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
+import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
 
 const DIAS_VENTANA = 7;
 const ESTADOS_ACTIVOS = ['bloqueada', 'pendiente'];
@@ -38,12 +39,19 @@ function calcularProyeccionCostos() {
   return { cantidad: pendientesConCosto.length, total };
 }
 
-const SEMANAS_THROUGHPUT = 8;
+const SEMANAS_HECHAS = 2;
+const SEMANAS_PLANIFICADAS = 6;
 
+/**
+ * Throughput semanal: las últimas `SEMANAS_HECHAS` semanas (bloques de 7 días que terminan hoy)
+ * con las tareas completadas en cada una, y las próximas `SEMANAS_PLANIFICADAS` (bloques de 7
+ * días desde mañana) con las tareas sin completar cuya fecha sugerida o, si no tiene, su
+ * fecha límite cae en ese bloque.
+ */
 function calcularThroughputSemanal() {
   const hoy = hoyISO();
   const semanas = [];
-  for (let i = SEMANAS_THROUGHPUT - 1; i >= 0; i--) {
+  for (let i = SEMANAS_HECHAS - 1; i >= 0; i--) {
     const fin = fechaISOMasDias(-7 * i, hoy);
     const inicio = fechaISOMasDias(-7 * i - 6, hoy);
     const cantidad = estado.tareas.filter(
@@ -53,21 +61,37 @@ function calcularThroughputSemanal() {
         t.tarea_fecha_fin.slice(0, 10) >= inicio &&
         t.tarea_fecha_fin.slice(0, 10) <= fin
     ).length;
-    semanas.push({ inicio, fin, cantidad });
+    semanas.push({ inicio, fin, cantidad, planificada: false });
+  }
+  for (let i = 0; i < SEMANAS_PLANIFICADAS; i++) {
+    const inicio = fechaISOMasDias(1 + 7 * i, hoy);
+    const fin = fechaISOMasDias(7 + 7 * i, hoy);
+    const cantidad = estado.tareas.filter((t) => {
+      if (!ESTADOS_ACTIVOS.includes(t.tarea_estado)) return false;
+      const fecha = fechaDeReferencia(t);
+      return fecha && fecha >= inicio && fecha <= fin;
+    }).length;
+    semanas.push({ inicio, fin, cantidad, planificada: true });
   }
   return semanas;
 }
 
-export function renderVistaInformes(contenedor) {
+/** Fecha corta (dd/mm) para el eje del gráfico. */
+function fechaCorta(iso) {
+  return formatearFecha(iso).slice(0, 5);
+}
+
+export function renderVistaEstadisticas(contenedor) {
   const desde = fechaISOMasDias(-(DIAS_VENTANA - 1), hoyISO());
   const porCategoria = calcularPorCategoria(desde);
   const proyeccionCostos = calcularProyeccionCostos();
   const throughput = calcularThroughputSemanal();
   const maxThroughput = Math.max(1, ...throughput.map((s) => s.cantidad));
-  const totalThroughput = throughput.reduce((suma, s) => suma + s.cantidad, 0);
+  const totalHechas = throughput.filter((s) => !s.planificada).reduce((suma, s) => suma + s.cantidad, 0);
+  const totalPlanificadas = throughput.filter((s) => s.planificada).reduce((suma, s) => suma + s.cantidad, 0);
 
   contenedor.innerHTML = `
-    <h2>Informes</h2>
+    <h2>Estadísticas</h2>
     <p class="ayuda">Calculados sobre los últimos ${DIAS_VENTANA} días. Es un primer corte simple, no un histórico completo de eventos.</p>
 
     <section>
@@ -110,21 +134,22 @@ export function renderVistaInformes(contenedor) {
     <section>
       <h3>Throughput semanal</h3>
       ${
-        totalThroughput === 0
-          ? '<p class="mensaje-vacio">Todavía no hay tareas completadas para mostrar una tendencia.</p>'
+        totalHechas === 0 && totalPlanificadas === 0
+          ? '<p class="mensaje-vacio">Todavía no hay tareas completadas ni planificadas para mostrar.</p>'
           : `<div class="throughput-semanal">
               ${throughput
                 .map(
                   (s) => `
                     <div class="barra-throughput-item">
                       <span class="barra-throughput-valor">${s.cantidad}</span>
-                      <div class="barra-throughput" style="height:${(s.cantidad / maxThroughput) * 100}%"></div>
-                      <span class="barra-throughput-etiqueta">${formatearFecha(s.inicio)}</span>
+                      <div class="barra-throughput${s.planificada ? ' planificada' : ''}" style="height:${(s.cantidad / maxThroughput) * 100}%" title="${s.planificada ? 'Planificadas' : 'Completadas'} del ${formatearFecha(s.inicio)} al ${formatearFecha(s.fin)}"></div>
+                      <span class="barra-throughput-etiqueta">${fechaCorta(s.inicio)}</span>
                     </div>`
                 )
                 .join('')}
             </div>
-            <p class="ayuda">Promedio: ${(totalThroughput / SEMANAS_THROUGHPUT).toFixed(1)} tarea(s)/semana en las últimas ${SEMANAS_THROUGHPUT} semanas.</p>`
+            <p class="ayuda leyenda-throughput"><span class="muestra-throughput"></span> completadas (últimas ${SEMANAS_HECHAS} semanas) · <span class="muestra-throughput planificada"></span> planificadas (próximas ${SEMANAS_PLANIFICADAS} semanas, por fecha sugerida o límite). Cada barra es una semana y se rotula con su primer día.</p>
+            <p class="ayuda">Completadas: ${(totalHechas / SEMANAS_HECHAS).toFixed(1)} tarea(s)/semana en las últimas ${SEMANAS_HECHAS} semanas. Planificadas: ${(totalPlanificadas / SEMANAS_PLANIFICADAS).toFixed(1)} tarea(s)/semana en las próximas ${SEMANAS_PLANIFICADAS}.</p>`
       }
     </section>
   `;

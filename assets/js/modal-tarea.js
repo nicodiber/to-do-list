@@ -4,6 +4,7 @@
 // encima de cualquier vista.
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
+import { crearTarea } from './modelos.js';
 import {
   htmlFormularioTarea,
   conectarFormularioTarea,
@@ -65,3 +66,63 @@ export function abrirEdicionTarea(id) {
     },
   });
 }
+
+let altaAbierta = false;
+
+/**
+ * Ventana para cargar una tarea nueva, con el mismo formulario que la edición. Enter
+ * (o "Agregar y cargar otra") agrega la tarea y deja la ventana abierta, vacía y con el
+ * cursor en el nombre, para cargar varias seguidas; "Agregar" agrega y cierra. Si el
+ * pedido de enlaces es contradictorio no se crea la tarea ni se limpia el formulario.
+ */
+export function abrirAltaTarea() {
+  if (altaAbierta) return;
+  altaAbierta = true;
+
+  abrirDialogoFormulario({
+    titulo: 'Nueva tarea',
+    cuerpoHtml: htmlFormularioTarea(null, { modo: 'alta' }),
+    botonesGuardar: [
+      { texto: 'Agregar y cargar otra', valor: 'otra', orden: 1 },
+      { texto: 'Agregar', valor: 'cerrar', orden: 0 },
+    ],
+    conectar: (formulario) => conectarFormularioTarea(formulario, { modo: 'alta' }),
+    alCerrar: () => {
+      altaAbierta = false;
+    },
+    alGuardar: async (formulario, { valor, reiniciarFirma }) => {
+      const leido = leerFormularioTarea(formulario);
+      if (!leido.campos.tarea_nombre) {
+        alert('La tarea necesita un nombre.');
+        return false;
+      }
+      const validacion = validarFormularioTarea(leido);
+      if (!validacion.ok) {
+        alert(validacion.motivo);
+        return false;
+      }
+
+      const nueva = crearTarea(leido.campos);
+      estado.tareas.push(nueva);
+      const enlace = aplicarEnlace(nueva.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
+      if (!enlace.ok) {
+        // Enlace contradictorio: no se crea la tarea ni se limpia el formulario, para que el usuario reajuste.
+        estado.tareas = estado.tareas.filter((t) => t.tarea_id !== nueva.tarea_id);
+        alert(enlace.motivo);
+        return false;
+      }
+      ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
+      await persistirYNotificar();
+
+      if (valor === 'cerrar') return true;
+      // Cargar otra: se vacía el formulario y el cursor vuelve al nombre.
+      formulario.reset();
+      formulario.querySelectorAll('.item-checklist-editor').forEach((fila) => fila.remove());
+      formulario.tarea_mantenimiento.dispatchEvent(new Event('change'));
+      reiniciarFirma();
+      formulario.tarea_nombre.focus();
+      return false;
+    },
+  });
+}
+

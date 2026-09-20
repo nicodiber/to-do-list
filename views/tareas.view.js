@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { crearTarea, NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
+import { NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { formatearFechaOFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml, arbolCategorias, caminoCategoria } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import {
@@ -10,37 +10,28 @@ import {
   compararPorPrioridad,
   esTareaAccionable,
 } from '../assets/js/tareas-logica.js';
-import { aplicarEnlace } from '../assets/js/dependencias.js';
-import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, validarFormularioTarea, nombreConCategoria, ofrecerMarcarCadenaMantenimiento } from '../assets/js/formulario-tarea.js';
-import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
-import { capturarBorradores, restaurarBorradores } from '../assets/js/borradores.js';
+import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
+import { abrirEdicionTarea, abrirAltaTarea } from '../assets/js/modal-tarea.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
 const ESTADOS_SELECCIONABLES = ['pendiente', 'completada'];
 const ETIQUETAS_ESTADO_SELECCIONABLE = { pendiente: 'Pendiente', completada: 'Completada' };
-const SELECTOR_BORRADOR = '[data-conservar-borrador]';
+const ORDEN_ESTADOS = { pendiente: 0, bloqueada: 1, completada: 2 };
 
 let filtroCategoria = '';
 let filtroEstado = '';
 let filtroImportancia = '';
 let agruparPorCategoria = false;
-
-/** Redibuja la vista (por ejemplo al cambiar un filtro) sin perder lo que hay escrito en el alta. */
-function redibujar(contenedor) {
-  const captura = capturarBorradores(contenedor, { soloEn: SELECTOR_BORRADOR });
-  renderVistaTareas(contenedor);
-  restaurarBorradores(contenedor, captura);
-}
+// El desplegable "Completadas (N)" recuerda si estaba abierto entre redibujados.
+let completadasAbiertas = false;
 
 export function renderVistaTareas(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
   contenedor.innerHTML = `
     <h2>Tareas</h2>
-    <form id="form-alta" class="formulario-tarea formulario-alta" data-conservar-borrador>
-      ${htmlFormularioTarea(null, { modo: 'alta', botonesNombre: '<button type="submit" class="boton-primario">Agregar</button>' })}
-    </form>
+    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-tarea-lista" class="boton-primario">＋ Nueva tarea</button></div>
 
     <div class="filtros">
       <label>Categoría
@@ -91,59 +82,27 @@ export function renderVistaTareas(contenedor) {
     <ul id="lista-tareas" class="lista-tareas"></ul>
   `;
 
-  // Un solo formulario: con solo el nombre crea una tarea rápida; con más campos, la completa.
-  const formulario = contenedor.querySelector('#form-alta');
-  conectarFormularioTarea(formulario, { modo: 'alta' });
-  formulario.addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-    const leido = leerFormularioTarea(formulario);
-    if (!leido.campos.tarea_nombre) return;
-
-    const validacion = validarFormularioTarea(leido);
-    if (!validacion.ok) {
-      alert(validacion.motivo);
-      return;
-    }
-    const nueva = crearTarea(leido.campos);
-    estado.tareas.push(nueva);
-    const enlace = aplicarEnlace(nueva.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
-    if (!enlace.ok) {
-      // Enlace contradictorio: no se crea la tarea ni se limpia el formulario, para que el usuario reajuste.
-      estado.tareas = estado.tareas.filter((t) => t.tarea_id !== nueva.tarea_id);
-      alert(enlace.motivo);
-      return;
-    }
-    ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
-    await persistirYNotificar();
-
-    // La vista se redibujó conservando lo escrito (borrador): ahora sí se limpia para la próxima tarea.
-    const nuevoFormulario = document.querySelector('#form-alta');
-    if (nuevoFormulario) {
-      nuevoFormulario.reset();
-      nuevoFormulario.tarea_mantenimiento.dispatchEvent(new Event('change'));
-      nuevoFormulario.tarea_nombre.focus();
-    }
-  });
+  contenedor.querySelector('#boton-nueva-tarea-lista').addEventListener('click', () => abrirAltaTarea());
 
   contenedor.querySelector('#filtro-categoria').addEventListener('change', (evento) => {
     filtroCategoria = evento.target.value;
-    redibujar(contenedor);
+    renderVistaTareas(contenedor);
   });
   contenedor.querySelector('#filtro-estado').addEventListener('change', (evento) => {
     filtroEstado = evento.target.value;
-    redibujar(contenedor);
+    renderVistaTareas(contenedor);
   });
   contenedor.querySelector('#filtro-ubicacion').addEventListener('change', (evento) => {
     establecerUbicacionActual(evento.target.value);
-    redibujar(contenedor);
+    renderVistaTareas(contenedor);
   });
   contenedor.querySelector('#filtro-importancia').addEventListener('change', (evento) => {
     filtroImportancia = evento.target.value;
-    redibujar(contenedor);
+    renderVistaTareas(contenedor);
   });
   contenedor.querySelector('#toggle-agrupar-categoria').addEventListener('change', (evento) => {
     agruparPorCategoria = evento.target.checked;
-    redibujar(contenedor);
+    renderVistaTareas(contenedor);
   });
 
   const contenedorPanelIA = contenedor.querySelector('#contenedor-panel-ia-prioridades');
@@ -164,24 +123,46 @@ export function renderVistaTareas(contenedor) {
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
     .filter((t) => !filtroImportancia || t.tarea_importancia === filtroImportancia)
     .slice()
-    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+    // Primero las pendientes, luego las bloqueadas y al final las completadas; dentro de cada grupo, por prioridad.
+    .sort((a, b) => ORDEN_ESTADOS[a.tarea_estado] - ORDEN_ESTADOS[b.tarea_estado] || compararPorPrioridad(a, b, estado.categorias));
+
+  const activas = tareasFiltradas.filter((t) => t.tarea_estado !== 'completada');
+  const completadas = tareasFiltradas.filter((t) => t.tarea_estado === 'completada');
 
   if (tareasFiltradas.length === 0) {
     listaTareas.innerHTML = '<p class="mensaje-vacio">No hay tareas que coincidan con el filtro.</p>';
-  } else if (!agruparPorCategoria) {
-    tareasFiltradas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+    return;
+  }
+
+  if (!agruparPorCategoria) {
+    activas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
   } else {
     arbolCategorias(estado.categorias).forEach(({ categoria }) => {
-      const tareasDeCategoria = tareasFiltradas.filter((t) => t.categoria_id === categoria.categoria_id);
+      const tareasDeCategoria = activas.filter((t) => t.categoria_id === categoria.categoria_id);
       if (tareasDeCategoria.length === 0) return;
       listaTareas.appendChild(crearSeparadorCategoria(caminoCategoria(categoria, estado.categorias), categoria.categoria_color));
       tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
     });
-    const tareasSinCategoria = tareasFiltradas.filter((t) => !t.categoria_id);
+    const tareasSinCategoria = activas.filter((t) => !t.categoria_id);
     if (tareasSinCategoria.length > 0) {
       listaTareas.appendChild(crearSeparadorCategoria('Sin categoría'));
       tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
     }
+  }
+
+  // Las completadas quedan plegadas al final para que la lista de trabajo no se llene con lo ya hecho.
+  // Con el filtro Estado = Completada son lo único que hay, así que se muestran abiertas.
+  if (completadas.length > 0) {
+    const desplegable = document.createElement('details');
+    desplegable.className = 'completadas-plegadas';
+    desplegable.open = completadasAbiertas || filtroEstado === 'completada';
+    desplegable.innerHTML = `<summary>Completadas (${completadas.length})</summary><ul class="lista-tareas"></ul>`;
+    const listaCompletadas = desplegable.querySelector('ul');
+    completadas.forEach((tarea) => listaCompletadas.appendChild(renderTarea(tarea)));
+    desplegable.addEventListener('toggle', () => {
+      if (filtroEstado !== 'completada') completadasAbiertas = desplegable.open;
+    });
+    listaTareas.appendChild(desplegable);
   }
 }
 
@@ -202,16 +183,20 @@ function renderTarea(tarea) {
   const proxima = estado.tareas.find((t) => t.tarea_dependiente === tarea.tarea_id && t.tarea_estado !== 'completada');
 
   const li = document.createElement('li');
-  const clases = ['item-tarea'];
-  if (esVencida(tarea.tarea_fecha_limite) && tarea.tarea_estado !== 'completada') clases.push('vencida');
+  const clases = ['item-tarea', 'item-tarea-tareas'];
+  const vencida = esVencida(tarea.tarea_fecha_limite) && tarea.tarea_estado !== 'completada';
+  if (vencida) clases.push('vencida');
+  if (tarea.tarea_estado === 'completada') clases.push('completada');
   if (noPuedeEmpezarTodavia(tarea.tarea_fecha_inicio_habilitada)) clases.push('aun-no-disponible');
   if (bloqueada) clases.push('bloqueada');
   li.className = clases.join(' ');
   li.dataset.id = tarea.tarea_id;
+  li.style.setProperty('--color-categoria', categoria ? categoria.categoria_color : 'var(--color-borde)');
   li.innerHTML = `
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
+        ${vencida ? '<span class="etiqueta-vencida">⚠️ Vencida</span>' : ''}
         ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(caminoCategoria(categoria, estado.categorias))}</span>` : ''}
         ${tarea.tarea_fecha_inicio_habilitada ? `<span class="etiqueta-fecha">Desde: ${formatearFechaOFechaHora(tarea.tarea_fecha_inicio_habilitada)}</span>` : ''}

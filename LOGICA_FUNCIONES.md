@@ -160,10 +160,10 @@ Consulta de pronóstico real (Open-Meteo, sin API key) para tareas con `tarea_re
 
 ## `assets/js/vista-agenda.js`
 
-Motor compartido de las vistas "3 días" y "8 días" (ambas son wrappers triviales).
+Motor de la vista Agenda (`views/agenda.view.js` le pasa la cantidad de días).
 
 - **`fechaDeReferencia(tarea)`** (exportada): resuelve la fecha (solo el día) por la que se agrupa una tarea — `tarea_fecha_sugerida` si tiene valor, si no `tarea_fecha_limite`. También la usa `views/tabla.view.js`.
-- **`renderVistaAgenda(contenedor, cantidadDias)`**: agrupa las tareas pendientes (filtradas por la "ubicación actual") por día, para los próximos `cantidadDias` empezando hoy.
+- **`renderVistaAgenda(contenedor, cantidadDias, alCambiarRango)`**: agrupa las tareas pendientes (filtradas por la "ubicación actual") por día, para los próximos `cantidadDias` empezando hoy, con el selector 3 · 8 · 15 días (avisa la elección con `alCambiarRango`).
 - **`renderTarjetaTarea(tarea)`**: arma la tarjeta de una tarea (badges, aviso de bloqueo con la tarea de la que depende, aviso de clima) con un botón "Posponer" que reprograma vía `reprogramarTareaConCascada`.
 
 ## `assets/js/ia-conectable.js`
@@ -212,15 +212,15 @@ Vista "Hoy": separa tareas urgentes del resto (ver `REGLAS_DE_PRIORIDAD.md`), co
 - **`renderVistaHoy(contenedor)`**: arma las secciones Urgentes / Resto (con el apartado "Elegí por categoría" vía `mejorTareaPorCategoria`) / Todavía no pueden empezar / Bloqueadas, filtradas por la ubicación actual. `bloqueadas` y `accionables` se separan directamente por `tarea_estado`.
 - **`renderItem(tarea, opciones)`**: tarjeta de una tarea con sus badges (importancia, categoría, fechas, holgura, estado, ubicación, costo, clima, solapamiento con Calendar). Si es accionable, agrega los botones "Cumplida"/"No cumplida" (sin pedir duración/costo real — se eliminaron de la app); si además está vencida, agrega "📅 Revalorizar fecha límite" (reusa `crearPanelReprogramar`, pero escribe directo `tarea.tarea_fecha_limite` sin cascada a dependientes — ver `REGLAS_DE_PRIORIDAD.md`).
 
-## `views/tres-dias.view.js` / `views/ocho-dias.view.js`
+## `views/agenda.view.js`
 
-Wrappers triviales: delegan en `renderVistaAgenda(contenedor, 3)` / `renderVistaAgenda(contenedor, 8)`. Sin lógica propia.
+Vista "Agenda" (unifica las antiguas "3 días" y "8 días"): **`renderVistaAgendaConSelector(contenedor)`** llama a `renderVistaAgenda` con la cantidad de días guardada (3, 8 o 15; por defecto 8) en `localStorage` (`super-todo-list:agenda-dias`, una preferencia de UI).
 
 ## `views/semana.view.js`
 
 Vista "Semana": grilla horaria de 7 días (07:00-23:00) con tareas fijas y proyectadas.
 
-- **`renderVistaSemana(contenedor)`**: arma la grilla.
+- **`renderVistaSemana(contenedor)`**: arma la grilla, ajustada al ancho de la pantalla (columnas `minmax(0, 1fr)`, sin desplazamiento lateral). En pantallas angostas (`matchMedia` ≤ 640 px) muestra 3 días (4 desde 480 px) con flechas ‹ › (`primerDiaVisible`) y se redibuja al cambiar el ancho.
 - **`renderColumnaDia(fechaDia, hoy)`**: separa tareas "fijas" (`tarea_fecha_sugerida` con hora ese día) de "proyectadas" (accionables sin hora en `tarea_fecha_sugerida`, cuya fecha de referencia cae ese día, apiladas por prioridad).
 - **`renderBloqueTarea(...)` / `agregarAsasArrastre(...)`**: cada bloque tiene asas arrastrables (Pointer Events) para modificar `tarea_fecha_sugerida` (agregándole/cambiándole la hora)/`tarea_duracion_min` directamente desde la grilla, en pasos de 15 minutos.
 
@@ -228,8 +228,8 @@ Vista "Semana": grilla horaria de 7 días (07:00-23:00) con tareas fijas y proye
 
 La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 
-- **`renderVistaTareas(contenedor)`**: arma el formulario de alta unificado (`#form-alta`, un solo campo de nombre, marcado `data-conservar-borrador`), los filtros y la lista filtrada/ordenada. El alta lee el formulario, valida (`validarFormularioTarea`), crea la tarea, aplica los enlaces con `aplicarEnlace` (si son contradictorios, quita la tarea recién creada y avisa sin limpiar el formulario) y, ya guardado, limpia el formulario y devuelve el foco al nombre. Los filtros redibujan con `redibujar`, que conserva lo escrito en el alta.
-- **`renderTarea(tarea)`**: tarjeta con los badges, el checklist con casillas que se tildan ahí mismo (persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
+- **`renderVistaTareas(contenedor)`**: botón "＋ Nueva tarea" (abre `abrirAltaTarea`), los filtros y la lista. Orden: pendientes → bloqueadas (por prioridad dentro de cada grupo) y, al final, las completadas plegadas en un `<details class="completadas-plegadas">` "Completadas (N)" que recuerda si estaba abierto (y se muestra abierto con el filtro Estado = Completada).
+- **`renderTarea(tarea)`**: tarjeta con el borde izquierdo del color de la categoría (`--color-categoria`), etiqueta "⚠️ Vencida" y fondo rojizo si está vencida, los badges, el checklist con casillas que se tildan ahí mismo (persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
 ## `assets/js/formulario-tarea.js`
@@ -249,7 +249,7 @@ Formulario de tarea compartido por el alta, la ventana de edición y "Completar 
 Ventana modal genérica para un formulario (tareas, categorías, ubicaciones, metas, personas).
 
 - **`activarMayusculaInicial(campo)`**: la primera letra de un campo de texto se escribe siempre en mayúscula, sin mover el cursor (nombres de tareas, categorías, ubicaciones, metas y personas; también se aplica en las funciones `crearXxx` de `modelos.js`).
-- **`abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar, conectar, alGuardar, alCerrar })`**: cada llamada crea su propio `<dialog>` en `document.body` (se pueden apilar) y lo quita al cerrar, sin depender del evento `close`. `alGuardar(formulario)` devuelve `true` para cerrar o `false` para dejarla abierta. Esc, el clic afuera (solo si empezó y terminó afuera) y "Cancelar" preguntan "¿Descartarlos?" solo si el formulario cambió (`firmaFormulario`).
+- **`abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar, botonesGuardar, conectar, alGuardar, alCerrar })`** (con `botonesGuardar` hay varios botones de guardado; `alGuardar` recibe cuál se apretó y una función `reiniciarFirma`): cada llamada crea su propio `<dialog>` en `document.body` (se pueden apilar) y lo quita al cerrar, sin depender del evento `close`. `alGuardar(formulario)` devuelve `true` para cerrar o `false` para dejarla abierta. Esc, el clic afuera (solo si empezó y terminó afuera) y "Cancelar" preguntan "¿Descartarlos?" solo si el formulario cambió (`firmaFormulario`).
 
 ## `assets/js/formularios-entidades.js`
 
@@ -261,6 +261,8 @@ Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCatego
 
 ## `assets/js/modal-tarea.js`
 
+
+- **`abrirAltaTarea()`**: ventana "Nueva tarea" con el formulario compartido. "Agregar y cargar otra" va primero en el DOM (lo dispara Enter): agrega y deja la ventana vacía con el cursor en el nombre; "Agregar" agrega y cierra. Valida, crea la tarea, aplica los enlaces (un pedido contradictorio no crea la tarea ni limpia el formulario) y ofrece marcar la cadena de un anillo de mantenimiento. La abren el "＋" de la cabecera, la tecla N y el botón de la vista Tareas.
 Ventana modal de edición (`<dialog>` en `document.body`, sobrevive a los redibujados).
 
 - **`abrirEdicionTarea(id)`** (sobre `abrirDialogoFormulario`): la abre encima de la vista actual (Tareas, Tabla, Gantt o Semana) con el formulario compartido. Esc y el clic afuera pasan por la confirmación "Hay cambios sin guardar. ¿Descartarlos?" solo si el formulario cambió. Al guardar: si la tarea se eliminó mientras se editaba, avisa y cierra; si su `tarea_modificado_en` cambió desde que se abrió (cambio de otro dispositivo), pide confirmar que se pisan esos cambios; valida el nombre y los enlaces; aplica los campos y `aplicarEnlace`, y persiste.
@@ -278,6 +280,7 @@ Ventana modal de edición (`<dialog>` en `document.body`, sobrevive a los redibu
 Vista de referencia y auditoría: todas las tareas (de cualquier estado), con filtros y orden por columna.
 
 - **`renderVistaTabla(contenedor)`**: por defecto ordena por `compararPorPrioridad` (el orden real de la app), para detectar de un vistazo si algo quedó mal priorizado. Filtros de categoría (inclusivo de descendientes, vía `idsCategoriaYDescendientes`), estado, importancia y buscador por nombre. Clic en un header de columna cambia el orden a esa columna sola (`COMPARADORES`), con toggle asc/desc y un botón "↺ Prioridad" para volver al orden por defecto. Clic en una fila abre esa tarea en edición en Tareas.
+- **`COLUMNAS` / `columnasVisibles()` / `abrirSelectorColumnas()`**: las 20 columnas posibles (cada una con su `valor` y su `comparar`), las visibles según la preferencia `super-todo-list:tabla-columnas` (por defecto nombre, categoría con su cadena completa, importancia, estado, fecha y holgura) y el diálogo "Columnas" con una casilla por columna.
 - **`idsCategoriaYDescendientes(categoriaId, categorias)`**: IDs de una categoría y todas sus descendientes, recorriendo `categoria_padre_id` hacia abajo — a diferencia del filtro de categoría de Tareas (que compara `categoria_id` exacto), este es inclusivo de descendientes.
 - **`crearPanelVersus(contenedorVista)`**: panel toggleable (botón "⚔️ Versus") que ofrece de a un par de tareas empatadas (`construirClusteres`/`proximoParVersus`, sobre `esTareaAccionable`) para que el usuario elija cuál prefiere, o las omita. Ver `REGLAS_DE_PRIORIDAD.md` para el mecanismo completo (asignación de `tarea_prioridad_manual`, por qué "omitir" no asigna nada).
 
@@ -313,14 +316,16 @@ Diagrama de Gantt por Meta.
 - **`renderVistaPersonas(contenedor)`**: botón "＋ Nueva persona" y la lista, ordenada de mayor a menor tiempo sin contacto.
 - **`renderPersona(persona)`**: tarjeta con "Editar" (nombre y último contacto) y "Marcar contacto hoy".
 
-## `views/informes.view.js`
+## `views/estadisticas.view.js`
+
+(Antes "Informes", `views/informes.view.js`; renombrada en v0.55.0. `#/informes` sigue llevando a esta vista.)
 
 Métricas calculadas al vuelo sobre `estado.tareas`, sin histórico propio guardado.
 
 - **`calcularPorCategoria(desde)`**: completadas en la ventana vs. pendientes actuales (`ESTADOS_ACTIVOS = ['bloqueada', 'pendiente']`), por categoría.
 - **`calcularProyeccionCostos()`**: suma de `tarea_costo_estimado` de las tareas pendientes activas.
-- **`calcularThroughputSemanal()`**: cantidad de tareas completadas por semana, últimas 8 semanas, sobre `tarea_fecha_fin`.
-- **`renderVistaInformes(contenedor)`**: arma las secciones Completadas vs. pendientes / Costos (proyección de pendientes) / Throughput semanal. Ya no incluye comparación de duración/costo real vs. estimado (esos campos se eliminaron del modelo).
+- **`calcularThroughputSemanal()`**: 8 barras semanales: las 2 últimas semanas (bloques de 7 días que terminan hoy) con las tareas completadas según `tarea_fecha_fin`, y las 6 próximas (bloques de 7 días desde mañana) con las tareas sin completar cuya `fechaDeReferencia` (sugerida > límite) cae en cada bloque.
+- **`renderVistaEstadisticas(contenedor)`**: arma las secciones Completadas vs. pendientes / Costos (proyección de pendientes) / Throughput semanal. Ya no incluye comparación de duración/costo real vs. estimado (esos campos se eliminaron del modelo).
 
 ## `sw.js`
 

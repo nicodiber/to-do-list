@@ -2,6 +2,30 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.55.0] - 2026-09-20
+
+Ronda de diseño: pestañas, vista Tareas y estadísticas (pedidos surgidos de la validación de la Ronda 5; ver `REDISENO.md`).
+
+### Agregado
+
+- **Nueva tarea en ventana modal**: el botón "＋ Nueva tarea" de la vista Tareas, el "＋" de la cabecera y la tecla N abren la misma ventana **encima de la vista actual**, sin ir a Tareas. **Enter agrega la tarea y deja la ventana abierta, vacía y con el cursor en el nombre** ("Agregar y cargar otra") para cargar varias seguidas; el botón "Agregar" agrega y cierra. Si el pedido de enlaces es contradictorio no se crea la tarea ni se limpia el formulario. `abrirAltaTarea` (`assets/js/modal-tarea.js`); el diálogo genérico admite varios botones de guardado.
+- **Vista "Agenda"**: unifica "3 días" y "8 días" con un selector de **3 · 8 · 15 días** que recuerda la última elección.
+- **Vista Tabla con todas las columnas** y un botón **"Columnas"** para elegir cuáles ver (por defecto: nombre, categoría, importancia, estado, fecha y holgura; además disfrute, habilitada desde, sugerida, límite, duración, costo, ubicación, meta, mantenimiento, días hábiles, depende de, bloquea a, creada y completada el). La categoría muestra su cadena completa (Facultad / IR / Prácticos). Se puede ordenar por cualquier columna visible y la tabla se desplaza hacia el costado dentro de su recuadro (no la página).
+- **Semana en celular**: 3 días por vez (4 desde 480 px) con flechas ‹ ›; en compu se ven los 7 ajustados al ancho.
+- **Tarjetas de Tareas**: el borde izquierdo lleva el color de la categoría; las vencidas muestran una etiqueta roja "⚠️ Vencida" y un fondo rojizo suave (en lugar del borde rojo).
+
+### Cambiado
+
+- **Nuevo orden de las pestañas**: Hoy · Agenda · Semana · Gantt · Tabla · Estadísticas · Categorías · Ubicaciones · Metas · Tareas · Personas · Configuraciones. Los enlaces viejos (`#/tres-dias`, `#/ocho-dias`, `#/informes`, `#/todas`) siguen llevando a su vista.
+- **"Informes" pasa a llamarse "Estadísticas"** (ahí irá después el tracking de hábitos). El **throughput semanal** ahora muestra las 2 últimas semanas ya completadas (barras sólidas) y las **6 próximas semanas planificadas** (barras rayadas, por fecha sugerida o límite), con leyenda y fechas cortas (dd/mm).
+- **La vista Tareas** sigue la plantilla de Categorías: botón "＋ Nueva tarea" arriba y el listado debajo (se quitó el formulario en línea). Las tareas se ordenan **pendientes → bloqueadas → completadas** (dentro de cada grupo, por prioridad) y las completadas quedan **plegadas** en un desplegable "Completadas (N)" al final, que recuerda si estaba abierto y se muestra abierto con el filtro Estado = Completada.
+- El "＋" de la cabecera y la tecla N ya no navegan a Tareas; se ignoran si ya hay una ventana abierta.
+- `sw.js`: `CACHE_NAME` a `v14` y precache actualizado.
+
+### Eliminado
+
+- Las vistas `views/tres-dias.view.js` y `views/ocho-dias.view.js` (reemplazadas por `views/agenda.view.js`) y el formulario de alta en línea de la vista Tareas.
+
 ## [v0.54.1] - 2026-09-20
 
 Ajustes surgidos de la validación manual de la Ronda 5.

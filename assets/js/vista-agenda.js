@@ -21,9 +21,9 @@ export function fechaDeReferencia(tarea) {
 /**
  * Vista de agenda genérica: agrupa las tareas pendientes por día (según
  * fechaDeReferencia) para los próximos `cantidadDias`, empezando hoy. La
- * usan las vistas de 3 y 8 días para no duplicar la lógica de agrupamiento.
+ * usa la vista Agenda (con su selector de 3, 8 o 15 días).
  */
-export function renderVistaAgenda(contenedor, cantidadDias) {
+export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = null) {
   const hoy = hoyISO();
   const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(i, hoy));
   const filtroUbicacion = obtenerUbicacionActual();
@@ -38,7 +38,10 @@ export function renderVistaAgenda(contenedor, cantidadDias) {
   });
 
   contenedor.innerHTML = `
-    <h2>Próximos ${cantidadDias} días</h2>
+    <h2>Agenda</h2>
+    <div class="selector-rango" role="group" aria-label="Cantidad de días">
+      ${[3, 8, 15].map((n) => `<button type="button" data-dias="${n}" class="${n === cantidadDias ? 'activo' : ''}">${n} días</button>`).join('')}
+    </div>
     <p class="ayuda">Tareas con fecha límite o sugerida en este período — para anticipar cuellos de botella antes de que se conviertan en urgencias.</p>
     ${
       estado.ubicaciones.length > 0
@@ -55,11 +58,19 @@ export function renderVistaAgenda(contenedor, cantidadDias) {
     <div class="agenda"></div>
   `;
 
+  contenedor.querySelectorAll('.selector-rango button').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      const dias = Number(boton.dataset.dias);
+      if (alCambiarRango) alCambiarRango(dias);
+      renderVistaAgenda(contenedor, dias, alCambiarRango);
+    });
+  });
+
   const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-agenda');
   if (selectFiltroUbicacion) {
     selectFiltroUbicacion.addEventListener('change', (evento) => {
       establecerUbicacionActual(evento.target.value);
-      renderVistaAgenda(contenedor, cantidadDias);
+      renderVistaAgenda(contenedor, cantidadDias, alCambiarRango);
     });
   }
 

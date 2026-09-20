@@ -15,10 +15,10 @@ import {
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre } from './tareas-logica.js';
 import { abrirCargaTareas } from './carga-tareas.js';
+import { abrirAltaTarea } from './modal-tarea.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
-import { renderVistaTresDias } from '../../views/tres-dias.view.js';
-import { renderVistaOchoDias } from '../../views/ocho-dias.view.js';
+import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
 import { renderVistaTareas } from '../../views/tareas.view.js';
 import { renderVistaTabla } from '../../views/tabla.view.js';
@@ -27,11 +27,11 @@ import { renderVistaUbicaciones } from '../../views/ubicaciones.view.js';
 import { renderVistaMetas } from '../../views/metas.view.js';
 import { renderVistaGantt } from '../../views/gantt.view.js';
 import { renderVistaPersonas } from '../../views/personas.view.js';
-import { renderVistaInformes } from '../../views/informes.view.js';
+import { renderVistaEstadisticas } from '../../views/estadisticas.view.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.54.1';
+const VERSION = 'v0.55.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -44,24 +44,24 @@ const BOTON_NUEVA_TAREA = document.getElementById('boton-nueva-tarea');
 const BOTON_COMPLETAR_CARGA = document.getElementById('boton-completar-carga');
 const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 
+// El orden es el de las pestañas: primero las de mirar el trabajo (por tiempo), después las de estructura.
 const VISTAS = {
   hoy: { etiqueta: 'Hoy', render: renderVistaHoy },
-  'tres-dias': { etiqueta: '3 días', render: renderVistaTresDias },
-  'ocho-dias': { etiqueta: '8 días', render: renderVistaOchoDias },
+  agenda: { etiqueta: 'Agenda', render: renderVistaAgendaConSelector },
   semana: { etiqueta: 'Semana', render: renderVistaSemana },
-  tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
+  gantt: { etiqueta: 'Gantt', render: renderVistaGantt },
   tabla: { etiqueta: 'Tabla', render: renderVistaTabla },
+  estadisticas: { etiqueta: 'Estadísticas', render: renderVistaEstadisticas },
   categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
   ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },
   metas: { etiqueta: 'Metas', render: renderVistaMetas },
-  gantt: { etiqueta: 'Gantt', render: renderVistaGantt },
+  tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
   personas: { etiqueta: 'Personas', render: renderVistaPersonas },
-  informes: { etiqueta: 'Informes', render: renderVistaInformes },
   configuraciones: { etiqueta: 'Configuraciones', render: renderVistaConfiguraciones },
 };
 
 // Nombres viejos de vistas (por enlaces o marcadores guardados) que siguen llevando a la vista actual.
-const ALIAS_VISTAS = { todas: 'tabla' };
+const ALIAS_VISTAS = { todas: 'tabla', informes: 'estadisticas', 'tres-dias': 'agenda', 'ocho-dias': 'agenda' };
 
 function vistaActual() {
   const pedida = location.hash.replace('#/', '');
@@ -325,32 +325,15 @@ suscribir((_estado, opciones) => render(opciones));
 // por eso se usa la tecla sola — mismo patrón que Gmail/Linear/Notion.
 // Se ignora si el foco está en un campo editable, para no interferir al
 // escribir "n" dentro de cualquier input/textarea/select de la app.
-let enfocarAltaRapidaAlEntrar = false;
-
-function enfocarAltaRapida() {
-  const input = document.querySelector('#form-alta input[name="tarea_nombre"]');
-  if (input) input.focus();
+/** Abre la ventana de nueva tarea encima de la vista actual: la usan el botón "＋" y el atajo "N". */
+function abrirNuevaTarea() {
+  if (BOTON_NUEVA_TAREA.hidden) return; // sin datos listos o en solo lectura no hay alta
+  if (document.querySelector('dialog[open]')) return; // ya hay una ventana abierta
+  abrirAltaTarea();
 }
 
-/** Lleva al alta de tareas (vista Tareas) y enfoca el nombre: lo usan el botón "+" y el atajo "N". */
-function irAlAltaDeTarea() {
-  if (vistaActual() === 'tareas') {
-    enfocarAltaRapida();
-  } else {
-    enfocarAltaRapidaAlEntrar = true;
-    location.hash = '#/tareas';
-  }
-}
-
-BOTON_NUEVA_TAREA.addEventListener('click', irAlAltaDeTarea);
+BOTON_NUEVA_TAREA.addEventListener('click', abrirNuevaTarea);
 BOTON_COMPLETAR_CARGA.addEventListener('click', abrirCargaTareas);
-
-window.addEventListener('hashchange', () => {
-  if (enfocarAltaRapidaAlEntrar && vistaActual() === 'tareas') {
-    enfocarAltaRapidaAlEntrar = false;
-    enfocarAltaRapida();
-  }
-});
 
 window.addEventListener('keydown', (evento) => {
   if (evento.ctrlKey || evento.altKey || evento.metaKey) return;
@@ -362,11 +345,10 @@ window.addEventListener('keydown', (evento) => {
       objetivo.tagName === 'TEXTAREA' ||
       objetivo.tagName === 'SELECT' ||
       objetivo.isContentEditable);
-  if (enCampo) return;
+  if (enCampo || BOTON_NUEVA_TAREA.hidden) return;
 
-  if (BOTON_NUEVA_TAREA.hidden) return; // sin datos listos o en solo lectura no hay alta
   evento.preventDefault();
-  irAlAltaDeTarea();
+  abrirNuevaTarea();
 });
 
 function temaEfectivo() {
