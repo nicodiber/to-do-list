@@ -20,7 +20,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **Vista "Configuraciones"** *(implementada en v0.54.0, con un "Borrar todos los datos" de doble confirmación además)*: por ahora solo "Importar JSON" y "Exportar JSON" (que dejan de estar en la cabecera). Drive queda en la cabecera. Importar debe **pedir confirmación** antes de reemplazar todo. *(La confirmación ya está desde v0.51.0; la vista y el traslado de los botones llegan en la Ronda 5.)*
 - ✅ **Vista nueva "Tablero"** con pestañas: *Progreso por categoría* y *Hábitos* (ver más abajo).
 - ✅ **Vista nueva "Mejoras"** para repasar las notas de mejora de las tareas de mantenimiento (ver A4).
-- ❓ **Semana**: candidata a eliminarse o fusionarse con "8 días" (el usuario considera que 8 días la reemplaza).
+- ✅ **Pestañas** *(v0.55.0)*: Hoy · Agenda (unifica 3 y 8 días, con selector 3 · 8 · 15) · Semana · Gantt · Tabla · Estadísticas (antes Informes) · Categorías · Ubicaciones · Metas · Tareas · Personas · Configuraciones. Semana se mantiene (grilla por horas).
 
 ## A1 · Hoy
 
@@ -43,7 +43,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ✅ **El nombre de la tarea siempre empieza con mayúscula** *(v0.53.1)*.
 - ✅ **Las tarjetas muestran de qué depende una tarea y a cuál bloquea**, sin entrar a editar, y la categoría acompaña al nombre en los desplegables de enlaces *(v0.53.1)*.
 
-- ❓ **Rediseño de pestañas y de la vista Tareas** *(ideas del usuario, validación de la Ronda 5; se define y se hace en una ronda de diseño)*: (1) la vista Tareas con la misma plantilla que Categorías: botón "＋ Nueva tarea" arriba (se abre la ventana modal) y el listado debajo; (2) nuevo orden de las pestañas, agrupando las de fin parecido: Hoy, 3 días, 8 días, Semana, Gantt, Tabla, Estadísticas (hoy "Informes"; ahí dentro irá luego el "tracking" con los mapas de calor de hábitos), Categorías, Ubicaciones, Metas, Tareas, Personas, Configuraciones; (3) Semana sin barra de desplazamiento lateral, aprovechando el ancho de la pantalla; (4) Tabla con más columnas (todos los valores de cada tarea y la cadena completa de categorías anidadas); (5) tarjetas de tareas: colores por algún criterio y orden pendientes → bloqueadas → completadas; (6) throughput semanal mostrando actual y **futuro** (no actual y pasado).
+- ✅ **Rediseño de pestañas y de la vista Tareas** *(implementado en v0.55.0)*: la vista Tareas con la plantilla de Categorías (botón "＋ Nueva tarea" y listado debajo; la alta se abre en la ventana modal, también desde el "＋" y la tecla N, con Enter = agregar y cargar otra); nuevo orden de pestañas y Estadísticas (ahí irá el tracking de hábitos); Semana ajustada al ancho (3-4 días con flechas en celular); Tabla con todas las columnas y selector de columnas (categoría con su cadena); tarjetas con borde del color de la categoría, vencidas con etiqueta y fondo, orden pendientes → bloqueadas → completadas con las completadas plegadas; throughput con 2 semanas hechas y 6 planificadas.
 
 ## A3 · Completar carga de tareas
 
@@ -101,7 +101,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 - ❓ Definir si usa `tarea_fecha_sugerida` en vez de/además de `tarea_fecha_inicio_habilitada`, y cómo marcar visualmente `tarea_fecha_limite`.
 - 🔮 **Fecha implícita**: para las tareas sin `tarea_fecha_sugerida`, evaluar asignarles una posición posterior a la tarea siguiente de mayor prioridad. Se analiza en profundidad cuando se encare el rediseño del Gantt.
 
-## E1 · Informes
+## E1 · Estadísticas (antes Informes)
 
 - ❓ Evaluar usar Google Calendar como fuente del historial real (STDL = pendientes, Calendar = agenda fija y registro de lo ocurrido). Requiere leer un rango histórico de eventos (hoy solo se lee el día de hoy).
 

@@ -44,7 +44,7 @@ Capa de IA conectable (sugerir subtareas, definir metas charlando, reestructurar
 - **Prioridad**: ver [REGLAS_DE_PRIORIDAD.md](REGLAS_DE_PRIORIDAD.md). Es la base de las vistas Hoy, Tabla y demás.
 - **Flujos de usuario**: [CASOS_DE_USO.md](CASOS_DE_USO.md) (cómo funciona hoy) y [REDISENO.md](REDISENO.md) (cómo debería ser).
 - **Lo que el sistema hace solo**: [PROCESOS_AUTOMATICOS.md](PROCESOS_AUTOMATICOS.md).
-- **Tipos de vista**: visualizadores (Hoy, 3 días, 8 días, Gantt, Tabla, Informes), ABMs (Tareas, Categorías, Ubicaciones, Metas, Personas, con ventanas modales para crear y editar), asistentes (Revisar mi día) y configuración/integraciones (Drive, Calendar, Configuraciones).
+- **Tipos de vista**: visualizadores (Hoy, Agenda, Semana, Gantt, Tabla, Estadísticas), ABMs (Tareas, Categorías, Ubicaciones, Metas, Personas, con ventanas modales para crear y editar), asistentes (Revisar mi día) y configuración/integraciones (Drive, Calendar, Configuraciones).
 
 ## 5. Requisitos no funcionales
 

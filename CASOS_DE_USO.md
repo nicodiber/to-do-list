@@ -21,12 +21,11 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 | Vista | Tipo | Casos de uso relacionados |
 |---|---|---|
 | Hoy | Visualizador | A1, A4, A5, A6 |
-| 3 días | Visualizador | A7 |
-| 8 días | Visualizador | A7 |
-| Semana ⚠️ candidata a fusión con 8 días | Visualizador | A7 |
+| Agenda (antes 3 y 8 días) | Visualizador | A7 |
+| Semana | Visualizador | A7 |
 | Gantt | Visualizador | B2 |
 | Tabla | Visualizador | A8 |
-| Informes | Visualizador | E1 |
+| Estadísticas (antes Informes) | Visualizador | E1 |
 | Tareas (listado + alta/edición) | ABM | A2, A3, A4, A5, B1 |
 | Categorías | ABM | C1 |
 | Ubicaciones | ABM | C2 |
@@ -65,16 +64,16 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: no perder una idea o pendiente apenas surge, sin importar el dispositivo, y poder darle todos sus datos en el mismo momento si se quiere.
 - **Disparador**: se le ocurre algo, en cualquier momento.
-- **Pasos**: botón "＋" de la cabecera (o atajo "N") desde cualquier vista → Tareas, con el foco en el nombre → escribe el nombre → Enter (o "Agregar") → tarea creada. Si antes de confirmar completa más campos (todos visibles debajo del nombre y opcionales: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, tarea previa y próxima, buen tiempo, mantenimiento con intervalo, desencadenante y checklist, días hábiles), se crea la tarea completa. Un solo formulario, un solo campo de nombre.
+- **Pasos**: botón "＋" de la cabecera (o atajo "N", o "＋ Nueva tarea" en la vista Tareas) desde cualquier vista → se abre la ventana "Nueva tarea" con el cursor en el nombre → escribe el nombre → Enter → tarea creada y la ventana queda abierta, vacía y lista para la siguiente. Si antes de confirmar completa más campos (todos visibles debajo del nombre y opcionales: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, tarea previa y próxima, buen tiempo, mantenimiento con intervalo, desencadenante y checklist, días hábiles), se crea la tarea completa. Un solo formulario, un solo campo de nombre.
 - **Flujo usuario/sistema**:
   1. Usuario hace clic en "＋" (o presiona "N", si no está escribiendo en un campo).
-  2. Sistema navega a Tareas (si hacía falta) y enfoca el nombre del formulario de alta.
-  3. Usuario escribe el nombre. (Si coincide exacto con una tarea ya cargada, el sistema precarga sus demás datos como sugerencia —solo en los campos que el usuario todavía no tocó—; los ve debajo y los puede cambiar.)
+  2. Sistema abre la ventana "Nueva tarea" encima de la vista actual (sin cambiar de vista) y enfoca el nombre.
+  3. Usuario escribe el nombre (la primera letra queda en mayúscula). Si coincide exacto con una tarea ya cargada, el sistema precarga sus demás datos como sugerencia —solo en los campos que el usuario todavía no tocó—; los ve debajo y los puede cambiar.
   4. Usuario (opcional) completa los demás campos, incluido "depende de (tarea previa)" y "bloquea a (tarea próxima)". Si la categoría, la ubicación o la meta que necesita no existe, elige "＋ Crear nueva…" en ese desplegable: se abre la ventana de esa entidad y, al guardarla, la nueva queda seleccionada sin perder lo ya escrito.
-  5. Usuario presiona Enter o "Agregar".
+  5. Usuario presiona **Enter** (o "Agregar y cargar otra") o "Agregar".
   6. Sistema valida: si el pedido de enlaces es contradictorio (regla 1 a 1, ver `REDISENO.md`), muestra el conflicto y **no crea la tarea ni limpia el formulario** para que el usuario reajuste. Si elige una tarea ya enlazada, la nueva se inserta en medio (P→A→N).
-  7. Sistema crea la tarea, la guarda, limpia el formulario y devuelve el foco al nombre para cargar la siguiente. Lo que estaba a medio escribir se conserva si el usuario hace otra acción antes de agregar (por ejemplo tildar un paso de un checklist) o cambia un filtro.
-- **Vistas/funciones**: `views/tareas.view.js` (`#form-alta`), `assets/js/formulario-tarea.js` (`htmlFormularioTarea`, `leerFormularioTarea`, `validarFormularioTarea`), `assets/js/dependencias.js` (`aplicarEnlace`), `assets/js/modelos.js` (`crearTarea`), botón "＋" y atajo "N" en `assets/js/app.js`.
+  7. Sistema crea la tarea y la guarda. Con Enter / "Agregar y cargar otra" vacía el formulario y vuelve el cursor al nombre para cargar la siguiente; con "Agregar" cierra la ventana. "Cancelar" (o Esc / clic afuera) pregunta antes de descartar solo si hay algo escrito.
+- **Vistas/funciones**: `assets/js/modal-tarea.js` (`abrirAltaTarea`), `assets/js/dialogo-formulario.js`, `assets/js/formulario-tarea.js` (`htmlFormularioTarea`, `leerFormularioTarea`, `validarFormularioTarea`), `assets/js/dependencias.js` (`aplicarEnlace`), `assets/js/modelos.js` (`crearTarea`), botón "＋" y atajo "N" en `assets/js/app.js`, botón "＋ Nueva tarea" en `views/tareas.view.js`.
 - **Resultado**: nueva Tarea en `estado.tareas`, persistida (y enlazada, si se pidió).
 - **Fricciones**: si se escribe en el nombre algo que coincide con una tarea ya cargada, la precarga completa los campos que no se tocaron aunque el usuario solo quisiera una alta rápida (los ve debajo y los puede corregir); nunca pisa lo ya cargado.
 
@@ -116,7 +115,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Objetivo**: mover la fecha de una tarea que no se va a cumplir cuando estaba prevista.
 - **Disparador**: no se llegó a hacer (reactivo), se decide adelantar/atrasar a propósito (proactivo), o el sistema detecta que ya venció.
 - **Pasos — reactivo**: botón "No cumplida ✗" → "Reprogramar" → panel con atajos de día/hora → confirma → se mueve `tarea_fecha_sugerida`, en cascada a dependientes.
-- **Pasos — proactivo**: botón "Posponer" (disponible en Tareas, Hoy, 3/8 días) → mismo panel.
+- **Pasos — proactivo**: botón "Posponer" (disponible en Tareas, Hoy y Agenda) → mismo panel.
 - **Pasos — automático**: `tarea_fecha_sugerida` vencida de una tarea activa se reprograma sola al abrir la app, con aviso (ver `PROCESOS_AUTOMATICOS.md`).
 - **Pasos — fecha límite vencida**: botón "📅 Revalorizar fecha límite" (solo visible en "Urgentes" de Hoy) → mismo panel, pero escribe `tarea_fecha_limite` directamente, **sin** cascada a dependientes (a diferencia de los anteriores).
 - **Flujo usuario/sistema — reactivo (desde Hoy)**:
@@ -161,17 +160,17 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: ver qué se viene en los próximos días, para anticipar cuellos de botella sin esperar a que sea "hoy".
 - **Disparador**: planificación de la semana, o repaso rápido de lo cargado.
-- **Pasos**: navegar a "3 días" u "8 días" → tareas agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`) → dentro de cada día, ordenadas por hora/prioridad → posponer directo desde cada tarjeta. "Semana" ofrece una grilla horaria (07-23h) con las tareas de horario fijo ubicadas en su hora exacta y las proyectadas apiladas por prioridad, con arrastre para reprogramar.
+- **Pasos**: navegar a "Agenda" (con el selector de 3, 8 o 15 días) → tareas agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`) → dentro de cada día, ordenadas por hora/prioridad → posponer directo desde cada tarjeta. "Semana" ofrece una grilla horaria (07-23h; en compu se ven los 7 días ajustados al ancho y en celular 3 o 4 por vez, con flechas) con las tareas de horario fijo ubicadas en su hora exacta y las proyectadas apiladas por prioridad, con arrastre para reprogramar.
 - **Flujo usuario/sistema**:
-  1. Usuario navega a "3 días" u "8 días".
+  1. Usuario navega a "Agenda" y, si quiere, cambia el rango (3, 8 o 15 días; se recuerda la última elección).
   2. Sistema agrupa las tareas con fecha de referencia por día y, dentro de cada día, las ordena por hora y prioridad.
   3. Usuario revisa los días y detecta cuellos de botella.
   4. Usuario (opcional) hace clic en "Posponer" de una tarjeta.
   5. Sistema muestra el panel de reprogramar (A5) y, al confirmar, mueve la fecha y redibuja.
   6. (Semana) Usuario arrastra el borde de un bloque; sistema actualiza `tarea_fecha_sugerida`/`tarea_duracion_min` en pasos de 15 minutos y guarda.
-- **Vistas/funciones**: `assets/js/vista-agenda.js` (`fechaDeReferencia`, lógica compartida entre 3/8 días), `views/tres-dias.view.js`, `views/ocho-dias.view.js`, `views/semana.view.js` ⚠️.
+- **Vistas/funciones**: `assets/js/vista-agenda.js` (`fechaDeReferencia`, `renderVistaAgenda`), `views/agenda.view.js`, `views/semana.view.js`.
 - **Resultado**: no cambia datos (salvo que se reprograme algo desde ahí).
-- **Fricciones**: 3 vistas conceptualmente parecidas (3 días / 8 días / Semana) — el usuario ya identificó que 8 días le resuelve lo mismo que Semana, marcándola **candidata a fusionarse o eliminarse** en el rediseño (no se elimina en este documento, solo se deja anotado).
+- **Fricciones**: Agenda y Semana muestran lo mismo con formatos distintos (lista por día vs. grilla por horas); por ahora se mantienen las dos.
 
 ### A8. Auditar y corregir el orden de prioridad
 
@@ -339,15 +338,15 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ## Bloque E — Analítica
 
-### E1. Ver Informes
+### E1. Ver Estadísticas
 
 - **Objetivo**: entender de un vistazo cómo viene la carga de trabajo y el uso del tiempo.
-- **Pasos**: ir a Informes → 3 secciones: completadas (últimos 7 días) vs. pendientes por categoría; costo estimado total de pendientes; throughput semanal (últimas 8 semanas, gráfico de barras).
+- **Pasos**: ir a Estadísticas → 3 secciones: completadas (últimos 7 días) vs. pendientes por categoría; costo estimado total de pendientes; throughput semanal (las 2 últimas semanas completadas y las 6 próximas planificadas, gráfico de barras con leyenda).
 - **Flujo usuario/sistema**:
-  1. Usuario abre Informes.
+  1. Usuario abre Estadísticas.
   2. Sistema calcula al vuelo, sobre las tareas y categorías en memoria, las 3 secciones (completadas vs. pendientes por categoría, costo estimado de pendientes, throughput semanal) y las muestra.
   3. Usuario lee; no hay acciones en esta vista.
-- **Vistas/funciones**: `views/informes.view.js` — todo el cálculo es local y en vivo sobre `estado.tareas`/`estado.categorias`, sin ningún dato propio persistido.
+- **Vistas/funciones**: `views/estadisticas.view.js` — todo el cálculo es local y en vivo sobre `estado.tareas`/`estado.categorias`, sin ningún dato propio persistido.
 - **Resultado**: no cambia datos, es de solo lectura con datos y gráficos.
 - **Nota abierta para rediseño** (del usuario): evaluar que el historial "real" de lo ocurrido viva en Google Calendar (agenda fija + registro de lo que pasó) en vez de en STDL, ya que STDL está pensado para gestionar pendientes, no como bitácora histórica. Hoy Informes depende 100% de `tarea_fecha_fin`/`tarea_estado` propios de STDL; migrar a Calendar como fuente implicaría leer un **rango histórico** de eventos (hoy `google-calendar.js` solo lee el día de hoy, ver D3) y resolver cómo cruzar esos eventos con categorías/costos de STDL.
 - **Fricciones**: throughput y completadas dependen enteramente de que el usuario complete las tareas *dentro* de STDL — si termina algo y lo anota directo en Calendar sin pasar por acá, no cuenta para estas métricas (tensión directa con la nota de arriba).

@@ -1,4 +1,4 @@
-// Preferencia de UI compartida entre vistas (Hoy, Tareas, 3/8 días): qué
+// Preferencia de UI compartida entre vistas (Hoy, Tareas, Agenda): qué
 // ubicación está "activa" para filtrar tareas. Vive en localStorage bajo
 // una clave propia (no en `estado`) porque es una preferencia de sesión,
 // no un dato de la app — no debe sincronizarse vía Drive/carpeta local.
