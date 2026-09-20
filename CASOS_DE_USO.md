@@ -215,23 +215,20 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ### B2. Visualizar el Gantt
 
-- **Objetivo**: ver en el tiempo un conjunto de tareas, con sus dependencias, para detectar solapamientos o cuellos de botella.
+- **Objetivo**: ver en el tiempo todas las tareas, con sus cadenas de dependencia, para detectar solapamientos, cuellos de botella y tareas que no llegan a su fecha límite.
 - **Disparador**: planificación de conjunto de tareas que tienen dependencia, o revisión general.
-- **Pasos (hoy)**: ir a Gantt → elegir una Meta puntual o "Todas las metas" (agrupa por meta con separadores) → ve una barra por tarea (inicio = `tarea_fecha_inicio_habilitada`, fin = `tarea_fecha_limite`, con fallbacks entre fechas si falta alguna) coloreada por categoría, con flechas SVG de dependencia entre barras visibles, arrastrables en los bordes para ajustar inicio/fin → clic en una barra abre esa tarea en Tareas.
+- **Pasos**: ir a Gantt → elegir el modo (**Plan**: cada tarea en su día sugerido; **Ventana**: el margen entre la fecha habilitada y el límite) y la escala (2 · 4 · 12 semanas, con "Hoy" para volver) → opcionalmente agrupar (categoría principal, meta o nada) y filtrar (categoría con sus subcategorías, meta, estado, texto en el nombre) → leer las barras y flechas → arrastrar o tocar una tarea.
 - **Flujo usuario/sistema**:
   1. Usuario abre Gantt.
-  2. Sistema muestra el selector de Meta y la grilla temporal con las tareas que tienen meta asociada (o un mensaje si no hay metas o tareas asociadas).
-  3. Usuario elige una meta puntual (o deja "Todas las metas").
-  4. Sistema redibuja una fila por tarea, con su barra y las flechas de dependencia entre barras visibles.
-  5. Usuario arrastra el borde izquierdo o derecho de una barra.
-  6. Sistema actualiza `tarea_fecha_inicio_habilitada` (borde izquierdo) o `tarea_fecha_limite` (borde derecho) y guarda.
-  7. Usuario (alternativa) hace clic en una barra; sistema abre la ventana de edición de esa tarea encima de Gantt (sin cambiar de vista).
-- **Vistas/funciones**: `views/gantt.view.js` (`renderVistaGantt`, `renderGrillaGantt`, `renderFlechasDependencia`, `agregarAsasGantt`).
-- **Resultado**: posible cambio de `tarea_fecha_inicio_habilitada`/`tarea_fecha_limite` si se arrastra una barra.
-- **Nota abierta para rediseño** (del usuario): el Gantt no debería estar limitado a tareas con una Meta asociada — tendría que mostrar cualquier tarea, con filtros según lo que el usuario quiera visualizar en cada momento. A definir: si conviene usar `tarea_fecha_sugerida` en vez de (o además de) `tarea_fecha_inicio_habilitada`, y cómo visualizar `tarea_fecha_limite` (hoy el fin de la barra ES el límite; si se separan ambos conceptos, hace falta una marca visual distinta para cada uno).
-- **Fricciones**: hoy una tarea sin `meta_id` nunca aparece en Gantt, aunque tenga fechas y dependencias cargadas.
-
----
+  2. Sistema (`construirFilas`, `assets/js/gantt-modelo.js`) arma una fila por cada tarea pendiente o bloqueada (por defecto), agrupada en carriles, con su posición en el tiempo: el día de su fecha sugerida si la tiene; si no, una **posición estimada** (barra punteada) que se calcula al dibujar y no se guarda: las tareas sin fecha y sin previa hacen una cola por prioridad dentro de su carril, una por día desde hoy (sin pasar antes de su fecha habilitada, si la cargaste), y las que tienen previa van el día siguiente a la de su previa. La fecha de creación nunca se usa.
+  3. Sistema dibuja la línea de hoy, la bandera ⚑ del límite (roja si venció o si el día plan cae después del límite) y flechas: de la previa a la próxima (roja si la próxima queda antes que su previa) y punteada 🔁 del desencadenante a la tarea que activa (anillo de mantenimiento).
+  4. Usuario cambia el modo, la escala, la agrupación o los filtros; el sistema redibuja conservando el desplazamiento (la escala recentra en hoy) y recuerda modo, escala y agrupación en este dispositivo.
+  5. Usuario arrastra una barra (modo Plan): el sistema cambia `tarea_fecha_sugerida` (conservando la hora si tenía), desplaza en cascada las tareas encadenadas detrás (`reprogramarTareaConCascada`) y, si la tarea queda antes de que termine su previa, la guarda igual y avisa (la flecha se pone roja). Una tarea con posición estimada queda con fecha real al moverla, o con el botón 📌 de su fila.
+  6. Usuario arrastra el borde izquierdo o derecho de una barra (modo Ventana): el sistema cambia `tarea_fecha_inicio_habilitada` o `tarea_fecha_limite` y guarda.
+  7. Usuario hace clic (sin arrastrar) en una barra o en el nombre: se abre la ventana de edición de esa tarea encima del Gantt.
+- **Vistas/funciones**: `views/gantt.view.js` (`renderVistaGantt`, `dibujarGrilla`, `dibujarFlechas`, `conectarInteracciones`), `assets/js/gantt-modelo.js` (`calcularPosiciones`, `calcularVentana`, `construirFilas`, `calcularConexiones`, `aplicarFiltros`, `habilitadaReal`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`).
+- **Resultado**: posible cambio de `tarea_fecha_sugerida` (arrastrar una barra en Plan o "📌 Fijar"), de `tarea_fecha_inicio_habilitada` o de `tarea_fecha_limite` (bordes en Ventana), más el desplazamiento en cascada de las tareas encadenadas.
+- **Fricciones**: la posición estimada reparte una tarea por día y por carril sin mirar la duración (reparto por minutos disponibles: backlog); las tareas completadas se ven solo con el filtro de estado; las flechas del anillo son una guía y no se recalculan cuando la cadena cambia de carril; el arrastre en celular usa toques (se prueba mejor con el ratón).
 
 ## Bloque C — Estructura y organización (ABMs)
 

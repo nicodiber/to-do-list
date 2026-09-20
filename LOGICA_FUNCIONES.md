@@ -321,13 +321,24 @@ ABM de metas, con progreso calculado al vuelo y los flujos de IA conectable.
 - **`crearPanelIA(meta)`**: flujo de copiar/pegar para sugerir subtareas, con preview antes de confirmarlas.
 - **`crearPanelChatMeta(contenedorPanel)`**: flujo conversacional para definir una meta desde cero.
 
+## `assets/js/gantt-modelo.js`
+
+Lógica pura (sin DOM) del Gantt, en días locales.
+
+- **`habilitadaReal(tarea)`**: el día de `tarea_fecha_inicio_habilitada` solo si difiere de `tarea_creada_en` (por defecto vale la creación, que no cuenta como fecha real); vacío si no.
+- **`calcularPosiciones(estado, { hoy, agruparPor })`**: `Map(tarea_id → { dia, virtual, completada })`. Con `tarea_fecha_sugerida`: ese día. Sin sugerida y sin previa: cola del carril (`carrilDe`) ordenada con `compararPorPrioridad`, una por día desde hoy y no antes de `habilitadaReal`; sin sugerida y con previa: el día siguiente al de su previa (real o estimado, mínimo hoy; con protección ante ciclos). Las completadas, en el día de `tarea_fecha_fin`. Se calcula sobre todas las tareas, antes de filtrar.
+- **`calcularVentana(tarea, hoy)`**: `{ inicio, fin, vencida }` desde hoy (o la habilitada real) hasta el límite; si el límite pasó, del límite a hoy y `vencida`; sin límite, `null`.
+- **`aplicarFiltros(tareas, filtros, estado)`**: categoría (con `descendientesDeCategoria`), meta, estado (`activas`, `pendientes`, `bloqueadas`, `completadas`, `todas`) y texto sin distinguir mayúsculas ni acentos.
+- **`construirFilas(estado, { filtros, agruparPor, hoy })`**: separadores `{ carril }` (categoría raíz, meta o ninguno) y filas `{ tarea, plan, ventana, limite, noLlega }` ordenadas por día y prioridad.
+- **`calcularConexiones(filas, estado)`**: flechas `cadena` (previa → próxima; `invertida` si la próxima cae antes) y `anillo` (desde la instancia vigente del desencadenante).
+
 ## `views/gantt.view.js`
 
-Diagrama de Gantt por Meta.
+Vista Gantt.
 
-- **`renderVistaGantt(contenedor)`**: filtro por meta (o todas, vía `tareasDeMeta` que compara `t.meta_id === metaId`), arma las filas y llama `renderGrillaGantt` + `renderFlechasDependencia`.
-- **`renderGrillaGantt(filas)`**: calcula el rango de fechas visible y dibuja una fila por tarea, con asas de arrastre (`agregarAsasGantt`) para modificar `tarea_fecha_inicio_habilitada`/`tarea_fecha_limite`.
-- **`renderFlechasDependencia(grilla, filas)`**: dibuja una flecha SVG por cada tarea con `tarea_dependiente` visible en el filtro actual (relación uno-a-uno, ya no hay múltiples bloqueantes por tarea).
+- **`renderVistaGantt(contenedor)`**: controles (interruptor Plan | Ventana, escala 2 · 4 · 12 semanas, "Hoy", "Agrupar por" y filtros) y la leyenda. Modo, escala y agrupación se guardan en `localStorage` (`super-todo-list:gantt-*`); los filtros viven en variables del módulo, igual que el desplazamiento (que se conserva al redibujar).
+- **`dibujarGrilla(...)`**: calcula la geometría numéricamente (`anchoDia` = ancho visible ÷ semanas × 7, mínimo 6 px; rango desde 7 días antes de hoy hasta la fecha más lejana, mínimo 12 semanas, tope un año) y dibuja cabecera fija, carriles, filas, barras, marcas (⚑ límite, ◆ día plan), línea de hoy y flechas (`dibujarFlechas`, SVG).
+- **`conectarInteracciones(...)`**: arrastre con umbral de 4 px. Sin mover, abre `abrirEdicionTarea`; en Plan mover la barra llama a `reprogramarTareaConCascada` (conserva la hora) y avisa si queda antes de su previa; en Ventana los bordes cambian habilitada y límite; "📌" guarda el día estimado como fecha sugerida.
 
 ## `views/personas.view.js`
 

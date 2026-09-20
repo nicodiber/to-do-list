@@ -2,6 +2,28 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.58.0] - 2026-09-20
+
+Ronda 7 del rediseño: el Gantt con todas las tareas (ver `REDISENO.md`, B2).
+
+### Agregado
+
+- **Todas las tareas en el Gantt** (antes solo las que tenían meta), con **filtros** por categoría (incluye subcategorías), meta, estado (por defecto pendientes y bloqueadas) y búsqueda por nombre, y un selector **"Agrupar por"** (categoría principal, meta o nada; cada grupo es un carril con su separador).
+- **Interruptor Plan | Ventana**: en *Plan* cada barra es el día sugerido de la tarea, con una bandera ⚑ en su fecha límite (roja si venció o si el día plan cae después); en *Ventana* la barra es el margen (holgura) entre la fecha habilitada —o hoy— y el límite, con un rombo ◆ en el día plan y rayas rojas si ya venció.
+- **Posición estimada para las tareas sin fecha** (barra punteada): se calcula al dibujar y **no se guarda**. Las tareas sin fecha y sin previa hacen una cola por prioridad dentro de su carril, una por día desde hoy (no antes de su fecha habilitada, si la cargaste); las que tienen previa van el día siguiente al de su previa. Se guarda como fecha sugerida solo al arrastrarla o con el botón **📌** de su fila. Nunca se usa la fecha de creación. `assets/js/gantt-modelo.js`.
+- **Cadenas con flechas** entre la previa y la próxima (roja si la próxima queda antes que su previa) y **flecha punteada de cierre de anillo** (desde el desencadenante).
+- **Escala de 2 · 4 · 12 semanas** con desplazamiento, línea vertical de hoy, botón "Hoy", cabecera de fechas y columna de nombres fijas; el modo, la escala y la agrupación se recuerdan en el dispositivo; en celular arranca en 2 semanas.
+- **Arrastrar**: en Plan se mueve la barra (cambia `tarea_fecha_sugerida`, conserva la hora, desplaza en cascada las tareas encadenadas detrás y, si la tarea queda antes de su previa, la guarda igual y avisa); en Ventana los bordes cambian la fecha habilitada y el límite. Un clic sin arrastrar abre la edición de la tarea.
+
+### Cambiado
+
+- La fecha de inicio habilitada solo cuenta como fecha real si es distinta de la fecha de creación (por defecto valen lo mismo), igual que ya hacía "Completar carga de tareas".
+- `sw.js`: `CACHE_NAME` a `v18` y precache con `assets/js/gantt-modelo.js`.
+
+### Eliminado
+
+- El Gantt por meta (selector de meta y mensajes que pedían crear metas): la meta pasa a ser un filtro y una forma de agrupar.
+
 ## [v0.57.0] - 2026-09-20
 
 Ronda 6 del rediseño: hábitos, progreso por categoría y Mejoras (ver `REDISENO.md`).

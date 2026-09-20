@@ -113,9 +113,15 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## B2 · Gantt
 
-- ✅ Mostrar **todas las tareas** (con o sin `tarea_fecha_sugerida`), con filtros según lo que el usuario quiera ver — hoy solo se ven las que tienen meta.
-- ❓ Definir si usa `tarea_fecha_sugerida` en vez de/además de `tarea_fecha_inicio_habilitada`, y cómo marcar visualmente `tarea_fecha_limite`.
-- 🔮 **Fecha implícita**: para las tareas sin `tarea_fecha_sugerida`, evaluar asignarles una posición posterior a la tarea siguiente de mayor prioridad. Se analiza en profundidad cuando se encare el rediseño del Gantt.
+*(Implementado en v0.58.0, Ronda 7.)*
+
+- ✅ **Todas las tareas**, con filtros: categoría (con sus subcategorías), meta, estado (por defecto pendientes y bloqueadas) y búsqueda por nombre, y un selector "Agrupar por" (categoría principal, meta o nada).
+- ✅ **Foco en la fecha sugerida, con un interruptor Plan | Ventana**: en *Plan* la barra es el día sugerido (con una bandera ⚑ en el límite); en *Ventana* la barra es el margen (holgura) entre la fecha habilitada —o hoy— y el límite, con un rombo ◆ en el día plan. Decidido con el usuario.
+- ✅ **Tareas sin fecha: posición estimada virtual**, no guardada y de barra punteada. Las tareas sin ninguna fecha y sin previa forman una cola por prioridad dentro de su carril, **una por día** desde hoy (no antes de su fecha habilitada si es real); las que tienen previa van el día siguiente al de su previa. **Nunca se usa la fecha de creación** (que además es el valor por defecto de la fecha habilitada, que solo cuenta si difiere de la creación). Se guarda como fecha sugerida solo al arrastrarla o con "📌 Fijar". Se evitó guardar fechas calculadas porque las tareas saldrían de "Completar carga de tareas" y el reprogramado automático empezaría a moverlas.
+- ✅ **Cadenas con flechas** (previa → próxima; roja si queda antes de su previa) y **cierre de anillo** punteado (desencadenante → tarea que activa).
+- ✅ **Escala**: ventana de 2 · 4 · 12 semanas con desplazamiento, línea de hoy y nombres fijos a la izquierda.
+- ✅ **Arrastrar**: en Plan se mueve la barra (fecha sugerida, con cascada a las encadenadas detrás y aviso si queda antes de su previa); en Ventana, los bordes cambian habilitada y límite. Un clic abre la edición.
+- 🔮 **Pendiente**: reparto de las tareas sin fecha por **minutos disponibles por día** (más realista que una por día), planificar en bloque guardando fechas, fondos de fin de semana y zoom por día.
 
 ## E1 · Estadísticas (antes Informes)
 
@@ -146,7 +152,7 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 4. ✅ **Hoy** (v0.56.0): Próximos por categoría sin duplicados, Enfoque, completadas de hoy con exportar a Calendar por tarea, ☀️, Posponer y "Al próximo hueco libre" en el solapamiento (lectura de Calendar por rango, franja horaria configurable) y refresco de los avisos de Calendar.
 5. ✅ **ABMs** (v0.54.0, **hecha antes que la 4** a pedido del usuario, para pulir la creación de categorías, ubicaciones y metas antes de cargar datos reales): editar categorías, ubicaciones, metas y personas, crear con ventana modal (también desde el desplegable de la tarea), vista Configuraciones.
 6. ✅ **Hábitos, Progreso por categoría y Mejoras** (v0.57.0): solapas de Estadísticas (Resumen · Progreso por categoría · Hábitos con mapa de calor en matriz) y la vista Mejoras; el modelo suma el intervalo y los días hábiles a cada cumplimiento y `mejora_aplicada`.
-7. **Gantt**: todas las tareas + filtros.
+7. ✅ **Gantt** (v0.58.0): todas las tareas, con filtros, modo Plan / Ventana, posición estimada para las tareas sin fecha, cadenas y anillos con flechas, escala de 2 · 4 · 12 semanas y arrastre.
 8. **Rediseño visual, emojis y atajos** (transversal).
 
 ## Post-v1.0
