@@ -7,7 +7,8 @@
 import { conectar, hayToken, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion } from './google-auth.js';
 import { buscarArchivoRemoto, leerArchivoRemoto, guardarArchivoRemoto, ErrorDrive } from './google-drive-sync.js';
 import * as almacenamientoLocal from './almacenamiento-local.js';
-import { COLECCIONES, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
+import { COLECCIONES, FORMATO_ARCHIVO, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
+import { crearPreferencias } from './modelos.js';
 import { recalcularBloqueo } from './tareas-logica.js';
 import { repararEnlaces } from './dependencias.js';
 import { fechaLocalISO } from './utilidades.js';
@@ -29,6 +30,7 @@ export const estado = {
   mejoras: [],
   cumplimientos: [],
   plantillas: [],
+  preferencias: [],
 };
 
 const listeners = [];
@@ -283,6 +285,20 @@ function migrarPlantilla(p) {
   return { ...p, plantilla_nombre: p.plantilla_nombre || 'Plantilla', plantilla_pasos: Array.isArray(p.plantilla_pasos) ? p.plantilla_pasos : [] };
 }
 
+/** `preferencias` nació en la Ronda 9b: solo se completan los campos que falten. */
+function migrarPreferencias(p) {
+  const base = crearPreferencias();
+  const tope = Array.isArray(p.pref_tope_dias) && p.pref_tope_dias.length === 7 ? p.pref_tope_dias.map((n) => Math.max(0, Number(n) || 0)) : base.pref_tope_dias;
+  return {
+    ...base,
+    ...p,
+    pref_tope_dias: tope,
+    pref_franja: p.pref_franja && p.pref_franja.inicio && p.pref_franja.fin ? { inicio: p.pref_franja.inicio, fin: p.pref_franja.fin } : base.pref_franja,
+    pref_calendarios: Array.isArray(p.pref_calendarios) ? p.pref_calendarios : null,
+    pref_capacidad_por_fecha: p.pref_capacidad_por_fecha && typeof p.pref_capacidad_por_fecha === 'object' ? p.pref_capacidad_por_fecha : {},
+  };
+}
+
 function migrarCumplimiento(c) {
   return {
     ...c,
@@ -306,7 +322,8 @@ function normalizarDatosCrudos(datosOriginal) {
   const mejoras = (datos.mejoras || []).map(migrarMejora);
   const cumplimientos = (datos.cumplimientos || []).map(migrarCumplimiento);
   const plantillas = (datos.plantillas || []).map(migrarPlantilla);
-  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos, plantillas };
+  const preferencias = (datos.preferencias || []).slice(0, 1).map(migrarPreferencias);
+  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos, plantillas, preferencias };
 }
 
 // ---------------------------------------------------------------------------
@@ -436,9 +453,9 @@ export async function descartarTodosLosAvisos() {
 /**
  * Único punto de guardado de las vistas: sella qué cambió, guarda una copia
  * temporal durable ("pendiente") y programa la subida a Drive. El estado
- * queda "pendiente" hasta que Drive confirme.
+ * queda "pendiente" hasta que Drive confirme. Con `{ sinNotificar: true }` no redibuja las vistas.
  */
-export async function persistirYNotificar() {
+export async function persistirYNotificar({ sinNotificar = false } = {}) {
   if (sync.soloLectura) return;
   const ahora = new Date().toISOString();
   eliminados = sellarCambios(estado, ultimoSellado, base, eliminados, ahora);
@@ -456,7 +473,8 @@ export async function persistirYNotificar() {
   // La subida se programa antes de notificar: si una vista falla al redibujar,
   // el cambio igual llega a Drive.
   programarSubida();
-  notificar();
+  // `sinNotificar`: quien guarda (por ejemplo Configuraciones, campo por campo) no quiere que se redibuje la vista.
+  if (!sinNotificar) notificar();
 }
 
 function programarSubida(retraso = DEBOUNCE_SUBIDA_MS) {
@@ -548,7 +566,17 @@ async function sincronizarUnaVez(forzar) {
 
   let remoto = null;
   if (meta && (!base || meta.modifiedTime !== baseModifiedTime)) {
-    remoto = normalizarArchivo(await leerArchivoRemoto(meta.id));
+    const crudo = await leerArchivoRemoto(meta.id);
+    // Otra versión de la app, más nueva, guardó este archivo: guardar desde acá podría descartar lo que esta no conoce.
+    if (crudo && Number(crudo.formato) > FORMATO_ARCHIVO) {
+      setSync({
+        soloLectura: true,
+        estado: 'error',
+        mensajeError: 'Tus datos en Drive los guardó una versión más nueva de la app. Para no pisarlos, esta versión quedó en solo lectura: recargá la app (Ctrl+F5) para actualizarla.',
+      });
+      return 'ok';
+    }
+    remoto = normalizarArchivo(crudo);
   }
   // El usuario cambió algo mientras esperábamos a la red: se rehace con lo último.
   if (versionLocal !== versionInicial) return 'reintentar';

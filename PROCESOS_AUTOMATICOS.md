@@ -139,3 +139,15 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Condición**: se cumple, desde Hoy, Tareas, Revisar mi día o la edición, un paso "corregir" (`tarea_origen.paso === 'correccion'`) que es del último ciclo de su instancia.
 - **Proceso**: `despuesDeCumplir` → `ofrecerOtroCiclo` (`assets/js/post-cumplir.js`) pregunta si hace falta otro ciclo. Al aceptar clona los cuatro pasos del ciclo con el número siguiente, los inserta en la cadena a continuación de la tarea cumplida (la que seguía pasa a depender del último) y, si lo que sigue quedaría pisado, lo corre con `reprogramarTareaConCascada`.
 - **Resultado**: la cadena crece cuatro pasos, con el primero pendiente y el resto bloqueados; si el ciclo nuevo termina después de la fecha del examen, avisa para revisar las fechas. Después se ofrece exportar a Calendar como siempre.
+
+## 24. Cálculo de la capacidad de cada día
+
+- **Condición**: se dibuja la vista Semana o el asistente de examen arma o recalcula su plan.
+- **Proceso**: `crearCalculadoraCapacidad` (`assets/js/capacidad.js`) toma las preferencias, los eventos de Calendar que ocupan tiempo (`obtenerEventos`, con los interruptores de todo el día, rechazados y «Disponible») y las tareas con fecha sugerida. Por cada día: tope (fijado para esa fecha o el de su día de la semana, reducido el día previo a un examen), tiempo libre de la franja, capacidad, carga y lo que queda. Hoy no cuenta lo que ya pasó de la franja.
+- **Resultado**: la barra de carga de Semana y las fechas del asistente (los pasos se acomodan hasta lo que queda de cada día y se saltan los días sin tiempo). Sin conexión con Calendar solo cuentan el tope y las tareas.
+
+## 25. Guarda de versión del archivo de Drive
+
+- **Condición**: al sincronizar, el archivo de Drive trae un `formato` mayor al que la app conoce (`FORMATO_ARCHIVO`).
+- **Proceso**: `sincronizarUnaVez` (`assets/js/almacenamiento.js`) no lo mezcla ni lo sube: pone la app en solo lectura (`soloLectura`) con el aviso "recargá la app".
+- **Resultado**: una versión vieja no puede pisar lo que no entiende (por ejemplo las preferencias). Al recargar, la app se actualiza sola (`sw.js` es network-first). Las versiones anteriores a la v0.62.0 no tienen esta guarda.

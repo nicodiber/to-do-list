@@ -137,6 +137,25 @@ Registro liviano, una entrada por cada tarea que se completa. Reabrir la tarea b
 
 Son los moldes de preparación que usa el asistente. La **plantilla por defecto "Examen"** vive en el código (`PLANTILLA_EXAMEN`, id `base-examen`), no se guarda en Drive y no se edita: se **duplica** y la copia sí es un dato del usuario. Se administran en Configuraciones → Plantillas de preparación.
 
+## Preferencias
+
+Un **único registro** (`preferencias_id: "unica"`) que se sincroniza con Drive, para que las preferencias valgan en todos los dispositivos. Si no existe, se usan los valores por defecto (no hace falta crearlo). Se administra en Configuraciones → Tiempo disponible y, para una fecha puntual, tocando la barra de carga de un día en Semana.
+
+| Campo | Tipo | Fase | Descripción |
+|---|---|---|---|
+| `preferencias_id` | `"unica"` | Ronda 9b | Identificador (siempre el mismo) |
+| `preferencias_nombre` | string | Ronda 9b | `"Preferencias"` (para los avisos de sincronización) |
+| `pref_tope_dias` | number[7] | Ronda 9b | Minutos que se quieren dedicar a tareas cada día de la semana, **domingo primero** (índice = `Date.getDay()`). Por defecto 180 cada día |
+| `pref_franja` | `{ inicio, fin }` `"HH:MM"` | Ronda 9b | Parte del día en que se proponen horarios y en que cuenta el tiempo libre. Por defecto `00:00`–`24:00` (antes solo en `localStorage`; se migra sola) |
+| `pref_dia_previo_factor` | number 0–1 | Ronda 9b | Fracción del tope que rige el día anterior a un examen. Por defecto 0,5 |
+| `pref_calendarios` | string[] \| `null` | Ronda 9b | Ids de los calendarios de Google que se leen; `null` = todos |
+| `pref_ignorar_todo_el_dia` | boolean | Ronda 9b | Los eventos de todo el día no ocupan tiempo. Por defecto `true` |
+| `pref_ignorar_rechazados` | boolean | Ronda 9b | Los eventos que el usuario rechazó no ocupan tiempo. Por defecto `true` |
+| `pref_ignorar_disponible` | boolean | Ronda 9b | Los eventos marcados como «Disponible» (en vez de «Ocupado») no ocupan tiempo. Por defecto `false` |
+| `pref_horizonte_dias` | number | Ronda 9b | Cuántos días hacia adelante se leen los eventos de Calendar. Por defecto 90 (30 · 60 · 90 · 180) |
+| `pref_capacidad_por_fecha` | `{ "YYYY-MM-DD": minutos }` | Ronda 9b | Capacidad fijada por el usuario para un día puntual (0 = ningún tiempo). Manda sobre el tope y sobre Calendar; se descartan las fechas pasadas al guardar |
+| `preferencias_modificado_en` | string (ISO datetime) | Ronda 9b | Lo sella el sistema al guardar. No se edita a mano |
+
 ## Sincronización: sellos de modificación y archivo de Drive
 
 Cada entidad lleva un campo `<entidad>_modificado_en` (ver tablas de arriba). No se edita a mano: el sistema lo sella al guardar, comparando contra el guardado anterior, y sirve para mezclar los cambios de distintos dispositivos (gana la versión más reciente de cada entidad; ver `LOGICA_FUNCIONES.md`, `sincronizacion.js`). Un sello vacío significa "más viejo que cualquier otro".
@@ -145,14 +164,14 @@ Los datos viven en **un único archivo en el Google Drive del usuario**, `super-
 
 ```
 {
-  "formato": 2,
+  "formato": 3,
   "guardado_en": "ISO datetime del guardado",
   "categorias": Categoria[], "ubicaciones": Ubicacion[], "metas": Meta[], "personas": Persona[], "tareas": Tarea[],
-  "mejoras": Mejora[], "cumplimientos": Cumplimiento[], "plantillas": Plantilla[],
+  "mejoras": Mejora[], "cumplimientos": Cumplimiento[], "plantillas": Plantilla[], "preferencias": Preferencias[],
   "eliminados": [ { "coleccion": "tareas", "id": "...", "eliminado_en": "ISO datetime" } ]
 }
 ```
 
-`eliminados` registra qué se borró y cuándo (durante 90 días) para que una entidad eliminada en un dispositivo no reviva al mezclar con otro. Los archivos anteriores (sin `formato` ni sellos, o con los formatos viejos de campos) se migran solos al leerlos.
+`eliminados` registra qué se borró y cuándo (durante 90 días) para que una entidad eliminada en un dispositivo no reviva al mezclar con otro. El `formato` 3 (Ronda 9b) suma `preferencias`; una versión de la app que encuentra un archivo con un `formato` mayor al que conoce queda en **solo lectura** con un aviso, para no pisar lo que no entiende. Los archivos anteriores (sin `formato` ni sellos, o con los formatos viejos de campos) se migran solos al leerlos.
 
 Los datos reales con información personal **no se versionan**; en el repositorio solo hay `datos/categorias.ejemplo.json`, `datos/tareas.ejemplo.json` y `datos/esquema.json` (el esquema describe la estructura del archivo de Drive).

@@ -4,7 +4,7 @@
 // registran en una lista de "tombstones" para que lo borrado no reviva.
 
 export const DIAS_RETENCION_ELIMINADOS = 90;
-export const FORMATO_ARCHIVO = 2;
+export const FORMATO_ARCHIVO = 3;
 
 export const COLECCIONES = [
   { clave: 'categorias', id: 'categoria_id', modificado: 'categoria_modificado_en', nombre: 'categoria_nombre', etiqueta: 'categoría' },
@@ -15,6 +15,7 @@ export const COLECCIONES = [
   { clave: 'mejoras', id: 'mejora_id', modificado: 'mejora_modificado_en', nombre: 'mejora_tarea_nombre', etiqueta: 'nota de mejora' },
   { clave: 'cumplimientos', id: 'cumplimiento_id', modificado: 'cumplimiento_modificado_en', nombre: 'cumplimiento_tarea_nombre', etiqueta: 'marca de cumplimiento' },
   { clave: 'plantillas', id: 'plantilla_id', modificado: 'plantilla_modificado_en', nombre: 'plantilla_nombre', etiqueta: 'plantilla' },
+  { clave: 'preferencias', id: 'preferencias_id', modificado: 'preferencias_modificado_en', nombre: 'preferencias_nombre', etiqueta: 'preferencia' },
 ];
 
 /** Serialización con claves ordenadas, para comparar contenidos sin depender del orden de las claves. */

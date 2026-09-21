@@ -1,7 +1,11 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
+import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearHora, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
 import { esTareaAccionable, compararPorPrioridad } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
+import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
+import { obtenerPreferencias, guardarCapacidadDeFecha } from '../assets/js/preferencias.js';
+import { crearCalculadoraCapacidad } from '../assets/js/capacidad.js';
+import { hayConexionGoogleCalendar, obtenerEventos, obtenerEventosParaMostrar } from '../assets/js/google-calendar.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -43,7 +47,7 @@ export function renderVistaSemana(contenedor) {
 
   contenedor.innerHTML = `
     <h2>📆 Semana</h2>
-    <p class="ayuda">Tareas fijas (con horario agendado) y proyección de las pendientes según su fecha sugerida o límite. Hacé clic en una tarea para editarla.</p>
+    <p class="ayuda">Tareas fijas (con horario agendado), proyección de las pendientes según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.</p>
     ${
       visibles < 7
         ? `<div class="navegacion-semana">
@@ -70,6 +74,113 @@ export function renderVistaSemana(contenedor) {
   grilla.style.setProperty('--dias-visibles', String(dias.length));
   grilla.appendChild(renderColumnaHoras());
   dias.forEach((fechaDia) => grilla.appendChild(renderColumnaDia(fechaDia, hoy)));
+
+  // Primero se dibuja la carga sin eventos (no espera a la red); cuando llega Calendar se agregan los eventos y se recalcula.
+  pintarCargas(grilla, []);
+  if (hayConexionGoogleCalendar()) {
+    Promise.all([obtenerEventosParaMostrar(todosLosDias[0], todosLosDias[6]), obtenerEventos(todosLosDias[0], todosLosDias[6])])
+      .then(([paraMostrar, ocupan]) => {
+        if (!grilla.isConnected) return;
+        pintarEventos(grilla, paraMostrar);
+        pintarCargas(grilla, ocupan);
+      })
+      .catch((error) => console.warn(error.message));
+  }
+}
+
+const MINUTOS_DEL_DIA = 24 * 60;
+
+function inicioDeDia(dia) {
+  return new Date(`${dia}T00:00:00`).getTime();
+}
+
+/** Los eventos de Calendar en cada columna: los de todo el día en la franja de arriba, los demás como bloques (solo lectura). */
+function pintarEventos(grilla, eventos) {
+  grilla.querySelectorAll('.dia-semana').forEach((columna) => {
+    const dia = columna.dataset.dia;
+    const inicioDia = inicioDeDia(dia);
+    const finDia = inicioDia + MINUTOS_DEL_DIA * 60000;
+    columna.querySelectorAll('.bloque-evento-semana').forEach((b) => b.remove());
+
+    const delDia = eventos.filter((e) => new Date(e.inicio).getTime() < finDia && new Date(e.fin).getTime() > inicioDia);
+    const todoElDia = delDia.filter((e) => e.todoElDia);
+    const franja = columna.querySelector('.franja-todo-el-dia');
+    franja.hidden = todoElDia.length === 0;
+    franja.textContent = todoElDia.length === 1 ? `📅 ${todoElDia[0].resumen}` : `📅 ${todoElDia.length} eventos`;
+    franja.title = todoElDia.map((e) => `${e.resumen} (${e.calendarioNombre})`).join('\n');
+
+    // Los que se pisan entre sí se reparten en carriles lado a lado.
+    const conHorario = delDia
+      .filter((e) => !e.todoElDia)
+      .map((e) => ({ e, desde: Math.max(inicioDia, new Date(e.inicio).getTime()), hasta: Math.min(finDia, new Date(e.fin).getTime()) }))
+      .sort((a, b) => a.desde - b.desde);
+    const carriles = [];
+    conHorario.forEach((x) => {
+      let carril = carriles.findIndex((finCarril) => finCarril <= x.desde);
+      if (carril === -1) carril = carriles.length;
+      carriles[carril] = x.hasta;
+      x.carril = carril;
+    });
+    const cuerpo = columna.querySelector('.dia-semana-cuerpo');
+    conHorario.forEach((x) => {
+      const minutosDesde = (x.desde - inicioDia) / 60000 - HORA_INICIO * 60;
+      const minutosHasta = (x.hasta - inicioDia) / 60000 - HORA_INICIO * 60;
+      const top = Math.max(0, minutosDesde);
+      const alto = Math.min(MINUTOS_VISIBLES, minutosHasta) - top;
+      if (alto <= 0) return;
+      const bloque = document.createElement('a');
+      bloque.className = 'bloque-evento-semana' + (x.e.disponible ? ' disponible' : '');
+      bloque.href = x.e.enlace || '#';
+      bloque.target = '_blank';
+      bloque.rel = 'noopener noreferrer';
+      bloque.style.top = `${(top / 60) * ALTO_HORA_PX}px`;
+      bloque.style.height = `${Math.max(14, (alto / 60) * ALTO_HORA_PX)}px`;
+      bloque.style.left = `${(x.carril / carriles.length) * 100}%`;
+      bloque.style.width = `${100 / carriles.length}%`;
+      bloque.style.borderLeftColor = x.e.color;
+      bloque.title = `${x.e.resumen} — ${formatearHora(x.e.inicio)} a ${formatearHora(x.e.fin)} (${x.e.calendarioNombre}${x.e.disponible ? ', disponible' : ''}). Se edita desde Google Calendar: hacé clic para abrirlo.`;
+      bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${escaparHtml(x.e.resumen)}</span>`;
+      bloque.addEventListener('click', (evento) => {
+        if (!x.e.enlace) evento.preventDefault();
+      });
+      cuerpo.prepend(bloque);
+    });
+  });
+}
+
+/** La barra de carga de cada día: minutos planificados contra minutos disponibles (ver `capacidad.js`). */
+function pintarCargas(grilla, eventosQueOcupan) {
+  const preferencias = obtenerPreferencias();
+  const calcular = crearCalculadoraCapacidad({ preferencias, eventos: eventosQueOcupan, tareas: estado.tareas });
+  grilla.querySelectorAll('.dia-semana').forEach((columna) => {
+    const dia = columna.dataset.dia;
+    const c = calcular(dia);
+    const boton = columna.querySelector('.carga-dia');
+    boton.classList.toggle('sobrecarga', c.sobrecarga);
+    boton.style.setProperty('--llenado', `${c.capacidad > 0 ? Math.min(100, Math.round((c.carga / c.capacidad) * 100)) : c.carga > 0 ? 100 : 0}%`);
+    boton.textContent = `${c.carga}/${c.capacidad}`;
+    boton.title =
+      `Planificado ${c.carga} min de ${c.capacidad} min disponibles` +
+      (c.fija ? ' (capacidad fijada por vos para este día)' : ` (tu tope es ${c.tope} min${c.previoAExamen ? ', reducido por ser el día previo a un examen' : ''}; según Calendar quedan ${c.libreCalendar} min libres)`) +
+      (c.sobrecarga ? '. ⚠️ Hay más tareas que tiempo.' : '') +
+      '. Tocá para ajustar la capacidad de este día.';
+    boton.onclick = () => abrirCapacidadDelDia(dia, c);
+  });
+}
+
+function abrirCapacidadDelDia(dia, c) {
+  abrirDialogoFormulario({
+    titulo: `⏱️ Capacidad del ${formatearFecha(dia)}`,
+    textoGuardar: '💾 Guardar',
+    cuerpoHtml: `
+      <p class="ayuda ayuda-formulario">Planificado: <strong>${c.carga} min</strong>. Disponible: <strong>${c.capacidad} min</strong> (tu tope es ${c.tope} min y, según Calendar, quedan ${c.libreCalendar} min libres). Si ese día tenés más o menos tiempo que el habitual (un viaje, un día libre), indicalo acá: el asistente de examen lo va a tener en cuenta.</p>
+      <label class="campo ancho-completo" title="Vacío: se usa tu tope habitual y lo que diga Calendar. 0: ningún tiempo para tareas ese día."><span class="campo-titulo">⏱️ Minutos para tareas ese día</span><input type="number" name="minutos" min="0" step="15" value="${c.fija ? c.tope : ''}" placeholder="Automático" /></label>`,
+    alGuardar: async (formulario) => {
+      const valor = formulario.minutos.value.trim();
+      await guardarCapacidadDeFecha(dia, valor === '' ? null : Number(valor));
+      return true;
+    },
+  });
 }
 
 function renderColumnaHoras() {
@@ -86,11 +197,16 @@ function renderColumnaHoras() {
 function renderColumnaDia(fechaDia, hoy) {
   const columna = document.createElement('div');
   columna.className = 'dia-semana' + (fechaDia === hoy ? ' es-hoy' : '');
+  columna.dataset.dia = fechaDia;
   const fechaObj = new Date(fechaDia + 'T00:00:00');
   const nombreDia = fechaDia === hoy ? 'Hoy' : NOMBRES_DIA[fechaObj.getDay()];
 
   columna.innerHTML = `
-    <div class="dia-semana-encabezado">${nombreDia}<br /><span class="fecha-columna">${formatearFecha(fechaDia)}</span></div>
+    <div class="dia-semana-encabezado">
+      <div>${nombreDia}<br /><span class="fecha-columna">${formatearFecha(fechaDia)}</span></div>
+      <button type="button" class="carga-dia" aria-label="Carga del día"></button>
+      <div class="franja-todo-el-dia" hidden></div>
+    </div>
     <div class="dia-semana-cuerpo" style="height:${(HORA_FIN - HORA_INICIO) * ALTO_HORA_PX}px"></div>
   `;
 

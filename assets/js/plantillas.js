@@ -107,21 +107,27 @@ function esDiaDeEstudio(dia, diasDeEstudio) {
   return diasDeEstudio.includes(new Date(dia + 'T00:00:00').getDay());
 }
 
-function siguienteDiaDeEstudio(dia, diasDeEstudio) {
+const MAXIMO_DIAS_DE_BUSQUEDA = 400;
+
+/** El primer día desde `dia` que es de estudio y tiene tiempo disponible (`capacidadDe(dia) > 0`). */
+function siguienteDiaDeEstudio(dia, diasDeEstudio, capacidadDe = () => 1) {
   let actual = dia;
-  for (let i = 0; i < 14 && !esDiaDeEstudio(actual, diasDeEstudio); i += 1) actual = fechaISOMasDias(1, actual);
+  for (let i = 0; i < MAXIMO_DIAS_DE_BUSQUEDA && (!esDiaDeEstudio(actual, diasDeEstudio) || capacidadDe(actual) <= 0); i += 1) actual = fechaISOMasDias(1, actual);
   return actual;
 }
 
 /**
  * Asigna la fecha (`paso.fecha`) de cada paso **hacia adelante**: desde `desde`, llenando cada día de estudio hasta
- * `minutosPorDia` (un paso más largo que el tope ocupa el día solo). Los pasos con ancla se hacen en su día y los
+ * su capacidad: `capacidadDia(dia)` (los minutos disponibles ese día, ver `capacidad.js`; un día sin tiempo se salta) o,
+ * si no se pasa, `minutosPorDia` para todos los días (un paso más largo que el tope ocupa el día solo). Los pasos con ancla se hacen en su día y los
  * hitos (Rendir…) en la fecha de su examen. Devuelve los avisos (`no-alcanza`: cuántos días faltan para poder
  * llegar a una fecha fija). Modifica los pasos.
  */
-export function asignarFechas(pasos, { desde = hoyISO(), minutosPorDia = 120, diasDeEstudio = [] } = {}) {
+export function asignarFechas(pasos, { desde = hoyISO(), minutosPorDia = 120, diasDeEstudio = [], capacidadDia = null } = {}) {
   const avisos = [];
-  let puntero = siguienteDiaDeEstudio(desde, diasDeEstudio);
+  const capacidadDe = (dia) => (capacidadDia ? capacidadDia(dia) : minutosPorDia);
+  const siguiente = (dia) => siguienteDiaDeEstudio(dia, diasDeEstudio, capacidadDe);
+  let puntero = siguiente(desde);
   let usados = 0;
   pasos.forEach((paso) => {
     if (paso.hito) {
@@ -145,12 +151,12 @@ export function asignarFechas(pasos, { desde = hoyISO(), minutosPorDia = 120, di
     }
     if (paso.separacion > 0) {
       // Días libres antes de este paso (para espaciar los ciclos de práctica).
-      puntero = siguienteDiaDeEstudio(fechaISOMasDias(paso.separacion, puntero), diasDeEstudio);
+      puntero = siguiente(fechaISOMasDias(paso.separacion, puntero));
       usados = 0;
     }
     let dia = puntero;
-    if (usados + paso.duracion_min > minutosPorDia && usados > 0) {
-      dia = siguienteDiaDeEstudio(fechaISOMasDias(1, puntero), diasDeEstudio);
+    if (usados + paso.duracion_min > capacidadDe(dia) && usados > 0) {
+      dia = siguiente(fechaISOMasDias(1, puntero));
       usados = 0;
     }
     paso.fecha = dia;
@@ -225,7 +231,7 @@ export function replanificar(pasos, opciones) {
  * Devuelve `{ pasos, habitos, avisos, ciclos }`; los hábitos traen `fecha` (el día siguiente a sus primeras tarjetas).
  */
 export function planificarExamen(plantilla, config) {
-  const opciones = { desde: config.desde || hoyISO(), minutosPorDia: config.minutosPorDia || 120, diasDeEstudio: config.diasDeEstudio || [] };
+  const opciones = { desde: config.desde || hoyISO(), minutosPorDia: config.minutosPorDia || 120, diasDeEstudio: config.diasDeEstudio || [], capacidadDia: config.capacidadDia || null };
   const ciclos = config.instancias.map((inst) => (typeof inst.ciclos === 'number' ? inst.ciclos : 1));
   config.instancias.forEach((inst, indice) => {
     if (typeof inst.ciclos === 'number') return;

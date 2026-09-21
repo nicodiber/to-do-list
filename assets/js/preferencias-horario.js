@@ -1,7 +1,7 @@
-// Preferencia de UI: en qué franja del día se buscan horarios libres (botón "Al próximo hueco libre"
-// de Hoy). Vive en localStorage (no en `estado`) porque es una preferencia de este dispositivo, no un
-// dato de la app: mismo patrón que la ubicación actual y el tema.
-const CLAVE_LOCALSTORAGE = 'super-todo-list:franja-horaria';
+// La franja del día en que se pueden proponer horarios y en que cuenta el tiempo libre. Desde la Ronda 9b vive en las
+// preferencias (`preferencias.js`, sincronizadas con Drive); este módulo conserva la API de antes.
+
+import { obtenerPreferencias, guardarPreferencias } from './preferencias.js';
 
 /** Por defecto se puede agendar a cualquier hora del día. */
 export const FRANJA_POR_DEFECTO = { inicio: '00:00', fin: '24:00' };
@@ -24,22 +24,13 @@ function esFranjaValida(franja) {
 }
 
 export function obtenerFranjaHoraria() {
-  try {
-    const guardada = JSON.parse(localStorage.getItem(CLAVE_LOCALSTORAGE));
-    if (esFranjaValida(guardada)) return { inicio: guardada.inicio, fin: guardada.fin };
-  } catch {
-    // Sin preferencia guardada o ilegible: se usa la de por defecto.
-  }
-  return { ...FRANJA_POR_DEFECTO };
+  const franja = obtenerPreferencias().pref_franja;
+  return esFranjaValida(franja) ? { inicio: franja.inicio, fin: franja.fin } : { ...FRANJA_POR_DEFECTO };
 }
 
 /** Guarda la franja. Devuelve `false` (sin guardar) si el inicio no es anterior al fin. */
 export function establecerFranjaHoraria(franja) {
   if (!esFranjaValida(franja)) return false;
-  try {
-    localStorage.setItem(CLAVE_LOCALSTORAGE, JSON.stringify({ inicio: franja.inicio, fin: franja.fin }));
-  } catch (error) {
-    console.warn('No se pudo guardar la franja horaria:', error);
-  }
+  guardarPreferencias({ pref_franja: { inicio: franja.inicio, fin: franja.fin } }, { sinNotificar: true });
   return true;
 }
