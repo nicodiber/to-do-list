@@ -155,6 +155,27 @@
         "plantilla_modificado_en": { "type": "string" }
       }
     },
+    "preferencias": {
+      "type": "object",
+      "required": ["preferencias_id"],
+      "properties": {
+        "preferencias_id": { "type": "string", "const": "unica" },
+        "preferencias_nombre": { "type": "string" },
+        "pref_tope_dias": { "type": "array", "minItems": 7, "maxItems": 7, "items": { "type": "number", "minimum": 0 } },
+        "pref_franja": {
+          "type": "object",
+          "properties": { "inicio": { "type": "string" }, "fin": { "type": "string" } }
+        },
+        "pref_dia_previo_factor": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pref_calendarios": { "type": ["array", "null"], "items": { "type": "string" } },
+        "pref_ignorar_todo_el_dia": { "type": "boolean" },
+        "pref_ignorar_rechazados": { "type": "boolean" },
+        "pref_ignorar_disponible": { "type": "boolean" },
+        "pref_horizonte_dias": { "type": "number", "minimum": 7 },
+        "pref_capacidad_por_fecha": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+        "preferencias_modificado_en": { "type": "string" }
+      }
+    },
     "cumplimiento": {
       "type": "object",
       "required": ["cumplimiento_id", "cumplimiento_tarea_id", "cumplimiento_tarea_nombre", "cumplimiento_fecha"],
@@ -216,6 +237,11 @@
     "cumplimientos": {
       "type": "array",
       "items": { "$ref": "#/definitions/cumplimiento" }
+    },
+    "preferencias": {
+      "type": "array",
+      "maxItems": 1,
+      "items": { "$ref": "#/definitions/preferencias" }
     },
     "eliminados": {
       "type": "array",

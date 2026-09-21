@@ -207,6 +207,19 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ---
 
+### A10. Ver mi carga y ajustar mi tiempo disponible
+
+- **Objetivo**: saber cuánto tiempo tengo cada día, cuánto llevo planificado y ajustar el tiempo de un día puntual.
+- **Disparador**: planificar la semana, o un día en que tengo más o menos tiempo que el habitual.
+- **Pasos**: Configuraciones → **⏱️ Tiempo disponible** (tope por día de la semana, día previo a un examen, qué eventos de Calendar cuentan y qué calendarios se leen) → Semana: mirar la barra "planificado/disponible" de cada día y los eventos en gris → tocar la barra de un día para fijar su capacidad.
+- **Flujo usuario/sistema**:
+  1. Usuario abre Semana; sistema dibuja la grilla y, sin esperar a la red, la carga de cada día con el tope y las tareas.
+  2. Sistema lee Calendar (todos los calendarios elegidos) y agrega los eventos como bloques de solo lectura y los de todo el día en una franja; recalcula la carga descontando el tiempo ocupado.
+  3. Usuario toca la barra de un día; sistema abre una ventana con el planificado, el disponible y el motivo; el usuario escribe los minutos (vacío = automático, 0 = ningún tiempo) y guarda en las preferencias (Drive).
+- **Vistas/funciones**: `views/semana.view.js`, `views/configuraciones.view.js`, `assets/js/capacidad.js`, `assets/js/preferencias.js`, `assets/js/google-calendar.js`.
+- **Resultado**: preferencias actualizadas; las fechas que arma el asistente de examen las respetan.
+- **Fricciones**: los eventos no se editan desde STDL (clic los abre en Google Calendar); solo Semana y el asistente usan la capacidad (el Gantt y la reprogramación de fechas vencidas se suman en la 9c); no hay feriados (decisión del usuario).
+
 ## Bloque B — Planificación de objetivos
 
 ### B1. Crear y seguir una Meta
@@ -256,7 +269,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   5. A medida que el usuario cumple los pasos, se habilitan los siguientes; al cumplir el último "corregir" del último ciclo de una instancia, el sistema pregunta si hace falta otro ciclo.
 - **Vistas/funciones**: `views/tareas.view.js`, `assets/js/asistente-examen.js`, `assets/js/plantillas.js`, `assets/js/post-cumplir.js`, `assets/js/modal-tarea.js` (oferta al guardar un examen), `assets/js/editor-plantillas.js` (plantillas propias en Configuraciones).
 - **Resultado**: una cadena de tareas atómicas (cada una con su "Hecho cuando…") con la categoría y la importancia del examen, un hito "Rendir …" por instancia y un hábito diario de repaso.
-- **Fricciones**: los minutos por día son un tope fijo (leerlos de Calendar y repartirlos entre exámenes que compiten es la Ronda 9b); si cambia la fecha del examen no se recalcula la preparación (backlog); con varias instancias, la preparación de la segunda empieza después de rendir la primera.
+- **Fricciones**: los minutos por día salen del tiempo disponible (ver A10); el reparto entre exámenes que compiten es la Ronda 9c; si cambia la fecha del examen no se recalcula la preparación (backlog); con varias instancias, la preparación de la segunda empieza después de rendir la primera.
 
 ## Bloque C — Estructura y organización (ABMs)
 
@@ -350,7 +363,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: usar Calendar como la fuente de verdad de lo agendado con horario fijo y de lo que realmente pasó, en paralelo a STDL.
 - **Pasos — exportar una completada**: al completar una tarea, una ventana de la página pregunta si se quiere abrir en Calendar con los datos precargados (nombre, tarea_fecha_fin, duración) → si acepta, se abre `calendar.google.com/render` en una pestaña nueva y el usuario la guarda a mano ahí (sin OAuth).
-- **Pasos — detectar solapamientos**: no hay un botón aparte para Calendar: se concede junto con Drive (D2). Con el permiso concedido, cada tarea con `tarea_fecha_sugerida` con hora se compara contra los eventos reales de **hoy y los próximos 15 días** (`DIAS_HORIZONTE_CALENDAR`), y si se superpone se muestra un aviso con dos botones: **"Posponer"** (panel de fecha y hora) y **"Al próximo hueco libre"** (la mueve al primer momento sin choques). Si el usuario desmarcó el permiso de Calendar al autorizar, esos avisos simplemente no aparecen.
+- **Pasos — detectar solapamientos**: no hay un botón aparte para Calendar: se concede junto con Drive (D2). Con el permiso concedido, cada tarea con `tarea_fecha_sugerida` con hora se compara contra los eventos reales de **hoy y los próximos días hasta el horizonte configurado** (`pref_horizonte_dias`, 90 por defecto) de todos los calendarios elegidos, sin contar los eventos que las preferencias mandan ignorar, y si se superpone se muestra un aviso con dos botones: **"Posponer"** (panel de fecha y hora) y **"Al próximo hueco libre"** (la mueve al primer momento sin choques). Si el usuario desmarcó el permiso de Calendar al autorizar, esos avisos simplemente no aparecen.
 - **Pasos — "Revisar mi día"**: si hay conexión, el paso final muestra los eventos reales del día (ver A6).
 - **Flujo usuario/sistema — detectar solapamientos**:
   1. Usuario autoriza Google (Drive y Calendar de solo lectura, ver D2).
@@ -361,7 +374,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   6. Al usar "Sincronizar ahora" o volver a la pestaña, el sistema olvida los eventos guardados y (si se está mirando Hoy) redibuja: los avisos aparecen o desaparecen según lo que hay ahora en Calendar.
 - **Vistas/funciones**: `assets/js/exportar-calendar.js`, `assets/js/google-calendar.js`, `assets/js/google-auth.js`, `views/hoy.view.js`, `assets/js/revision-dia.js`, `assets/js/preferencias-horario.js`.
 - **Resultado**: eventos creados en Calendar (fuera de STDL); ningún dato de STDL cambia por esto, salvo que el usuario reprograme a partir del aviso de solapamiento.
-- **Fricciones**: la lectura de eventos cubre desde hoy hasta 15 días adelante (constante `DIAS_HORIZONTE_CALENDAR`, todavía no configurable) — no hay lectura de eventos pasados (relevante para la nota abierta de Estadísticas, E1), y Agenda y Semana todavía no muestran los eventos de Calendar. La franja horaria del "próximo hueco libre" se elige en **Configuraciones** ("Agenda y Calendar", desde/hasta en tramos de 30 minutos; por defecto 00:00 a 24:00; se guarda en este dispositivo). Exportar es manual paso a paso (abrir pestaña, guardar a mano); no queda una confirmación de que efectivamente se guardó.
+- **Fricciones**: la lectura de eventos cubre desde hoy hasta el horizonte configurado — no hay lectura de eventos pasados (relevante para la nota abierta de Estadísticas, E1) — y Agenda todavía no muestra los eventos de Calendar (Semana sí, ver A10). La franja horaria del "próximo hueco libre" se elige en **Configuraciones** ("Agenda y Calendar", desde/hasta en tramos de 30 minutos; por defecto 00:00 a 24:00; se guarda en este dispositivo). Exportar es manual paso a paso (abrir pestaña, guardar a mano); no queda una confirmación de que efectivamente se guardó.
 
 ---
 

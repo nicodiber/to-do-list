@@ -2,6 +2,34 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.62.0] - 2026-09-21
+
+Ronda 9b del rediseño: tiempo disponible (ver `REDISENO.md`, punto 9). La **9c** (v0.63.0) suma el reparto entre exámenes, el recálculo automático con aviso y el Gantt por minutos.
+
+### Agregado
+
+- **Preferencias en Drive** (nueva colección, un único registro que se sincroniza entre dispositivos): tope de minutos por día de la semana (180 por defecto), franja horaria, factor del día previo a un examen, calendarios que se leen, interruptores de eventos que se ignoran, horizonte de lectura y capacidad de fechas puntuales. La franja horaria que estaba solo en el dispositivo se migra sola.
+- **Configuraciones → ⏱️ Tiempo disponible**: el tope por día, **🌙 día previo a un examen** (100 · 75 · 50 · 25 % del tope, 50 % por defecto), **📆 leer Calendar hasta** (30 · 60 · 90 · 180 días; antes eran 15 fijos), interruptores para ignorar los eventos de **todo el día** (sí), los **rechazados** (sí) y los marcados como **«Disponible»** (no), y la lista de **calendarios** que se leen (todos por defecto).
+- **Semana**: tus **eventos de Google Calendar** en gris, de solo lectura (clic los abre en Calendar; se reparten en carriles si se pisan), una franja con los de **todo el día** y, debajo de cada día, una **barra de carga** "planificado/disponible" en minutos, roja si hay más tareas que tiempo. Tocar la barra abre una ventana para fijar la **capacidad de esa fecha** (vacío = automático, 0 = ningún tiempo).
+- **Capacidad** (`assets/js/capacidad.js`): la consulta común de cuánto tiempo hay disponible cada día y cuánto lleva comprometido: `min(tope, tiempo libre de la franja según Calendar)`, el día previo a un examen reducido, y hoy sin lo que ya pasó.
+- **Asistente de examen**: los días se llenan hasta lo que queda disponible (se saltan los días sin tiempo), el campo pasa a **"⏱️ Minutos por día para este examen"** (vacío = automático; un número es el tope de ese examen) y cada instancia ofrece **"📅 Elegir de Calendar"** con los eventos que dicen «examen» para cargar su fecha y hora.
+- **Versión del archivo de Drive**: el formato pasa a 3. Si Drive tiene un archivo guardado por una versión más nueva, la app queda en **solo lectura** con un aviso en lugar de pisarlo.
+
+### Cambiado
+
+- Calendar se lee de **todos los calendarios** (antes solo el principal). Los eventos rechazados ya no cuentan como ocupados (se puede volver a contarlos), y los de todo el día pueden contarse si se apaga el interruptor. La superposición y el próximo hueco libre usan las mismas reglas.
+- El horizonte de lectura de Calendar por defecto pasa de 15 a **90 días**.
+- Los cambios de Configuraciones se guardan sin redibujar la vista (`persistirYNotificar({ sinNotificar: true })`).
+- `sw.js`: `CACHE_NAME` a `v22` y precache de `preferencias.js` y `capacidad.js`.
+
+### Corregido
+
+- En el asistente de examen, **"↩️ Volver"** desde la vista previa borraba lo cargado (nombre, minutos, fechas…); ahora se conserva.
+
+### Documentación
+
+- `REDISENO.md`, `CASOS_DE_USO.md` (A10, D3), `DICCIONARIO_DE_DATOS.md` (Preferencias, formato 3), `LOGICA_FUNCIONES.md`, `PROCESOS_AUTOMATICOS.md` (24 y 25) y `BACKLOG.md`.
+
 ## [v0.61.0] - 2026-09-21
 
 Ronda 9a del rediseño: hábito temporal y plantilla de examen (ver `REDISENO.md`, punto 9). La **9b** (minutos disponibles leídos de Calendar, carga por día y reparto entre exámenes) queda para la v0.62.0.

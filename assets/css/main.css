@@ -2740,3 +2740,125 @@ kbd {
     margin-left: auto;
   }
 }
+
+/* --- Ronda 9b: eventos de Calendar y carga por día en la vista Semana --- */
+
+.dia-semana-encabezado {
+  height: 6.4rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.carga-dia {
+  --llenado: 0%;
+  display: block;
+  width: 100%;
+  margin: 0.2rem 0;
+  padding: 0.12rem 0.2rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  background: linear-gradient(to right, var(--accion-cumplir, #3fb27f) var(--llenado), transparent var(--llenado));
+  background-color: var(--color-fondo);
+  color: var(--color-texto);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.carga-dia.sobrecarga {
+  border-color: var(--color-peligro);
+  color: var(--color-peligro);
+  background: var(--color-fondo);
+}
+
+.franja-todo-el-dia {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.05rem 0.25rem;
+  border-radius: 6px;
+  background: var(--color-fondo);
+  border: 1px dashed var(--color-borde);
+  color: var(--color-texto-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bloque-evento-semana {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  padding: 0.1rem 0.3rem;
+  border: 1px dashed var(--color-borde);
+  border-left: 4px solid var(--color-texto-suave);
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--color-texto);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-decoration: none;
+  cursor: alias;
+}
+
+.bloque-evento-semana.disponible {
+  background: transparent;
+  opacity: 0.75;
+}
+
+.dia-semana-cuerpo .bloque-tarea-semana {
+  z-index: 2;
+}
+
+/* --- Ronda 9b: sección "Tiempo disponible" de Configuraciones --- */
+
+.seccion-config h4 {
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.95rem;
+}
+
+.topes-dias {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.topes-dias label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.topes-dias input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.interruptores-config {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.lista-calendarios {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.calendario-config {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.punto-calendario {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}

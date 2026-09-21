@@ -35,7 +35,7 @@ Lista de todo lo que usa Super To-Do List, qué hace cada cosa y dónde se usa. 
 |---|---|---|
 | **Google Identity Services** (OAuth 2.0, *token client*) | Iniciar sesión con Google y obtener el permiso de Drive y de Calendar en un solo paso. | `assets/js/google-auth.js` |
 | **Google Drive API v3** (permiso `drive.file`) | Guardar y leer el archivo de datos `super-todo-list-datos.json` del propio Drive de la persona. La app solo ve lo que ella misma crea. | `assets/js/google-drive-sync.js` |
-| **Google Calendar API v3** (solo lectura) | Leer los eventos para avisar superposiciones y buscar el próximo hueco libre. | `assets/js/google-calendar.js` |
+| **Google Calendar API v3** (solo lectura) | Leer los eventos (de todos tus calendarios, con `calendarList` y `events`) para avisar superposiciones, buscar el próximo hueco libre, calcular tu tiempo disponible y mostrarlos en Semana. | `assets/js/google-calendar.js` |
 | **Google Calendar (URL de creación de eventos)** | Abrir Calendar con una tarea completada ya cargada para guardarla como registro; sin API. | `assets/js/exportar-calendar.js` |
 | **Open-Meteo** | Pronóstico del tiempo (probabilidad de lluvia) para las tareas que piden buen clima; gratis y sin clave. | `assets/js/clima.js` |
 
