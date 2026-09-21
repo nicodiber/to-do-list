@@ -29,7 +29,6 @@ export const estado = {
   tareas: [],
   mejoras: [],
   cumplimientos: [],
-  plantillas: [],
   preferencias: [],
 };
 
@@ -280,11 +279,6 @@ function migrarMejora(m) {
   return { ...m, mejora_texto: m.mejora_texto || '', mejora_aplicada: !!m.mejora_aplicada };
 }
 
-/** `plantillas` nació en la Ronda 9: no hay formatos anteriores que migrar. */
-function migrarPlantilla(p) {
-  return { ...p, plantilla_nombre: p.plantilla_nombre || 'Plantilla', plantilla_pasos: Array.isArray(p.plantilla_pasos) ? p.plantilla_pasos : [] };
-}
-
 /** `preferencias` nació en la Ronda 9b: solo se completan los campos que falten. */
 function migrarPreferencias(p) {
   const base = crearPreferencias();
@@ -321,9 +315,8 @@ function normalizarDatosCrudos(datosOriginal) {
   tareas.forEach((t) => recalcularBloqueo(t, tareas));
   const mejoras = (datos.mejoras || []).map(migrarMejora);
   const cumplimientos = (datos.cumplimientos || []).map(migrarCumplimiento);
-  const plantillas = (datos.plantillas || []).map(migrarPlantilla);
   const preferencias = (datos.preferencias || []).slice(0, 1).map(migrarPreferencias);
-  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos, plantillas, preferencias };
+  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos, preferencias };
 }
 
 // ---------------------------------------------------------------------------

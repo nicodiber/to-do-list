@@ -183,28 +183,10 @@ export function crearCumplimiento({ tarea, fecha }) {
   };
 }
 
-export const TIPOS_TAREA = ['', 'examen'];
-export const ETIQUETAS_TIPO_TAREA = { '': 'Tarea común', examen: 'Examen' };
-
-/**
- * Plantilla de preparación (por ejemplo para un examen): una lista de pasos con su fase, duración y criterio
- * de "hecho". Es dato del usuario y se sincroniza con Drive; la plantilla base vive en el código
- * (`PLANTILLA_EXAMEN` en `plantillas.js`) y se duplica para editarla.
- */
-export function crearPlantilla({ plantilla_nombre, plantilla_pasos = [] }) {
-  return {
-    plantilla_id: generarId(),
-    plantilla_nombre: capitalizarPrimera(plantilla_nombre),
-    plantilla_pasos,
-    plantilla_creada_en: ahoraISO(),
-  };
-}
-
 /** Preferencias por defecto (Ronda 9b): tiempo disponible por día y cómo se lee Calendar. */
 export const PREFERENCIAS_POR_DEFECTO = {
   pref_tope_dias: [180, 180, 180, 180, 180, 180, 180],
   pref_franja: { inicio: '00:00', fin: '24:00' },
-  pref_dia_previo_factor: 0.5,
   pref_calendarios: null,
   pref_ignorar_todo_el_dia: true,
   pref_ignorar_rechazados: true,

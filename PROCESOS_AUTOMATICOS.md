@@ -134,17 +134,11 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Proceso**: `completarTarea` (`assets/js/tareas-logica.js`) calcula el próximo vencimiento y lo compara con `fechaFinDeRepeticion` (lo más temprano entre la fecha y el día en que se cumple o vence la otra tarea; si esa se borró, se ignora). Si el próximo vencimiento cae **después** de ese día, no crea la copia; si no, la crea heredando `tarea_repetir_hasta`, `tarea_repetir_hasta_tarea` y `tarea_origen`.
 - **Resultado**: el hábito termina solo (la repetición del último día sí se crea). En Hábitos figura "✔ terminado" y los días posteriores quedan "no aplica". Si mientras hay una repetición abierta se mueve la fecha del examen de referencia, el hábito se acorta o se alarga solo en la próxima copia.
 
-## 23. Oferta de otro ciclo de práctica
-
-- **Condición**: se cumple, desde Hoy, Tareas, Revisar mi día o la edición, un paso "corregir" (`tarea_origen.paso === 'correccion'`) que es del último ciclo de su instancia.
-- **Proceso**: `despuesDeCumplir` → `ofrecerOtroCiclo` (`assets/js/post-cumplir.js`) pregunta si hace falta otro ciclo. Al aceptar clona los cuatro pasos del ciclo con el número siguiente, los inserta en la cadena a continuación de la tarea cumplida (la que seguía pasa a depender del último) y, si lo que sigue quedaría pisado, lo corre con `reprogramarTareaConCascada`.
-- **Resultado**: la cadena crece cuatro pasos, con el primero pendiente y el resto bloqueados; si el ciclo nuevo termina después de la fecha del examen, avisa para revisar las fechas. Después se ofrece exportar a Calendar como siempre.
-
 ## 24. Cálculo de la capacidad de cada día
 
-- **Condición**: se dibuja la vista Semana o el asistente de examen arma o recalcula su plan.
-- **Proceso**: `crearCalculadoraCapacidad` (`assets/js/capacidad.js`) toma las preferencias, los eventos de Calendar que ocupan tiempo (`obtenerEventos`, con los interruptores de todo el día, rechazados y «Disponible») y las tareas con fecha sugerida. Por cada día: tope (fijado para esa fecha o el de su día de la semana, reducido el día previo a un examen), tiempo libre de la franja, capacidad, carga y lo que queda. Hoy no cuenta lo que ya pasó de la franja.
-- **Resultado**: la barra de carga de Semana y las fechas del asistente (los pasos se acomodan hasta lo que queda de cada día y se saltan los días sin tiempo). Sin conexión con Calendar solo cuentan el tope y las tareas.
+- **Condición**: se dibuja la vista Semana.
+- **Proceso**: `crearCalculadoraCapacidad` (`assets/js/capacidad.js`) toma las preferencias, los eventos de Calendar que ocupan tiempo (`obtenerEventos`, con los interruptores de todo el día, rechazados y «Disponible») y las tareas con fecha sugerida. Por cada día: tope (fijado para esa fecha o el de su día de la semana), tiempo libre de la franja, capacidad, carga y lo que queda. Hoy no cuenta lo que ya pasó de la franja.
+- **Resultado**: la barra de carga de Semana. Sin conexión con Calendar solo cuentan el tope y las tareas.
 
 ## 25. Guarda de versión del archivo de Drive
 

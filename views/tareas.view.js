@@ -1,7 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { formatearFechaOFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml, arbolCategorias, caminoCategoria } from '../assets/js/utilidades.js';
-import { abrirAsistenteExamen } from '../assets/js/asistente-examen.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import {
   cumplirTarea,
@@ -13,7 +12,7 @@ import {
 } from '../assets/js/tareas-logica.js';
 import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionTarea, abrirAltaTarea } from '../assets/js/modal-tarea.js';
-import { despuesDeCumplir } from '../assets/js/post-cumplir.js';
+import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
@@ -33,7 +32,7 @@ export function renderVistaTareas(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
   contenedor.innerHTML = `
     <h2>✅ Tareas</h2>
-    <div class="barra-acciones-vista"><button title="Crear una tarea nueva (tecla N)" type="button" id="boton-nueva-tarea-lista" class="boton-primario">＋ Nueva tarea</button><button title="Armar de una vez toda la preparación de un examen: pasos atómicos, fechas y repaso diario" type="button" id="boton-nuevo-examen" class="btn-crear">📚 Nuevo examen</button></div>
+    <div class="barra-acciones-vista"><button title="Crear una tarea nueva (tecla N)" type="button" id="boton-nueva-tarea-lista" class="boton-primario">＋ Nueva tarea</button></div>
 
     <div class="filtros">
       <label title="Mostrar solo las tareas de esta categoría (y sus subcategorías)">🗂️ Categoría
@@ -82,7 +81,6 @@ export function renderVistaTareas(contenedor) {
   `;
 
   contenedor.querySelector('#boton-nueva-tarea-lista').addEventListener('click', () => abrirAltaTarea());
-  contenedor.querySelector('#boton-nuevo-examen').addEventListener('click', () => abrirAsistenteExamen());
 
   contenedor.querySelector('#filtro-categoria').addEventListener('change', (evento) => {
     filtroCategoria = evento.target.value;
@@ -262,14 +260,14 @@ function renderTarea(tarea) {
         contenedorMejora.hidden = true;
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
-        despuesDeCumplir(tarea);
+        ofrecerExportarACalendar(tarea);
       });
       return;
     }
     if (nuevoEstado === 'completada') {
       cumplirTarea(tarea, estado);
       await persistirYNotificar();
-      despuesDeCumplir(tarea);
+      ofrecerExportarACalendar(tarea);
       return;
     }
     const { copiaConservada } = reabrirTarea(tarea, estado);

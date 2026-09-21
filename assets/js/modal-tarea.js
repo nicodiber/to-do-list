@@ -17,17 +17,9 @@ import {
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
 import { renombrarHistorial, cumplirTarea, reabrirTarea } from './tareas-logica.js';
-import { despuesDeCumplir } from './post-cumplir.js';
-import { abrirAsistenteExamen } from './asistente-examen.js';
+import { ofrecerExportarACalendar } from './exportar-calendar.js';
 
 let edicionAbierta = false;
-
-/** Una tarea de tipo examen se acaba de guardar: ofrece abrir el asistente para generar su preparación. */
-function ofrecerPreparacion(tarea) {
-  setTimeout(() => {
-    if (confirm(`«${tarea.tarea_nombre}» es un examen. ¿Querés armar ahora los pasos de preparación con una plantilla?`)) abrirAsistenteExamen({ tareaExamen: tarea });
-  }, 0);
-}
 
 /** Abre la ventana de edición de la tarea `id` encima de la vista actual. */
 export function abrirEdicionTarea(id) {
@@ -72,7 +64,6 @@ export function abrirEdicionTarea(id) {
       const nombreAnterior = actual.tarea_nombre;
       const eraMantenimiento = actual.tarea_mantenimiento;
       const estabaCompletada = actual.tarea_estado === 'completada';
-      const eraExamen = actual.tarea_tipo === 'examen';
       aplicarCamposATarea(actual, leido.campos);
       aplicarEnlace(actual.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
       ofrecerMarcarCadenaMantenimiento(actual, estado.tareas);
@@ -94,9 +85,7 @@ export function abrirEdicionTarea(id) {
       if (copiaConservada) {
         alert(`Se reabrió «${actual.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
       }
-      if (ofrecerExportar) despuesDeCumplir(actual);
-      // Una tarea que pasó a ser un examen: se ofrece armar su preparación.
-      if (!eraExamen && actual.tarea_tipo === 'examen') ofrecerPreparacion(actual);
+      if (ofrecerExportar) ofrecerExportarACalendar(actual);
       return true;
     },
   });
@@ -161,7 +150,6 @@ export function abrirAltaTarea() {
       }
       ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
       await persistirYNotificar();
-      if (nueva.tarea_tipo === 'examen') ofrecerPreparacion(nueva);
 
       if (valor === 'cerrar') return true;
       // Cargar otra: se vacía el formulario y el cursor vuelve al nombre.
