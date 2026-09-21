@@ -61,7 +61,7 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [
     }
     <div class="panel-reprogramar-fila">
       <span class="panel-reprogramar-etiqueta">Día:</span>
-      ${ATAJOS_DIA.map((a) => `<button type="button" data-dias="${a.dias}">${a.etiqueta}</button>`).join('')}
+      ${ATAJOS_DIA.map((a) => `<button type="button" data-dias="${a.dias}" title="Poner el día: ${a.etiqueta}">${a.etiqueta}</button>`).join('')}
       <input type="date" data-campo="fecha" value="${hoyISO()}" />
     </div>
     <div class="panel-reprogramar-fila">
@@ -69,16 +69,16 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [
       <select data-campo="dia-semana-proximo-mes">
         ${DIAS_SEMANA.map((nombre, indice) => `<option value="${indice}">${nombre}</option>`).join('')}
       </select>
-      <button type="button" data-accion="primer-dia-proximo-mes">del próximo mes</button>
+      <button title="Elegir el primer día de la semana indicada del próximo mes" type="button" data-accion="primer-dia-proximo-mes">del próximo mes</button>
     </div>
     <div class="panel-reprogramar-fila">
       <span class="panel-reprogramar-etiqueta">Horario (opcional):</span>
-      ${ATAJOS_HORARIO.map((a) => `<button type="button" data-hora="${a.hora}">${a.etiqueta} (${a.hora})</button>`).join('')}
+      ${ATAJOS_HORARIO.map((a) => `<button type="button" data-hora="${a.hora}" title="Poner el horario ${a.hora}">${a.etiqueta} (${a.hora})</button>`).join('')}
       <input type="time" data-campo="hora" />
     </div>
     <div class="panel-reprogramar-acciones">
-      <button type="button" data-accion="confirmar" class="boton-primario">📅 Reprogramar</button>
-      <button type="button" data-accion="cancelar">↩️ Cancelar</button>
+      <button title="Confirmar la nueva fecha" type="button" data-accion="confirmar" class="boton-primario">📅 Reprogramar</button>
+      <button title="Cancelar" type="button" data-accion="cancelar">↩️ Cancelar</button>
     </div>
   `;
 

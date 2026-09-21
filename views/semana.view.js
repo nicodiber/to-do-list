@@ -47,9 +47,9 @@ export function renderVistaSemana(contenedor) {
     ${
       visibles < 7
         ? `<div class="navegacion-semana">
-            <button type="button" data-paso="-1" aria-label="Días anteriores" ${primerDiaVisible === 0 ? 'disabled' : ''}>‹</button>
+            <button type="button" data-paso="-1" aria-label="Días anteriores" title="Ver los días anteriores" ${primerDiaVisible === 0 ? 'disabled' : ''}>‹</button>
             <span>${formatearFecha(dias[0])} – ${formatearFecha(dias[dias.length - 1])}</span>
-            <button type="button" data-paso="1" aria-label="Días siguientes" ${primerDiaVisible >= 7 - visibles ? 'disabled' : ''}>›</button>
+            <button type="button" data-paso="1" aria-label="Días siguientes" title="Ver los días siguientes" ${primerDiaVisible >= 7 - visibles ? 'disabled' : ''}>›</button>
           </div>`
         : ''
     }
@@ -104,7 +104,7 @@ function renderColumnaDia(fechaDia, hoy) {
   fijas.forEach((tarea) => {
     const fecha = new Date(tarea.tarea_fecha_sugerida);
     const minutosDesdeInicio = (fecha.getHours() - HORA_INICIO) * 60 + fecha.getMinutes();
-    cuerpo.appendChild(renderBloqueTarea(tarea, minutosDesdeInicio, tarea.tarea_duracion_min || 15, false, fechaDia));
+    cuerpo.appendChild(renderBloqueTarea(tarea, minutosDesdeInicio, tarea.tarea_duracion_min || 30, false, fechaDia));
   });
 
   const proyectadas = pendientesActivas
@@ -114,7 +114,7 @@ function renderColumnaDia(fechaDia, hoy) {
 
   let cursorMinutos = 0;
   proyectadas.forEach((tarea) => {
-    const duracion = tarea.tarea_duracion_min || 15;
+    const duracion = tarea.tarea_duracion_min || 30;
     cuerpo.appendChild(renderBloqueTarea(tarea, cursorMinutos, duracion, true, fechaDia));
     cursorMinutos += duracion;
   });

@@ -107,7 +107,7 @@ export function abrirAltaTarea() {
     titulo: '➕ Nueva tarea',
     cuerpoHtml: htmlFormularioTarea(null, {
       modo: 'alta',
-      botonesPie: '<button type="button" data-accion="limpiar-campos" class="btn-limpiar">🧹 Limpiar campos</button>',
+      botonesPie: '<button title="Vaciar todos los campos del formulario (pide confirmación)" type="button" data-accion="limpiar-campos" class="btn-limpiar">🧹 Limpiar campos</button>',
     }),
     botonesGuardar: [
       { texto: '➕ Agregar y cargar otra', valor: 'otra', orden: 1 },

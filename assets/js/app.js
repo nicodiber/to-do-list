@@ -31,10 +31,11 @@ import { renderVistaGantt } from '../../views/gantt.view.js';
 import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaEstadisticas } from '../../views/estadisticas.view.js';
 import { renderVistaMejoras } from '../../views/mejoras.view.js';
+import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.59.0';
+const VERSION = 'v0.60.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -47,18 +48,19 @@ const BOTON_NUEVA_TAREA = document.getElementById('boton-nueva-tarea');
 const BOTON_COMPLETAR_CARGA = document.getElementById('boton-completar-carga');
 const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 
-// El orden es el de las pestañas: primero las de mirar el trabajo (por tiempo), después las de estructura.
+// El orden es el de las pestañas y el de sus atajos: las diez primeras se abren con las teclas 1…9 y 0 (ver atajos.js).
+// Primero las de mirar el trabajo (por tiempo), después las de estructura y las de uso ocasional.
 const VISTAS = {
   hoy: { etiqueta: '📌 Hoy', render: renderVistaHoy },
   agenda: { etiqueta: '🗓️ Agenda', render: renderVistaAgendaConSelector },
   semana: { etiqueta: '📆 Semana', render: renderVistaSemana },
   gantt: { etiqueta: '📊 Gantt', render: renderVistaGantt },
   tabla: { etiqueta: '🧾 Tabla', render: renderVistaTabla },
-  estadisticas: { etiqueta: '📈 Estadísticas', render: renderVistaEstadisticas },
   categorias: { etiqueta: '🗂️ Categorías', render: renderVistaCategorias },
   ubicaciones: { etiqueta: '📍 Ubicaciones', render: renderVistaUbicaciones },
   metas: { etiqueta: '🏁 Metas', render: renderVistaMetas },
   tareas: { etiqueta: '✅ Tareas', render: renderVistaTareas },
+  estadisticas: { etiqueta: '📈 Estadísticas', render: renderVistaEstadisticas },
   mejoras: { etiqueta: '💡 Mejoras', render: renderVistaMejoras },
   personas: { etiqueta: '👥 Personas', render: renderVistaPersonas },
   configuraciones: { etiqueta: '⚙️ Configuraciones', render: renderVistaConfiguraciones },
@@ -80,6 +82,7 @@ function renderNav() {
     const enlace = document.createElement('a');
     enlace.href = `#/${clave}`;
     enlace.textContent = vista.etiqueta;
+    enlace.title = tituloConTecla(vista.etiqueta.replace(/^\S+\s/, ''), teclaDeVista(clave, Object.keys(VISTAS)));
     enlace.className = clave === actual ? 'enlace-nav activo' : 'enlace-nav';
     NAV.appendChild(enlace);
   });
@@ -142,9 +145,9 @@ function actualizarCabeceraSync() {
         ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.</p>`
         : s.reconectaConClic
           ? `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${copia} Mientras tanto podés seguir usando la app: los cambios quedan pendientes.
-             <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
+             <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
           : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.
-             <button type="button" data-accion-sync="reconectar">Reconectar Drive</button></p>`
+             <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
     );
   }
   if (s.recienConectado && s.estado === 'sincronizado') {
@@ -153,13 +156,13 @@ function actualizarCabeceraSync() {
     temporizadorRecienConectado = setTimeout(limpiarRecienConectado, 6000);
   }
   if (s.cambiosRemotosDisponibles) {
-    banners.push('<p>🔄 Hay cambios de otro dispositivo. <button type="button" data-accion-sync="actualizar">🔄 Actualizar</button></p>');
+    banners.push('<p>🔄 Hay cambios de otro dispositivo. <button type="button" data-accion-sync="actualizar" title="Traer los cambios del otro dispositivo (puede reemplazar lo que estás viendo)">🔄 Actualizar</button></p>');
   }
   if (s.datosViejosDisponibles && s.datosListos) {
     banners.push(
       `<p>📦 Encontré datos de una versión anterior guardados en este navegador. Antes se guardaban acá; ahora todo vive en Drive.
-      <button type="button" data-accion-sync="mezclar-viejos">🔀 Mezclarlos con Drive</button>
-      <button type="button" data-accion-sync="descartar-viejos">🗑️ Descartarlos</button></p>`
+      <button type="button" data-accion-sync="mezclar-viejos" title="Sumar esos datos viejos a los que ya hay en Drive">🔀 Mezclarlos con Drive</button>
+      <button type="button" data-accion-sync="descartar-viejos" title="Borrar esos datos viejos de este navegador (pide confirmación)">🗑️ Descartarlos</button></p>`
     );
   }
   if (s.relojDesfasado) {
@@ -174,7 +177,7 @@ function actualizarCabeceraSync() {
   }
   if (s.avisos.length > 0) {
     banners.push(
-      `<p>⚠️ Tenés ${s.avisos.length} aviso${s.avisos.length === 1 ? '' : 's'} de sincronización. <button type="button" data-accion-sync="ver-avisos">👁️ Ver</button></p>`
+      `<p>⚠️ Tenés ${s.avisos.length} aviso${s.avisos.length === 1 ? '' : 's'} de sincronización. <button type="button" data-accion-sync="ver-avisos" title="Ver los avisos de sincronización">👁️ Ver</button></p>`
     );
   }
   BANNER_SYNC.innerHTML = banners.join('');
@@ -203,13 +206,13 @@ function renderPanelAvisos(avisos) {
               ? `<ul>${aviso.camposDescartados.map((c) => `<li>Se descartó <code>${escaparTexto(c.campo)}</code>: ${escaparTexto(c.valorDescartado)}</li>`).join('')}</ul>`
               : ''
           }
-          <button type="button" data-descartar-aviso="${escaparTexto(aviso.id)}">🗑️ Descartar</button>
+          <button type="button" data-descartar-aviso="${escaparTexto(aviso.id)}" title="Marcar este aviso como revisado">🗑️ Descartar</button>
         </li>`
         )
         .join('')}
     </ul>
-    <button type="button" data-accion-sync="descartar-todos">🗑️ Descartar todos</button>
-    <button type="button" data-accion-sync="cerrar-avisos">✖️ Cerrar</button>
+    <button type="button" data-accion-sync="descartar-todos" title="Marcar todos los avisos como revisados">🗑️ Descartar todos</button>
+    <button type="button" data-accion-sync="cerrar-avisos" title="Cerrar el panel de avisos">✖️ Cerrar</button>
   `;
 }
 
@@ -276,7 +279,7 @@ function renderPantallaInicial(contenedor) {
       <p class="ayuda">Vas a ver una ventana de Google que pide dos permisos: <strong>Drive</strong> (solo para el archivo que crea esta app) y <strong>Calendar</strong> (solo lectura, para avisarte de superposiciones con tus eventos).</p>
       ${s.datosViejosDisponibles ? '<p class="ayuda">📦 Encontré datos de una versión anterior en este navegador: se van a importar a tu Drive al conectar.</p>' : ''}
       ${s.mensajeError ? `<p class="aviso-bloqueada">${escaparTexto(s.mensajeError)}</p>` : ''}
-      <button type="button" id="boton-conectar-inicial" class="boton-primario" ${conectando ? 'disabled' : ''}>
+      <button title="Conectar con tu cuenta de Google" type="button" id="boton-conectar-inicial" class="boton-primario" ${conectando ? 'disabled' : ''}>
         ${conectando ? '⏳ Conectando…' : '🔗 Conectar con Google Drive'}
       </button>
     </section>
@@ -347,11 +350,6 @@ document.getElementById('version-app').textContent = VERSION;
 window.addEventListener('hashchange', () => render());
 suscribir((_estado, opciones) => render(opciones));
 
-// Atajo de teclado "N" (sin modificador) para crear una tarea rápido sin
-// usar el mouse. Ctrl+N está reservado por el navegador (nueva ventana),
-// por eso se usa la tecla sola — mismo patrón que Gmail/Linear/Notion.
-// Se ignora si el foco está en un campo editable, para no interferir al
-// escribir "n" dentro de cualquier input/textarea/select de la app.
 /** Abre la ventana de nueva tarea encima de la vista actual: la usan el botón "＋" y el atajo "N". */
 function abrirNuevaTarea() {
   if (BOTON_NUEVA_TAREA.hidden) return; // sin datos listos o en solo lectura no hay alta
@@ -362,21 +360,20 @@ function abrirNuevaTarea() {
 BOTON_NUEVA_TAREA.addEventListener('click', abrirNuevaTarea);
 BOTON_COMPLETAR_CARGA.addEventListener('click', abrirCargaTareas);
 
-window.addEventListener('keydown', (evento) => {
-  if (evento.ctrlKey || evento.altKey || evento.metaKey) return;
-  if (evento.key !== 'n' && evento.key !== 'N') return;
-  const objetivo = evento.target;
-  const enCampo =
-    objetivo instanceof HTMLElement &&
-    (objetivo.tagName === 'INPUT' ||
-      objetivo.tagName === 'TEXTAREA' ||
-      objetivo.tagName === 'SELECT' ||
-      objetivo.isContentEditable);
-  if (enCampo || BOTON_NUEVA_TAREA.hidden) return;
-
-  evento.preventDefault();
-  abrirNuevaTarea();
+// Atajos de teclado (teclas solas, con el foco fuera de un campo): ver atajos.js, que también arma la ventana de ayuda.
+configurarAtajos({
+  vistas: Object.keys(VISTAS),
+  etiquetas: Object.fromEntries(Object.entries(VISTAS).map(([clave, vista]) => [clave, vista.etiqueta])),
+  irAVista: (clave) => {
+    location.hash = `#/${clave}`;
+  },
+  abrirNuevaTarea,
+  puedeUsarse: () => {
+    const s = obtenerEstadoSync();
+    return s.datosListos && !s.soloLectura;
+  },
 });
+document.getElementById('boton-atajos').addEventListener('click', abrirAyudaAtajos);
 
 function temaEfectivo() {
   const guardado = localStorage.getItem(CLAVE_LOCALSTORAGE_TEMA);

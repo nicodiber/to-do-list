@@ -194,6 +194,19 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ---
 
+### A9. Usar la app con el teclado
+
+- **Objetivo**: manejar lo más usado sin el mouse.
+- **Atajos** (teclas solas, con el cursor fuera de un campo y sin ninguna ventana abierta; se ignoran con Ctrl, Alt o Meta y en la pantalla inicial):
+  - **1…9 y 0**: abren las diez primeras pestañas en su orden (1 Hoy · 2 Agenda · 3 Semana · 4 Gantt · 5 Tabla · 6 Categorías · 7 Ubicaciones · 8 Metas · 9 Tareas · 0 Estadísticas). Mejoras, Personas y Configuraciones solo con el mouse.
+  - **N**: nueva tarea. **F**: lleva el cursor al buscador o al primer filtro de la vista. **?** (o el botón ⌨️ de la cabecera): abre la ayuda con la lista de atajos.
+  - En una ventana de formulario: **Ctrl+Enter** guarda o agrega (con el botón principal); **Enter** en el nombre de una tarea nueva la agrega y deja la ventana abierta; **Esc** cierra.
+- **Tooltips**: al pasar el mouse por pestañas, botones, filtros y campos del formulario aparece el `title` del navegador con una explicación y, si hay atajo, su tecla ("Hoy (tecla 1)").
+- **Vistas/funciones**: `assets/js/atajos.js` (`configurarAtajos`, `abrirAyudaAtajos`), `assets/js/dialogo-formulario.js` (Ctrl+Enter), `assets/js/app.js` (orden de las pestañas).
+- **Fricciones**: las teclas se eligieron para no chocar con el navegador ni con Windows (por eso no se usa Ctrl); en el celular no hay atajos ni tooltips.
+
+---
+
 ## Bloque B — Planificación de objetivos
 
 ### B1. Crear y seguir una Meta

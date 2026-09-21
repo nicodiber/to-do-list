@@ -61,14 +61,14 @@ export function renderVistaGantt(contenedor) {
       </div>
       <div class="selector-rango" role="group" aria-label="Escala">
         ${SEMANAS.map((n) => `<button type="button" data-semanas="${n}" class="${n === semanas ? 'activo' : ''}" title="Ver ${n} semanas a la vez">${n} sem.</button>`).join('')}
-        <button type="button" data-accion="hoy">Hoy</button>
+        <button title="Volver a hoy" type="button" data-accion="hoy">Hoy</button>
       </div>
     </div>
     <div class="filtros filtros-gantt">
-      <label>🧩 Agrupar por
+      <label title="Cómo se separan las filas en carriles">🧩 Agrupar por
         <select id="gantt-agrupar">${AGRUPACIONES.map((a) => `<option value="${a}" ${a === agruparPor ? 'selected' : ''}>${ETIQUETAS_AGRUPACION[a]}</option>`).join('')}</select>
       </label>
-      <label>🗂️ Categoría
+      <label title="Mostrar solo las tareas de esta categoría (y sus subcategorías)">🗂️ Categoría
         <select id="gantt-categoria">
           <option value="">Todas</option>
           ${arbolCategorias(estado.categorias)
@@ -76,17 +76,17 @@ export function renderVistaGantt(contenedor) {
             .join('')}
         </select>
       </label>
-      <label>🏁 Meta
+      <label title="Mostrar solo las tareas de esta meta">🏁 Meta
         <select id="gantt-meta">
           <option value="">Todas</option>
           ${estado.metas.map((m) => `<option value="${m.meta_id}" ${filtros.meta === m.meta_id ? 'selected' : ''}>${escaparHtml(m.meta_nombre)}</option>`).join('')}
         </select>
       </label>
-      <label>🚦 Estado
+      <label title="Mostrar solo las tareas en este estado">🚦 Estado
         <select id="gantt-estado">${Object.entries(ETIQUETAS_ESTADO).map(([clave, texto]) => `<option value="${clave}" ${filtros.estado === clave ? 'selected' : ''}>${texto}</option>`).join('')}</select>
       </label>
       <label>🔎 Buscar
-        <input type="search" id="gantt-texto" placeholder="Nombre de la tarea" value="${escaparHtml(filtros.texto)}" />
+        <input type="search" id="gantt-texto" title="Buscar por nombre (tecla F)" placeholder="Nombre de la tarea" value="${escaparHtml(filtros.texto)}" />
       </label>
     </div>
     <p class="ayuda leyenda-gantt">${

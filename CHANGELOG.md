@@ -2,6 +2,28 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.60.0] - 2026-09-21
+
+Ronda 8b del rediseño: atajos de teclado, tooltips y tareas chicas del backlog (ver `REDISENO.md`, punto 8). También se documenta la definición de la Ronda 9 y la hoja de ruta a la v1.0.0.
+
+### Agregado
+
+- **Atajos de teclado** (teclas solas, con el cursor fuera de un campo y sin ninguna ventana abierta): **1…9 y 0** abren las diez primeras pestañas en su orden, **N** abre la nueva tarea, **F** lleva el cursor al buscador o al primer filtro de la vista y **?** (o el botón **⌨️** de la cabecera) abre una ventana con la lista de atajos. `assets/js/atajos.js`.
+- **Ctrl+Enter** en cualquier ventana de formulario: guarda o agrega con el botón principal.
+- **Tooltips**: un `title` con explicación en pestañas (con su tecla, por ejemplo "Hoy (tecla 1)"), botones de acción, filtros, buscadores, solapas de Estadísticas y campos del formulario (cada fecha explica qué significa).
+- **Íconos PNG de la aplicación** (192, 512 y una versión maskable de 512, más el de Apple), declarados en el manifiesto y precacheados: al instalarla en Windows (Brave, Chrome, Edge) se ve el logo en lugar de una "S" gris. En Windows hay que desinstalar la app y volver a instalarla para que tome el ícono nuevo.
+- **`TECNOLOGIAS.md`**: todas las tecnologías usadas, qué hace cada una y dónde.
+
+### Cambiado
+
+- **Nuevo orden de las pestañas** para los atajos: Hoy · Agenda · Semana · Gantt · Tabla · Categorías · Ubicaciones · Metas · Tareas · **Estadísticas** · Mejoras · Personas · Configuraciones.
+- **La duración por defecto de una tarea nueva es de 30 minutos** (antes 15). Las tareas ya cargadas no cambian, y "Completar carga de tareas" sigue considerando "sin datos" tanto la duración de 30 como la de 15.
+- `manifest.json`: ícono SVG más los PNG; `sw.js`: `CACHE_NAME` a `v20`.
+
+### Documentación
+
+- `REDISENO.md`: nueva sección **Ronda 9** (hábito temporal con "Repetir hasta", plantilla de examen con cadena y repaso diario, ciclos y vista previa editable, con el borrador del proceso de estudio y lo que queda abierto) y la **hoja de ruta a la v1.0.0**: no se cargan datos reales hasta entonces, y la v1.0.0 debe incluir seguimiento de uso, solicitud de acceso y feedback.
+
 ## [v0.59.0] - 2026-09-21
 
 Ronda 8a del rediseño: sistema visual y formulario (ver `REDISENO.md`, punto 8). Los atajos de teclado quedan para la 8b (v0.60.0).

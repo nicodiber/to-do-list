@@ -23,7 +23,7 @@ export function renderVistaMejoras(contenedor) {
     <h2>💡 Mejoras</h2>
     <p class="ayuda">Las notas que dejás al cumplir una tarea de mantenimiento ("¿qué podrías mejorar la próxima vez?"). Repasalas y marcalas como aplicadas cuando ya las incorporaste.</p>
     <div class="selector-rango" role="group" aria-label="Filtro">
-      ${FILTROS.map((f) => `<button type="button" data-filtro="${f.clave}" class="${f.clave === filtro ? 'activo' : ''}">${f.etiqueta} (${mejoras.filter(f.cuenta).length})</button>`).join('')}
+      ${FILTROS.map((f) => `<button type="button" data-filtro="${f.clave}" title="Mostrar las notas ${f.etiqueta.toLowerCase()}" class="${f.clave === filtro ? 'activo' : ''}">${f.etiqueta} (${mejoras.filter(f.cuenta).length})</button>`).join('')}
     </div>
     <div class="lista-mejoras"></div>
   `;
@@ -68,9 +68,9 @@ function renderMejora(mejora) {
       </span>
     </div>
     <div class="item-tarea-acciones">
-      <button type="button" data-accion="alternar">${mejora.mejora_aplicada ? '↩️ Volver a pendiente' : '✅ Marcar aplicada'}</button>
-      <button type="button" data-accion="editar">✏️ Editar</button>
-      <button type="button" data-accion="eliminar">🗑️ Eliminar</button>
+      <button title="Marcar la nota como aplicada o volver a dejarla pendiente" type="button" data-accion="alternar">${mejora.mejora_aplicada ? '↩️ Volver a pendiente' : '✅ Marcar aplicada'}</button>
+      <button title="Editar la tarea" type="button" data-accion="editar">✏️ Editar</button>
+      <button title="Eliminar (pide confirmación)" type="button" data-accion="eliminar">🗑️ Eliminar</button>
     </div>
   `;
 

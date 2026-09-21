@@ -98,10 +98,10 @@ export function partesFechaHora(valorISO) {
   return { fecha: fechaLocalISO(new Date(valorISO)), hora: formatearHora(valorISO) };
 }
 
-function htmlParFechaHora(nombreCampo, valorISO, etiqueta) {
+function htmlParFechaHora(nombreCampo, valorISO, etiqueta, ayuda = '') {
   const { fecha, hora } = partesFechaHora(valorISO);
   return `
-    <label class="campo"><span class="campo-titulo">${etiqueta}</span>
+    <label class="campo" title="${ayuda}"><span class="campo-titulo">${etiqueta}</span>
       <span class="par-fecha-hora">
         <input type="date" name="${nombreCampo}_fecha" value="${fecha}" />
         <input type="time" name="${nombreCampo}_hora" value="${hora}" title="Hora (opcional)" />
@@ -152,7 +152,7 @@ function htmlSelectEnlace(nombre, etiqueta, opciones, actual, textoOcupada, sinV
   // La tarea actualmente enlazada siempre debe figurar, aunque ya esté completada.
   const lista = actual && !opciones.some((o) => o.tarea.tarea_id === actual.tarea_id) ? [{ tarea: actual, ocupadaPor: null }, ...opciones] : opciones;
   return `
-    <label class="campo ancho-completo"><span class="campo-titulo">${etiqueta}</span>
+    <label class="campo ancho-completo" title="Una tarea puede tener una sola previa y una sola próxima"><span class="campo-titulo">${etiqueta}</span>
       <select name="${nombre}">
         <option value="">${sinValor}</option>
         ${lista
@@ -194,29 +194,29 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
 
     <fieldset class="seccion-form">
       <legend>📝 Qué</legend>
-      <label class="campo ancho-completo"><span class="campo-titulo">🗒️ Descripción, notas o links</span>
+      <label class="campo ancho-completo" title="Notas, enlaces o lo que quieras recordar de la tarea"><span class="campo-titulo">🗒️ Descripción, notas o links</span>
         <input type="text" name="tarea_descripcion" placeholder="Opcional" value="${escaparHtml(t.tarea_descripcion || '')}" />
       </label>
-      <label class="campo"><span class="campo-titulo">🗂️ Categoría</span><select name="categoria_id">${htmlOpcionesCategoria(t.categoria_id || '')}</select></label>
-      <label class="campo"><span class="campo-titulo">❗ Importancia</span><select name="tarea_importancia">${htmlOpcionesImportancia(t.tarea_importancia || '')}</select></label>
-      <label class="campo"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
-      <label class="campo"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
+      <label class="campo" title="El área de tu vida a la que pertenece; define su prioridad"><span class="campo-titulo">🗂️ Categoría</span><select name="categoria_id">${htmlOpcionesCategoria(t.categoria_id || '')}</select></label>
+      <label class="campo" title="Qué tan importante es: cuenta para ordenar la lista"><span class="campo-titulo">❗ Importancia</span><select name="tarea_importancia">${htmlOpcionesImportancia(t.tarea_importancia || '')}</select></label>
+      <label class="campo" title="Cuánto disfrutás hacerla (1 a 5)"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
+      <label class="campo" title="La meta a la que aporta esta tarea"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
     </fieldset>
 
     <fieldset class="seccion-form">
       <legend>📅 Cuándo</legend>
-      ${htmlParFechaHora('tarea_fecha_inicio_habilitada', enAlta ? '' : t.tarea_fecha_inicio_habilitada, '🚦 Habilitada desde')}
-      ${htmlParFechaHora('tarea_fecha_sugerida', t.tarea_fecha_sugerida, '📅 Sugerida')}
-      ${htmlParFechaHora('tarea_fecha_limite', t.tarea_fecha_limite, '⏳ Límite')}
-      <label class="campo"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 15}" min="0" step="15" /></label>
-      <div class="campo ancho-completo"><span class="campo-titulo">🗓️ Días hábiles (sin marcar = cualquier día)</span>${htmlDiasHabiles(t.tarea_dias_habiles || [])}</div>
+      ${htmlParFechaHora('tarea_fecha_inicio_habilitada', enAlta ? '' : t.tarea_fecha_inicio_habilitada, '🚦 Habilitada desde', 'Desde cuándo se puede empezar: antes de esa fecha la tarea figura como todavía no disponible')}
+      ${htmlParFechaHora('tarea_fecha_sugerida', t.tarea_fecha_sugerida, '📅 Sugerida', 'Cuándo conviene hacerla; con hora es un horario concreto')}
+      ${htmlParFechaHora('tarea_fecha_limite', t.tarea_fecha_limite, '⏳ Límite', 'Fecha en la que tiene que estar hecha sí o sí')}
+      <label class="campo" title="Cuánto tarda, en minutos (por defecto 30)"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 30}" min="0" step="15" /></label>
+      <div class="campo ancho-completo" title="Los días de la semana en que se puede hacer; sin marcar, cualquier día"><span class="campo-titulo">🗓️ Días hábiles (sin marcar = cualquier día)</span>${htmlDiasHabiles(t.tarea_dias_habiles || [])}</div>
     </fieldset>
 
     <fieldset class="seccion-form">
       <legend>📍 Dónde y costo</legend>
-      <label class="campo"><span class="campo-titulo">📍 Ubicación</span><select name="ubicacion_id">${htmlOpcionesUbicacion(t.ubicacion_id || '')}</select></label>
-      <label class="campo"><span class="campo-titulo">💰 Costo estimado ($)</span><input type="number" name="tarea_costo_estimado" min="0" placeholder="Opcional" value="${t.tarea_costo_estimado || ''}" /></label>
-      <div class="ancho-completo">${htmlInterruptor('tarea_requiere_clima_bueno', t.tarea_requiere_clima_bueno, '🌦️ Requiere buen tiempo (sin lluvia)')}</div>
+      <label class="campo" title="Dónde se hace: permite filtrar por lugar y consultar el pronóstico"><span class="campo-titulo">📍 Ubicación</span><select name="ubicacion_id">${htmlOpcionesUbicacion(t.ubicacion_id || '')}</select></label>
+      <label class="campo" title="Cuánto dinero implica, para proyectar gastos"><span class="campo-titulo">💰 Costo estimado ($)</span><input type="number" name="tarea_costo_estimado" min="0" placeholder="Opcional" value="${t.tarea_costo_estimado || ''}" /></label>
+      <div class="ancho-completo">${htmlInterruptor('tarea_requiere_clima_bueno', t.tarea_requiere_clima_bueno, '🌦️ Requiere buen tiempo (sin lluvia)', 'title="Si el pronóstico marca lluvia, la app te avisa para que la pospongas"')}</div>
     </fieldset>
 
     <fieldset class="seccion-form">
@@ -227,7 +227,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
 
     <fieldset class="seccion-form">
       <legend>🔁 Repetición</legend>
-      <div class="ancho-completo">${htmlInterruptor('tarea_mantenimiento', t.tarea_mantenimiento, '🔁 Es tarea de mantenimiento (se renueva sola)')}</div>
+      <div class="ancho-completo">${htmlInterruptor('tarea_mantenimiento', t.tarea_mantenimiento, '🔁 Es tarea de mantenimiento (se renueva sola)', 'title="Al cumplirla se crea sola la próxima repetición"')}</div>
       <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
         cada
         <input type="number" name="mantenimiento_cantidad" value="${intervalo ? intervalo.cantidad : 1}" min="1" style="width: 4.5rem" aria-label="Cantidad" />
@@ -236,7 +236,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
         </select>
       </span>
       <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
-        <label class="campo"><span class="campo-titulo">⚡ Se activa cuando se cumple (desencadenante)</span>
+        <label class="campo" title="Cierra un anillo: al cumplir esta tarea, su copia queda bloqueada por esa otra tarea"><span class="campo-titulo">⚡ Se activa cuando se cumple (desencadenante)</span>
           <select name="tarea_desencadenante" ${puedeTenerDesencadenante ? '' : 'disabled'}>
             <option value="">Ninguna</option>
             ${estado.tareas
@@ -250,7 +250,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       <fieldset class="campos-mantenimiento checklist-editor ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
         <legend>☑️ Checklist (pasos de la tarea)</legend>
         <ul class="lista-checklist-editor">${checklist.map((item) => htmlItemChecklist(item)).join('')}</ul>
-        <button type="button" data-accion="agregar-item-checklist">➕ Agregar paso</button>
+        <button title="Agregar un paso al checklist" type="button" data-accion="agregar-item-checklist">➕ Agregar paso</button>
       </fieldset>
     </fieldset>
     ${botonesPie}
@@ -377,7 +377,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
     );
     if (!coincidencia) return;
     precargar(formulario.categoria_id, coincidencia.categoria_id || '');
-    precargar(formulario.tarea_duracion_min, coincidencia.tarea_duracion_min || 15);
+    precargar(formulario.tarea_duracion_min, coincidencia.tarea_duracion_min || 30);
     precargar(formulario.tarea_costo_estimado, coincidencia.tarea_costo_estimado || '');
     precargar(formulario.tarea_descripcion, coincidencia.tarea_descripcion || '');
     if (precargar(checkbox, !!coincidencia.tarea_mantenimiento)) campos.forEach((c) => (c.hidden = !coincidencia.tarea_mantenimiento));
@@ -425,7 +425,7 @@ export function leerFormularioTarea(formulario) {
       tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
       tarea_fecha_sugerida: combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'),
       tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
-      tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 15,
+      tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 30,
       tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,
       tarea_descripcion: String(datos.get('tarea_descripcion') || '').trim(),
       ubicacion_id: valorSeleccion(datos.get('ubicacion_id')),

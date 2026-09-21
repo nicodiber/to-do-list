@@ -228,7 +228,7 @@ export function renderVistaTabla(contenedor) {
     <h2>🧾 Tabla</h2>
     <p class="ayuda">Todas tus tareas, en el orden real de prioridad de la app. Filtrá, buscá u ordená por columna para auditar o encontrar algo puntual. Hacé clic en una fila para editarla.</p>
     <div class="filtros">
-      <label>🗂️ Categoría
+      <label title="Mostrar solo las tareas de esta categoría (y sus subcategorías)">🗂️ Categoría
         <select id="filtro-categoria-todas">
           <option value="">Todas</option>
           ${arbolCategorias(estado.categorias)
@@ -239,7 +239,7 @@ export function renderVistaTabla(contenedor) {
             .join('')}
         </select>
       </label>
-      <label>🚦 Estado
+      <label title="Mostrar solo las tareas en este estado">🚦 Estado
         <select id="filtro-estado-todas">
           <option value="">Todos</option>
           <option value="bloqueada" ${filtroEstado === 'bloqueada' ? 'selected' : ''}>Bloqueada</option>
@@ -247,7 +247,7 @@ export function renderVistaTabla(contenedor) {
           <option value="completada" ${filtroEstado === 'completada' ? 'selected' : ''}>Completada</option>
         </select>
       </label>
-      <label>❗ Importancia
+      <label title="Mostrar solo las tareas con esta importancia">❗ Importancia
         <select id="filtro-importancia-todas">
           <option value="">Todas</option>
           ${NIVELES_IMPORTANCIA.map(
@@ -256,11 +256,11 @@ export function renderVistaTabla(contenedor) {
         </select>
       </label>
       <label>🔎 Buscar
-        <input type="search" id="buscador-nombre-todas" placeholder="Nombre de la tarea..." value="${escaparHtml(textoBusqueda)}" />
+        <input type="search" id="buscador-nombre-todas" title="Buscar por nombre (tecla F)" placeholder="Nombre de la tarea..." value="${escaparHtml(textoBusqueda)}" />
       </label>
-      <button type="button" id="boton-columnas-tabla">🧱 Columnas</button>
-      <button type="button" id="boton-reset-orden-todas">↺ Prioridad</button>
-      <button type="button" id="boton-versus-todas">⚔️ Versus</button>
+      <button title="Elegir qué columnas mostrar" type="button" id="boton-columnas-tabla">🧱 Columnas</button>
+      <button title="Volver al orden por prioridad" type="button" id="boton-reset-orden-todas">↺ Prioridad</button>
+      <button title="Desempatar a mano tareas igual de prioritarias" type="button" id="boton-versus-todas">⚔️ Versus</button>
     </div>
     <div id="contenedor-panel-versus" hidden></div>
     <div class="tabla-tareas-contenedor">
@@ -423,15 +423,15 @@ function crearPanelVersus(contenedorVista) {
     <div class="versus-tarjetas">
       <div class="versus-tarjeta">
         ${infoBreveTarea(a)}
-        <button type="button" data-accion="elegir-a" class="boton-primario">Elegir esta ▸</button>
+        <button title="Esta tarea es más prioritaria" type="button" data-accion="elegir-a" class="boton-primario">Elegir esta ▸</button>
       </div>
       <div class="versus-tarjeta">
         ${infoBreveTarea(b)}
-        <button type="button" data-accion="elegir-b" class="boton-primario">Elegir esta ▸</button>
+        <button title="Esta tarea es más prioritaria" type="button" data-accion="elegir-b" class="boton-primario">Elegir esta ▸</button>
       </div>
     </div>
     <div class="versus-acciones">
-      <button type="button" data-accion="omitir">🤷 Da igual / Omitir</button>
+      <button title="No elegir: quedan igual de prioritarias" type="button" data-accion="omitir">🤷 Da igual / Omitir</button>
     </div>
   `;
 

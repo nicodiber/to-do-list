@@ -6,7 +6,7 @@ export function renderVistaCategorias(contenedor) {
   contenedor.innerHTML = `
     <h2>🗂️ Categorías</h2>
     <p class="ayuda">Las categorías representan áreas de tu vida (Personal, Facultad, Trabajo...). Pueden anidarse eligiendo una categoría padre, sin límite de niveles.</p>
-    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-categoria" class="boton-primario">＋ Nueva categoría</button></div>
+    <div class="barra-acciones-vista"><button title="Crear una categoría nueva" type="button" id="boton-nueva-categoria" class="boton-primario">＋ Nueva categoría</button></div>
     <div id="lista-categorias" class="lista-categorias"></div>
   `;
 
