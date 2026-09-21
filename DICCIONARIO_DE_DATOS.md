@@ -52,6 +52,10 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `tarea_checklist` | array de `{ texto: string, hecho: boolean }`, default `[]` | MVP | Lista de pasos para definir el proceso de una tarea de mantenimiento. La copia que se crea al completar hereda los textos con `hecho: false` (destildados). Todavía no tiene pantalla de edición (llega en la Ronda 3 del rediseño) |
 | `tarea_desencadenante` | string (UUID) \| null, default `null` | MVP | Solo tareas de mantenimiento. Referencia a otra tarea que "activa" a esta: no bloquea nada por sí mismo, se aplica **al crear la copia** (al completar esta tarea, su copia nace bloqueada por la instancia vigente del desencadenante; la instancia vigente es la misma tarea si sigue sin completar o su copia de mantenimiento pendiente con el mismo nombre). Sirve para cerrar anillos (A→B→C→D y D vuelve a activar a A). Una tarea con desencadenante no admite otra tarea previa; la copia sí nace con `tarea_dependiente` apuntando a él. Si se elimina el desencadenante, pasa a la previa de la eliminada |
 | `tarea_carga_completa` | boolean (default `false`) | MVP | Se pone en `true` con el botón "Dejar así" de "Completar carga de tareas": la tarea queda con pocos datos a propósito y deja de figurar en esa lista. No afecta nada más |
+| `tarea_tipo` | `""` \| `"examen"`, default `""` | Ronda 9a | Tipo de tarea. `"examen"` marca un examen: al guardarlo se ofrece armar su preparación con el asistente y se muestra con 🎓 en los desplegables |
+| `tarea_repetir_hasta` | fecha `YYYY-MM-DD` \| `""`, default `""` | Ronda 9a | Solo tareas de mantenimiento: **hábito temporal**. Último día en que se repite; si el próximo vencimiento cae después, no se crea la copia. La copia hereda el valor |
+| `tarea_repetir_hasta_tarea` | string (UUID) \| `null`, default `null` | Ronda 9a | Solo tareas de mantenimiento: deja de repetirse cuando esa otra tarea se cumple o llega su fecha límite (o sugerida). Si esa tarea ya se completó, vale el día de su cumplimiento; si se eliminó, se ignora. Si hay también `tarea_repetir_hasta`, vale lo más temprano. La copia hereda el valor |
+| `tarea_origen` | `{ grupo, instancia, paso, ciclo }` \| `null`, default `null` | Ronda 9a | Marca lo que generó el asistente de examen: `grupo` (UUID de la preparación), `instancia` (nombre, por ejemplo "Práctica"), `paso` (clave del paso de la plantilla, o `"rendir"`) y `ciclo` (número o `null`). Sirve para ofrecer "otro ciclo" y para que la tarea no cuente como "cargada rápido" |
 
 ## Ubicacion
 
@@ -121,6 +125,18 @@ Se crea sola al cumplir una tarea de mantenimiento con nota. Es independiente de
 
 Registro liviano, una entrada por cada tarea que se completa. Reabrir la tarea borra su registro. Es la base del mapa de hábitos (solapa Hábitos de Estadísticas) y sobrevive al archivado de las tareas completadas. Un **hábito** es una tarea de mantenimiento, identificada por su nombre: los registros con `cumplimiento_mantenimiento = true` y el mismo `cumplimiento_tarea_nombre`. Al renombrar una tarea de mantenimiento, los registros con el nombre viejo pasan al nuevo.
 
+## Plantilla
+
+| Campo | Tipo | Fase | Descripción |
+|---|---|---|---|
+| `plantilla_id` | string (UUID) | Ronda 9a | Identificador único |
+| `plantilla_nombre` | string | Ronda 9a | Nombre que se elige en el asistente "Nuevo examen" |
+| `plantilla_pasos` | array de paso | Ronda 9a | Los pasos en orden. Cada paso: `clave` (identificador dentro de la plantilla), `fase` (`preparar` una vez · `unidad` por cada unidad del temario · `ciclo` por cada ciclo de práctica · `consolidar` antes o después del examen · `habito` tarea diaria), `nombre` (admite `{examen}`, `{instancia}`, `{unidad}` y `{ciclo}`), `duracion_min`, `hecho_cuando` (criterio de "hecho", va a la descripción) y, según la fase, `dias_antes` (consolidar: cuántos días antes de la instancia; un número negativo la pone después del último examen) o `despues_de` (hábito: clave del paso después del cual empieza) |
+| `plantilla_creada_en` | string (ISO datetime) | Ronda 9a | Cuándo se creó |
+| `plantilla_modificado_en` | string (ISO datetime) | Ronda 9a | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
+
+Son los moldes de preparación que usa el asistente. La **plantilla por defecto "Examen"** vive en el código (`PLANTILLA_EXAMEN`, id `base-examen`), no se guarda en Drive y no se edita: se **duplica** y la copia sí es un dato del usuario. Se administran en Configuraciones → Plantillas de preparación.
+
 ## Sincronización: sellos de modificación y archivo de Drive
 
 Cada entidad lleva un campo `<entidad>_modificado_en` (ver tablas de arriba). No se edita a mano: el sistema lo sella al guardar, comparando contra el guardado anterior, y sirve para mezclar los cambios de distintos dispositivos (gana la versión más reciente de cada entidad; ver `LOGICA_FUNCIONES.md`, `sincronizacion.js`). Un sello vacío significa "más viejo que cualquier otro".
@@ -132,7 +148,7 @@ Los datos viven en **un único archivo en el Google Drive del usuario**, `super-
   "formato": 2,
   "guardado_en": "ISO datetime del guardado",
   "categorias": Categoria[], "ubicaciones": Ubicacion[], "metas": Meta[], "personas": Persona[], "tareas": Tarea[],
-  "mejoras": Mejora[], "cumplimientos": Cumplimiento[],
+  "mejoras": Mejora[], "cumplimientos": Cumplimiento[], "plantillas": Plantilla[],
   "eliminados": [ { "coleccion": "tareas", "id": "...", "eliminado_en": "ISO datetime" } ]
 }
 ```

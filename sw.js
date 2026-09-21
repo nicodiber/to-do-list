@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v20';
+const CACHE_NAME = 'super-todo-list-v21';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -40,6 +40,10 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/preferencias-horario.js',
   'assets/js/checklist-tarjeta.js',
   'assets/js/atajos.js',
+  'assets/js/plantillas.js',
+  'assets/js/asistente-examen.js',
+  'assets/js/editor-plantillas.js',
+  'assets/js/post-cumplir.js',
   'assets/js/habitos.js',
   'assets/js/gantt-modelo.js',
   'assets/js/progreso-categorias.js',

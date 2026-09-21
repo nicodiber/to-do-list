@@ -28,6 +28,7 @@ export const estado = {
   tareas: [],
   mejoras: [],
   cumplimientos: [],
+  plantillas: [],
 };
 
 const listeners = [];
@@ -213,6 +214,11 @@ function migrarTarea(t) {
       tarea_checklist: Array.isArray(resto.tarea_checklist) ? resto.tarea_checklist : [],
       tarea_desencadenante: resto.tarea_desencadenante || null,
       tarea_carga_completa: !!resto.tarea_carga_completa,
+      // Campos de la Ronda 9: ausentes en datos anteriores.
+      tarea_tipo: resto.tarea_tipo || '',
+      tarea_repetir_hasta: resto.tarea_repetir_hasta || '',
+      tarea_repetir_hasta_tarea: resto.tarea_repetir_hasta_tarea || null,
+      tarea_origen: resto.tarea_origen || null,
     };
   }
 
@@ -260,12 +266,21 @@ function migrarTarea(t) {
     tarea_checklist: [],
     tarea_desencadenante: null,
     tarea_carga_completa: false,
+    tarea_tipo: '',
+    tarea_repetir_hasta: '',
+    tarea_repetir_hasta_tarea: null,
+    tarea_origen: null,
   };
 }
 
 /** `mejoras` y `cumplimientos` nacieron en la Ronda 2: no hay formatos anteriores que migrar. */
 function migrarMejora(m) {
   return { ...m, mejora_texto: m.mejora_texto || '', mejora_aplicada: !!m.mejora_aplicada };
+}
+
+/** `plantillas` nació en la Ronda 9: no hay formatos anteriores que migrar. */
+function migrarPlantilla(p) {
+  return { ...p, plantilla_nombre: p.plantilla_nombre || 'Plantilla', plantilla_pasos: Array.isArray(p.plantilla_pasos) ? p.plantilla_pasos : [] };
 }
 
 function migrarCumplimiento(c) {
@@ -290,7 +305,8 @@ function normalizarDatosCrudos(datosOriginal) {
   tareas.forEach((t) => recalcularBloqueo(t, tareas));
   const mejoras = (datos.mejoras || []).map(migrarMejora);
   const cumplimientos = (datos.cumplimientos || []).map(migrarCumplimiento);
-  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos };
+  const plantillas = (datos.plantillas || []).map(migrarPlantilla);
+  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos, plantillas };
 }
 
 // ---------------------------------------------------------------------------

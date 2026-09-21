@@ -1,4 +1,5 @@
 import { exportarJSON, importarJSON, borrarTodosLosDatos } from '../assets/js/almacenamiento.js';
+import { htmlSeccionPlantillas, conectarSeccionPlantillas } from '../assets/js/editor-plantillas.js';
 import { obtenerFranjaHoraria, establecerFranjaHoraria, HORAS_FRANJA } from '../assets/js/preferencias-horario.js';
 
 const PALABRA_CONFIRMACION = 'BORRAR';
@@ -21,6 +22,8 @@ export function renderVistaConfiguraciones(contenedor) {
       </div>
       <p class="ayuda" id="mensaje-franja" hidden></p>
     </section>
+
+    ${htmlSeccionPlantillas()}
 
     <section class="seccion-config">
       <h3>💾 Copia de seguridad</h3>
@@ -53,6 +56,8 @@ export function renderVistaConfiguraciones(contenedor) {
   };
   campoInicio.addEventListener('change', guardarFranja);
   campoFin.addEventListener('change', guardarFranja);
+
+  conectarSeccionPlantillas(contenedor);
 
   contenedor.querySelector('#boton-exportar').addEventListener('click', exportarJSON);
 

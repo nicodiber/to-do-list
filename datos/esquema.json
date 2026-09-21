@@ -103,6 +103,18 @@
         },
         "tarea_desencadenante": { "type": ["string", "null"] },
         "tarea_carga_completa": { "type": "boolean" },
+        "tarea_tipo": { "type": "string", "enum": ["", "examen"] },
+        "tarea_repetir_hasta": { "type": "string" },
+        "tarea_repetir_hasta_tarea": { "type": ["string", "null"] },
+        "tarea_origen": {
+          "type": ["object", "null"],
+          "properties": {
+            "grupo": { "type": "string" },
+            "instancia": { "type": "string" },
+            "paso": { "type": "string" },
+            "ciclo": { "type": ["number", "null"] }
+          }
+        },
         "tarea_modificado_en": { "type": "string" }
       }
     },
@@ -116,6 +128,31 @@
         "mejora_fecha": { "type": "string" },
         "mejora_aplicada": { "type": "boolean" },
         "mejora_modificado_en": { "type": "string" }
+      }
+    },
+    "plantilla": {
+      "type": "object",
+      "required": ["plantilla_id", "plantilla_nombre", "plantilla_pasos"],
+      "properties": {
+        "plantilla_id": { "type": "string" },
+        "plantilla_nombre": { "type": "string", "minLength": 1 },
+        "plantilla_pasos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "clave": { "type": "string" },
+              "fase": { "type": "string", "enum": ["preparar", "unidad", "ciclo", "consolidar", "habito"] },
+              "nombre": { "type": "string" },
+              "duracion_min": { "type": "number", "minimum": 5 },
+              "hecho_cuando": { "type": "string" },
+              "dias_antes": { "type": "number" },
+              "despues_de": { "type": "string" }
+            }
+          }
+        },
+        "plantilla_creada_en": { "type": "string" },
+        "plantilla_modificado_en": { "type": "string" }
       }
     },
     "cumplimiento": {
@@ -171,6 +208,10 @@
     "mejoras": {
       "type": "array",
       "items": { "$ref": "#/definitions/mejora" }
+    },
+    "plantillas": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/plantilla" }
     },
     "cumplimientos": {
       "type": "array",

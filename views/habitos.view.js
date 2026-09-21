@@ -59,7 +59,7 @@ function htmlMatrizHabitos(habitos) {
             .map(
               (h) => `
             <tr>
-              <th class="nombre-habito" scope="row">${escaparHtml(h.nombre)}</th>
+              <th class="nombre-habito" scope="row">${escaparHtml(h.nombre)}${h.terminado ? ' <span class="etiqueta-fecha" title="Este hábito temporal ya llegó a su fin">✔ terminado</span>' : ''}</th>
               <td class="dato-habito">${h.racha}</td>
               <td class="dato-habito">${h.porcentaje == null ? '—' : `${h.porcentaje} %`}</td>
               ${h.celdas.map((c) => `<td class="celda-habito ${c.estado}" title="${formatearFecha(c.dia)} · ${c.titulo}">${SIMBOLOS[c.estado]}</td>`).join('')}

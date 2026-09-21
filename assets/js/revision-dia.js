@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from './almacenamiento.js';
 import { formatearFechaOFechaHora, escaparHtml, formatearHora } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { cumplirTarea, reprogramarTareaConCascada } from './tareas-logica.js';
-import { ofrecerExportarACalendar } from './exportar-calendar.js';
+import { despuesDeCumplir } from './post-cumplir.js';
 import { crearTarea } from './modelos.js';
 import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventosDeHoy } from './google-calendar.js';
 import { conectar } from './google-auth.js';
@@ -86,7 +86,7 @@ function renderPaso() {
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
       cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
-      ofrecerExportarACalendar(tarea);
+      despuesDeCumplir(tarea);
       avanzar();
     });
   });

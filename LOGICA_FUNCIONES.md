@@ -29,7 +29,7 @@ Bootstrap y router de toda la app.
 
 Estado en memoria, sincronización con Google Drive y migración de datos.
 
-- **`estado`**: objeto exportado con las 7 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`, `mejoras`, `cumplimientos`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
+- **`estado`**: objeto exportado con las 8 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`, `mejoras`, `cumplimientos`, `plantillas`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
 - **`suscribir(fn)` / `notificar()`**: observer simple para re-renderizar cuando cambian los datos. **`suscribirSync(fn)` / `obtenerEstadoSync()`**: observer aparte para el estado de sincronización (`estado`, `datosListos`, `soloLectura`, hora del último guardado/verificación, avisos, cambios remotos pendientes de aplicar, etc.), que solo redibuja la cabecera.
 - **Migración retrocompatible**, en dos pasos (sin cambios): **`fusionarSubcategoriasEnCategorias`** y **`migrarCategoria`/`migrarUbicacion`/`migrarMeta`/`migrarPersona`/`migrarTarea`**, encadenados por `normalizarDatosCrudos`, que al final recalcula el bloqueo de cada tarea con `recalcularBloqueo`. Los archivos de Drive de versiones anteriores (sin sellos `*_modificado_en`) pasan por acá al leerse.
 - **Guardar (`persistirYNotificar()`)**: es el único punto de guardado que usan las vistas. (1) `sellarCambios` compara contra la última foto y pone `*_modificado_en` a lo que cambió y registra las bajas en `eliminados`; (2) guarda el estado de trabajo en el buffer `pendiente` de IndexedDB (durable, sobrevive a recargar); (3) sube la versión local (`versionLocal++`) y el estado pasa a `pendiente`; (4) `programarSubida()` agenda la subida a Drive con un debounce de 2 s (antes de notificar, para que un error al redibujar una vista no impida la subida); (5) notifica a las vistas. **La UI solo pasa a `sincronizado` cuando Drive confirmó**; recién entonces se actualiza la copia `cache` y se borra `pendiente`.
@@ -63,11 +63,34 @@ Conserva lo que el usuario ya escribió en los formularios cuando la vista se re
 - **`restaurarBorradores(contenedor, captura)`**: después de redibujar, vuelve a poner esos valores en los campos equivalentes (disparando `input`/`change` para que la interfaz dependiente se actualice) y devuelve el foco.
 - Lo usa `render()` de `app.js` cuando `almacenamiento.js` notifica con `conservarBorradores: true` (solo al aplicar cambios remotos).
 
+## `assets/js/plantillas.js`
+
+Lógica **pura** (sin DOM) del generador de preparación de exámenes (Ronda 9a).
+
+- **`PLANTILLA_EXAMEN`**, **`FASES`**, **`ETIQUETAS_FASE`**, **`MAXIMO_CICLOS`** (8): la plantilla base (id `base-examen`, `base: true`) y las fases de un paso. **`plantillasDisponibles(estado)`**: la base y las del usuario ordenadas por nombre.
+- **`expandirPlantilla(plantilla, { examen, instancias, ciclosPorInstancia })`** → `{ pasos, habitos }`: convierte la plantilla en los pasos concretos de toda la cadena: preparar una vez; por instancia, unidades (leer → resumir → tarjetas de la unidad 1, luego la 2…), ciclos, consolidar y el hito "Rendir …"; al final lo que la plantilla ponga después del examen. Reemplaza `{examen}`, `{instancia}`, `{unidad}` y `{ciclo}` en los nombres.
+- **`asignarFechas(pasos, { desde, minutosPorDia, diasDeEstudio })`**: recorre los pasos **hacia adelante** llenando cada día hasta el tope de minutos; los pasos de consolidar se anclan `dias_antes` de la fecha de su instancia y el hito cae en la fecha del examen. Devuelve avisos `no-alcanza` (instancia y cuántos días faltan).
+- **`espaciarCiclos(pasos)`**: reparte los días que sobran entre el fin del estudio y el primer paso de consolidar como separación entre los ciclos de práctica. **`replanificar(pasos, opciones)`**: reinicia la separación, asigna fechas, espacia y vuelve a asignar (se llama después de cada cambio en la vista previa).
+- **`planificarExamen(plantilla, { examen, instancias, desde, minutosPorDia, diasDeEstudio })`** → `{ pasos, habitos, avisos, ciclos }`: con ciclos "auto" elige, instancia por instancia, el mayor número (hasta 8) que entra sin aviso; los hábitos traen `fecha` (el día siguiente a su paso de referencia).
+- **`crearTareasDeExamen(estado, plan, { categoriaId, importancia, enlaceRemNote })`**: crea las tareas encadenadas una detrás de otra con `tarea_origen`, la categoría y la importancia del examen, fecha sugerida del plan y fecha límite la del examen; una tarea de examen que ya existía (`tareaExistenteId`) se usa como hito sin pisar su enlace previo. Crea el hábito diario con `tarea_repetir_hasta_tarea` = el último examen y `tarea_fecha_inicio_habilitada` el día siguiente a las primeras tarjetas. Devuelve `{ tareas, habitos }`.
+
+## `assets/js/asistente-examen.js`
+
+- **`abrirAsistenteExamen({ tareaExamen })`**: ventana propia (`<dialog class="dialogo-tarea dialogo-asistente">`, una sola a la vez) con dos pantallas: los datos (examen, categoría, importancia, plantilla, instancias con fecha y hora, unidades, ciclos, minutos por día, desde cuándo, días de estudio y enlace de RemNote; valida nombres, fechas en orden y posteriores al comienzo) y la vista previa editable (renombrar, duración, ↑ ↓, 🗑️; llama a `replanificar`; avisos si no alcanza el tiempo; hábito diario). "✅ Crear" llama a `crearTareasDeExamen`, persiste y avisa. Con `tareaExamen` (una tarea de tipo examen ya guardada) la usa como hito de la primera instancia.
+
+## `assets/js/editor-plantillas.js`
+
+- **`htmlSeccionPlantillas()` / `conectarSeccionPlantillas(contenedor)`**: la sección "📋 Plantillas de preparación" de Configuraciones (lista, Duplicar, Eliminar con confirmación, Nueva plantilla vacía). **`abrirEditorPlantilla(plantilla | null)`** (sobre `abrirDialogoFormulario`): nombre y pasos con fase, duración, nombre, "Hecho cuando", días antes (consolidar) y "empieza después de…" (hábito), ↑ ↓ 🗑️ y "➕ Agregar paso"; al guardar exige nombre, al menos un paso, duración de 5 minutos o más y referencias válidas.
+
+## `assets/js/post-cumplir.js`
+
+- **`ofrecerOtroCiclo(tarea)`**: si la tarea cumplida es el último paso "corregir" del último ciclo de una instancia (`tarea_origen`), pregunta si agregar otro; al aceptar copia los cuatro pasos del ciclo (con lo que se haya editado), los inserta en la cadena a continuación, corre lo que sigue con `reprogramarTareaConCascada` y avisa si termina después del examen. **`despuesDeCumplir(tarea)`**: `ofrecerOtroCiclo` y después `ofrecerExportarACalendar`; lo usan Hoy, Tareas, Revisar mi día y la ventana de edición.
+
 ## `assets/js/sincronizacion.js`
 
 Lógica **pura** (sin DOM ni red) de sellado y mezcla entre dispositivos. Toda la política de conflictos vive acá.
 
-- **`COLECCIONES`**: configuración de las 7 colecciones (clave de id, campo de sello `*_modificado_en`, campo de nombre para los avisos, etiqueta).
+- **`COLECCIONES`**: configuración de las 8 colecciones (clave de id, campo de sello `*_modificado_en`, campo de nombre para los avisos, etiqueta).
 - **`sellarCambios(estado, ultimo, base, eliminados, ahora)`**: compara cada entidad contra la última foto guardada; nueva o distinta → `*_modificado_en = ahora`; ausente ahora y presente antes → tombstone en `eliminados`. Usa `estable()` para comparar sin que importe el orden de las claves.
 - **`mezclar(local, remoto, base, ahora)`**: por id y entidad completa. Si solo un lado cambió respecto de `base`, gana ese; si cambiaron ambos, gana el sello más nuevo (empate → remoto) y se genera un aviso con los campos y valores descartados; borrado vs. edición: se conserva lo más reciente y se avisa. Devuelve `{ estado, eliminados, avisos }`.
 - **`datosParaArchivo(estado, eliminados, ahora)`**: arma el JSON de Drive (formato 2: colecciones, `eliminados`, `guardado_en`). **`fotoColecciones`**, **`copiarProfundo`**, **`difierenDatos`**, **`purgarEliminados`** (borra tombstones de más de 90 días).
@@ -113,6 +136,7 @@ Helpers puros de fecha/formato/id, sin dependencias de `estado`. Reutilizados po
 Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dependencia, prioridad (ver `REGLAS_DE_PRIORIDAD.md` para el detalle de orden, no repetido acá).
 
 - **`calcularProximaFechaMantenimiento(desdeISODatetime, intervalo)`**: dado un `tarea_mantenimiento_intervalo` (`{ cantidad, unidad }`) y una fecha de referencia, calcula la próxima `tarea_fecha_limite`.
+- **`fechaFinDeRepeticion(tarea, listaTareas)`** (Ronda 9a): hasta qué día se repite una tarea de mantenimiento (hábito temporal), o `''` si no termina: lo más temprano entre `tarea_repetir_hasta` y lo que marque `tarea_repetir_hasta_tarea` (el día en que se cumplió esa otra tarea o, si sigue pendiente, su fecha límite o sugerida; si ya no existe se ignora).
 - **`completarTarea(tarea, listaTareas, opciones)`**: marca la tarea como `completada` y fija `tarea_fecha_fin`. Si tiene `tarea_mantenimiento`, clona una nueva instancia `pendiente` (vía `crearTarea`) con la próxima fecha límite calculada desde la fecha real de finalización, copiando categoría, nombre, duración, descripción (con la mejora sugerida anexada si se cargó una), intervalo de mantenimiento, costo estimado, disfrute, importancia, ubicación, días hábiles, clima, meta, el `tarea_desencadenante` y el checklist con todos los ítems destildados. Devuelve la tarea clonada o `null`. Es una pieza interna: las vistas usan `cumplirTarea`, que además enlaza la copia, desbloquea dependientes y registra cumplimiento y mejora.
 - **`cumplirTarea(tarea, estado, { notaMejora })`**: cumple una tarea: `completarTarea`, registra el **cumplimiento** (`estado.cumplimientos`), crea la **Mejora** si hay nota (`estado.mejoras`), enlaza la copia de mantenimiento y desbloquea dependientes. Reemplaza el par `completarTarea` + `desbloquearDependientes` que repetían Hoy, Tareas y "Revisar mi día". Enlace de la copia: si la original tenía previa P, la copia depende de la instancia vigente de P; si no, y tenía `tarea_desencadenante` D, queda bloqueada por la instancia vigente de D (así una cadena o un anillo A→B→C→D→A se repite entero). Nunca crea un enlace que rompa la regla 1 a 1 o forme un ciclo.
 - **`esTareaSoloConNombre(tarea, lista)` / `tareasSoloConNombre(lista)`**: una tarea sin completar con todo en su valor por defecto (sin categoría, importancia, disfrute, meta, fechas, descripción, ubicación, clima, costo, mantenimiento, días hábiles, checklist, desencadenante ni enlaces, duración 15) y sin `tarea_carga_completa`. Alimenta el botón "Completar carga de tareas (X)".
@@ -246,7 +270,7 @@ Vista "Semana": grilla horaria de 7 días (07:00-23:00) con tareas fijas y proye
 
 La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 
-- **`renderVistaTareas(contenedor)`**: botón "＋ Nueva tarea" (abre `abrirAltaTarea`), los filtros y la lista. Orden: pendientes → bloqueadas (por prioridad dentro de cada grupo) y, al final, las completadas plegadas en un `<details class="completadas-plegadas">` "Completadas (N)" que recuerda si estaba abierto (y se muestra abierto con el filtro Estado = Completada).
+- **`renderVistaTareas(contenedor)`**: botones "＋ Nueva tarea" (abre `abrirAltaTarea`) y "📚 Nuevo examen" (abre `abrirAsistenteExamen`), los filtros y la lista. Orden: pendientes → bloqueadas (por prioridad dentro de cada grupo) y, al final, las completadas plegadas en un `<details class="completadas-plegadas">` "Completadas (N)" que recuerda si estaba abierto (y se muestra abierto con el filtro Estado = Completada).
 - **`renderTarea(tarea)`**: tarjeta con el borde izquierdo del color de la categoría (`--color-categoria`), etiqueta "⚠️ Vencida" y fondo rojizo si está vencida, los badges, el checklist con casillas que se tildan ahí mismo (`checklist-tarjeta.js`, persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
@@ -287,7 +311,7 @@ Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCatego
 
 ## `views/configuraciones.view.js`
 
-- **`renderVistaConfiguraciones(contenedor)`**: sección "Agenda y Calendar" (franja horaria para buscar horarios libres, desde/hasta; se guarda al cambiar y no acepta un inicio posterior al fin), Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
+- **`renderVistaConfiguraciones(contenedor)`**: sección "Agenda y Calendar" (franja horaria para buscar horarios libres, desde/hasta; se guarda al cambiar y no acepta un inicio posterior al fin), "Plantillas de preparación" (`editor-plantillas.js`), Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
 
 ## `assets/js/modal-tarea.js`
 
@@ -374,6 +398,7 @@ Tiene tres solapas internas (`SOLAPAS`; la activa se recuerda mientras la págin
 Lógica pura (sin DOM) del mapa de hábitos. Un hábito es una tarea de mantenimiento identificada por su nombre; su historial son los `Cumplimiento`.
 
 - **`calcularHabito(nombre, estado, { dias, hasta })`**: la fila de un hábito: `celdas` (`{ dia, estado, titulo }` con `ESTADOS_CELDA`: cumplido, incumplido, vence, no-aplica), `racha` y `porcentaje` (`null` si nada tocaba). Cada día toma el intervalo y los días hábiles del último cumplimiento hasta entonces (después del último, los de la repetición abierta). Diario: ✗ en los días hábiles posteriores al primer registro y anteriores a hoy sin cumplimiento. No diario: ✗ en el vencimiento esperado que se cumplió tarde o sigue vencido. `hasta` (hoy por defecto) es el último día y todavía está en curso.
+- Un hábito **terminado** (`terminado: true`) es el que tiene cumplimientos y ninguna repetición abierta (la última copia no se creó porque llegó su fin: ver `fechaFinDeRepeticion`): los días posteriores a su último cumplimiento quedan "no aplica" y la racha y el porcentaje se calculan hasta ese día. `views/habitos.view.js` lo marca con "✔ terminado".
 - **`calcularMapaHabitos(estado, opciones)`**: una fila por cada nombre de tarea de mantenimiento con cumplimientos, más las que solo tienen la repetición abierta.
 - **`calcularMapaCategorias(estado, opciones)`**: por categoría raíz con cumplimientos, la cantidad de cumplimientos de cada día (de la categoría o de sus descendientes) y `diasActivos`.
 
