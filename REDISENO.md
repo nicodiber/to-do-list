@@ -190,7 +190,8 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 - **Preferencias en Drive**: una nueva entidad de configuración, sincronizada entre dispositivos (decisión del usuario, para evitar problemas de compatibilidad para un mismo usuario). ❓ Migrar a ella la franja horaria, que hoy vive solo en `localStorage`.
 - **Tope diario de tiempo** configurable en **Configuraciones** (propuesta: un perfil por día de la semana, con un valor para cada día).
 - **Capacidad compartida** por todas las tareas (las de examen mandan por su categoría), **con opción por caso** ❓ (a definir: por tarea, por examen al crear o por fecha).
-- **Minutos libres leídos de Calendar**: se descuentan los eventos con horario de **todos los calendarios** y en Configuraciones se pueden elegir cuáles cuentan. Se ignoran los eventos de **todo el día** y los **rechazados**; ❓ los marcados como "libre" (no ocupan tiempo).
+- **Minutos libres leídos de Calendar**: se descuentan los eventos con horario de **todos los calendarios** y en Configuraciones se pueden elegir cuáles cuentan. Se ignoran los eventos de **todo el día** y los **rechazados**. Los marcados como **"Disponible"** en Calendar (en vez de "Ocupado") **no se ignoran por defecto** (decisión del usuario), y un **interruptor en Configuraciones** permite ignorarlos. ❓ Propuesta: que los otros dos también sean interruptores (todo el día y rechazados, ambos ignorados por defecto).
+- **Consulta común de capacidad** (decisión del usuario): las tres piezas que reparten tareas (asistente de examen, posición estimada del Gantt y reprogramación de fechas vencidas) **siguen repartiendo a su manera**, pero consultan una sola función que responde cuánta capacidad tiene un día y cuánta carga ya lleva.
 - **Horizonte de lectura de Calendar** configurable (hoy son 15 días).
 - **Día previo liviano**: el día anterior a un examen la capacidad baja a la mitad (valor editable); se evaluará con el uso real.
 - **Solo día y minutos**: el planificador no asigna horas; la hora exacta sigue siendo el botón manual de "próximo hueco libre".
@@ -204,11 +205,11 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 
 - **Reparto entre exámenes que compiten** (decisión del usuario): el más **cercano** primero y, a la vez, **proporcional**. Propuesta formal: cada examen tiene un ritmo mínimo (minutos que le faltan ÷ días con capacidad hasta su fecha); se cubre primero el mínimo del más cercano y el resto se reparte proporcional al trabajo que queda.
 - **Aviso de sobrecarga con soluciones** (más capacidad, quitar ciclos, mover una fecha, etc.).
-- **Recorte de ciclos**: la app **recorta ciclos sola, avisa y permite deshacer**. Si aun así no alcanza (lo obligatorio no entra), informa y el usuario decide si acepta la sobrecarga o elige qué recortar. ❓ Cómo se concilian ambos comportamientos.
+- **Recorte de ciclos** (decisión del usuario): la app **recorta ciclos automáticamente, avisa y permite deshacer**, y el usuario puede adaptar el resultado como desee. Se aplica a las preparaciones **ya creadas** cuando otra cosa las deja sin tiempo (por ejemplo se agrega un examen que compite); **al crear** no hay nada que recortar: el asistente propone los ciclos que entran y, si el usuario fijó más de los que entran, avisa en la vista previa. Si lo obligatorio no entra, informa y el usuario decide si acepta la sobrecarga o elige qué recortar.
 - **Recálculo automático con aviso**: cuando algo cambia (se atrasa una tarea, se mueve el examen, cambia el tiempo disponible) las fechas se recalculan solas, se avisa y el usuario decide si acepta el resultado o lo edita él mismo. ❓ Qué se recalcula y qué queda fijo, y cómo se deshace.
 - **Gantt por minutos**: la posición estimada pasa a repartir por minutos disponibles en lugar de una tarea por día y por carril.
 - **Duración real**: al cumplir una tarea, preguntar (opcional) cuánto tardó y, con esos datos, **sugerir** un ajuste de las estimaciones, siempre con confirmación del usuario. ❓ En qué versión (la captura del dato es barata; el ajuste necesita datos reales).
-- ❓ **Planificador de carga común**: el usuario no ve necesario unificar los tres lugares donde hoy se reparten tareas (asistente de examen, posición estimada del Gantt, reprogramación de fechas vencidas). Propuesta intermedia: que compartan solo el cálculo de la capacidad y la carga de cada día.
+- **Planificador de carga**: no se unifican las tres piezas que reparten tareas; comparten solo la consulta de capacidad y carga por día (ver 9b).
 
 ## Hoja de ruta a la v1.0.0
 
