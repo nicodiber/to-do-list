@@ -158,7 +158,8 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
    - ✅ **8b · Atajos, tooltips y tareas chicas** (v0.60.0): teclas solas —con el foco fuera de un campo y sin ventana abierta— **1…9 y 0** para las diez primeras pestañas (el usuario descartó "G + letra"), **N** nueva tarea, **F** enfoca el buscador o filtro, **?** (y el botón ⌨️) abre la ayuda con la lista, y **Ctrl+Enter** guarda o agrega desde cualquier ventana de formulario. Se evitan las teclas que usan el navegador o Windows (Ctrl+N/T/W/S/P/F/G/H/J/K/L/O/R/U/D/E/B/A, Ctrl+1…9, Alt+←/→/Inicio/D, F1/F5/F6/F11/F12, Alt+Shift y Ctrl+Alt —AltGr en teclados latinoamericanos—). **Pestañas reordenadas** (Estadísticas entre Tareas y Mejoras; Mejoras, Personas y Configuraciones solo con el mouse). **Tooltips**: `title` del navegador en pestañas, botones, filtros y campos del formulario (con la tecla cuando hay atajo). Además: **duración por defecto de 30 minutos**, **íconos PNG** de la app (192, 512 y maskable, más el de Apple) para instalarla en Windows con su logo, y **`TECNOLOGIAS.md`**.
 9. **Ronda 9 · Hábitos temporales, plantilla de examen y época de exámenes** (ver la sección de abajo), en dos versiones:
    - ✅ **9a · Hábito temporal y plantilla de examen** (v0.61.0).
-   - **9b · Época de exámenes** (v0.62.0): minutos disponibles leídos de Calendar, carga por día, reparto entre exámenes y Gantt por minutos.
+   - **9b · Tiempo disponible** (v0.62.0): preferencias en Drive, minutos por día leídos de Calendar y carga por día.
+   - **9c · Época de exámenes** (v0.63.0): reparto entre exámenes, recálculo automático con aviso y Gantt por minutos.
 
 ## Post-v1.0
 
@@ -168,7 +169,7 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 
 ## Ronda 9 · Hábitos temporales, plantilla de examen y época de exámenes
 
-*(9a hecha en la v0.61.0; 9b pendiente.)* Nace de su principal responsabilidad actual: preparar exámenes de la facultad.
+*(9a hecha en la v0.61.0; 9b y 9c definidas parcialmente con el usuario, todavía sin implementar.)* Nace de su principal responsabilidad actual: preparar exámenes de la facultad.
 
 ### 9a · Hábito temporal y plantilla de examen (v0.61.0) ✅
 
@@ -182,16 +183,35 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 - ✅ **Edición**: vista previa editable (renombrar, duración, ↑ ↓, quitar) con recálculo de fechas y **administrador de plantillas** (agregar, quitar y reordenar pasos con fase, duración y "Hecho cuando…").
 - **Plantilla validada** (por defecto): 1. **Preparar** (30 min contenido y modalidad · 15 inscribirme · 60 material y exámenes anteriores · 30 dividir en unidades) → 2. **Por unidad** (60 leer · 45 resumir · 30 tarjetas en RemNote) → 3. **Hábito** (20 min de repaso diario) → 4. **Por ciclo** (60 practicar · 30 autoevaluar · 30 diagnosticar qué sé, qué no sé y qué sé mal · 45 corregir resumen y tarjetas) → 5. **Consolidar** (120 simulacro 3 días antes · 45 errores frecuentes 2 días antes · 30 día previo) → **Rendir** → **retrospectiva** (20 min, qué mejorar).
 
-### 9b · Época de exámenes (v0.62.0)
+### 9b · Tiempo disponible (v0.62.0)
 
-- **Minutos disponibles por día leídos de Google Calendar**: el tiempo libre dentro de la franja horaria, con un tope diario configurable (hoy es un tope fijo).
-- **Vista de carga por día** (minutos planificados contra disponibles) y aviso de sobrecarga.
-- **Reparto entre exámenes que compiten** (decisión del usuario): priorizar el **más cercano** —primero se cubre el ritmo mínimo que cada examen necesita— y repartir el resto de forma **proporcional**.
-- **Gantt por minutos**: la posición estimada hoy reparte una tarea por día por carril sin mirar la duración.
-- Se apoya en la **planificación realista** (feriados y días no laborables, horizonte de Calendar), imprescindible antes de la v1.0.0.
+*(Decisiones del usuario; los puntos con ❓ siguen abiertos.)* La 9b junta la **planificación realista** de la hoja de ruta con la base de la época de exámenes.
+
+- **Preferencias en Drive**: una nueva entidad de configuración, sincronizada entre dispositivos (decisión del usuario, para evitar problemas de compatibilidad para un mismo usuario). ❓ Migrar a ella la franja horaria, que hoy vive solo en `localStorage`.
+- **Tope diario de tiempo** configurable en **Configuraciones** (propuesta: un perfil por día de la semana, con un valor para cada día).
+- **Capacidad compartida** por todas las tareas (las de examen mandan por su categoría), **con opción por caso** ❓ (a definir: por tarea, por examen al crear o por fecha).
+- **Minutos libres leídos de Calendar**: se descuentan los eventos con horario de **todos los calendarios** y en Configuraciones se pueden elegir cuáles cuentan. Se ignoran los eventos de **todo el día** y los **rechazados**; ❓ los marcados como "libre" (no ocupan tiempo).
+- **Horizonte de lectura de Calendar** configurable (hoy son 15 días).
+- **Día previo liviano**: el día anterior a un examen la capacidad baja a la mitad (valor editable); se evaluará con el uso real.
+- **Solo día y minutos**: el planificador no asigna horas; la hora exacta sigue siendo el botón manual de "próximo hueco libre".
+- **Sin feriados** (decisión del usuario): STDL es de organización personal y los feriados también se trabaja.
+- **El asistente propone eventos de Calendar** cuyo título contenga "examen" (parcial y final se unifican bajo "examen") para cargar fecha y hora.
+- **Vista Semana con los eventos de Google Calendar**, de solo lectura: se editan desde Google Calendar.
+- **Vista de carga por día** (minutos planificados contra disponibles) en Semana. **Hoy conserva la lista completa**, sin línea de corte (decisión del usuario; se revisa con el uso real).
+- **Compatibilidad del archivo de Drive** ❓: subir `formato` y hacer que una versión vieja de la app no pise lo que no conoce.
+
+### 9c · Época de exámenes (v0.63.0)
+
+- **Reparto entre exámenes que compiten** (decisión del usuario): el más **cercano** primero y, a la vez, **proporcional**. Propuesta formal: cada examen tiene un ritmo mínimo (minutos que le faltan ÷ días con capacidad hasta su fecha); se cubre primero el mínimo del más cercano y el resto se reparte proporcional al trabajo que queda.
+- **Aviso de sobrecarga con soluciones** (más capacidad, quitar ciclos, mover una fecha, etc.).
+- **Recorte de ciclos**: la app **recorta ciclos sola, avisa y permite deshacer**. Si aun así no alcanza (lo obligatorio no entra), informa y el usuario decide si acepta la sobrecarga o elige qué recortar. ❓ Cómo se concilian ambos comportamientos.
+- **Recálculo automático con aviso**: cuando algo cambia (se atrasa una tarea, se mueve el examen, cambia el tiempo disponible) las fechas se recalculan solas, se avisa y el usuario decide si acepta el resultado o lo edita él mismo. ❓ Qué se recalcula y qué queda fijo, y cómo se deshace.
+- **Gantt por minutos**: la posición estimada pasa a repartir por minutos disponibles en lugar de una tarea por día y por carril.
+- **Duración real**: al cumplir una tarea, preguntar (opcional) cuánto tardó y, con esos datos, **sugerir** un ajuste de las estimaciones, siempre con confirmación del usuario. ❓ En qué versión (la captura del dato es barata; el ajuste necesita datos reales).
+- ❓ **Planificador de carga común**: el usuario no ve necesario unificar los tres lugares donde hoy se reparten tareas (asistente de examen, posición estimada del Gantt, reprogramación de fechas vencidas). Propuesta intermedia: que compartan solo el cálculo de la capacidad y la carga de cada día.
 
 ## Hoja de ruta a la v1.0.0
 
 *(Decisión del usuario, v0.60.0.)* **No se cargan tareas reales hasta la v1.0.0.** Primero se cierran las rondas definidas (8b y 9) y los puntos imprescindibles del backlog, y se prueba todo con datos falsos; recién con todo cumplido, probado y validado se pasa a la v1.0.0, se cargan los datos reales y se descubren mejoras y ajustes con el uso. A partir de la v1.0.0 se comparte el proyecto con amigos y familiares para recibir feedback.
-- **Imprescindibles antes de la v1.0.0**: la **Ronda 9**; la **planificación realista** (reparto por minutos disponibles por día, feriados y días no laborables, horizonte de Calendar configurable); los **extras** (ideas de la vista Semana, micrófono para cargar el nombre y calendario "memento mori"); y lo necesario para compartir: **seguimiento de uso** (analítica con Google Apps Script), **solicitud de acceso**, **feedback al desarrollador**, política de **privacidad y términos**, y la **limpieza de datos personales**.
+- **Imprescindibles antes de la v1.0.0**: la **Ronda 9**; la **planificación realista** (reparto por minutos disponibles por día leídos de Calendar y horizonte de Calendar configurable; **los feriados se descartaron**), que se hace dentro de la 9b y la 9c; los **extras** (ideas de la vista Semana, micrófono para cargar el nombre y calendario "memento mori"); y lo necesario para compartir: **seguimiento de uso** (analítica con Google Apps Script), **solicitud de acceso**, **feedback al desarrollador**, política de **privacidad y términos**, y la **limpieza de datos personales**.
 - **No marcado como imprescindible**: el primer uso guiado para gente nueva (queda para evaluar después del primer feedback).
