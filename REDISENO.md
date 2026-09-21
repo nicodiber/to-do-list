@@ -201,15 +201,15 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 - ✅ **Vista de carga por día** (minutos planificados contra disponibles) en Semana. **Hoy conserva la lista completa**, sin línea de corte (decisión del usuario; se revisa con el uso real).
 - ✅ **Compatibilidad del archivo de Drive**: el `formato` sube a 3 y una versión que encuentra un archivo con un formato mayor queda en solo lectura con un aviso. Las versiones anteriores a la v0.62.0 no tienen esa guarda.
 
-### 9c · Época de exámenes (v0.63.0)
+### 9c · Programación automática y plantillas propias (v0.63.0) — en redefinición
 
-- **Reparto entre exámenes que compiten** (decisión del usuario): el más **cercano** primero y, a la vez, **proporcional**. Propuesta formal: cada examen tiene un ritmo mínimo (minutos que le faltan ÷ días con capacidad hasta su fecha); se cubre primero el mínimo del más cercano y el resto se reparte proporcional al trabajo que queda.
-- **Aviso de sobrecarga con soluciones** (más capacidad, quitar ciclos, mover una fecha, etc.).
-- **Recorte de ciclos** (decisión del usuario): la app **recorta ciclos automáticamente, avisa y permite deshacer**, y el usuario puede adaptar el resultado como desee. Se aplica a las preparaciones **ya creadas** cuando otra cosa las deja sin tiempo (por ejemplo se agrega un examen que compite); **al crear** no hay nada que recortar: el asistente propone los ciclos que entran y, si el usuario fijó más de los que entran, avisa en la vista previa. Si lo obligatorio no entra, informa y el usuario decide si acepta la sobrecarga o elige qué recortar.
-- **Recálculo automático con aviso**: cuando algo cambia (se atrasa una tarea, se mueve el examen, cambia el tiempo disponible) las fechas se recalculan solas, se avisa y el usuario decide si acepta el resultado o lo edita él mismo. ❓ Qué se recalcula y qué queda fijo, y cómo se deshace.
-- **Gantt por minutos**: la posición estimada pasa a repartir por minutos disponibles en lugar de una tarea por día y por carril.
-- **Duración real**: al cumplir una tarea, preguntar (opcional) cuánto tardó y, con esos datos, **sugerir** un ajuste de las estimaciones, siempre con confirmación del usuario. ❓ En qué versión (la captura del dato es barata; el ajuste necesita datos reales).
-- **Planificador de carga**: no se unifican las tres piezas que reparten tareas; comparten solo la consulta de capacidad y carga por día (ver 9b).
+*(El usuario cambió el rumbo de la 9c tras la v0.62.0; lo definido y lo abierto están separados.)*
+
+- **Decisión**: todo el tema de **sobrecarga** (aviso con soluciones, recorte automático de ciclos, reparto proporcional entre exámenes que compiten, test de sobrecarga por fecha) **queda pospuesto**: se va a ver con el uso y validando con datos reales (ver `BACKLOG.md`). Lo que el usuario quiere ahora es que **el listado de tareas tenga su programación y reprogramación automática**.
+- **Decisión**: **ninguna plantilla incorporada en la app**: la plantilla base de examen que vive en el código se elimina; el usuario **carga sus propios ciclos y plantillas y las guarda para reutilizarlas**. La idea de plantillas como tal le convence.
+- ❓ **Abierto — programación automática**: alcance (todas las tareas sin fecha o solo las de una preparación), si la fecha se guarda o solo se calcula, cómo se distingue una fecha automática de una puesta por el usuario, cuándo se reprograma y qué aviso se da, y si el asistente de examen pasa a usar el mismo motor.
+- ❓ **Abierto — plantillas propias**: cómo se cargan los ciclos (dentro de una plantilla o como una pieza reutilizable aparte), guardar una preparación ya armada como plantilla, cómo empieza el usuario sin ninguna plantilla y cómo se generaliza lo que hoy está atado a la plantilla base (el "otro ciclo", el enlace de RemNote y el hábito de repaso).
+- **Sin decidir** (venían de la definición anterior): Gantt por minutos, capacidad en las fechas vencidas, vínculo del examen con su evento de Calendar, dificultad del examen y duración real.
 
 ## Hoja de ruta a la v1.0.0
 
