@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v19';
+const CACHE_NAME = 'super-todo-list-v20';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -9,6 +9,10 @@ const ARCHIVOS_PRECACHE = [
   'manifest.json',
   'assets/css/main.css',
   'assets/icons/icon.svg',
+  'assets/icons/icon-192.png',
+  'assets/icons/icon-512.png',
+  'assets/icons/icon-maskable-512.png',
+  'assets/icons/apple-touch-icon.png',
   'assets/js/app.js',
   'assets/js/almacenamiento.js',
   'assets/js/modelos.js',
@@ -35,6 +39,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/ubicacion-actual.js',
   'assets/js/preferencias-horario.js',
   'assets/js/checklist-tarjeta.js',
+  'assets/js/atajos.js',
   'assets/js/habitos.js',
   'assets/js/gantt-modelo.js',
   'assets/js/progreso-categorias.js',

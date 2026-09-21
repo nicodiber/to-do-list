@@ -11,7 +11,7 @@ export function renderVistaPersonas(contenedor) {
   contenedor.innerHTML = `
     <h2>👥 Personas</h2>
     <p class="ayuda">Hace cuánto no te reunís con cada persona, ordenado de mayor a menor tiempo — para no perder el contacto con quienes importan.</p>
-    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-persona" class="boton-primario">＋ Nueva persona</button></div>
+    <div class="barra-acciones-vista"><button title="Agregar una persona" type="button" id="boton-nueva-persona" class="boton-primario">＋ Nueva persona</button></div>
     <div id="lista-personas" class="lista-categorias"></div>
   `;
 
@@ -48,7 +48,7 @@ function renderPersona(persona) {
       </span>
       ${persona.persona_ultimo_contacto ? `<span class="etiqueta-fecha">Último: ${formatearFecha(persona.persona_ultimo_contacto)}</span>` : ''}
     </span>
-    <button type="button" data-accion="marcar-contacto" class="boton-primario">🤝 Marcar contacto hoy</button>
+    <button title="Anotar que hoy tuviste contacto con esta persona" type="button" data-accion="marcar-contacto" class="boton-primario">🤝 Marcar contacto hoy</button>
   `;
 
   tarjeta.querySelector('[data-accion="editar-persona"]').addEventListener('click', () => abrirDialogoPersona({ id: persona.persona_id }));

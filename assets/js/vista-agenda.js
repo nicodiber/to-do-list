@@ -40,12 +40,12 @@ export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = nul
   contenedor.innerHTML = `
     <h2>🗓️ Agenda</h2>
     <div class="selector-rango" role="group" aria-label="Cantidad de días">
-      ${[3, 8, 15].map((n) => `<button type="button" data-dias="${n}" class="${n === cantidadDias ? 'activo' : ''}">${n} días</button>`).join('')}
+      ${[3, 8, 15].map((n) => `<button type="button" data-dias="${n}" title="Ver los próximos ${n} días" class="${n === cantidadDias ? 'activo' : ''}">${n} días</button>`).join('')}
     </div>
     <p class="ayuda">Tareas con fecha límite o sugerida en este período — para anticipar cuellos de botella antes de que se conviertan en urgencias.</p>
     ${
       estado.ubicaciones.length > 0
-        ? `<label class="filtro-ubicacion-hoy">📍 ¿Dónde estás?
+        ? `<label class="filtro-ubicacion-hoy" title="Ver solo las tareas de tu lugar actual (tecla F para elegir)">📍 ¿Dónde estás?
             <select id="filtro-ubicacion-agenda">
               <option value="">Cualquier ubicación</option>
               ${estado.ubicaciones
@@ -137,7 +137,7 @@ function renderTarjetaTarea(tarea) {
       <div class="contenedor-panel-reprogramar" hidden></div>
     </div>
     <div class="item-tarea-acciones">
-      <button type="button" data-accion="posponer">⏭️ Posponer</button>
+      <button title="Posponer: elegir otra fecha para la tarea" type="button" data-accion="posponer">⏭️ Posponer</button>
     </div>
   `;
 

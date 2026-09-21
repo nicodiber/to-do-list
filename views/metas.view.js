@@ -15,8 +15,8 @@ export function renderVistaMetas(contenedor) {
   contenedor.innerHTML = `
     <h2>🏁 Metas</h2>
     <p class="ayuda">Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el campo "Meta" del formulario de la tarea.</p>
-    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-meta" class="boton-primario">＋ Nueva meta</button></div>
-    <button type="button" id="boton-chat-meta">🤖 Definir meta charlando con IA</button>
+    <div class="barra-acciones-vista"><button title="Crear una meta nueva" type="button" id="boton-nueva-meta" class="boton-primario">＋ Nueva meta</button></div>
+    <button title="Definir una meta charlando con tu IA" type="button" id="boton-chat-meta">🤖 Definir meta charlando con IA</button>
     <div id="contenedor-panel-chat-meta" hidden></div>
     <div id="lista-metas" class="lista-categorias"></div>
   `;
@@ -54,7 +54,7 @@ function renderMeta(meta) {
     <div class="encabezado-categoria">
       <strong>${escaparHtml(meta.meta_nombre)}</strong>
       <span class="acciones-prioridad">
-        <button type="button" data-accion="sugerir-ia">🤖 Sugerir tareas con IA</button>
+        <button title="Pedirle a la IA tareas para esta meta" type="button" data-accion="sugerir-ia">🤖 Sugerir tareas con IA</button>
         <button type="button" data-accion="editar-meta" title="Editar meta">✏️ Editar</button>
         <button type="button" data-accion="eliminar-meta" title="Eliminar meta">🗑️</button>
       </span>
@@ -110,10 +110,10 @@ function crearPanelIA(meta) {
   panel.innerHTML = `
     <p class="panel-reprogramar-etiqueta">1. Copiá este prompt y pegalo en tu asistente de IA (ChatGPT, Claude, etc.):</p>
     <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
-    <button type="button" data-accion="copiar-prompt">📋 Copiar prompt</button>
+    <button title="Copiar el texto para pegarlo en tu IA" type="button" data-accion="copiar-prompt">📋 Copiar prompt</button>
     <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta (el JSON) que te devolvió:</p>
     <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_nombre": "...", "tarea_duracion_min": 30, "dias_desde_hoy": 0 }]'></textarea>
-    <button type="button" data-accion="previsualizar" class="boton-primario">👁️ Previsualizar</button>
+    <button title="Ver lo que respondió la IA antes de aplicarlo" type="button" data-accion="previsualizar" class="boton-primario">👁️ Previsualizar</button>
     <div class="contenedor-preview-ia"></div>
   `;
 
@@ -152,7 +152,7 @@ function crearPanelIA(meta) {
           )
           .join('')}
       </ul>
-      <button type="button" data-accion="agregar-seleccionadas" class="boton-primario">➕ Agregar seleccionadas</button>
+      <button title="Crear las tareas tildadas" type="button" data-accion="agregar-seleccionadas" class="boton-primario">➕ Agregar seleccionadas</button>
     `;
 
     contenedorPreview.querySelector('[data-accion="agregar-seleccionadas"]').addEventListener('click', async () => {
@@ -206,25 +206,25 @@ function crearPanelChatMeta(contenedorPanel) {
       <p class="panel-reprogramar-etiqueta">Conversación:</p>
       ${renderTranscripcion()}
       <textarea class="textarea-ia" data-campo="mensaje" rows="3" placeholder="Contale a la IA qué querés lograr..."></textarea>
-      <button type="button" data-accion="agregar-mensaje" class="boton-primario">➕ Agregar mensaje y armar prompt</button>
+      <button title="Sumar tu mensaje a la conversación y armar el texto para la IA" type="button" data-accion="agregar-mensaje" class="boton-primario">➕ Agregar mensaje y armar prompt</button>
       <p class="panel-reprogramar-etiqueta">1. Copiá este prompt y pegalo en tu asistente de IA (ChatGPT, Claude, etc.):</p>
       <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
-      <button type="button" data-accion="copiar-prompt">📋 Copiar prompt</button>
+      <button title="Copiar el texto para pegarlo en tu IA" type="button" data-accion="copiar-prompt">📋 Copiar prompt</button>
       <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta que te devolvió:</p>
       <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder="Pegá acá lo que te respondió la IA..."></textarea>
-      <button type="button" data-accion="agregar-respuesta">💬 Agregar respuesta a la conversación</button>
+      <button title="Sumar la respuesta de la IA a la conversación" type="button" data-accion="agregar-respuesta">💬 Agregar respuesta a la conversación</button>
       <div class="aviso-chat-meta"></div>
-      <button type="button" data-accion="finalizar" ${historial.length === 0 ? 'disabled' : ''}>🏁 Finalizar: generar meta con estos datos</button>
+      <button title="Pedir a la IA la meta final con lo conversado" type="button" data-accion="finalizar" ${historial.length === 0 ? 'disabled' : ''}>🏁 Finalizar: generar meta con estos datos</button>
       ${
         mostrarFinal
           ? `
         <hr />
         <p class="panel-reprogramar-etiqueta">Paso final. Copiá este prompt y pegalo en tu asistente de IA:</p>
         <textarea class="textarea-ia" readonly rows="6">${escaparHtml(promptFinal)}</textarea>
-        <button type="button" data-accion="copiar-prompt-final">📋 Copiar prompt</button>
+        <button title="Copiar el texto para pegarlo en tu IA" type="button" data-accion="copiar-prompt-final">📋 Copiar prompt</button>
         <p class="panel-reprogramar-etiqueta">Pegá acá la respuesta (el JSON) que te devolvió:</p>
         <textarea class="textarea-ia" data-campo="respuesta-final" rows="6" placeholder='{ "meta_nombre": "...", "meta_plazo": "corto", "meta_fecha_estimada": "", "meta_descripcion": "..." }'></textarea>
-        <button type="button" data-accion="previsualizar-meta" class="boton-primario">👁️ Previsualizar meta</button>
+        <button title="Ver la meta que armó la IA antes de crearla" type="button" data-accion="previsualizar-meta" class="boton-primario">👁️ Previsualizar meta</button>
         <div class="contenedor-preview-meta"></div>
       `
           : ''
@@ -291,7 +291,7 @@ function crearPanelChatMeta(contenedorPanel) {
           <p><strong>${escaparHtml(datosMeta.meta_nombre)}</strong></p>
           <p class="notas-tarea">${ETIQUETAS_PLAZO[datosMeta.meta_plazo]}${datosMeta.meta_fecha_estimada ? ` — Objetivo: ${formatearFecha(datosMeta.meta_fecha_estimada)}` : ''}</p>
           ${datosMeta.meta_descripcion ? `<p class="notas-tarea">${escaparHtml(datosMeta.meta_descripcion)}</p>` : ''}
-          <button type="button" data-accion="crear-meta" class="boton-primario">🏁 Crear meta</button>
+          <button title="Crear la meta con estos datos" type="button" data-accion="crear-meta" class="boton-primario">🏁 Crear meta</button>
         `;
 
         contenedorPreviewMeta.querySelector('[data-accion="crear-meta"]').addEventListener('click', async () => {

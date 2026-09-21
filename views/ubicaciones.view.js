@@ -6,7 +6,7 @@ export function renderVistaUbicaciones(contenedor) {
   contenedor.innerHTML = `
     <h2>📍 Ubicaciones</h2>
     <p class="ayuda">Cada ubicación tiene una latitud/longitud asociada, para poder chequear el clima real de las tareas que la usan (ej. "Casa", "Facultad").</p>
-    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-ubicacion" class="boton-primario">＋ Nueva ubicación</button></div>
+    <div class="barra-acciones-vista"><button title="Crear una ubicación nueva" type="button" id="boton-nueva-ubicacion" class="boton-primario">＋ Nueva ubicación</button></div>
     <div id="lista-ubicaciones" class="lista-categorias"></div>
   `;
 

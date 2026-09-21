@@ -159,9 +159,9 @@ function renderResumen(contenedor) {
 
 // Solapas internas de Estadísticas. La activa se recuerda mientras la página está abierta.
 const SOLAPAS = [
-  { clave: 'resumen', etiqueta: '🧮 Resumen', render: renderResumen },
-  { clave: 'progreso', etiqueta: '🎯 Progreso por categoría', render: renderVistaProgreso },
-  { clave: 'habitos', etiqueta: '🔥 Hábitos', render: renderVistaHabitos },
+  { clave: 'resumen', ayuda: 'Completadas, costos y tareas por semana', etiqueta: '🧮 Resumen', render: renderResumen },
+  { clave: 'progreso', ayuda: 'Cuánto falta en cada categoría y cuándo vence', etiqueta: '🎯 Progreso por categoría', render: renderVistaProgreso },
+  { clave: 'habitos', ayuda: 'Mapa de las tareas que se repiten y de la actividad por categoría', etiqueta: '🔥 Hábitos', render: renderVistaHabitos },
 ];
 let solapaActiva = 'resumen';
 
@@ -169,7 +169,7 @@ export function renderVistaEstadisticas(contenedor) {
   contenedor.innerHTML = `
     <h2>📈 Estadísticas</h2>
     <div class="solapas" role="tablist">
-      ${SOLAPAS.map((sol) => `<button type="button" role="tab" data-solapa="${sol.clave}" aria-selected="${sol.clave === solapaActiva}" class="${sol.clave === solapaActiva ? 'activa' : ''}">${sol.etiqueta}</button>`).join('')}
+      ${SOLAPAS.map((sol) => `<button type="button" role="tab" title="${sol.ayuda}" data-solapa="${sol.clave}" aria-selected="${sol.clave === solapaActiva}" class="${sol.clave === solapaActiva ? 'activa' : ''}">${sol.etiqueta}</button>`).join('')}
     </div>
     <div class="contenido-solapa"></div>
   `;

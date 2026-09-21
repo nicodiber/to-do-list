@@ -113,7 +113,7 @@ export function renderVistaHabitos(contenedor) {
     <blockquote class="cita-habitos">Lo que no se mide no se mejora.</blockquote>
     <p class="ayuda">Cada fila es una tarea de mantenimiento (un hábito) y cada columna un día; hoy es la última.</p>
     <div class="selector-rango" role="group" aria-label="Período">
-      ${OPCIONES.map((n) => `<button type="button" data-dias="${n}" class="${n === dias ? 'activo' : ''}">${n} días</button>`).join('')}
+      ${OPCIONES.map((n) => `<button type="button" data-dias="${n}" title="Ver los últimos ${n} días" class="${n === dias ? 'activo' : ''}">${n} días</button>`).join('')}
     </div>
 
     <section>

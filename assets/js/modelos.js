@@ -95,7 +95,7 @@ export function crearTarea({
   tarea_mantenimiento = false,
   tarea_mantenimiento_intervalo = null,
   tarea_dias_habiles = [],
-  tarea_duracion_min = 15,
+  tarea_duracion_min = 30,
   tarea_descripcion = '',
   tarea_dependiente = null,
   ubicacion_id = null,

@@ -42,7 +42,7 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
     <form class="formulario-tarea formulario-modal">
       ${cuerpoHtml}
       <div class="acciones-modal">
-        <button type="button" data-accion="cancelar-dialogo">↩️ Cancelar</button>
+        <button type="button" data-accion="cancelar-dialogo" title="Cerrar sin guardar (Esc)">↩️ Cancelar</button>
       </div>
     </form>
   `;
@@ -56,6 +56,8 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
     boton.className = indice === botones.length - 1 || botones.length === 1 ? 'boton-primario' : '';
     boton.dataset.valor = b.valor;
     boton.textContent = b.texto;
+    // El botón principal es el que envía Ctrl+Enter.
+    if (boton.className) boton.title = `${b.texto.replace(/^\S+\s/, '')} (Ctrl+Enter)`;
     if (b.orden !== undefined) boton.style.order = String(b.orden);
     contenedorBotones.insertBefore(boton, cancelar);
   });
@@ -83,6 +85,14 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
   dialogo.addEventListener('cancel', (evento) => {
     evento.preventDefault();
     intentarCerrar();
+  });
+  // Ctrl+Enter (o Cmd+Enter) desde cualquier campo: envía el formulario con el botón principal.
+  dialogo.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Enter' || !(evento.ctrlKey || evento.metaKey)) return;
+    const principal = formulario.querySelector('button.boton-primario[type="submit"]') || formulario.querySelector('button[type="submit"]');
+    if (!principal) return;
+    evento.preventDefault();
+    formulario.requestSubmit(principal);
   });
   // Clic afuera: solo si el clic empezó y terminó fuera (arrastrar desde un campo hacia afuera no cierra).
   const fuera = (evento) => {

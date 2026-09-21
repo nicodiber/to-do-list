@@ -32,10 +32,10 @@ export function renderVistaTareas(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
   contenedor.innerHTML = `
     <h2>✅ Tareas</h2>
-    <div class="barra-acciones-vista"><button type="button" id="boton-nueva-tarea-lista" class="boton-primario">＋ Nueva tarea</button></div>
+    <div class="barra-acciones-vista"><button title="Crear una tarea nueva (tecla N)" type="button" id="boton-nueva-tarea-lista" class="boton-primario">＋ Nueva tarea</button></div>
 
     <div class="filtros">
-      <label>🗂️ Categoría
+      <label title="Mostrar solo las tareas de esta categoría (y sus subcategorías)">🗂️ Categoría
         <select id="filtro-categoria">
           <option value="">Todas</option>
           ${arbolCategorias(estado.categorias)
@@ -46,7 +46,7 @@ export function renderVistaTareas(contenedor) {
             .join('')}
         </select>
       </label>
-      <label>🚦 Estado
+      <label title="Mostrar solo las tareas en este estado">🚦 Estado
         <select id="filtro-estado">
           <option value="">Todos</option>
           <option value="bloqueada" ${filtroEstado === 'bloqueada' ? 'selected' : ''}>Bloqueada</option>
@@ -54,7 +54,7 @@ export function renderVistaTareas(contenedor) {
           <option value="completada" ${filtroEstado === 'completada' ? 'selected' : ''}>Completada</option>
         </select>
       </label>
-      <label>📍 Ubicación
+      <label title="Mostrar solo las tareas de este lugar">📍 Ubicación
         <select id="filtro-ubicacion">
           <option value="">Todas</option>
           ${estado.ubicaciones
@@ -62,7 +62,7 @@ export function renderVistaTareas(contenedor) {
             .join('')}
         </select>
       </label>
-      <label>❗ Importancia
+      <label title="Mostrar solo las tareas con esta importancia">❗ Importancia
         <select id="filtro-importancia">
           <option value="">Todas</option>
           ${NIVELES_IMPORTANCIA.map(
@@ -71,8 +71,8 @@ export function renderVistaTareas(contenedor) {
           ).join('')}
         </select>
       </label>
-      <label class="interruptor"><input type="checkbox" role="switch" id="toggle-agrupar-categoria" ${agruparPorCategoria ? 'checked' : ''} /><span class="interruptor-pista" aria-hidden="true"></span><span class="interruptor-texto">🧩 Agrupar por categoría</span><span class="interruptor-estado" aria-hidden="true"></span></label>
-      <button type="button" id="boton-ia-prioridades">🤖 Reestructurar prioridades con IA</button>
+      <label class="interruptor" title="Separar la lista por categoría"><input type="checkbox" role="switch" id="toggle-agrupar-categoria" ${agruparPorCategoria ? 'checked' : ''} /><span class="interruptor-pista" aria-hidden="true"></span><span class="interruptor-texto">🧩 Agrupar por categoría</span><span class="interruptor-estado" aria-hidden="true"></span></label>
+      <button title="Reordenar las prioridades con ayuda de tu IA" type="button" id="boton-ia-prioridades">🤖 Reestructurar prioridades con IA</button>
     </div>
 
     <div id="contenedor-panel-ia-prioridades" hidden></div>
@@ -235,9 +235,9 @@ function renderTarea(tarea) {
               ${ESTADOS_SELECCIONABLES.map((e) => `<option value="${e}" ${e === tarea.tarea_estado ? 'selected' : ''}>${ETIQUETAS_ESTADO_SELECCIONABLE[e]}</option>`).join('')}
             </select>`
       }
-      ${tarea.tarea_estado === 'completada' ? '' : '<button type="button" data-accion="posponer">⏭️ Posponer</button>'}
-      <button type="button" data-accion="editar">✏️ Editar</button>
-      <button type="button" data-accion="eliminar">🗑️ Eliminar</button>
+      ${tarea.tarea_estado === 'completada' ? '' : '<button title="Posponer: elegir otra fecha para la tarea" type="button" data-accion="posponer">⏭️ Posponer</button>'}
+      <button title="Editar la tarea" type="button" data-accion="editar">✏️ Editar</button>
+      <button title="Eliminar (pide confirmación)" type="button" data-accion="eliminar">🗑️ Eliminar</button>
     </div>
   `;
 
@@ -250,7 +250,7 @@ function renderTarea(tarea) {
           <label>¿Qué podrías mejorar la próxima vez? (opcional)
             <input type="text" data-campo="mejora" />
           </label>
-          <button type="button" data-accion="confirmar-mejora" class="boton-primario">✔️ Confirmar</button>
+          <button title="Confirmar que se cumplió y guardar la nota" type="button" data-accion="confirmar-mejora" class="boton-primario">✔️ Confirmar</button>
         </div>
       `;
       contenedorMejora.hidden = false;
@@ -331,10 +331,10 @@ function crearPanelIAPrioridades() {
   panel.innerHTML = `
     <p class="panel-reprogramar-etiqueta">1. Copiá este prompt y pegalo en tu asistente de IA (ChatGPT, Claude, etc.):</p>
     <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
-    <button type="button" data-accion="copiar-prompt">📋 Copiar prompt</button>
+    <button title="Copiar el texto para pegarlo en tu IA" type="button" data-accion="copiar-prompt">📋 Copiar prompt</button>
     <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta (el JSON) que te devolvió:</p>
     <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_id": "...", "tarea_importancia": "urgente" }]'></textarea>
-    <button type="button" data-accion="previsualizar" class="boton-primario">👁️ Previsualizar</button>
+    <button title="Ver lo que respondió la IA antes de aplicarlo" type="button" data-accion="previsualizar" class="boton-primario">👁️ Previsualizar</button>
     <div class="contenedor-preview-ia"></div>
   `;
 
@@ -373,7 +373,7 @@ function crearPanelIAPrioridades() {
           )
           .join('')}
       </ul>
-      <button type="button" data-accion="aplicar-cambios" class="boton-primario">✔️ Aplicar cambios seleccionados</button>
+      <button title="Aplicar los cambios tildados" type="button" data-accion="aplicar-cambios" class="boton-primario">✔️ Aplicar cambios seleccionados</button>
     `;
 
     contenedorPreview.querySelector('[data-accion="aplicar-cambios"]').addEventListener('click', async () => {

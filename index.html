@@ -7,7 +7,8 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1c1f27" />
   <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg" />
-  <link rel="apple-touch-icon" href="assets/icons/icon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
   <link rel="stylesheet" href="assets/css/main.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -15,11 +16,12 @@
   <header class="cabecera">
     <div class="cabecera-fila">
       <h1>Super To-Do List <span id="version-app" class="version-app"></span></h1>
-      <button id="boton-nueva-tarea" class="boton-mas" type="button" title="Nueva tarea (atajo: N)" aria-label="Nueva tarea" hidden>＋</button>
+      <button id="boton-nueva-tarea" class="boton-mas" type="button" title="Nueva tarea (tecla N)" aria-label="Nueva tarea" hidden>＋</button>
       <div class="acciones-datos">
         <button id="boton-completar-carga" type="button" title="Tareas que quedaron con solo el nombre" hidden></button>
         <div id="indicador-sync" class="indicador-sync" role="status" aria-live="polite"></div>
         <button id="boton-sync" type="button" title="Verifica contra Drive y sube lo pendiente">🔄 Sincronizar ahora</button>
+        <button id="boton-atajos" type="button" title="Atajos de teclado (tecla ?)" aria-label="Atajos de teclado">⌨️</button>
         <button id="boton-tema" type="button" title="Cambiar a modo oscuro" aria-label="Cambiar a modo oscuro">🌙</button>
       </div>
     </div>

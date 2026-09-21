@@ -32,7 +32,7 @@ function renderLista() {
     dialogo.innerHTML = `
       <h3>📝 Completar carga de tareas</h3>
       <p class="mensaje-vacio">No quedan tareas con solo el nombre. ¡Todo cargado!</p>
-      <div class="acciones-modal"><button type="button" data-accion="cerrar-carga" class="boton-primario">✖️ Cerrar</button></div>
+      <div class="acciones-modal"><button title="Cerrar la lista" type="button" data-accion="cerrar-carga" class="boton-primario">✖️ Cerrar</button></div>
     `;
     return;
   }
@@ -47,14 +47,14 @@ function renderLista() {
         ${htmlFormularioTarea(t, {
           modo: 'carga',
           botonesPie: `<div class="acciones-modal">
-            <button type="submit" class="boton-primario">💾 Actualizar</button>
+            <button type="submit" class="boton-primario" title="Guardar los datos que cargaste en esta tarea">💾 Actualizar</button>
             <button type="button" data-accion="dejar-asi" title="No volver a mostrar esta tarea en esta lista">👌 Dejar así</button>
           </div>`,
         })}
       </form>`
       )
       .join('')}
-    <div class="acciones-modal"><button type="button" data-accion="cerrar-carga">✖️ Cerrar</button></div>
+    <div class="acciones-modal"><button title="Cerrar la lista" type="button" data-accion="cerrar-carga">✖️ Cerrar</button></div>
   `;
 
   dialogo.querySelectorAll('form.tarjeta-carga').forEach((formulario) => {

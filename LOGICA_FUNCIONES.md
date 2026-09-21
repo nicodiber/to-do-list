@@ -19,7 +19,7 @@ Bootstrap y router de toda la app.
 - **Botón "＋" y "Completar carga de tareas (X)"** (`actualizarBotonesTareas`, en cada `render()`): el "＋" se muestra siempre que haya datos y no sea una pestaña de solo lectura, y hace lo mismo que el atajo "N" (`irAlAltaDeTarea`); el botón de completar carga aparece solo si `tareasSoloConNombre` devuelve al menos una tarea y abre `abrirCargaTareas`.
 - **Borradores en `render()`**: en redibujados por cambios de otro dispositivo se conserva todo lo escrito; en redibujados locales solo los formularios marcados `data-conservar-borrador` (el alta de tareas).
 - **Refresco de Calendar** (`refrescarCalendar()`): al usar "Sincronizar ahora" y al volver a la pestaña (`visibilitychange`), si hay conexión con Calendar llama a `invalidarCacheEventos()` y, si la vista actual es Hoy, redibuja (salvo con una ventana abierta, texto a medio escribir o un panel de cierre/reprogramación abierto en una tarjeta).
-- **Atajo de teclado "N"**: un listener global de `keydown` que, si no hay modificadores (`Ctrl`/`Alt`/`Meta`) y el foco no está en un campo editable (`INPUT`/`TEXTAREA`/`SELECT`/`contentEditable`), navega a la vista Tareas (si no se está ya ahí) y enfoca el nombre del formulario de alta (`#form-alta input[name="tarea_nombre"]`); no hace nada si no hay datos listos o es una pestaña de solo lectura. Usa un flag módulo (`enfocarAltaRapidaAlEntrar`) para enfocar recién después de que el cambio de hash haya disparado el re-render de la vista.
+- **Atajos de teclado**: `configurarAtajos` (`assets/js/atajos.js`) registra un único `keydown` global; `app.js` le pasa el orden de `VISTAS` (las diez primeras se abren con las teclas 1…9 y 0), `irAVista`, `abrirNuevaTarea` (el mismo que usa el botón "＋") y `puedeUsarse()` (datos listos y no solo lectura). El botón ⌨️ de la cabecera abre la ayuda. El `title` de cada pestaña muestra su tecla.
 - **Tema claro/oscuro**: `temaEfectivo()`/`aplicarTema()` leen/aplican la preferencia guardada en `localStorage` (una preferencia, nunca datos de tareas). **El oscuro es el valor por defecto**: sin elección guardada la app se abre en oscuro aunque el sistema esté en claro (ya no sigue `prefers-color-scheme`). `aplicarTema` también actualiza `theme-color`.
 - **Reprogramado automático al iniciar** (`reprogramarSiCorresponde()`): una sola vez, cuando los datos ya están listos (después de `inicializarAlmacenamiento()` o de conectar), se llama `reprogramarFechasSugeridasVencidas(estado.tareas)` (`tareas-logica.js`) y, si afectó alguna tarea, se persiste y se avisa con un `alert()`. Ver `REGLAS_DE_PRIORIDAD.md`.
 - Wiring de los botones de la cabecera (sincronizar ahora, exportar/importar JSON, tema) hacia `almacenamiento.js`.
@@ -264,11 +264,21 @@ Formulario de tarea compartido por el alta, la ventana de edición y "Completar 
 - **`leerFormularioTarea(formulario)`**: devuelve `{ campos, previaId, proximaId, completada, notaMejora }` (`completada` es `null` si el formulario no trae el interruptor o está deshabilitado); **`aplicarCamposATarea(tarea, campos)`** los aplica a una tarea existente.
 - **`validarFormularioTarea(leido, tareaId)`**: antes de cambiar nada, rechaza un desencadenante combinado con una tarea previa y, si la tarea ya existe, valida los enlaces con `evaluarEnlace`. **`firmaFormulario(formulario)`**: texto que identifica el contenido, para detectar cambios sin guardar.
 
+## `assets/js/atajos.js`
+
+Atajos de teclado y su ayuda. Teclas solas (sin Ctrl/Alt/Meta) que solo actúan con el foco fuera de un campo y sin un `<dialog>` abierto.
+
+- **`ATAJOS_FIJOS`**: tabla de los atajos que no dependen del orden de las pestañas (N, Enter, Ctrl+Enter, F, Esc, ?), única fuente de la ayuda.
+- **`teclaDeVista(clave, vistas)` / `tituloConTecla(etiqueta, tecla)`**: la tecla de una pestaña (`1`…`9`, `0` para la décima, `null` para el resto) y el texto "Hoy (tecla 1)".
+- **`configurarAtajos({ vistas, etiquetas, irAVista, abrirNuevaTarea, puedeUsarse })`**: números → `irAVista`; **N** → nueva tarea; **F** → foco en el primer `input[type="search"]` o `select` de filtro de la vista; **?** → ayuda (funciona aun sin datos, el resto no).
+- **`abrirAyudaAtajos()`**: `<dialog>` con la lista (pestañas con su tecla, las que no tienen y los atajos fijos agrupados); se cierra con Esc, con "Cerrar" o con un clic afuera.
+
 ## `assets/js/dialogo-formulario.js`
 
 Ventana modal genérica para un formulario (tareas, categorías, ubicaciones, metas, personas).
 
 - **`activarMayusculaInicial(campo)`**: la primera letra de un campo de texto se escribe siempre en mayúscula, sin mover el cursor (nombres de tareas, categorías, ubicaciones, metas y personas; también se aplica en las funciones `crearXxx` de `modelos.js`).
+- **Ctrl+Enter** (o Cmd+Enter) en cualquier campo del formulario lo envía con el botón principal (`button.boton-primario[type="submit"]`); los botones tienen `title` con la tecla.
 - **`abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar, botonesGuardar, conectar, alGuardar, alCerrar })`** (con `botonesGuardar` hay varios botones de guardado; `alGuardar` recibe cuál se apretó y una función `reiniciarFirma`): cada llamada crea su propio `<dialog>` en `document.body` (se pueden apilar) y lo quita al cerrar, sin depender del evento `close`. `alGuardar(formulario)` devuelve `true` para cerrar o `false` para dejarla abierta. Esc, el clic afuera (solo si empezó y terminó afuera) y "Cancelar" preguntan "¿Descartarlos?" solo si el formulario cambió (`firmaFormulario`).
 
 ## `assets/js/formularios-entidades.js`

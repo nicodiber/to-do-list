@@ -57,12 +57,12 @@ function renderPaso() {
       ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
     </span>
     <div class="acciones-revision">
-      <button type="button" data-accion="cumplida" class="boton-primario">✅ Cumplida</button>
-      <button type="button" data-accion="no-cumplida">❌ No cumplida</button>
-      <button type="button" data-accion="saltar">⏭️ Saltar</button>
+      <button title="Marcar la tarea como cumplida" type="button" data-accion="cumplida" class="boton-primario">✅ Cumplida</button>
+      <button title="No se hizo: elegir una nueva fecha para la tarea" type="button" data-accion="no-cumplida">❌ No cumplida</button>
+      <button title="Pasar a la siguiente tarea sin cambiar esta" type="button" data-accion="saltar">⏭️ Saltar</button>
     </div>
     <div class="contenedor-paso-revision"></div>
-    <button type="button" data-accion="cerrar-repaso" class="boton-cerrar-repaso">✖️ Cerrar repaso</button>
+    <button title="Cerrar el repaso del día" type="button" data-accion="cerrar-repaso" class="boton-cerrar-repaso">✖️ Cerrar repaso</button>
   `;
 
   dlg.querySelector('[data-accion="saltar"]').addEventListener('click', avanzar);
@@ -79,7 +79,7 @@ function renderPaso() {
             </label>`
           : ''
       }
-      <button type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
+      <button title="Confirmar que la tarea se cumplió" type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
     `;
     contenedorPaso.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
       const campoMejora = contenedorPaso.querySelector('[data-campo="mejora"]');
@@ -93,7 +93,7 @@ function renderPaso() {
 
   dlg.querySelector('[data-accion="no-cumplida"]').addEventListener('click', () => {
     contenedorPaso.innerHTML = `
-      <button type="button" data-accion="continuar-reprogramar" class="boton-primario">📅 Reprogramar</button>
+      <button title="Seguir y elegir la nueva fecha" type="button" data-accion="continuar-reprogramar" class="boton-primario">📅 Reprogramar</button>
     `;
     contenedorPaso.querySelector('[data-accion="continuar-reprogramar"]').addEventListener('click', () => {
       contenedorPaso.innerHTML = '';
@@ -118,7 +118,7 @@ function renderPasoFinal(dlg) {
   dlg.innerHTML = `
     <p>${cola.length === 0 ? 'No tenés tareas para repasar hoy.' : '¡Repasaste todas tus tareas de hoy! 🎉'}</p>
     <div class="contenedor-calendario-revision"></div>
-    <button type="button" data-accion="cerrar" class="boton-primario">✖️ Cerrar</button>
+    <button title="Cerrar" type="button" data-accion="cerrar" class="boton-primario">✖️ Cerrar</button>
   `;
   dlg.querySelector('[data-accion="cerrar"]').addEventListener('click', () => dlg.close());
 
@@ -130,7 +130,7 @@ function renderHtmlPreguntaContinuidad() {
     <p class="panel-reprogramar-etiqueta">¿Alguno de estos generó una tarea nueva para vos?</p>
     <form class="formulario-en-linea" data-form="tarea-continuidad">
       <input type="text" name="tarea_nombre" placeholder="Nombre de la tarea nueva" />
-      <button type="submit">➕ Agregar</button>
+      <button type="submit" title="Agregar la tarea de continuidad">➕ Agregar</button>
     </form>
     <ul class="lista-tareas-agregadas"></ul>
   `;
@@ -163,7 +163,7 @@ async function renderSeccionCalendario(contenedor) {
   if (!hayConexionGoogleCalendar()) {
     contenedor.innerHTML = `
       <p class="panel-reprogramar-etiqueta">Conectá tu Google Calendar para ver los eventos de hoy:</p>
-      <button type="button" data-accion="conectar-calendar-revision">📅 Conectar con Google Calendar</button>
+      <button title="Conectar Google Calendar para ver los eventos de hoy" type="button" data-accion="conectar-calendar-revision">📅 Conectar con Google Calendar</button>
       ${renderHtmlPreguntaContinuidad()}
     `;
     contenedor.querySelector('[data-accion="conectar-calendar-revision"]').addEventListener('click', async () => {

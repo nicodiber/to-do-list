@@ -441,7 +441,8 @@ export function esTareaSoloConNombre(tarea, listaTareas = []) {
   if (tarea.categoria_id || tarea.tarea_importancia || tarea.tarea_disfrute != null || tarea.meta_id) return false;
   if (tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite) return false;
   if (tarea.tarea_fecha_inicio_habilitada && tarea.tarea_fecha_inicio_habilitada !== tarea.tarea_creada_en) return false;
-  if ((tarea.tarea_duracion_min || 15) !== 15) return false;
+  // Cuentan como "sin datos" tanto la duración por defecto de ahora (30) como la de antes (15).
+  if (![15, 30].includes(tarea.tarea_duracion_min || 30)) return false;
   if (tarea.tarea_descripcion || tarea.ubicacion_id || tarea.tarea_requiere_clima_bueno || tarea.tarea_costo_estimado) return false;
   if (tarea.tarea_mantenimiento || (tarea.tarea_dias_habiles || []).length > 0) return false;
   if ((tarea.tarea_checklist || []).length > 0 || tarea.tarea_desencadenante) return false;

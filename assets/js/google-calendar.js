@@ -115,7 +115,7 @@ export function calcularSolapamiento(tarea, eventos) {
   if (!tarea.tarea_fecha_sugerida) return null;
 
   const inicioTarea = new Date(tarea.tarea_fecha_sugerida).getTime();
-  const finTarea = inicioTarea + (tarea.tarea_duracion_min || 15) * 60000;
+  const finTarea = inicioTarea + (tarea.tarea_duracion_min || 30) * 60000;
 
   return (
     eventos.find((evento) => {
@@ -138,12 +138,12 @@ function minutosDe(hhmm) {
  * datetime ISO o `null` si no hay hueco. Función pura, sin llamadas de red.
  *
  * @param {{inicio: string, fin: string}[]} eventos Eventos con horario (`inicio`/`fin` ISO).
- * @param {number} duracionMin Duración de la tarea (15 si falta).
+ * @param {number} duracionMin Duración de la tarea (30 si falta).
  * @param {{desde?: Date, dias?: number, franja?: {inicio: string, fin: string}, diasHabiles?: number[]}} [opciones]
  *   `franja` como "HH:MM" (el fin puede ser "24:00"); `diasHabiles` como índices de día de la semana (vacío = todos).
  */
 export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dias = DIAS_HORIZONTE_CALENDAR, franja = { inicio: '00:00', fin: '24:00' }, diasHabiles = [] } = {}) {
-  const duracionMs = (duracionMin || 15) * 60000;
+  const duracionMs = (duracionMin || 30) * 60000;
   const ocupados = eventos.map((evento) => ({ inicio: new Date(evento.inicio).getTime(), fin: new Date(evento.fin).getTime() }));
   const minimo = Math.ceil(desde.getTime() / PASO_HUECO_MS) * PASO_HUECO_MS;
 

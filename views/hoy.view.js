@@ -76,7 +76,7 @@ export function renderVistaHoy(contenedor) {
     <div class="controles-hoy">
       ${
         estado.ubicaciones.length > 0
-          ? `<label class="filtro-ubicacion-hoy">📍 ¿Dónde estás?
+          ? `<label class="filtro-ubicacion-hoy" title="Ver solo las tareas de tu lugar actual (tecla F para elegir)">📍 ¿Dónde estás?
               <select id="filtro-ubicacion-hoy">
                 <option value="">Cualquier ubicación</option>
                 ${estado.ubicaciones
@@ -87,7 +87,7 @@ export function renderVistaHoy(contenedor) {
           : ''
       }
       <button type="button" id="boton-enfoque-hoy" class="boton-enfoque" aria-pressed="${enfoque}" title="Con el enfoque encendido se ocultan las tareas que ya completaste hoy">🎯 Enfoque</button>
-      <button type="button" id="boton-revisar-dia" class="boton-primario">🔍 Revisar mi día</button>
+      <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">🔍 Revisar mi día</button>
     </div>
     <section>
       <h3>🚨 Urgentes</h3>
@@ -237,7 +237,7 @@ function renderCompletada(tarea) {
       </span>
     </div>
     <div class="item-tarea-acciones">
-      <button type="button" data-accion="exportar-calendar">${tarea.tarea_exportada_calendar ? '📅 Exportar de nuevo' : '📅 Exportar a Calendar'}</button>
+      <button title="Abrir Google Calendar con la tarea cargada para guardarla como registro" type="button" data-accion="exportar-calendar">${tarea.tarea_exportada_calendar ? '📅 Exportar de nuevo' : '📅 Exportar a Calendar'}</button>
     </div>
   `;
   li.querySelector('[data-accion="exportar-calendar"]').addEventListener('click', () => ofrecerExportarACalendar(tarea));
@@ -280,8 +280,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
         ${
           soloInfo
             ? ''
-            : `<button type="button" data-accion="posponer-solapamiento">⏭️ Posponer</button>
-               <button type="button" data-accion="proximo-hueco">🕒 Al próximo hueco libre</button>`
+            : `<button title="Elegir otra fecha porque se superpone con un evento" type="button" data-accion="posponer-solapamiento">⏭️ Posponer</button>
+               <button title="Mover la tarea al primer horario libre de tu Calendar" type="button" data-accion="proximo-hueco">🕒 Al próximo hueco libre</button>`
         }
       </div>
       ${dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
@@ -294,9 +294,9 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       ${
         soloInfo
           ? ''
-          : `<button type="button" data-accion="cumplida">✅ Cumplida</button>
-             <button type="button" data-accion="no-cumplida">❌ No cumplida</button>
-             ${esVencida(tarea.tarea_fecha_limite) ? `<button type="button" data-accion="revalorizar-limite">📅 Revalorizar fecha límite</button>` : ''}`
+          : `<button title="Marcar la tarea como cumplida" type="button" data-accion="cumplida">✅ Cumplida</button>
+             <button title="No se hizo: elegir una nueva fecha para la tarea" type="button" data-accion="no-cumplida">❌ No cumplida</button>
+             ${esVencida(tarea.tarea_fecha_limite) ? `<button title="Cambiar la fecha límite de esta tarea vencida" type="button" data-accion="revalorizar-limite">📅 Revalorizar fecha límite</button>` : ''}`
       }
     </div>
   `;
@@ -388,8 +388,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
               </label>`
             : ''
         }
-        <button type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
-        <button type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
+        <button title="Confirmar que la tarea se cumplió" type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
+        <button title="Cancelar y volver a la tarea" type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
       </div>
     `;
     contenedorCierre.hidden = false;
@@ -412,8 +412,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     contenedorPanel.innerHTML = '';
     contenedorCierre.innerHTML = `
       <div class="panel-cierre">
-        <button type="button" data-accion="continuar-reprogramar" class="boton-primario">📅 Reprogramar</button>
-        <button type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
+        <button title="Seguir y elegir la nueva fecha" type="button" data-accion="continuar-reprogramar" class="boton-primario">📅 Reprogramar</button>
+        <button title="Cancelar y volver a la tarea" type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
       </div>
     `;
     contenedorCierre.hidden = false;

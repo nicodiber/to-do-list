@@ -2,13 +2,13 @@
 
 Plataforma personal de gestión de tareas y objetivos, pensada para asistir y priorizar automáticamente qué hacer ahora y evitar reprogramación manual de fechas.
 
-La visión completa está en [SPEC.md](SPEC.md), el backlog de funcionalidades futuras en [BACKLOG.md](BACKLOG.md), el modelo de datos en [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md) y las notas originales del brainstorm en [NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.md).
+La visión completa está en [SPEC.md](SPEC.md), el backlog de funcionalidades futuras en [BACKLOG.md](BACKLOG.md), el modelo de datos en [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md), las tecnologías utilizadas en [TECNOLOGIAS.md](TECNOLOGIAS.md) y las notas originales del brainstorm en [NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.md).
 
 Documentación de cómo funciona: [CASOS_DE_USO.md](CASOS_DE_USO.md) (flujos de usuario, foto de hoy), [PROCESOS_AUTOMATICOS.md](PROCESOS_AUTOMATICOS.md) (lo que el sistema hace solo), [REGLAS_DE_PRIORIDAD.md](REGLAS_DE_PRIORIDAD.md) (cómo se ordenan las tareas), [LOGICA_FUNCIONES.md](LOGICA_FUNCIONES.md) (qué hace cada función) y [REDISENO.md](REDISENO.md) (lo acordado para cambiar).
 
 ## Estado actual
 
-**v0.59.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Actualmente en el rediseño del frontend, por rondas, antes de cargar datos reales (la ronda 1, almacenamiento, ya está hecha). Ver [CHANGELOG.md](CHANGELOG.md).
+**v0.60.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Actualmente en el rediseño del frontend, por rondas, antes de cargar datos reales (la ronda 1, almacenamiento, ya está hecha). Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Cómo correrlo
 

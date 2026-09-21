@@ -2530,3 +2530,42 @@ button[data-accion="conectar-calendar-revision"]:disabled,
 .formulario-tarea .fila-estado-tarea .campo {
   flex: 1 1 100%;
 }
+
+/* ===== Ronda 8b: ventana de atajos de teclado ===== */
+.dialogo-ayuda {
+  width: min(520px, 94vw);
+}
+
+.dialogo-ayuda h4 {
+  margin: 1rem 0 0.3rem;
+}
+
+.tabla-atajos {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-atajos th,
+.tabla-atajos td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  font-weight: 400;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla-atajos th {
+  width: 8.5rem;
+  white-space: nowrap;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--color-borde);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85rem;
+}
