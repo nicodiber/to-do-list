@@ -38,8 +38,8 @@ export function abrirDialogoCategoria({ id = null, alCrear = null } = {}) {
   const disfrute = categoria ? categoria.categoria_disfrute || 3 : 3;
 
   abrirDialogoFormulario({
-    titulo: categoria ? 'Editar categoría' : 'Nueva categoría',
-    textoGuardar: categoria ? 'Guardar cambios' : 'Agregar categoría',
+    titulo: categoria ? '✏️ Editar categoría' : '➕ Nueva categoría',
+    textoGuardar: categoria ? '💾 Guardar cambios' : '➕ Agregar categoría',
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
         <input type="text" name="categoria_nombre" value="${escaparHtml(categoria ? categoria.categoria_nombre : '')}" placeholder="Nombre de la categoría" required />
@@ -121,8 +121,8 @@ export function abrirDialogoUbicacion({ id = null, alCrear = null } = {}) {
   if (id && !ubicacion) return;
 
   abrirDialogoFormulario({
-    titulo: ubicacion ? 'Editar ubicación' : 'Nueva ubicación',
-    textoGuardar: ubicacion ? 'Guardar cambios' : 'Agregar ubicación',
+    titulo: ubicacion ? '✏️ Editar ubicación' : '➕ Nueva ubicación',
+    textoGuardar: ubicacion ? '💾 Guardar cambios' : '➕ Agregar ubicación',
     conectar: (formulario) => {
       activarMayusculaInicial(formulario.ubicacion_nombre);
       formulario.ubicacion_latitud.addEventListener('paste', (evento) => repartirCoordenadasPegadas(evento, formulario));
@@ -179,8 +179,8 @@ export function abrirDialogoMeta({ id = null, alCrear = null } = {}) {
   if (id && !meta) return;
 
   abrirDialogoFormulario({
-    titulo: meta ? 'Editar meta' : 'Nueva meta',
-    textoGuardar: meta ? 'Guardar cambios' : 'Agregar meta',
+    titulo: meta ? '✏️ Editar meta' : '➕ Nueva meta',
+    textoGuardar: meta ? '💾 Guardar cambios' : '➕ Agregar meta',
     conectar: (formulario) => activarMayusculaInicial(formulario.meta_nombre),
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
@@ -233,8 +233,8 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
   if (id && !persona) return;
 
   abrirDialogoFormulario({
-    titulo: persona ? 'Editar persona' : 'Nueva persona',
-    textoGuardar: persona ? 'Guardar cambios' : 'Agregar persona',
+    titulo: persona ? '✏️ Editar persona' : '➕ Nueva persona',
+    textoGuardar: persona ? '💾 Guardar cambios' : '➕ Agregar persona',
     conectar: (formulario) => activarMayusculaInicial(formulario.persona_nombre),
     cuerpoHtml: `
       <div class="fila-nombre-tarea">

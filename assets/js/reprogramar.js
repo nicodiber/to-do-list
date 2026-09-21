@@ -77,8 +77,8 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [
       <input type="time" data-campo="hora" />
     </div>
     <div class="panel-reprogramar-acciones">
-      <button type="button" data-accion="confirmar" class="boton-primario">Reprogramar</button>
-      <button type="button" data-accion="cancelar">Cancelar</button>
+      <button type="button" data-accion="confirmar" class="boton-primario">📅 Reprogramar</button>
+      <button type="button" data-accion="cancelar">↩️ Cancelar</button>
     </div>
   `;
 

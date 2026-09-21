@@ -4,7 +4,7 @@ import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 
 export function renderVistaUbicaciones(contenedor) {
   contenedor.innerHTML = `
-    <h2>Ubicaciones</h2>
+    <h2>📍 Ubicaciones</h2>
     <p class="ayuda">Cada ubicación tiene una latitud/longitud asociada, para poder chequear el clima real de las tareas que la usan (ej. "Casa", "Facultad").</p>
     <div class="barra-acciones-vista"><button type="button" id="boton-nueva-ubicacion" class="boton-primario">＋ Nueva ubicación</button></div>
     <div id="lista-ubicaciones" class="lista-categorias"></div>
@@ -28,8 +28,8 @@ function renderUbicacion(ubicacion) {
     <div class="encabezado-categoria">
       <strong>${escaparHtml(ubicacion.ubicacion_nombre)}</strong>
       <span class="acciones-prioridad">
-        <button type="button" data-accion="editar-ubicacion" title="Editar ubicación">Editar</button>
-        <button type="button" data-accion="eliminar-ubicacion" title="Eliminar ubicación">✕</button>
+        <button type="button" data-accion="editar-ubicacion" title="Editar ubicación">✏️ Editar</button>
+        <button type="button" data-accion="eliminar-ubicacion" title="Eliminar ubicación">🗑️</button>
       </span>
     </div>
     <p class="notas-tarea">Lat: ${ubicacion.ubicacion_latitud}, Lon: ${ubicacion.ubicacion_longitud}</p>

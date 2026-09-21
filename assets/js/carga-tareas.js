@@ -30,15 +30,15 @@ function renderLista() {
 
   if (tareas.length === 0) {
     dialogo.innerHTML = `
-      <h3>Completar carga de tareas</h3>
+      <h3>📝 Completar carga de tareas</h3>
       <p class="mensaje-vacio">No quedan tareas con solo el nombre. ¡Todo cargado!</p>
-      <div class="acciones-modal"><button type="button" data-accion="cerrar-carga" class="boton-primario">Cerrar</button></div>
+      <div class="acciones-modal"><button type="button" data-accion="cerrar-carga" class="boton-primario">✖️ Cerrar</button></div>
     `;
     return;
   }
 
   dialogo.innerHTML = `
-    <h3>Completar carga de tareas (${tareas.length})</h3>
+    <h3>📝 Completar carga de tareas (${tareas.length})</h3>
     <p class="ayuda">Tareas que tienen solo el nombre. Cargales lo que quieras y tocá <strong>Actualizar</strong>; si querés que queden así, <strong>Dejar así</strong> las saca de esta lista.</p>
     ${tareas
       .map(
@@ -47,14 +47,14 @@ function renderLista() {
         ${htmlFormularioTarea(t, {
           modo: 'carga',
           botonesPie: `<div class="acciones-modal">
-            <button type="submit" class="boton-primario">Actualizar</button>
-            <button type="button" data-accion="dejar-asi" title="No volver a mostrar esta tarea en esta lista">Dejar así</button>
+            <button type="submit" class="boton-primario">💾 Actualizar</button>
+            <button type="button" data-accion="dejar-asi" title="No volver a mostrar esta tarea en esta lista">👌 Dejar así</button>
           </div>`,
         })}
       </form>`
       )
       .join('')}
-    <div class="acciones-modal"><button type="button" data-accion="cerrar-carga">Cerrar</button></div>
+    <div class="acciones-modal"><button type="button" data-accion="cerrar-carga">✖️ Cerrar</button></div>
   `;
 
   dialogo.querySelectorAll('form.tarjeta-carga').forEach((formulario) => {

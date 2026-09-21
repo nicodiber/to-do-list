@@ -6,9 +6,9 @@ import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 let filtro = 'pendientes';
 
 const FILTROS = [
-  { clave: 'pendientes', etiqueta: 'Pendientes', cuenta: (m) => !m.mejora_aplicada },
-  { clave: 'aplicadas', etiqueta: 'Aplicadas', cuenta: (m) => m.mejora_aplicada },
-  { clave: 'todas', etiqueta: 'Todas', cuenta: () => true },
+  { clave: 'pendientes', etiqueta: '🕓 Pendientes', cuenta: (m) => !m.mejora_aplicada },
+  { clave: 'aplicadas', etiqueta: '✅ Aplicadas', cuenta: (m) => m.mejora_aplicada },
+  { clave: 'todas', etiqueta: '📋 Todas', cuenta: () => true },
 ];
 
 /** Las notas de mejora de las tareas de mantenimiento, para repasarlas, marcarlas como aplicadas, corregirlas o borrarlas. */
@@ -20,7 +20,7 @@ export function renderVistaMejoras(contenedor) {
   const nombres = [...porTarea.keys()].sort((a, b) => a.localeCompare(b, 'es'));
 
   contenedor.innerHTML = `
-    <h2>Mejoras</h2>
+    <h2>💡 Mejoras</h2>
     <p class="ayuda">Las notas que dejás al cumplir una tarea de mantenimiento ("¿qué podrías mejorar la próxima vez?"). Repasalas y marcalas como aplicadas cuando ya las incorporaste.</p>
     <div class="selector-rango" role="group" aria-label="Filtro">
       ${FILTROS.map((f) => `<button type="button" data-filtro="${f.clave}" class="${f.clave === filtro ? 'activo' : ''}">${f.etiqueta} (${mejoras.filter(f.cuenta).length})</button>`).join('')}
@@ -46,7 +46,7 @@ export function renderVistaMejoras(contenedor) {
   }
   nombres.forEach((nombre) => {
     const seccion = document.createElement('section');
-    seccion.innerHTML = `<h3>${escaparHtml(nombre)}</h3><ul class="lista-tareas"></ul>`;
+    seccion.innerHTML = `<h3>🔁 ${escaparHtml(nombre)}</h3><ul class="lista-tareas"></ul>`;
     const ul = seccion.querySelector('ul');
     porTarea
       .get(nombre)
@@ -68,9 +68,9 @@ function renderMejora(mejora) {
       </span>
     </div>
     <div class="item-tarea-acciones">
-      <button type="button" data-accion="alternar">${mejora.mejora_aplicada ? 'Volver a pendiente' : 'Marcar aplicada'}</button>
-      <button type="button" data-accion="editar">Editar</button>
-      <button type="button" data-accion="eliminar">Eliminar</button>
+      <button type="button" data-accion="alternar">${mejora.mejora_aplicada ? '↩️ Volver a pendiente' : '✅ Marcar aplicada'}</button>
+      <button type="button" data-accion="editar">✏️ Editar</button>
+      <button type="button" data-accion="eliminar">🗑️ Eliminar</button>
     </div>
   `;
 

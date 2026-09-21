@@ -8,7 +8,7 @@ Documentación de cómo funciona: [CASOS_DE_USO.md](CASOS_DE_USO.md) (flujos de 
 
 ## Estado actual
 
-**v0.58.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Actualmente en el rediseño del frontend, por rondas, antes de cargar datos reales (la ronda 1, almacenamiento, ya está hecha). Ver [CHANGELOG.md](CHANGELOG.md).
+**v0.59.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Actualmente en el rediseño del frontend, por rondas, antes de cargar datos reales (la ronda 1, almacenamiento, ya está hecha). Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Cómo correrlo
 
@@ -28,11 +28,6 @@ Usá un navegador moderno (Chrome, Edge, Safari o Firefox). La app usa IndexedDB
 - `localStorage` guarda solo preferencias (tema, ubicación actual); nunca tus tareas.
 - **"Exportar JSON" / "Importar JSON"** en la cabecera sirven de respaldo manual (importar pide confirmación porque reemplaza todo, también en Drive).
 - Los datos reales **no se versionan** en este repositorio: viven en tu Drive.
-
-### Configuración de Google (para quien despliegue su propia copia)
-
-- En Google Cloud Console, la pantalla de consentimiento debe incluir los permisos `drive.file` y `calendar.readonly`.
-- Con la app OAuth en modo "Testing", el consentimiento caduca a los ~7 días; publicarla **"En producción"** (uso personal, sin verificar: mostrará una vez el aviso "app no verificada") evita tener que volver a autorizar.
 
 ## Estructura del proyecto
 

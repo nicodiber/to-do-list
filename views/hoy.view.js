@@ -71,12 +71,12 @@ export function renderVistaHoy(contenedor) {
         .sort((a, b) => b.tarea_fecha_fin.localeCompare(a.tarea_fecha_fin));
 
   contenedor.innerHTML = `
-    <h2>Hoy</h2>
+    <h2>📌 Hoy</h2>
     <p class="ayuda">Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.</p>
     <div class="controles-hoy">
       ${
         estado.ubicaciones.length > 0
-          ? `<label class="filtro-ubicacion-hoy">¿Dónde estás?
+          ? `<label class="filtro-ubicacion-hoy">📍 ¿Dónde estás?
               <select id="filtro-ubicacion-hoy">
                 <option value="">Cualquier ubicación</option>
                 ${estado.ubicaciones
@@ -87,16 +87,16 @@ export function renderVistaHoy(contenedor) {
           : ''
       }
       <button type="button" id="boton-enfoque-hoy" class="boton-enfoque" aria-pressed="${enfoque}" title="Con el enfoque encendido se ocultan las tareas que ya completaste hoy">🎯 Enfoque</button>
-      <button type="button" id="boton-revisar-dia" class="boton-primario">Revisar mi día</button>
+      <button type="button" id="boton-revisar-dia" class="boton-primario">🔍 Revisar mi día</button>
     </div>
     <section>
-      <h3>Urgentes</h3>
+      <h3>🚨 Urgentes</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
     </section>
     ${
       proximosPorCategoria.length > 0
         ? `<section>
-            <h3>Próximos por categoría</h3>
+            <h3>🧭 Próximos por categoría</h3>
             <p class="ayuda">¿Tenés un rato libre y no hay nada urgente? Acá tenés la tarea que más conviene de cada categoría, para elegir vos.</p>
             <ul id="lista-por-categoria" class="lista-tareas"></ul>
           </section>`
@@ -105,7 +105,7 @@ export function renderVistaHoy(contenedor) {
     ${
       restoSinProximos.length > 0 || proximosPorCategoria.length === 0
         ? `<section>
-            <h3>Resto de tus pendientes</h3>
+            <h3>📋 Resto de tus pendientes</h3>
             <ul id="lista-resto" class="lista-tareas"></ul>
           </section>`
         : ''
@@ -113,7 +113,7 @@ export function renderVistaHoy(contenedor) {
     ${
       aunNoDisponibles.length > 0
         ? `<section>
-            <h3>Todavía no pueden empezar</h3>
+            <h3>⏳ Todavía no pueden empezar</h3>
             <ul id="lista-no-disponibles" class="lista-tareas"></ul>
           </section>`
         : ''
@@ -121,7 +121,7 @@ export function renderVistaHoy(contenedor) {
     ${
       bloqueadas.length > 0
         ? `<section>
-            <h3>Bloqueadas por otras tareas</h3>
+            <h3>🔒 Bloqueadas por otras tareas</h3>
             <ul id="lista-bloqueadas" class="lista-tareas"></ul>
           </section>`
         : ''
@@ -129,7 +129,7 @@ export function renderVistaHoy(contenedor) {
     ${
       completadasHoy.length > 0
         ? `<section>
-            <h3>Completadas hoy (${completadasHoy.length})</h3>
+            <h3>✅ Completadas hoy (${completadasHoy.length})</h3>
             <ul id="lista-completadas-hoy" class="lista-tareas"></ul>
           </section>`
         : ''
@@ -280,8 +280,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
         ${
           soloInfo
             ? ''
-            : `<button type="button" data-accion="posponer-solapamiento">Posponer</button>
-               <button type="button" data-accion="proximo-hueco">Al próximo hueco libre</button>`
+            : `<button type="button" data-accion="posponer-solapamiento">⏭️ Posponer</button>
+               <button type="button" data-accion="proximo-hueco">🕒 Al próximo hueco libre</button>`
         }
       </div>
       ${dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
@@ -294,8 +294,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       ${
         soloInfo
           ? ''
-          : `<button type="button" data-accion="cumplida">Cumplida ✓</button>
-             <button type="button" data-accion="no-cumplida">No cumplida ✗</button>
+          : `<button type="button" data-accion="cumplida">✅ Cumplida</button>
+             <button type="button" data-accion="no-cumplida">❌ No cumplida</button>
              ${esVencida(tarea.tarea_fecha_limite) ? `<button type="button" data-accion="revalorizar-limite">📅 Revalorizar fecha límite</button>` : ''}`
       }
     </div>
@@ -383,13 +383,13 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       <div class="panel-cierre">
         ${
           tarea.tarea_mantenimiento
-            ? `<label>¿Qué podrías mejorar la próxima vez? (opcional)
+            ? `<label>💡 ¿Qué podrías mejorar la próxima vez? (opcional)
                 <input type="text" data-campo="mejora" />
               </label>`
             : ''
         }
-        <button type="button" data-accion="confirmar-cumplida" class="boton-primario">Confirmar</button>
-        <button type="button" data-accion="cancelar-cierre">Cancelar</button>
+        <button type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
+        <button type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
       </div>
     `;
     contenedorCierre.hidden = false;
@@ -412,8 +412,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     contenedorPanel.innerHTML = '';
     contenedorCierre.innerHTML = `
       <div class="panel-cierre">
-        <button type="button" data-accion="continuar-reprogramar" class="boton-primario">Reprogramar</button>
-        <button type="button" data-accion="cancelar-cierre">Cancelar</button>
+        <button type="button" data-accion="continuar-reprogramar" class="boton-primario">📅 Reprogramar</button>
+        <button type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
       </div>
     `;
     contenedorCierre.hidden = false;

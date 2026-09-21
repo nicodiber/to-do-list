@@ -4,7 +4,7 @@ import { abrirDialogoCategoria } from '../assets/js/formularios-entidades.js';
 
 export function renderVistaCategorias(contenedor) {
   contenedor.innerHTML = `
-    <h2>Categorías</h2>
+    <h2>🗂️ Categorías</h2>
     <p class="ayuda">Las categorías representan áreas de tu vida (Personal, Facultad, Trabajo...). Pueden anidarse eligiendo una categoría padre, sin límite de niveles.</p>
     <div class="barra-acciones-vista"><button type="button" id="boton-nueva-categoria" class="boton-primario">＋ Nueva categoría</button></div>
     <div id="lista-categorias" class="lista-categorias"></div>
@@ -39,8 +39,8 @@ function renderCategoria(categoria, profundidad) {
       <span class="acciones-prioridad">
         <button type="button" data-accion="subir-prioridad" title="Subir prioridad" ${indice === 0 ? 'disabled' : ''}>▲</button>
         <button type="button" data-accion="bajar-prioridad" title="Bajar prioridad" ${indice === hermanos.length - 1 ? 'disabled' : ''}>▼</button>
-        <button type="button" data-accion="editar-categoria" title="Editar categoría">Editar</button>
-        <button type="button" data-accion="eliminar-categoria" title="Eliminar categoría">✕</button>
+        <button type="button" data-accion="editar-categoria" title="Editar categoría">✏️ Editar</button>
+        <button type="button" data-accion="eliminar-categoria" title="Eliminar categoría">🗑️</button>
       </span>
     </div>
     ${categoria.categoria_descripcion ? `<p class="notas-tarea">${escaparHtml(categoria.categoria_descripcion)}</p>` : ''}

@@ -1,47 +1,12 @@
 :root {
-  --color-fondo: #f5f6fa;
-  --color-superficie: #ffffff;
-  --color-texto: #1f2430;
-  --color-texto-suave: #6b7280;
-  --color-borde: #e2e5eb;
-  --color-primario: #4f7cff;
-  --color-peligro: #e0503c;
-  --color-fondo-info: #eef2ff;
-  --color-texto-info: var(--color-primario);
-  --color-fondo-exito: #ecfdf5;
-  --color-texto-exito: #059669;
-  --color-fondo-alerta: #fef2f2;
-  --color-texto-alerta: var(--color-peligro);
-  --radio: 12px;
-  --sombra: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --transicion: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) {
-    --color-fondo: #14161c;
-    --color-superficie: #1c1f27;
-    --color-texto: #e7e9ee;
-    --color-texto-suave: #9aa1af;
-    --color-borde: #2e323d;
-    --color-primario: #7b9bff;
-    --color-peligro: #f2897c;
-    --color-fondo-info: #1e2a4a;
-    --color-texto-info: #a9bcff;
-    --color-fondo-exito: #0f2e22;
-    --color-texto-exito: #34d399;
-    --color-fondo-alerta: #3a1c1c;
-    --color-texto-alerta: #f2897c;
-  }
-}
-
-:root[data-tema="oscuro"] {
+  color-scheme: dark;
   --color-fondo: #14161c;
   --color-superficie: #1c1f27;
   --color-texto: #e7e9ee;
   --color-texto-suave: #9aa1af;
   --color-borde: #2e323d;
   --color-primario: #7b9bff;
+  --color-sobre-primario: #0b1020;
   --color-peligro: #f2897c;
   --color-fondo-info: #1e2a4a;
   --color-texto-info: #a9bcff;
@@ -49,6 +14,60 @@
   --color-texto-exito: #34d399;
   --color-fondo-alerta: #3a1c1c;
   --color-texto-alerta: #f2897c;
+  /* Un color por tipo de acción: el texto sobre fondo tenue (--accion-x / --accion-x-fondo) y, en el botón
+     principal relleno, el texto oscuro (--accion-x-sobre) sobre el color lleno. */
+  --accion-crear: #7b9bff;
+  --accion-crear-fondo: #1e2a4a;
+  --accion-crear-sobre: #0b1020;
+  --accion-cumplir: #34d399;
+  --accion-cumplir-fondo: #0f2e22;
+  --accion-cumplir-sobre: #06281c;
+  --accion-posponer: #fbbf24;
+  --accion-posponer-fondo: #33270a;
+  --accion-posponer-sobre: #2a1e02;
+  --accion-eliminar: #f2897c;
+  --accion-eliminar-fondo: #3a1c1c;
+  --accion-eliminar-sobre: #2e0f0b;
+  --accion-externa: #b794f6;
+  --accion-externa-fondo: #2a1f4a;
+  --accion-externa-sobre: #1a1035;
+  --radio: 12px;
+  --sombra: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --transicion: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+:root[data-tema="claro"] {
+  color-scheme: light;
+  --color-fondo: #f5f6fa;
+  --color-superficie: #ffffff;
+  --color-texto: #1f2430;
+  --color-texto-suave: #5b6472;
+  --color-borde: #d9dde5;
+  --color-primario: #3557d9;
+  --color-sobre-primario: #ffffff;
+  --color-peligro: #c0392b;
+  --color-fondo-info: #eef2ff;
+  --color-texto-info: #3557d9;
+  --color-fondo-exito: #ecfdf5;
+  --color-texto-exito: #047857;
+  --color-fondo-alerta: #fef2f2;
+  --color-texto-alerta: #b91c1c;
+  --accion-crear: #3557d9;
+  --accion-crear-fondo: #eaefff;
+  --accion-crear-sobre: #ffffff;
+  --accion-cumplir: #047857;
+  --accion-cumplir-fondo: #e3f8ee;
+  --accion-cumplir-sobre: #ffffff;
+  --accion-posponer: #92400e;
+  --accion-posponer-fondo: #fef3c7;
+  --accion-posponer-sobre: #ffffff;
+  --accion-eliminar: #b91c1c;
+  --accion-eliminar-fondo: #fee2e2;
+  --accion-eliminar-sobre: #ffffff;
+  --accion-externa: #6d28d9;
+  --accion-externa-fondo: #ede9fe;
+  --accion-externa-sobre: #ffffff;
+  --sombra: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 * {
@@ -149,7 +168,7 @@ h1, h2, h3 {
 }
 
 .enlace-nav.activo {
-  color: white;
+  color: var(--color-sobre-primario);
   background: var(--color-primario);
 }
 
@@ -290,10 +309,10 @@ h1, h2, h3 {
 
 .formulario-en-linea button,
 .formulario-tarea button {
-  background: var(--color-primario);
-  color: white;
-  border: none;
-  border-radius: 6px;
+  background: transparent;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
   padding: 0.45rem 0.9rem;
   cursor: pointer;
   transition: var(--transicion);
@@ -670,12 +689,6 @@ span.etiqueta-clima {
   color: var(--color-texto);
 }
 
-.item-tarea-acciones button[data-accion="posponer"],
-.item-tarea-acciones button[data-accion="cumplida"],
-.item-tarea-acciones button[data-accion="no-cumplida"] {
-  color: var(--color-texto);
-}
-
 .panel-reprogramar,
 .panel-cierre {
   margin-top: 0.5rem;
@@ -726,12 +739,6 @@ span.etiqueta-clima {
   gap: 0.2rem;
   font-size: 0.8rem;
   color: var(--color-texto-suave);
-}
-
-.boton-primario {
-  background: var(--color-primario) !important;
-  color: white !important;
-  border-color: var(--color-primario) !important;
 }
 
 #boton-revisar-dia {
@@ -901,8 +908,8 @@ span.etiqueta-clima {
 }
 
 .item-tarea-acciones button:hover {
-  border-color: var(--color-peligro);
-  color: var(--color-peligro);
+  border-color: var(--color-primario);
+  color: var(--color-texto);
 }
 
 section h3 {
@@ -1070,7 +1077,7 @@ section h3 {
   border-radius: 50%;
   border: none;
   background: var(--color-primario);
-  color: white;
+  color: var(--color-sobre-primario);
   font-size: 1.4rem;
   line-height: 1;
   cursor: pointer;
@@ -1277,12 +1284,6 @@ section h3 {
   cursor: pointer;
 }
 
-.boton-peligro {
-  background: var(--color-peligro) !important;
-  border-color: var(--color-peligro) !important;
-  color: white !important;
-}
-
 /* Celular: nada debe obligar a desplazar la página hacia la derecha. */
 @media (max-width: 640px) {
   .filtros > * {
@@ -1363,7 +1364,7 @@ section h3 {
 .selector-rango button.activo {
   background: var(--color-primario);
   border-color: var(--color-primario);
-  color: white;
+  color: var(--color-sobre-primario);
 }
 
 /* Tarjetas de la vista Tareas: el borde izquierdo lleva el color de la categoría. */
@@ -1448,7 +1449,7 @@ section h3 {
 .boton-enfoque[aria-pressed="true"] {
   background: var(--color-primario);
   border-color: var(--color-primario);
-  color: white;
+  color: var(--color-sobre-primario);
 }
 
 span.etiqueta-clima.etiqueta-clima-favorable {
@@ -1526,7 +1527,7 @@ span.etiqueta-exportada {
 .solapas button.activa {
   background: var(--color-primario);
   border-color: var(--color-primario);
-  color: white;
+  color: var(--color-sobre-primario);
 }
 
 .matriz-habitos-contenedor {
@@ -1981,4 +1982,551 @@ span.etiqueta-exportada {
 
 .gantt-punta-flecha.roja {
   fill: var(--color-peligro);
+}
+
+/* ===== Ronda 8a: botones por tipo de acción =====
+ * Cada tipo pone su color (--tipo, --tipo-fondo, --tipo-sobre) y una regla común dibuja el botón: fondo tenue con borde
+ * y texto del color del tipo; el botón principal (.boton-primario, .boton-peligro, .btn-relleno) va relleno. */
+.btn-crear,
+.boton-primario,
+button[data-accion="confirmar"],
+button[data-accion="confirmar-mejora"],
+button[data-accion="agregar-seleccionadas"],
+button[data-accion="crear-meta"],
+button[data-accion="aplicar-cambios"] {
+  --tipo: var(--accion-crear);
+  --tipo-fondo: var(--accion-crear-fondo);
+  --tipo-sobre: var(--accion-crear-sobre);
+}
+
+.btn-cumplir,
+button[data-accion="cumplida"],
+button[data-accion="confirmar-cumplida"],
+button[data-accion="marcar-contacto"],
+button[data-accion="alternar"],
+button[data-accion="finalizar"] {
+  --tipo: var(--accion-cumplir);
+  --tipo-fondo: var(--accion-cumplir-fondo);
+  --tipo-sobre: var(--accion-cumplir-sobre);
+}
+
+.btn-posponer,
+button[data-accion="no-cumplida"],
+button[data-accion="continuar-reprogramar"],
+button[data-accion="posponer"],
+button[data-accion="posponer-solapamiento"],
+button[data-accion="proximo-hueco"],
+button[data-accion="revalorizar-limite"],
+#boton-completar-carga {
+  --tipo: var(--accion-posponer);
+  --tipo-fondo: var(--accion-posponer-fondo);
+  --tipo-sobre: var(--accion-posponer-sobre);
+}
+
+.btn-eliminar,
+.boton-peligro,
+button[data-accion="eliminar"],
+button[data-accion="eliminar-categoria"],
+button[data-accion="eliminar-ubicacion"],
+button[data-accion="eliminar-meta"],
+button[data-accion="eliminar-persona"] {
+  --tipo: var(--accion-eliminar);
+  --tipo-fondo: var(--accion-eliminar-fondo);
+  --tipo-sobre: var(--accion-eliminar-sobre);
+}
+
+.btn-externa,
+button[data-accion="exportar-calendar"],
+button[data-accion="sugerir-ia"],
+button[data-accion="copiar-prompt"],
+button[data-accion="copiar-prompt-final"],
+button[data-accion="previsualizar"],
+button[data-accion="previsualizar-meta"],
+button[data-accion="conectar-calendar-revision"],
+#boton-sync,
+#boton-ia-prioridades {
+  --tipo: var(--accion-externa);
+  --tipo-fondo: var(--accion-externa-fondo);
+  --tipo-sobre: var(--accion-externa-sobre);
+}
+
+.btn-crear,
+.boton-primario,
+button[data-accion="confirmar"],
+button[data-accion="confirmar-mejora"],
+button[data-accion="agregar-seleccionadas"],
+button[data-accion="crear-meta"],
+button[data-accion="aplicar-cambios"],
+.btn-cumplir,
+button[data-accion="cumplida"],
+button[data-accion="confirmar-cumplida"],
+button[data-accion="marcar-contacto"],
+button[data-accion="alternar"],
+button[data-accion="finalizar"],
+.btn-posponer,
+button[data-accion="no-cumplida"],
+button[data-accion="continuar-reprogramar"],
+button[data-accion="posponer"],
+button[data-accion="posponer-solapamiento"],
+button[data-accion="proximo-hueco"],
+button[data-accion="revalorizar-limite"],
+#boton-completar-carga,
+.btn-eliminar,
+.boton-peligro,
+button[data-accion="eliminar"],
+button[data-accion="eliminar-categoria"],
+button[data-accion="eliminar-ubicacion"],
+button[data-accion="eliminar-meta"],
+button[data-accion="eliminar-persona"],
+.btn-externa,
+button[data-accion="exportar-calendar"],
+button[data-accion="sugerir-ia"],
+button[data-accion="copiar-prompt"],
+button[data-accion="copiar-prompt-final"],
+button[data-accion="previsualizar"],
+button[data-accion="previsualizar-meta"],
+button[data-accion="conectar-calendar-revision"],
+#boton-sync,
+#boton-ia-prioridades {
+  background: var(--tipo-fondo);
+  color: var(--tipo);
+  border: 1px solid color-mix(in srgb, var(--tipo) 55%, transparent);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transicion), filter 0.15s ease;
+}
+
+.btn-crear,
+.boton-primario,
+button[data-accion="confirmar"],
+button[data-accion="confirmar-mejora"],
+button[data-accion="agregar-seleccionadas"],
+button[data-accion="crear-meta"],
+button[data-accion="aplicar-cambios"],
+.btn-cumplir,
+button[data-accion="cumplida"],
+button[data-accion="confirmar-cumplida"],
+button[data-accion="marcar-contacto"],
+button[data-accion="alternar"],
+button[data-accion="finalizar"],
+.btn-posponer,
+button[data-accion="no-cumplida"],
+button[data-accion="continuar-reprogramar"],
+button[data-accion="posponer"],
+button[data-accion="posponer-solapamiento"],
+button[data-accion="proximo-hueco"],
+button[data-accion="revalorizar-limite"],
+#boton-completar-carga,
+.btn-eliminar,
+.boton-peligro,
+button[data-accion="eliminar"],
+button[data-accion="eliminar-categoria"],
+button[data-accion="eliminar-ubicacion"],
+button[data-accion="eliminar-meta"],
+button[data-accion="eliminar-persona"],
+.btn-externa,
+button[data-accion="exportar-calendar"],
+button[data-accion="sugerir-ia"],
+button[data-accion="copiar-prompt"],
+button[data-accion="copiar-prompt-final"],
+button[data-accion="previsualizar"],
+button[data-accion="previsualizar-meta"],
+button[data-accion="conectar-calendar-revision"],
+#boton-sync,
+#boton-ia-prioridades {
+  border-radius: 8px;
+}
+
+.btn-crear:hover:not(:disabled),
+.boton-primario:hover:not(:disabled),
+button[data-accion="confirmar"]:hover:not(:disabled),
+button[data-accion="confirmar-mejora"]:hover:not(:disabled),
+button[data-accion="agregar-seleccionadas"]:hover:not(:disabled),
+button[data-accion="crear-meta"]:hover:not(:disabled),
+button[data-accion="aplicar-cambios"]:hover:not(:disabled),
+.btn-cumplir:hover:not(:disabled),
+button[data-accion="cumplida"]:hover:not(:disabled),
+button[data-accion="confirmar-cumplida"]:hover:not(:disabled),
+button[data-accion="marcar-contacto"]:hover:not(:disabled),
+button[data-accion="alternar"]:hover:not(:disabled),
+button[data-accion="finalizar"]:hover:not(:disabled),
+.btn-posponer:hover:not(:disabled),
+button[data-accion="no-cumplida"]:hover:not(:disabled),
+button[data-accion="continuar-reprogramar"]:hover:not(:disabled),
+button[data-accion="posponer"]:hover:not(:disabled),
+button[data-accion="posponer-solapamiento"]:hover:not(:disabled),
+button[data-accion="proximo-hueco"]:hover:not(:disabled),
+button[data-accion="revalorizar-limite"]:hover:not(:disabled),
+#boton-completar-carga:hover:not(:disabled),
+.btn-eliminar:hover:not(:disabled),
+.boton-peligro:hover:not(:disabled),
+button[data-accion="eliminar"]:hover:not(:disabled),
+button[data-accion="eliminar-categoria"]:hover:not(:disabled),
+button[data-accion="eliminar-ubicacion"]:hover:not(:disabled),
+button[data-accion="eliminar-meta"]:hover:not(:disabled),
+button[data-accion="eliminar-persona"]:hover:not(:disabled),
+.btn-externa:hover:not(:disabled),
+button[data-accion="exportar-calendar"]:hover:not(:disabled),
+button[data-accion="sugerir-ia"]:hover:not(:disabled),
+button[data-accion="copiar-prompt"]:hover:not(:disabled),
+button[data-accion="copiar-prompt-final"]:hover:not(:disabled),
+button[data-accion="previsualizar"]:hover:not(:disabled),
+button[data-accion="previsualizar-meta"]:hover:not(:disabled),
+button[data-accion="conectar-calendar-revision"]:hover:not(:disabled),
+#boton-sync:hover:not(:disabled),
+#boton-ia-prioridades:hover:not(:disabled) {
+  filter: brightness(1.18);
+  border-color: var(--tipo);
+  color: var(--tipo);
+}
+
+.boton-primario,
+.boton-peligro,
+.btn-relleno {
+  background: var(--tipo) !important;
+  color: var(--tipo-sobre) !important;
+  border-color: var(--tipo) !important;
+}
+
+.btn-crear:disabled,
+.boton-primario:disabled,
+button[data-accion="confirmar"]:disabled,
+button[data-accion="confirmar-mejora"]:disabled,
+button[data-accion="agregar-seleccionadas"]:disabled,
+button[data-accion="crear-meta"]:disabled,
+button[data-accion="aplicar-cambios"]:disabled,
+.btn-cumplir:disabled,
+button[data-accion="cumplida"]:disabled,
+button[data-accion="confirmar-cumplida"]:disabled,
+button[data-accion="marcar-contacto"]:disabled,
+button[data-accion="alternar"]:disabled,
+button[data-accion="finalizar"]:disabled,
+.btn-posponer:disabled,
+button[data-accion="no-cumplida"]:disabled,
+button[data-accion="continuar-reprogramar"]:disabled,
+button[data-accion="posponer"]:disabled,
+button[data-accion="posponer-solapamiento"]:disabled,
+button[data-accion="proximo-hueco"]:disabled,
+button[data-accion="revalorizar-limite"]:disabled,
+#boton-completar-carga:disabled,
+.btn-eliminar:disabled,
+.boton-peligro:disabled,
+button[data-accion="eliminar"]:disabled,
+button[data-accion="eliminar-categoria"]:disabled,
+button[data-accion="eliminar-ubicacion"]:disabled,
+button[data-accion="eliminar-meta"]:disabled,
+button[data-accion="eliminar-persona"]:disabled,
+.btn-externa:disabled,
+button[data-accion="exportar-calendar"]:disabled,
+button[data-accion="sugerir-ia"]:disabled,
+button[data-accion="copiar-prompt"]:disabled,
+button[data-accion="copiar-prompt-final"]:disabled,
+button[data-accion="previsualizar"]:disabled,
+button[data-accion="previsualizar-meta"]:disabled,
+button[data-accion="conectar-calendar-revision"]:disabled,
+#boton-sync:disabled,
+#boton-ia-prioridades:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Foco visible con teclado y toques cómodos en pantallas táctiles. */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primario);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  button,
+  select,
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="search"] {
+    min-height: 2.5rem;
+  }
+}
+
+/* ===== Ronda 8a: interruptores Sí/No y chips de días ===== */
+.interruptor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-texto);
+}
+
+.interruptor input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.interruptor-pista {
+  position: relative;
+  flex: none;
+  width: 2.7rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  transition: var(--transicion);
+}
+
+.interruptor-pista::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--color-texto-suave);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.interruptor input:checked + .interruptor-pista {
+  background: var(--accion-crear);
+  border-color: var(--accion-crear);
+}
+
+.interruptor input:checked + .interruptor-pista::after {
+  transform: translateX(1.15rem);
+  background: var(--accion-crear-sobre);
+}
+
+.interruptor input:focus-visible + .interruptor-pista {
+  outline: 2px solid var(--color-primario);
+  outline-offset: 2px;
+}
+
+.interruptor input:disabled + .interruptor-pista {
+  opacity: 0.5;
+}
+
+.interruptor-estado::after {
+  content: "No";
+  display: inline-block;
+  min-width: 1.4rem;
+  font-weight: 700;
+  color: var(--color-texto-suave);
+}
+
+.interruptor input:checked ~ .interruptor-estado::after {
+  content: "Sí";
+  color: var(--color-texto);
+}
+
+.chips-dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip-dia {
+  position: relative;
+  cursor: pointer;
+}
+
+.chip-dia input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.chip-dia span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-borde);
+  background: var(--color-fondo);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+  transition: var(--transicion);
+}
+
+.chip-dia input:checked + span {
+  background: var(--accion-crear);
+  border-color: var(--accion-crear);
+  color: var(--accion-crear-sobre);
+}
+
+.chip-dia input:focus-visible + span {
+  outline: 2px solid var(--color-primario);
+  outline-offset: 2px;
+}
+
+/* ===== Ronda 8a: formulario de tarea en secciones ===== */
+.formulario-tarea {
+  align-items: stretch;
+}
+
+.formulario-tarea .seccion-form {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem 0.9rem 0.9rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: start;
+}
+
+.formulario-tarea .seccion-form > legend {
+  padding: 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-texto);
+}
+
+.formulario-tarea .campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--color-texto);
+}
+
+.formulario-tarea .campo-titulo {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--color-texto-suave);
+}
+
+.formulario-tarea .campo.ancho-completo,
+.formulario-tarea .seccion-form > .ancho-completo {
+  grid-column: 1 / -1;
+}
+
+.formulario-tarea .campo input:not([type="checkbox"]),
+.formulario-tarea .campo select,
+.formulario-tarea .campo textarea {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 1rem;
+}
+
+.formulario-tarea .fila-nombre-tarea input[type="text"] {
+  min-height: 2.75rem;
+  font-size: 1.05rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.formulario-tarea .par-fecha-hora {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.formulario-tarea .par-fecha-hora input[type="date"] {
+  flex: 1 1 60%;
+}
+
+.formulario-tarea .par-fecha-hora input[type="time"] {
+  flex: 1 1 40%;
+}
+
+.formulario-tarea .campos-mantenimiento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-texto);
+}
+
+.formulario-tarea .campos-mantenimiento[hidden] {
+  display: none;
+}
+
+.formulario-tarea .campos-mantenimiento input,
+.formulario-tarea .campos-mantenimiento select {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 1rem;
+}
+
+.formulario-tarea .campos-mantenimiento .campo {
+  flex: 1 1 100%;
+}
+
+.formulario-tarea .seccion-form .checklist-editor {
+  border-style: dashed;
+}
+
+.formulario-tarea .item-checklist-editor input[type="text"] {
+  min-height: 2.4rem;
+  font-size: 1rem;
+}
+
+.formulario-tarea .item-checklist-editor input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.ayuda-formulario.completada-nota {
+  margin: 0;
+}
+
+.cita-habitos {
+  margin: 0.4rem 0 0.9rem;
+  padding: 0.55rem 0.9rem;
+  border-left: 4px solid var(--color-primario);
+  background: var(--color-fondo-info);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--color-texto-info);
+}
+
+@media (max-width: 640px) {
+  .formulario-tarea .seccion-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ajustes del formulario: las reglas viejas de `.formulario-tarea label` no deben afectar a interruptores y fichas. */
+.formulario-tarea [hidden] {
+  display: none !important;
+}
+
+.formulario-tarea label.interruptor {
+  flex-direction: row;
+  font-size: 0.95rem;
+  color: var(--color-texto);
+  gap: 0.6rem;
+}
+
+.formulario-tarea label.chip-dia {
+  flex-direction: row;
+  font-size: 0.85rem;
+  gap: 0;
+}
+
+.formulario-tarea .fila-estado-tarea {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-fondo);
+}
+
+.formulario-tarea .fila-estado-tarea .campo {
+  flex: 1 1 100%;
 }

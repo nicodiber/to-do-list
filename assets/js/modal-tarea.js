@@ -12,10 +12,12 @@ import {
   aplicarCamposATarea,
   validarFormularioTarea,
   ofrecerMarcarCadenaMantenimiento,
+  vaciarFormularioTarea,
 } from './formulario-tarea.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
-import { renombrarHistorial } from './tareas-logica.js';
+import { renombrarHistorial, cumplirTarea, reabrirTarea } from './tareas-logica.js';
+import { ofrecerExportarACalendar } from './exportar-calendar.js';
 
 let edicionAbierta = false;
 
@@ -28,9 +30,9 @@ export function abrirEdicionTarea(id) {
   const sello = tarea.tarea_modificado_en || '';
 
   abrirDialogoFormulario({
-    titulo: 'Editar tarea',
+    titulo: '✏️ Editar tarea',
     cuerpoHtml: htmlFormularioTarea(tarea, { modo: 'edicion' }),
-    textoGuardar: 'Guardar cambios',
+    textoGuardar: '💾 Guardar cambios',
     conectar: (formulario) => conectarFormularioTarea(formulario, { modo: 'edicion' }),
     alCerrar: () => {
       edicionAbierta = false;
@@ -61,15 +63,29 @@ export function abrirEdicionTarea(id) {
 
       const nombreAnterior = actual.tarea_nombre;
       const eraMantenimiento = actual.tarea_mantenimiento;
+      const estabaCompletada = actual.tarea_estado === 'completada';
       aplicarCamposATarea(actual, leido.campos);
       aplicarEnlace(actual.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
       ofrecerMarcarCadenaMantenimiento(actual, estado.tareas);
+      // Interruptor "Completada": misma lógica que el desplegable de estado de la vista Tareas.
+      let ofrecerExportar = false;
+      let copiaConservada = null;
+      if (leido.completada === true && !estabaCompletada) {
+        cumplirTarea(actual, estado, { notaMejora: leido.notaMejora });
+        ofrecerExportar = true;
+      } else if (leido.completada === false && estabaCompletada) {
+        ({ copiaConservada } = reabrirTarea(actual, estado));
+      }
       // El hábito se identifica por el nombre: al renombrar una tarea de mantenimiento, su historial la sigue.
       const registrosActualizados = eraMantenimiento ? renombrarHistorial(estado, nombreAnterior, actual.tarea_nombre) : 0;
       await persistirYNotificar();
       if (registrosActualizados > 0) {
         alert(`Se actualizaron ${registrosActualizados} registro${registrosActualizados === 1 ? '' : 's'} del historial (cumplimientos y mejoras) al nuevo nombre.`);
       }
+      if (copiaConservada) {
+        alert(`Se reabrió «${actual.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
+      }
+      if (ofrecerExportar) ofrecerExportarACalendar(actual);
       return true;
     },
   });
@@ -88,13 +104,26 @@ export function abrirAltaTarea() {
   altaAbierta = true;
 
   abrirDialogoFormulario({
-    titulo: 'Nueva tarea',
-    cuerpoHtml: htmlFormularioTarea(null, { modo: 'alta' }),
+    titulo: '➕ Nueva tarea',
+    cuerpoHtml: htmlFormularioTarea(null, {
+      modo: 'alta',
+      botonesPie: '<button type="button" data-accion="limpiar-campos" class="btn-limpiar">🧹 Limpiar campos</button>',
+    }),
     botonesGuardar: [
-      { texto: 'Agregar y cargar otra', valor: 'otra', orden: 1 },
-      { texto: 'Agregar', valor: 'cerrar', orden: 0 },
+      { texto: '➕ Agregar y cargar otra', valor: 'otra', orden: 1 },
+      { texto: '✅ Agregar', valor: 'cerrar', orden: 0 },
     ],
-    conectar: (formulario) => conectarFormularioTarea(formulario, { modo: 'alta' }),
+    conectar: (formulario) => {
+      conectarFormularioTarea(formulario, { modo: 'alta' });
+      // El formulario vacío coincide con el estado inicial, así que después de limpiar no se pregunta si descartar.
+      const limpiar = formulario.querySelector('[data-accion="limpiar-campos"]');
+      limpiar.addEventListener('click', () => {
+        if (confirm('¿Vaciar todos los campos del formulario?')) vaciarFormularioTarea(formulario);
+      });
+      // El botón va con los demás, en la fila de acciones (entre "Agregar" y "Cancelar").
+      limpiar.style.order = '50';
+      formulario.querySelector('.acciones-modal').insertBefore(limpiar, formulario.querySelector('[data-accion="cancelar-dialogo"]'));
+    },
     alCerrar: () => {
       altaAbierta = false;
     },
@@ -124,11 +153,8 @@ export function abrirAltaTarea() {
 
       if (valor === 'cerrar') return true;
       // Cargar otra: se vacía el formulario y el cursor vuelve al nombre.
-      formulario.reset();
-      formulario.querySelectorAll('.item-checklist-editor').forEach((fila) => fila.remove());
-      formulario.tarea_mantenimiento.dispatchEvent(new Event('change'));
+      vaciarFormularioTarea(formulario);
       reiniciarFirma();
-      formulario.tarea_nombre.focus();
       return false;
     },
   });

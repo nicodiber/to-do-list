@@ -2,6 +2,27 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.59.0] - 2026-09-21
+
+Ronda 8a del rediseño: sistema visual y formulario (ver `REDISENO.md`, punto 8). Los atajos de teclado quedan para la 8b (v0.60.0).
+
+### Agregado
+
+- **Botones por tipo de acción**, un color para cada uno y pensado primero para el tema oscuro: confirmar/crear **azul**, cumplir **verde**, posponer **ámbar**, eliminar **rojo**, integración externa (Calendar, Drive, IA) **violeta** y neutral **gris**. En cada contexto hay un solo botón relleno (el principal); los demás llevan fondo tenue y borde de su color. El texto de cada tipo tiene un contraste de al menos 4,5 : 1 en oscuro y en claro.
+- **Emojis en todo**: pestañas, títulos de vistas y secciones, botones y títulos de campos, escritos directo en cada texto.
+- **Interruptores Sí/No** en lugar de casillas en "Requiere buen tiempo", "Es tarea de mantenimiento" y "Agrupar por categoría" (Tareas), y **fichas L M X J V S D** para los días hábiles (la semana empieza el lunes). El checklist y las listas de selección siguen con casillas.
+- **Formulario de tarea en cinco secciones con título**: 📝 Qué · 📅 Cuándo · 📍 Dónde y costo · 🔗 Enlaces · 🔁 Repetición; todos los campos con título y emoji, más grandes (una columna en celular, dos en pantalla ancha).
+- **Botón "🧹 Limpiar campos"** en el alta (pide confirmación y deja el formulario vacío, sin aviso de descartar al cancelar).
+- **Interruptor "✅ Completada"** en la ventana de edición: cumple la tarea (con la nota de mejora opcional si es de mantenimiento, la copia de mantenimiento y la oferta de exportar a Calendar) o la reabre, con la misma lógica que el desplegable de estado de la vista Tareas; queda deshabilitado en una tarea bloqueada.
+- La frase **"Lo que no se mide no se mejora"** como cita destacada en la solapa Hábitos.
+- Foco visible con teclado en botones, campos e interruptores; en pantallas táctiles, botones y campos de al menos 2,5 rem de alto.
+
+### Cambiado
+
+- **El tema oscuro es el de por defecto**: sin una elección guardada la app se abre en oscuro aunque el sistema esté en claro; el botón de tema sigue eligiendo y se recuerda. El color de la barra del navegador (`theme-color`) y del manifiesto acompañan el tema.
+- El texto de los elementos activos sobre el color primario (pestañas, selectores) usa un color propio con buen contraste (antes era blanco sobre un azul claro).
+- `sw.js`: `CACHE_NAME` a `v19`.
+
 ## [v0.58.0] - 2026-09-20
 
 Ronda 7 del rediseño: el Gantt con todas las tareas (ver `REDISENO.md`, B2).
