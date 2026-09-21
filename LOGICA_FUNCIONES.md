@@ -30,7 +30,7 @@ Bootstrap y router de toda la app.
 Estado en memoria, sincronización con Google Drive y migración de datos.
 
 - **Guarda de versión** (Ronda 9b): al leer el archivo de Drive, si su `formato` es mayor que `FORMATO_ARCHIVO` (3), `sincronizarUnaVez` pone `sync.soloLectura` y un mensaje de error, y no sube nada. **`persistirYNotificar({ sinNotificar })`**: con `sinNotificar: true` guarda sin redibujar las vistas (lo usa Configuraciones campo por campo).
-- **`estado`**: objeto exportado con las 9 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`, `mejoras`, `cumplimientos`, `plantillas`, `preferencias`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
+- **`estado`**: objeto exportado con las 8 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`, `mejoras`, `cumplimientos`, `preferencias`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
 - **`suscribir(fn)` / `notificar()`**: observer simple para re-renderizar cuando cambian los datos. **`suscribirSync(fn)` / `obtenerEstadoSync()`**: observer aparte para el estado de sincronización (`estado`, `datosListos`, `soloLectura`, hora del último guardado/verificación, avisos, cambios remotos pendientes de aplicar, etc.), que solo redibuja la cabecera.
 - **Migración retrocompatible**, en dos pasos (sin cambios): **`fusionarSubcategoriasEnCategorias`** y **`migrarCategoria`/`migrarUbicacion`/`migrarMeta`/`migrarPersona`/`migrarTarea`**, encadenados por `normalizarDatosCrudos`, que al final recalcula el bloqueo de cada tarea con `recalcularBloqueo`. Los archivos de Drive de versiones anteriores (sin sellos `*_modificado_en`) pasan por acá al leerse.
 - **Guardar (`persistirYNotificar()`)**: es el único punto de guardado que usan las vistas. (1) `sellarCambios` compara contra la última foto y pone `*_modificado_en` a lo que cambió y registra las bajas en `eliminados`; (2) guarda el estado de trabajo en el buffer `pendiente` de IndexedDB (durable, sobrevive a recargar); (3) sube la versión local (`versionLocal++`) y el estado pasa a `pendiente`; (4) `programarSubida()` agenda la subida a Drive con un debounce de 2 s (antes de notificar, para que un error al redibujar una vista no impida la subida); (5) notifica a las vistas. **La UI solo pasa a `sincronizado` cuando Drive confirmó**; recién entonces se actualiza la copia `cache` y se borra `pendiente`.
@@ -64,35 +64,11 @@ Conserva lo que el usuario ya escribió en los formularios cuando la vista se re
 - **`restaurarBorradores(contenedor, captura)`**: después de redibujar, vuelve a poner esos valores en los campos equivalentes (disparando `input`/`change` para que la interfaz dependiente se actualice) y devuelve el foco.
 - Lo usa `render()` de `app.js` cuando `almacenamiento.js` notifica con `conservarBorradores: true` (solo al aplicar cambios remotos).
 
-## `assets/js/plantillas.js`
-
-Lógica **pura** (sin DOM) del generador de preparación de exámenes (Ronda 9a).
-
-- **`PLANTILLA_EXAMEN`**, **`FASES`**, **`ETIQUETAS_FASE`**, **`MAXIMO_CICLOS`** (8): la plantilla base (id `base-examen`, `base: true`) y las fases de un paso. **`plantillasDisponibles(estado)`**: la base y las del usuario ordenadas por nombre.
-- **`expandirPlantilla(plantilla, { examen, instancias, ciclosPorInstancia })`** → `{ pasos, habitos }`: convierte la plantilla en los pasos concretos de toda la cadena: preparar una vez; por instancia, unidades (leer → resumir → tarjetas de la unidad 1, luego la 2…), ciclos, consolidar y el hito "Rendir …"; al final lo que la plantilla ponga después del examen. Reemplaza `{examen}`, `{instancia}`, `{unidad}` y `{ciclo}` en los nombres.
-- **`asignarFechas(pasos, { desde, minutosPorDia, diasDeEstudio, capacidadDia })`**: recorre los pasos **hacia adelante** llenando cada día hasta su capacidad (`capacidadDia(dia)`, y los días sin tiempo se saltan; sin esa función, el tope fijo `minutosPorDia`); los pasos de consolidar se anclan `dias_antes` de la fecha de su instancia y el hito cae en la fecha del examen. Devuelve avisos `no-alcanza` (instancia y cuántos días faltan).
-- **`espaciarCiclos(pasos)`**: reparte los días que sobran entre el fin del estudio y el primer paso de consolidar como separación entre los ciclos de práctica. **`replanificar(pasos, opciones)`**: reinicia la separación, asigna fechas, espacia y vuelve a asignar (se llama después de cada cambio en la vista previa).
-- **`planificarExamen(plantilla, { examen, instancias, desde, minutosPorDia, diasDeEstudio })`** → `{ pasos, habitos, avisos, ciclos }`: con ciclos "auto" elige, instancia por instancia, el mayor número (hasta 8) que entra sin aviso; los hábitos traen `fecha` (el día siguiente a su paso de referencia).
-- **`crearTareasDeExamen(estado, plan, { categoriaId, importancia, enlaceRemNote })`**: crea las tareas encadenadas una detrás de otra con `tarea_origen`, la categoría y la importancia del examen, fecha sugerida del plan y fecha límite la del examen; una tarea de examen que ya existía (`tareaExistenteId`) se usa como hito sin pisar su enlace previo. Crea el hábito diario con `tarea_repetir_hasta_tarea` = el último examen y `tarea_fecha_inicio_habilitada` el día siguiente a las primeras tarjetas. Devuelve `{ tareas, habitos }`.
-
-## `assets/js/asistente-examen.js`
-
-- **Tiempo disponible** (Ronda 9b): al pedir la vista previa arma `capacidadDia(dia)` con `crearCalculadoraCapacidad` (preferencias, eventos de Calendar hasta el último examen, las demás tareas y las fechas de examen propias) y se la pasa a `planificarExamen`/`replanificar`; el campo "Minutos por día para este examen" (vacío = automático) es un tope adicional. Cada instancia ofrece "Elegir de Calendar" (eventos que dicen «examen»). "↩️ Volver" conserva lo cargado.
-- **`abrirAsistenteExamen({ tareaExamen })`**: ventana propia (`<dialog class="dialogo-tarea dialogo-asistente">`, una sola a la vez) con dos pantallas: los datos (examen, categoría, importancia, plantilla, instancias con fecha y hora, unidades, ciclos, minutos por día, desde cuándo, días de estudio y enlace de RemNote; valida nombres, fechas en orden y posteriores al comienzo) y la vista previa editable (renombrar, duración, ↑ ↓, 🗑️; llama a `replanificar`; avisos si no alcanza el tiempo; hábito diario). "✅ Crear" llama a `crearTareasDeExamen`, persiste y avisa. Con `tareaExamen` (una tarea de tipo examen ya guardada) la usa como hito de la primera instancia.
-
-## `assets/js/editor-plantillas.js`
-
-- **`htmlSeccionPlantillas()` / `conectarSeccionPlantillas(contenedor)`**: la sección "📋 Plantillas de preparación" de Configuraciones (lista, Duplicar, Eliminar con confirmación, Nueva plantilla vacía). **`abrirEditorPlantilla(plantilla | null)`** (sobre `abrirDialogoFormulario`): nombre y pasos con fase, duración, nombre, "Hecho cuando", días antes (consolidar) y "empieza después de…" (hábito), ↑ ↓ 🗑️ y "➕ Agregar paso"; al guardar exige nombre, al menos un paso, duración de 5 minutos o más y referencias válidas.
-
-## `assets/js/post-cumplir.js`
-
-- **`ofrecerOtroCiclo(tarea)`**: si la tarea cumplida es el último paso "corregir" del último ciclo de una instancia (`tarea_origen`), pregunta si agregar otro; al aceptar copia los cuatro pasos del ciclo (con lo que se haya editado), los inserta en la cadena a continuación, corre lo que sigue con `reprogramarTareaConCascada` y avisa si termina después del examen. **`despuesDeCumplir(tarea)`**: `ofrecerOtroCiclo` y después `ofrecerExportarACalendar`; lo usan Hoy, Tareas, Revisar mi día y la ventana de edición.
-
 ## `assets/js/sincronizacion.js`
 
 Lógica **pura** (sin DOM ni red) de sellado y mezcla entre dispositivos. Toda la política de conflictos vive acá.
 
-- **`COLECCIONES`**: configuración de las 9 colecciones (clave de id, campo de sello `*_modificado_en`, campo de nombre para los avisos, etiqueta).
+- **`COLECCIONES`**: configuración de las 8 colecciones (clave de id, campo de sello `*_modificado_en`, campo de nombre para los avisos, etiqueta).
 - **`sellarCambios(estado, ultimo, base, eliminados, ahora)`**: compara cada entidad contra la última foto guardada; nueva o distinta → `*_modificado_en = ahora`; ausente ahora y presente antes → tombstone en `eliminados`. Usa `estable()` para comparar sin que importe el orden de las claves.
 - **`mezclar(local, remoto, base, ahora)`**: por id y entidad completa. Si solo un lado cambió respecto de `base`, gana ese; si cambiaron ambos, gana el sello más nuevo (empate → remoto) y se genera un aviso con los campos y valores descartados; borrado vs. edición: se conserva lo más reciente y se avisa. Devuelve `{ estado, eliminados, avisos }`.
 - **`datosParaArchivo(estado, eliminados, ahora)`**: arma el JSON de Drive (formato 3: colecciones, `eliminados`, `guardado_en`). **`fotoColecciones`**, **`copiarProfundo`**, **`difierenDatos`**, **`purgarEliminados`** (borra tombstones de más de 90 días).
@@ -228,7 +204,7 @@ Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (
 - **`soportaGoogleCalendar()` / `hayConexionGoogleCalendar()`**: `hayConexionGoogleCalendar` es verdadero si hay token y el usuario concedió el scope de Calendar.
 - **`listarCalendarios()`**: los calendarios del usuario (`{ id, nombre, color, principal }`, el principal primero; mismo permiso de solo lectura). Con caché de 5 minutos; sin conexión o con error devuelve `[]`.
 - **`obtenerEventos(desde, hasta)`** (async): los eventos **que ocupan tiempo** entre dos fechas locales `YYYY-MM-DD`, ambas incluidas, de todos los calendarios elegidos (`pref_calendarios`; sin lista, todos). Cada evento trae `{ id, resumen, inicio, fin, todoElDia, rechazado, disponible, calendarioId, calendarioNombre, color, enlace }` (los de todo el día se pasan a medianoche local). Se descartan los que las preferencias mandan ignorar (**`ocupaTiempo`**). Pagina (250 por página), consulta cada calendario por separado (si falla uno, siguen los demás) y cachea los eventos completos 5 minutos por rango y calendarios; los filtros se aplican al leer.
-- **`obtenerEventosParaMostrar(desde, hasta)`**: todos los eventos salvo los rechazados (para la vista Semana y para el asistente de examen).
+- **`obtenerEventosParaMostrar(desde, hasta)`**: todos los eventos salvo los rechazados (para la vista Semana).
 - **`obtenerEventosDeHoy()` / `obtenerEventosDelHorizonte()`**: atajos de `obtenerEventos` para hoy y para hoy + el horizonte (este último es el que usa Hoy).
 - **`invalidarCacheEventos()`**: vacía la caché de eventos y de calendarios; la usa `app.js` al sincronizar y al volver a la pestaña, y Configuraciones al cambiar calendarios u horizonte.
 - **`calcularSolapamiento(tarea, eventos)`**: compara la ventana `[tarea_fecha_sugerida (con hora), +tarea_duracion_min]` contra cada evento y devuelve el primero que se superpone (usado en Hoy). Pura.
@@ -244,9 +220,9 @@ Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (
 
 ## `assets/js/capacidad.js`
 
-Lógica **pura**: la consulta común de cuánto tiempo hay disponible cada día y cuánto lleva comprometido. La usan el asistente de examen y Semana (en la 9c se suman el Gantt y la reprogramación de fechas vencidas).
+Lógica **pura**: la consulta común de cuánto tiempo hay disponible cada día y cuánto lleva comprometido. Hoy la usa Semana (el Gantt y la reprogramación de fechas vencidas se sumarán).
 
-- **`crearCalculadoraCapacidad({ preferencias, eventos, tareas, hoy, ahora, fechasExamen, excluirIds })`** → `(dia) => { dia, tope, fija, previoAExamen, libreCalendar, capacidad, carga, restante, sobrecarga }`, con memo por día. `tope`: la capacidad fijada para esa fecha o el tope de su día de la semana, reducido por `pref_dia_previo_factor` si el día siguiente es un examen sin completar (o una de `fechasExamen`); `libreCalendar`: minutos de la franja sin los eventos que ocupan (y, hoy, sin lo que ya pasó); `capacidad = min(tope, libreCalendar)` (o `tope` si el usuario fijó ese día); `carga`: minutos de las tareas sin completar con fecha sugerida ese día (salvo `excluirIds`); `restante = max(0, capacidad − carga)`.
+- **`crearCalculadoraCapacidad({ preferencias, eventos, tareas, hoy, ahora, excluirIds })`** → `(dia) => { dia, tope, fija, libreCalendar, capacidad, carga, restante, sobrecarga }`, con memo por día. `tope`: la capacidad fijada para esa fecha o el tope de su día de la semana; `libreCalendar`: minutos de la franja sin los eventos que ocupan (y, hoy, sin lo que ya pasó); `capacidad = min(tope, libreCalendar)` (o `tope` si el usuario fijó ese día); `carga`: minutos de las tareas sin completar con fecha sugerida ese día (salvo `excluirIds`); `restante = max(0, capacidad − carga)`.
 - **`minutosOcupados(eventos, dia, franja, hastaMs)`** y **`unirIntervalos(intervalos)`**: la unión de intervalos que se pisan.
 
 ## `assets/js/checklist-tarjeta.js`
@@ -286,7 +262,7 @@ Vista "Semana": grilla horaria de 7 días (07:00-23:00) con tareas fijas y proye
 
 La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 
-- **`renderVistaTareas(contenedor)`**: botones "＋ Nueva tarea" (abre `abrirAltaTarea`) y "📚 Nuevo examen" (abre `abrirAsistenteExamen`), los filtros y la lista. Orden: pendientes → bloqueadas (por prioridad dentro de cada grupo) y, al final, las completadas plegadas en un `<details class="completadas-plegadas">` "Completadas (N)" que recuerda si estaba abierto (y se muestra abierto con el filtro Estado = Completada).
+- **`renderVistaTareas(contenedor)`**: botón "＋ Nueva tarea" (abre `abrirAltaTarea`), los filtros y la lista. Orden: pendientes → bloqueadas (por prioridad dentro de cada grupo) y, al final, las completadas plegadas en un `<details class="completadas-plegadas">` "Completadas (N)" que recuerda si estaba abierto (y se muestra abierto con el filtro Estado = Completada).
 - **`renderTarea(tarea)`**: tarjeta con el borde izquierdo del color de la categoría (`--color-categoria`), etiqueta "⚠️ Vencida" y fondo rojizo si está vencida, los badges, el checklist con casillas que se tildan ahí mismo (`checklist-tarjeta.js`, persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
@@ -327,7 +303,7 @@ Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCatego
 
 ## `views/configuraciones.view.js`
 
-- **`renderVistaConfiguraciones(contenedor)`**: sección "Agenda y Calendar" (franja horaria para buscar horarios libres, desde/hasta; se guarda al cambiar y no acepta un inicio posterior al fin), "Tiempo disponible" (`conectarSeccionTiempo`: tope por día, día previo, horizonte, interruptores de eventos que se ignoran y lista de calendarios; guarda cada cambio con `guardarPreferencias(..., { sinNotificar: true })`), "Plantillas de preparación" (`editor-plantillas.js`), Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
+- **`renderVistaConfiguraciones(contenedor)`**: sección "Agenda y Calendar" (franja horaria para buscar horarios libres, desde/hasta; se guarda al cambiar y no acepta un inicio posterior al fin), "Tiempo disponible" (`conectarSeccionTiempo`: tope por día, horizonte, interruptores de eventos que se ignoran y lista de calendarios; guarda cada cambio con `guardarPreferencias(..., { sinNotificar: true })`), Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
 
 ## `assets/js/modal-tarea.js`
 

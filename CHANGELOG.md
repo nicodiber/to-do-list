@@ -2,6 +2,30 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.63.0] - 2026-09-21
+
+Limpieza antes de cargar datos reales. El usuario decidió empezar a usar la app con sus datos reales (se borran los de prueba) y suspender lo específico de examen, que era una propuesta que no sirve para algo general. Las plantillas van a volver como un ABM general de cadenas de tareas (ver `BACKLOG.md`).
+
+### Eliminado
+
+- **📚 Nuevo examen** (el asistente con instancias, unidades y ciclos), la **plantilla base de examen** que vivía en el código, el **"¿otro ciclo?"** al cumplir, el **enlace de RemNote** y el **"Elegir de Calendar"** del asistente. Módulos `plantillas.js`, `asistente-examen.js`, `editor-plantillas.js` y `post-cumplir.js`.
+- **La colección `plantillas`** y su sección "📋 Plantillas de preparación" de Configuraciones: ningún dato de plantilla se guarda hasta que exista el ABM nuevo. Un archivo de Drive que aún la traiga se lee igual; simplemente se ignora.
+- **"Tipo: Examen"** del formulario de tarea y la oferta de armar la preparación al guardarlo. Los campos `tarea_tipo` y `tarea_origen` quedan en el modelo sin uso (decisión del usuario), y editar una tarea que los tenga no los borra.
+- **"Día previo a un examen"** (Configuraciones y capacidad): dependía del tipo examen. `pref_dia_previo_factor` ya no se usa.
+
+### Se mantiene
+
+- **Hábito temporal** ("Repetir hasta" una fecha o hasta que se cumpla o venza otra tarea), **preferencias en Drive**, **capacidad por día**, **eventos de Calendar en Semana** y la **barra de carga**.
+
+### Cambiado
+
+- Al cumplir una tarea se vuelve a ofrecer solo exportarla a Calendar.
+- `sw.js`: `CACHE_NAME` a `v23` y sin los módulos eliminados.
+
+### Documentación
+
+- `REDISENO.md` (9a retirada y hoja de ruta nueva), `BACKLOG.md` (ABM de plantillas de cadena y lo que queda sin efecto), `CASOS_DE_USO.md`, `DICCIONARIO_DE_DATOS.md`, `LOGICA_FUNCIONES.md` y `PROCESOS_AUTOMATICOS.md`.
+
 ## [v0.62.0] - 2026-09-21
 
 Ronda 9b del rediseño: tiempo disponible (ver `REDISENO.md`, punto 9). La **9c** (v0.63.0) suma el reparto entre exámenes, el recálculo automático con aviso y el Gantt por minutos.

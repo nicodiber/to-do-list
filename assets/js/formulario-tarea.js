@@ -9,8 +9,6 @@ import {
   NIVELES_IMPORTANCIA,
   ETIQUETAS_IMPORTANCIA,
   ICONOS_IMPORTANCIA,
-  TIPOS_TAREA,
-  ETIQUETAS_TIPO_TAREA,
 } from './modelos.js';
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
@@ -119,14 +117,14 @@ function combinarCampoFechaHora(datos, nombreCampo) {
   return hora ? combinarFechaYHora(fecha, hora) : fecha;
 }
 
-/** Opciones de "hasta que se cumpla o venza esta tarea": las tareas sin completar (los exámenes primero). */
+/** Opciones de "hasta que se cumpla o venza esta tarea": las tareas sin completar. */
 function htmlOpcionesRepetirHastaTarea(tarea, seleccionada = '') {
   const candidatas = estado.tareas
     .filter((x) => x.tarea_estado !== 'completada' && (!tarea || x.tarea_id !== tarea.tarea_id))
-    .sort((a, b) => Number(b.tarea_tipo === 'examen') - Number(a.tarea_tipo === 'examen') || a.tarea_nombre.localeCompare(b.tarea_nombre, 'es'));
+    .sort((a, b) => a.tarea_nombre.localeCompare(b.tarea_nombre, 'es'));
   return [
     '<option value="">Sin tarea de referencia</option>',
-    ...candidatas.map((x) => `<option value="${x.tarea_id}" ${x.tarea_id === seleccionada ? 'selected' : ''}>${x.tarea_tipo === 'examen' ? '🎓 ' : ''}${escaparHtml(nombreConCategoria(x))}</option>`),
+    ...candidatas.map((x) => `<option value="${x.tarea_id}" ${x.tarea_id === seleccionada ? 'selected' : ''}>${escaparHtml(nombreConCategoria(x))}</option>`),
   ].join('');
 }
 
@@ -213,7 +211,6 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       <label class="campo" title="El área de tu vida a la que pertenece; define su prioridad"><span class="campo-titulo">🗂️ Categoría</span><select name="categoria_id">${htmlOpcionesCategoria(t.categoria_id || '')}</select></label>
       <label class="campo" title="Qué tan importante es: cuenta para ordenar la lista"><span class="campo-titulo">❗ Importancia</span><select name="tarea_importancia">${htmlOpcionesImportancia(t.tarea_importancia || '')}</select></label>
       <label class="campo" title="Cuánto disfrutás hacerla (1 a 5)"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
-      <label class="campo" title="Un examen se puede preparar con una plantilla: al guardarlo se ofrece armar los pasos"><span class="campo-titulo">🎓 Tipo</span><select name="tarea_tipo">${TIPOS_TAREA.map((tipo) => `<option value="${tipo}" ${(t.tarea_tipo || '') === tipo ? 'selected' : ''}>${ETIQUETAS_TIPO_TAREA[tipo]}</option>`).join('')}</select></label>
       <label class="campo" title="La meta a la que aporta esta tarea"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
     </fieldset>
 
@@ -251,7 +248,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       </span>
       <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
         <label class="campo" title="Después de esa fecha la tarea deja de repetirse (un hábito temporal)"><span class="campo-titulo">⏳ Repetir hasta (fecha)</span><input type="date" name="tarea_repetir_hasta" value="${escaparHtml(t.tarea_repetir_hasta || '')}" /></label>
-        <label class="campo" title="Deja de repetirse cuando esa tarea se cumple o llega su fecha límite (por ejemplo el examen)"><span class="campo-titulo">🎓 …o hasta que se cumpla o venza esta tarea</span><select name="tarea_repetir_hasta_tarea">${htmlOpcionesRepetirHastaTarea(tarea, t.tarea_repetir_hasta_tarea || '')}</select></label>
+        <label class="campo" title="Deja de repetirse cuando esa tarea se cumple o llega su fecha límite (por ejemplo una fecha de entrega)"><span class="campo-titulo">🎯 …o hasta que se cumpla o venza esta tarea</span><select name="tarea_repetir_hasta_tarea">${htmlOpcionesRepetirHastaTarea(tarea, t.tarea_repetir_hasta_tarea || '')}</select></label>
       </span>
       <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
         <label class="campo" title="Cierra un anillo: al cumplir esta tarea, su copia queda bloqueada por esa otra tarea"><span class="campo-titulo">⚡ Se activa cuando se cumple (desencadenante)</span>
@@ -455,7 +452,6 @@ export function leerFormularioTarea(formulario) {
         : null,
       tarea_dias_habiles: datos.getAll('tarea_dias_habiles').map(Number),
       tarea_checklist: esMantenimiento ? checklist : [],
-      tarea_tipo: datos.get('tarea_tipo') || '',
       tarea_repetir_hasta: esMantenimiento ? String(datos.get('tarea_repetir_hasta') || '') : '',
       tarea_repetir_hasta_tarea: esMantenimiento ? datos.get('tarea_repetir_hasta_tarea') || null : null,
       tarea_desencadenante: !esMantenimiento ? null : selectDesencadenante && !selectDesencadenante.disabled ? datos.get('tarea_desencadenante') || null : undefined,

@@ -11,7 +11,6 @@ import {
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { despuesDeCumplir } from '../assets/js/post-cumplir.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre } from '../assets/js/google-calendar.js';
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
@@ -400,7 +399,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
       cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
-      despuesDeCumplir(tarea);
+      ofrecerExportarACalendar(tarea);
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
       contenedorCierre.hidden = true;

@@ -156,10 +156,10 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 8. **Rediseño visual, emojis y atajos** (transversal), en dos versiones:
    - ✅ **8a · Sistema visual y formulario** (v0.59.0): tema **oscuro por defecto** (el botón de tema sigue eligiendo y se recuerda); **un color por tipo de acción** en los botones (confirmar/crear azul · cumplir verde · posponer ámbar · eliminar rojo · integración externa violeta · neutral gris; un solo botón relleno por contexto y el resto con fondo tenue y borde de su color; contraste de texto ≥ 4,5 : 1 en oscuro y en claro); **emojis en todo**; **interruptores Sí/No** en lugar de casillas para lo que activa algo (requiere buen tiempo, mantenimiento, agrupar por categoría) y **fichas L M X J V S D** para los días hábiles; **formulario de tarea en cinco secciones con título** (📝 Qué · 📅 Cuándo · 📍 Dónde y costo · 🔗 Enlaces · 🔁 Repetición), todos los campos con título y más grandes; botón **"🧹 Limpiar campos"** (con confirmación) en el alta e **interruptor "✅ Completada"** en la edición (misma lógica de cumplir/reabrir de la vista Tareas); la frase "lo que no se mide no se mejora" como cita destacada en Hábitos.
    - ✅ **8b · Atajos, tooltips y tareas chicas** (v0.60.0): teclas solas —con el foco fuera de un campo y sin ventana abierta— **1…9 y 0** para las diez primeras pestañas (el usuario descartó "G + letra"), **N** nueva tarea, **F** enfoca el buscador o filtro, **?** (y el botón ⌨️) abre la ayuda con la lista, y **Ctrl+Enter** guarda o agrega desde cualquier ventana de formulario. Se evitan las teclas que usan el navegador o Windows (Ctrl+N/T/W/S/P/F/G/H/J/K/L/O/R/U/D/E/B/A, Ctrl+1…9, Alt+←/→/Inicio/D, F1/F5/F6/F11/F12, Alt+Shift y Ctrl+Alt —AltGr en teclados latinoamericanos—). **Pestañas reordenadas** (Estadísticas entre Tareas y Mejoras; Mejoras, Personas y Configuraciones solo con el mouse). **Tooltips**: `title` del navegador en pestañas, botones, filtros y campos del formulario (con la tecla cuando hay atajo). Además: **duración por defecto de 30 minutos**, **íconos PNG** de la app (192, 512 y maskable, más el de Apple) para instalarla en Windows con su logo, y **`TECNOLOGIAS.md`**.
-9. **Ronda 9 · Hábitos temporales, plantilla de examen y época de exámenes** (ver la sección de abajo), en dos versiones:
-   - ✅ **9a · Hábito temporal y plantilla de examen** (v0.61.0).
+9. **Ronda 9 · Hábitos temporales, tiempo disponible y plantillas** (ver la sección de abajo), por versiones:
+   - ✅ **9a · Hábito temporal y plantilla de examen** (v0.61.0). *La parte de examen se retiró en la v0.63.0; el hábito temporal se mantiene.*
    - ✅ **9b · Tiempo disponible** (v0.62.0): preferencias en Drive, minutos por día leídos de Calendar y carga por día.
-   - **9c · Época de exámenes** (v0.63.0): reparto entre exámenes, recálculo automático con aviso y Gantt por minutos.
+   - **9c · Plantillas de cadena** (ABM general; ver la sección de abajo).
 
 ## Post-v1.0
 
@@ -171,7 +171,9 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 
 *(9a hecha en la v0.61.0 y 9b en la v0.62.0; la 9c está definida parcialmente con el usuario, todavía sin implementar.)* Nace de su principal responsabilidad actual: preparar exámenes de la facultad.
 
-### 9a · Hábito temporal y plantilla de examen (v0.61.0) ✅
+### 9a · Hábito temporal y plantilla de examen (v0.61.0) ✅ — parte de examen retirada en la v0.63.0
+
+*(El usuario decidió suspender lo específico de examen: los pasos practicar / autoevaluar / diagnosticar… eran una propuesta y no sirven como algo general. Se eliminaron el asistente, la plantilla base, el "otro ciclo" y el tipo Examen; se conserva el **hábito temporal**. Lo que sigue es el registro de lo que se hizo.)*
 
 - ✅ **Hábito temporal**: una tarea de mantenimiento con **"Repetir hasta"**, una **fecha** o **"hasta que se cumpla o venza otra tarea"** (por ejemplo el examen). Al llegar el fin no crea otra copia y figura "✔ terminado" en Hábitos. Si se cambia la fecha del examen, el hábito se acorta o se alarga solo.
 - ✅ **Plantilla de examen**: nueva entidad **Plantilla** (se sincroniza con Drive). La base vive en el código y se duplica para editarla; el administrador está en Configuraciones.
@@ -193,26 +195,28 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 - **Minutos libres leídos de Calendar**: se descuentan los eventos con horario de **todos los calendarios** y en Configuraciones se pueden elegir cuáles cuentan. Se ignoran los eventos de **todo el día** y los **rechazados**. Los marcados como **"Disponible"** en Calendar (en vez de "Ocupado") **no se ignoran por defecto** (decisión del usuario), y un **interruptor en Configuraciones** permite ignorarlos. Los eventos de **todo el día** y los **rechazados** también son interruptores (ambos ignorados por defecto).
 - ✅ **Consulta común de capacidad** (decisión del usuario; `assets/js/capacidad.js`; en la 9b la usan el asistente y Semana, el Gantt y la reprogramación de fechas vencidas la usarán en la 9c): las tres piezas que reparten tareas (asistente de examen, posición estimada del Gantt y reprogramación de fechas vencidas) **siguen repartiendo a su manera**, pero consultan una sola función que responde cuánta capacidad tiene un día y cuánta carga ya lleva.
 - ✅ **Horizonte de lectura de Calendar** configurable (30 · 60 · 90 · 180 días; 90 por defecto).
-- ✅ **Día previo liviano**: el día anterior a un examen la capacidad baja a la mitad (valor editable); se evaluará con el uso real.
+- ~~**Día previo liviano**~~ *(retirado en la v0.63.0: dependía del tipo Examen)*: el día anterior a un examen la capacidad baja a la mitad (valor editable); se evaluará con el uso real.
 - ✅ **Solo día y minutos**: el planificador no asigna horas; la hora exacta sigue siendo el botón manual de "próximo hueco libre".
 - **Sin feriados** (decisión del usuario): STDL es de organización personal y los feriados también se trabaja.
-- ✅ **El asistente propone eventos de Calendar** cuyo título contenga "examen" (parcial y final se unifican bajo "examen") para cargar fecha y hora.
+- ~~**El asistente propone eventos de Calendar**~~ *(retirado en la v0.63.0 con el asistente)* cuyo título contenga "examen" (parcial y final se unifican bajo "examen") para cargar fecha y hora.
 - ✅ **Vista Semana con los eventos de Google Calendar**, de solo lectura: se editan desde Google Calendar.
 - ✅ **Vista de carga por día** (minutos planificados contra disponibles) en Semana. **Hoy conserva la lista completa**, sin línea de corte (decisión del usuario; se revisa con el uso real).
 - ✅ **Compatibilidad del archivo de Drive**: el `formato` sube a 3 y una versión que encuentra un archivo con un formato mayor queda en solo lectura con un aviso. Las versiones anteriores a la v0.62.0 no tienen esa guarda.
 
-### 9c · Época de exámenes (v0.63.0)
+### 9c · Plantillas de cadena (ABM general) — a definir
 
-- **Reparto entre exámenes que compiten** (decisión del usuario): el más **cercano** primero y, a la vez, **proporcional**. Propuesta formal: cada examen tiene un ritmo mínimo (minutos que le faltan ÷ días con capacidad hasta su fecha); se cubre primero el mínimo del más cercano y el resto se reparte proporcional al trabajo que queda.
-- **Aviso de sobrecarga con soluciones** (más capacidad, quitar ciclos, mover una fecha, etc.).
-- **Recorte de ciclos** (decisión del usuario): la app **recorta ciclos automáticamente, avisa y permite deshacer**, y el usuario puede adaptar el resultado como desee. Se aplica a las preparaciones **ya creadas** cuando otra cosa las deja sin tiempo (por ejemplo se agrega un examen que compite); **al crear** no hay nada que recortar: el asistente propone los ciclos que entran y, si el usuario fijó más de los que entran, avisa en la vista previa. Si lo obligatorio no entra, informa y el usuario decide si acepta la sobrecarga o elige qué recortar.
-- **Recálculo automático con aviso**: cuando algo cambia (se atrasa una tarea, se mueve el examen, cambia el tiempo disponible) las fechas se recalculan solas, se avisa y el usuario decide si acepta el resultado o lo edita él mismo. ❓ Qué se recalcula y qué queda fijo, y cómo se deshace.
-- **Gantt por minutos**: la posición estimada pasa a repartir por minutos disponibles en lugar de una tarea por día y por carril.
-- **Duración real**: al cumplir una tarea, preguntar (opcional) cuánto tardó y, con esos datos, **sugerir** un ajuste de las estimaciones, siempre con confirmación del usuario. ❓ En qué versión (la captura del dato es barata; el ajuste necesita datos reales).
-- **Planificador de carga**: no se unifican las tres piezas que reparten tareas; comparten solo la consulta de capacidad y carga por día (ver 9b).
+*(Decisiones del usuario tras la v0.62.0.)*
+
+- **Ninguna plantilla incorporada**: cada usuario tiene su **ABM de plantillas** para cumplir tareas que comparten la misma cadena de tareas previas. La idea de plantillas le convence; lo específico de examen se suspendió.
+- **Cómo se aplica** (decisión del usuario): primero se carga **la tarea objetivo**, que es la que más datos conocidos tiene (fecha límite y demás); la plantilla **agrega sus tareas previas** correspondientes para cumplirla, enlazadas con la regla 1 a 1 que ya existe.
+- **Repeticiones dentro de una plantilla**: por ahora el usuario **duplica los pasos a mano**; más adelante se verá cómo aprovechar ciclos dentro de plantillas.
+- **Propuestas aún sin confirmar**: una plantilla es un nombre más una lista ordenada de pasos (nombre, duración, descripción y, opcional, "N días antes de la tarea final"); **guardar una cadena ya armada como plantilla**; un texto variable que se reemplaza en los nombres.
+- **Programación y reprogramación automática de la lista** (pedido del usuario): que el listado de tareas se programe y se reprograme solo. Sin definir; el usuario prefiere verlo con sus datos reales cargados.
+- **Sobrecarga, reparto entre exámenes y recorte de ciclos**: pospuestos hasta validarlos con datos reales (ver `BACKLOG.md`).
 
 ## Hoja de ruta a la v1.0.0
 
-*(Decisión del usuario, v0.60.0.)* **No se cargan tareas reales hasta la v1.0.0.** Primero se cierran las rondas definidas (8b y 9) y los puntos imprescindibles del backlog, y se prueba todo con datos falsos; recién con todo cumplido, probado y validado se pasa a la v1.0.0, se cargan los datos reales y se descubren mejoras y ajustes con el uso. A partir de la v1.0.0 se comparte el proyecto con amigos y familiares para recibir feedback.
-- **Imprescindibles antes de la v1.0.0**: la **Ronda 9**; la **planificación realista** (reparto por minutos disponibles por día leídos de Calendar y horizonte de Calendar configurable; **los feriados se descartaron**), que se hace dentro de la 9b y la 9c; los **extras** (ideas de la vista Semana, micrófono para cargar el nombre y calendario "memento mori"); y lo necesario para compartir: **seguimiento de uso** (analítica con Google Apps Script), **solicitud de acceso**, **feedback al desarrollador**, política de **privacidad y términos**, y la **limpieza de datos personales**.
+*(Decisión del usuario, v0.63.0; **reemplaza** a la anterior, que decía "sin datos reales hasta la v1.0.0".)* **Desde la v0.63.0 se usa la app con datos reales** (se borraron los de prueba). Con datos reales el camino a la v1.0.0 va a ser con **menos rondas de rediseño** y más ajustes sobre la marcha: el usuario anota lo que nota al usar la app, se agrega al backlog y se avanza junto con lo pendiente. La **v1.0.0** pasa a ser el momento de **compartir el proyecto** con amigos y familiares para recibir feedback.
+- **Antes de compartir (v1.0.0)**: **seguimiento de uso** (analítica con Google Apps Script), **solicitud de acceso**, **feedback al desarrollador**, política de **privacidad y términos**, y la **limpieza de datos personales** del repositorio (ver `BACKLOG.md`).
+- **Pendientes que siguen en el backlog** y se toman según lo que muestre el uso: ABM de plantillas de cadena, programación y reprogramación automática, extras de la vista Semana (ideas del usuario), micrófono para el nombre, calendario "memento mori", Gantt por minutos y `SRS.md`.
 - **No marcado como imprescindible**: el primer uso guiado para gente nueva (queda para evaluar después del primer feedback).

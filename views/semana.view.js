@@ -161,7 +161,7 @@ function pintarCargas(grilla, eventosQueOcupan) {
     boton.textContent = `${c.carga}/${c.capacidad}`;
     boton.title =
       `Planificado ${c.carga} min de ${c.capacidad} min disponibles` +
-      (c.fija ? ' (capacidad fijada por vos para este día)' : ` (tu tope es ${c.tope} min${c.previoAExamen ? ', reducido por ser el día previo a un examen' : ''}; según Calendar quedan ${c.libreCalendar} min libres)`) +
+      (c.fija ? ' (capacidad fijada por vos para este día)' : ` (tu tope es ${c.tope} min; según Calendar quedan ${c.libreCalendar} min libres)`) +
       (c.sobrecarga ? '. ⚠️ Hay más tareas que tiempo.' : '') +
       '. Tocá para ajustar la capacidad de este día.';
     boton.onclick = () => abrirCapacidadDelDia(dia, c);
@@ -173,7 +173,7 @@ function abrirCapacidadDelDia(dia, c) {
     titulo: `⏱️ Capacidad del ${formatearFecha(dia)}`,
     textoGuardar: '💾 Guardar',
     cuerpoHtml: `
-      <p class="ayuda ayuda-formulario">Planificado: <strong>${c.carga} min</strong>. Disponible: <strong>${c.capacidad} min</strong> (tu tope es ${c.tope} min y, según Calendar, quedan ${c.libreCalendar} min libres). Si ese día tenés más o menos tiempo que el habitual (un viaje, un día libre), indicalo acá: el asistente de examen lo va a tener en cuenta.</p>
+      <p class="ayuda ayuda-formulario">Planificado: <strong>${c.carga} min</strong>. Disponible: <strong>${c.capacidad} min</strong> (tu tope es ${c.tope} min y, según Calendar, quedan ${c.libreCalendar} min libres). Si ese día tenés más o menos tiempo que el habitual (un viaje, un día libre), indicalo acá.</p>
       <label class="campo ancho-completo" title="Vacío: se usa tu tope habitual y lo que diga Calendar. 0: ningún tiempo para tareas ese día."><span class="campo-titulo">⏱️ Minutos para tareas ese día</span><input type="number" name="minutos" min="0" step="15" value="${c.fija ? c.tope : ''}" placeholder="Automático" /></label>`,
     alGuardar: async (formulario) => {
       const valor = formulario.minutos.value.trim();

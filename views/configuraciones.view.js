@@ -1,5 +1,4 @@
 import { exportarJSON, importarJSON, borrarTodosLosDatos } from '../assets/js/almacenamiento.js';
-import { htmlSeccionPlantillas, conectarSeccionPlantillas } from '../assets/js/editor-plantillas.js';
 import { obtenerFranjaHoraria, establecerFranjaHoraria, HORAS_FRANJA } from '../assets/js/preferencias-horario.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
 import { htmlInterruptor } from '../assets/js/formulario-tarea.js';
@@ -7,7 +6,6 @@ import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } f
 import { escaparHtml } from '../assets/js/utilidades.js';
 
 const NOMBRES_DIA_CORTO = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo' };
-const FACTORES_DIA_PREVIO = [1, 0.75, 0.5, 0.25];
 const HORIZONTES = [30, 60, 90, 180];
 
 const PALABRA_CONFIRMACION = 'BORRAR';
@@ -34,7 +32,7 @@ export function renderVistaConfiguraciones(contenedor) {
 
     <section class="seccion-config" id="seccion-tiempo">
       <h3>⏱️ Tiempo disponible</h3>
-      <p class="ayuda">Cuánto tiempo querés dedicar a tus tareas cada día. Se usa para repartir la preparación de un examen y para la barra de carga de la vista Semana. También cuenta tu Calendar: cada evento le quita tiempo al día. Para un día puntual (un viaje, un día libre) tocá su barra en Semana. Se guarda en tu Drive.</p>
+      <p class="ayuda">Cuánto tiempo querés dedicar a tus tareas cada día. Se usa para la barra de carga de la vista Semana. También cuenta tu Calendar: cada evento le quita tiempo al día. Para un día puntual (un viaje, un día libre) tocá su barra en Semana. Se guarda en tu Drive.</p>
       <h4>⏳ Tope por día de la semana (minutos)</h4>
       <div class="topes-dias">
         ${[1, 2, 3, 4, 5, 6, 0]
@@ -42,10 +40,7 @@ export function renderVistaConfiguraciones(contenedor) {
           .join('')}
       </div>
       <div class="acciones-config">
-        <label title="El día anterior a un examen se estudia menos: ese porcentaje del tope habitual">🌙 Día previo a un examen
-          <select id="factor-previo">${FACTORES_DIA_PREVIO.map((f) => `<option value="${f}" ${f === preferencias.pref_dia_previo_factor ? 'selected' : ''}>${Math.round(f * 100)} % del tope</option>`).join('')}</select>
-        </label>
-        <label title="Cuántos días hacia adelante se leen tus eventos de Calendar (para el tiempo libre y para elegir la fecha de un examen)">📆 Leer Calendar hasta
+        <label title="Cuántos días hacia adelante se leen tus eventos de Calendar (para calcular tu tiempo libre)">📆 Leer Calendar hasta
           <select id="horizonte-calendar">${HORIZONTES.map((h) => `<option value="${h}" ${h === preferencias.pref_horizonte_dias ? 'selected' : ''}>${h} días</option>`).join('')}</select>
         </label>
       </div>
@@ -59,8 +54,6 @@ export function renderVistaConfiguraciones(contenedor) {
       <div id="lista-calendarios" class="lista-calendarios"><p class="ayuda">${hayConexionGoogleCalendar() ? 'Cargando tus calendarios…' : 'Conectá Google para elegir los calendarios.'}</p></div>
       <p class="ayuda" id="mensaje-tiempo" hidden></p>
     </section>
-
-    ${htmlSeccionPlantillas()}
 
     <section class="seccion-config">
       <h3>💾 Copia de seguridad</h3>
@@ -95,8 +88,6 @@ export function renderVistaConfiguraciones(contenedor) {
   campoFin.addEventListener('change', guardarFranja);
 
   conectarSeccionTiempo(contenedor);
-
-  conectarSeccionPlantillas(contenedor);
 
   contenedor.querySelector('#boton-exportar').addEventListener('click', exportarJSON);
 
@@ -151,7 +142,6 @@ function conectarSeccionTiempo(contenedor) {
       guardar({ pref_tope_dias: topes });
     });
   });
-  seccion.querySelector('#factor-previo').addEventListener('change', (evento) => guardar({ pref_dia_previo_factor: Number(evento.target.value) }));
   seccion.querySelector('#horizonte-calendar').addEventListener('change', (evento) => guardar({ pref_horizonte_dias: Number(evento.target.value) }, { recalendar: true }));
   [['ignorar_todo_el_dia', 'pref_ignorar_todo_el_dia'], ['ignorar_rechazados', 'pref_ignorar_rechazados'], ['ignorar_disponible', 'pref_ignorar_disponible']].forEach(([nombre, clave]) => {
     seccion.querySelector(`[name="${nombre}"]`).addEventListener('change', (evento) => guardar({ [clave]: evento.target.checked }));
