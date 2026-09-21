@@ -108,6 +108,10 @@ export function crearTarea({
   tarea_checklist = [],
   tarea_desencadenante = null,
   tarea_carga_completa = false,
+  tarea_tipo = '',
+  tarea_repetir_hasta = '',
+  tarea_repetir_hasta_tarea = null,
+  tarea_origen = null,
 }) {
   const creadaEn = ahoraISO();
   return {
@@ -137,6 +141,10 @@ export function crearTarea({
     tarea_checklist,
     tarea_desencadenante: tarea_desencadenante || null,
     tarea_carga_completa,
+    tarea_tipo,
+    tarea_repetir_hasta,
+    tarea_repetir_hasta_tarea: tarea_repetir_hasta_tarea || null,
+    tarea_origen,
   };
 }
 
@@ -172,5 +180,22 @@ export function crearCumplimiento({ tarea, fecha }) {
     // si un día sin registro fue un incumplimiento (hábito diario) o simplemente no tocaba.
     cumplimiento_intervalo: tarea.tarea_mantenimiento_intervalo ? { ...tarea.tarea_mantenimiento_intervalo } : null,
     cumplimiento_dias_habiles: [...(tarea.tarea_dias_habiles || [])],
+  };
+}
+
+export const TIPOS_TAREA = ['', 'examen'];
+export const ETIQUETAS_TIPO_TAREA = { '': 'Tarea común', examen: 'Examen' };
+
+/**
+ * Plantilla de preparación (por ejemplo para un examen): una lista de pasos con su fase, duración y criterio
+ * de "hecho". Es dato del usuario y se sincroniza con Drive; la plantilla base vive en el código
+ * (`PLANTILLA_EXAMEN` en `plantillas.js`) y se duplica para editarla.
+ */
+export function crearPlantilla({ plantilla_nombre, plantilla_pasos = [] }) {
+  return {
+    plantilla_id: generarId(),
+    plantilla_nombre: capitalizarPrimera(plantilla_nombre),
+    plantilla_pasos,
+    plantilla_creada_en: ahoraISO(),
   };
 }

@@ -14,6 +14,7 @@ export const COLECCIONES = [
   { clave: 'tareas', id: 'tarea_id', modificado: 'tarea_modificado_en', nombre: 'tarea_nombre', etiqueta: 'tarea' },
   { clave: 'mejoras', id: 'mejora_id', modificado: 'mejora_modificado_en', nombre: 'mejora_tarea_nombre', etiqueta: 'nota de mejora' },
   { clave: 'cumplimientos', id: 'cumplimiento_id', modificado: 'cumplimiento_modificado_en', nombre: 'cumplimiento_tarea_nombre', etiqueta: 'marca de cumplimiento' },
+  { clave: 'plantillas', id: 'plantilla_id', modificado: 'plantilla_modificado_en', nombre: 'plantilla_nombre', etiqueta: 'plantilla' },
 ];
 
 /** Serialización con claves ordenadas, para comparar contenidos sin depender del orden de las claves. */

@@ -2,6 +2,29 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.61.0] - 2026-09-21
+
+Ronda 9a del rediseño: hábito temporal y plantilla de examen (ver `REDISENO.md`, punto 9). La **9b** (minutos disponibles leídos de Calendar, carga por día y reparto entre exámenes) queda para la v0.62.0.
+
+### Agregado
+
+- **Hábito temporal**: en 🔁 Repetición de una tarea de mantenimiento, **"⏳ Repetir hasta"** (una fecha) y **"🎓 …o hasta que se cumpla o venza esta tarea"** (por ejemplo el examen). Al llegar el fin no se crea otra copia (la del último día sí). Si se mueve la fecha de la tarea de referencia, el hábito se acorta o se alarga solo. En Hábitos, el que terminó figura **"✔ terminado"** y los días posteriores quedan como "no aplica".
+- **Tipo de tarea "🎓 Examen"** en 📝 Qué. Al guardar una tarea de tipo examen (nueva, o una existente que pasa a serlo) se ofrece armar la preparación con el asistente, usando esa tarea como el examen.
+- **📚 Nuevo examen** (botón en Tareas): asistente con el nombre, la categoría y la importancia, la plantilla, las **instancias** del examen (por ejemplo práctica y después teórica, con fecha y hora opcional), las **unidades** del temario de cada una, los **ciclos** de práctica (automático = los que entren, o un número), los minutos de estudio por día (120 por defecto), el día en que se empieza, los días de estudio y un enlace opcional de RemNote. Una **vista previa editable** (renombrar, cambiar la duración, subir, bajar y quitar tareas; las fechas se recalculan solas) muestra los avisos si no alcanza el tiempo y el hábito diario; **"✅ Crear"** genera todo de una vez.
+- **La preparación es una cadena de un solo hilo** en el orden de las fechas: preparar (una vez) → por unidad leer, resumir y crear las tarjetas → ciclos de práctica (practicar, autoevaluar, diagnosticar, corregir) → simulacro, errores frecuentes y día previo → 🎓 "Rendir …" de cada instancia → retrospectiva. Las fechas se planifican **hacia adelante** (empezar cuanto antes) y lo que sobra hasta el examen se llena con ciclos, espaciados entre sí. Cada tarea es atómica: dura como máximo 60 minutos (salvo el simulacro) y trae su **"Hecho cuando…"** en la descripción. Hereda la categoría y la importancia del examen y tiene como fecha límite la del examen. Solo la primera queda pendiente; las demás se habilitan a medida que se cumplen.
+- **Hábito diario de repaso** de las tarjetas (RemNote), habilitado el día siguiente a las primeras tarjetas y que termina en el último examen.
+- **¿Otro ciclo?** Al cumplir el último "corregir" del último ciclo de una instancia, la app pregunta si hace falta otro y, si se acepta, inserta los cuatro pasos a continuación y corre lo que sigue (avisa si quedaría después del examen). Funciona desde Hoy, Tareas, Revisar mi día y la edición (`post-cumplir.js`).
+- **Plantillas de preparación** (nueva entidad, se sincroniza con Drive): en Configuraciones, la plantilla por defecto (solo se puede duplicar) y las propias (**Editar**, **Duplicar**, **Eliminar**, **Nueva plantilla vacía**). El editor permite agregar, quitar y reordenar pasos con su fase, duración y "Hecho cuando…", los días antes del examen (consolidar) y el paso después del cual empieza el hábito.
+
+### Cambiado
+
+- `Tarea` suma `tarea_tipo`, `tarea_repetir_hasta`, `tarea_repetir_hasta_tarea` y `tarea_origen`; el archivo de Drive suma la colección `plantillas` (los datos viejos se completan solos al leerlos). `esTareaSoloConNombre` no cuenta como "cargada rápido" una tarea de tipo examen ni una generada por el asistente.
+- `sw.js`: `CACHE_NAME` a `v21` y precache de los módulos nuevos.
+
+### Documentación
+
+- `REDISENO.md` (Ronda 9a hecha, con las decisiones y la plantilla validada; la 9b sigue abierta), `CASOS_DE_USO.md` (B3, preparar un examen), `DICCIONARIO_DE_DATOS.md`, `LOGICA_FUNCIONES.md`, `PROCESOS_AUTOMATICOS.md` (22 y 23) y `BACKLOG.md`.
+
 ## [v0.60.0] - 2026-09-21
 
 Ronda 8b del rediseño: atajos de teclado, tooltips y tareas chicas del backlog (ver `REDISENO.md`, punto 8). También se documenta la definición de la Ronda 9 y la hoja de ruta a la v1.0.0.

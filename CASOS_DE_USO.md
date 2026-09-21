@@ -243,6 +243,21 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Resultado**: posible cambio de `tarea_fecha_sugerida` (arrastrar una barra en Plan o "📌 Fijar"), de `tarea_fecha_inicio_habilitada` o de `tarea_fecha_limite` (bordes en Ventana), más el desplazamiento en cascada de las tareas encadenadas.
 - **Fricciones**: la posición estimada reparte una tarea por día y por carril sin mirar la duración (reparto por minutos disponibles: backlog); las tareas completadas se ven solo con el filtro de estado; las flechas del anillo son una guía y no se recalculan cuando la cadena cambia de carril; el arrastre en celular usa toques (se prueba mejor con el ratón).
 
+### B3. Preparar un examen
+
+- **Objetivo**: dejar planificada de una vez toda la preparación de un examen, en pasos chicos, para después solo sentarse a hacer lo que sigue sin dudas.
+- **Disparador**: se anota un examen (con una o más instancias, por ejemplo práctica y después teórica).
+- **Pasos**: Tareas → **📚 Nuevo examen** (o crear una tarea con **Tipo: Examen** y aceptar la oferta) → completar nombre, categoría, importancia, plantilla, cada instancia (nombre, fecha, unidades y ciclos), minutos por día, desde cuándo, días de estudio y enlace de RemNote → **Vista previa** → editar lo que haga falta → **Crear**.
+- **Flujo usuario/sistema**:
+  1. Usuario abre el asistente y carga los datos; sistema valida y arma el plan con `planificarExamen` (fechas hacia adelante, ciclos según el tiempo).
+  2. Sistema muestra la vista previa con fecha y duración de cada tarea, avisos si no alcanza el tiempo y el hábito diario de repaso.
+  3. Usuario renombra, cambia duraciones, mueve o quita tareas; sistema recalcula las fechas después de cada cambio.
+  4. Usuario confirma; sistema crea la cadena de un solo hilo con `crearTareasDeExamen` (solo la primera queda pendiente) y el hábito diario, que termina en el último examen.
+  5. A medida que el usuario cumple los pasos, se habilitan los siguientes; al cumplir el último "corregir" del último ciclo de una instancia, el sistema pregunta si hace falta otro ciclo.
+- **Vistas/funciones**: `views/tareas.view.js`, `assets/js/asistente-examen.js`, `assets/js/plantillas.js`, `assets/js/post-cumplir.js`, `assets/js/modal-tarea.js` (oferta al guardar un examen), `assets/js/editor-plantillas.js` (plantillas propias en Configuraciones).
+- **Resultado**: una cadena de tareas atómicas (cada una con su "Hecho cuando…") con la categoría y la importancia del examen, un hito "Rendir …" por instancia y un hábito diario de repaso.
+- **Fricciones**: los minutos por día son un tope fijo (leerlos de Calendar y repartirlos entre exámenes que compiten es la Ronda 9b); si cambia la fecha del examen no se recalcula la preparación (backlog); con varias instancias, la preparación de la segunda empieza después de rendir la primera.
+
 ## Bloque C — Estructura y organización (ABMs)
 
 ### C1. Gestionar categorías

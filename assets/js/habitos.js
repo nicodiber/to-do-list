@@ -66,6 +66,8 @@ export function calcularHabito(nombre, estado, { dias = 30, hasta = hoyISO() } =
   const abierta = repeticionAbierta(nombre, estado.tareas || []);
   const primerDia = registros.length > 0 ? registros[0].dia : '';
   const ultimoRegistro = registros[registros.length - 1] || null;
+  // Un hábito temporal que ya llegó a su fin (no queda ninguna repetición abierta) no espera nada después de su último cumplimiento.
+  const terminado = registros.length > 0 && !abierta;
 
   // Qué intervalo y días hábiles regían un día: el del último cumplimiento hasta entonces; después del
   // último cumplimiento, el de la repetición abierta (que es la configuración actual de la tarea).
@@ -87,6 +89,10 @@ export function calcularHabito(nombre, estado, { dias = 30, hasta = hoyISO() } =
   let evaluados = 0;
   for (let i = dias - 1; i >= 0; i -= 1) {
     const dia = fechaISOMasDias(-i, hasta);
+    if (terminado && dia > ultimoRegistro.dia) {
+      celdas.push({ dia, estado: ESTADOS_CELDA.noAplica, titulo: 'Terminó: ya no se repite' });
+      continue;
+    }
     const config = configEn(dia);
     const diario = config ? esDiario(config.intervalo) : false;
     const delDia = registrosPorDia.get(dia) || [];
@@ -125,7 +131,8 @@ export function calcularHabito(nombre, estado, { dias = 30, hasta = hoyISO() } =
     }
   }
 
-  return { nombre, celdas, racha: calcularRacha(registros, abierta, hasta, configEn), porcentaje: evaluados > 0 ? Math.round((aciertos / evaluados) * 100) : null, cumplidos: aciertos, evaluados };
+  const hastaRacha = terminado && ultimoRegistro.dia < hasta ? ultimoRegistro.dia : hasta;
+  return { nombre, terminado, celdas, racha: calcularRacha(registros, abierta, hastaRacha, configEn), porcentaje: evaluados > 0 ? Math.round((aciertos / evaluados) * 100) : null, cumplidos: aciertos, evaluados };
 }
 
 /**

@@ -156,7 +156,9 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 8. **Rediseño visual, emojis y atajos** (transversal), en dos versiones:
    - ✅ **8a · Sistema visual y formulario** (v0.59.0): tema **oscuro por defecto** (el botón de tema sigue eligiendo y se recuerda); **un color por tipo de acción** en los botones (confirmar/crear azul · cumplir verde · posponer ámbar · eliminar rojo · integración externa violeta · neutral gris; un solo botón relleno por contexto y el resto con fondo tenue y borde de su color; contraste de texto ≥ 4,5 : 1 en oscuro y en claro); **emojis en todo**; **interruptores Sí/No** en lugar de casillas para lo que activa algo (requiere buen tiempo, mantenimiento, agrupar por categoría) y **fichas L M X J V S D** para los días hábiles; **formulario de tarea en cinco secciones con título** (📝 Qué · 📅 Cuándo · 📍 Dónde y costo · 🔗 Enlaces · 🔁 Repetición), todos los campos con título y más grandes; botón **"🧹 Limpiar campos"** (con confirmación) en el alta e **interruptor "✅ Completada"** en la edición (misma lógica de cumplir/reabrir de la vista Tareas); la frase "lo que no se mide no se mejora" como cita destacada en Hábitos.
    - ✅ **8b · Atajos, tooltips y tareas chicas** (v0.60.0): teclas solas —con el foco fuera de un campo y sin ventana abierta— **1…9 y 0** para las diez primeras pestañas (el usuario descartó "G + letra"), **N** nueva tarea, **F** enfoca el buscador o filtro, **?** (y el botón ⌨️) abre la ayuda con la lista, y **Ctrl+Enter** guarda o agrega desde cualquier ventana de formulario. Se evitan las teclas que usan el navegador o Windows (Ctrl+N/T/W/S/P/F/G/H/J/K/L/O/R/U/D/E/B/A, Ctrl+1…9, Alt+←/→/Inicio/D, F1/F5/F6/F11/F12, Alt+Shift y Ctrl+Alt —AltGr en teclados latinoamericanos—). **Pestañas reordenadas** (Estadísticas entre Tareas y Mejoras; Mejoras, Personas y Configuraciones solo con el mouse). **Tooltips**: `title` del navegador en pestañas, botones, filtros y campos del formulario (con la tecla cuando hay atajo). Además: **duración por defecto de 30 minutos**, **íconos PNG** de la app (192, 512 y maskable, más el de Apple) para instalarla en Windows con su logo, y **`TECNOLOGIAS.md`**.
-9. **Ronda 9 · Hábitos temporales, plantilla de examen y época de exámenes** (definida con el usuario en la v0.60.0; ver la sección de abajo).
+9. **Ronda 9 · Hábitos temporales, plantilla de examen y época de exámenes** (ver la sección de abajo), en dos versiones:
+   - ✅ **9a · Hábito temporal y plantilla de examen** (v0.61.0).
+   - **9b · Época de exámenes** (v0.62.0): minutos disponibles leídos de Calendar, carga por día, reparto entre exámenes y Gantt por minutos.
 
 ## Post-v1.0
 
@@ -166,18 +168,27 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 
 ## Ronda 9 · Hábitos temporales, plantilla de examen y época de exámenes
 
-*(Definida con el usuario; todavía no implementada.)* Nace de su principal responsabilidad actual: preparar exámenes de la facultad.
+*(9a hecha en la v0.61.0; 9b pendiente.)* Nace de su principal responsabilidad actual: preparar exámenes de la facultad.
 
-- ✅ **Hábito temporal**: una tarea de mantenimiento con un campo **"Repetir hasta"**, que puede ser una **fecha** o **"hasta que se cumpla o venza otra tarea"** (por ejemplo el examen). Al llegar el fin deja de generar copias y figura como terminado en el mapa de hábitos. Si se cambia la fecha del examen, el hábito se acorta o se alarga solo.
-- ✅ **Plantilla de examen**: nueva entidad **Plantilla** (se sincroniza con Drive como las demás). Al agregar una tarea de tipo examen, la app genera una **cadena** con los pasos en orden —con fechas sugeridas calculadas hacia atrás desde la fecha del examen— y, aparte, un **hábito temporal** para el repaso diario de flashcards hasta el examen (lo diario no puede ir dentro de la cadena, que es de una tarea a otra).
-- ✅ **Ciclos** práctica → autoevaluación → diagnóstico → corrección: la plantilla trae **N ciclos** (número editable al generar) y, al completar la autoevaluación del último, la app pregunta **"¿agregar otro ciclo?"** y lo suma antes del simulacro si se acepta.
-- ✅ **Edición**: **vista previa al generar** (quitar, renombrar, reordenar y cambiar los días de anticipación de cada paso, con su fecha calculada) y un **administrador de plantillas** en Configuraciones (Examen y las que se creen: entrega, trabajo práctico…).
-- **Borrador del proceso estándar de estudio** (a validar con el usuario), con las mejoras propuestas:
-  1. **Preparar**: averiguar contenido y modalidad → **inscribirme al examen** (con su fecha límite) → reunir el material, incluidos los **exámenes anteriores** → dividir el temario en unidades y planificar hacia atrás.
-  2. **Comprender**: leer → resumir → crear tarjetas de estudio (flashcards).
-  3. **Ciclos de práctica**: repaso diario de flashcards (**espaciado**, hábito temporal) → práctica → autoevaluación → diagnóstico (qué sé, qué no sé y qué sé mal) → corregir el resumen y las tarjetas → nuevo ciclo hasta que los errores bajen.
-  4. **Consolidar**: **simulacro completo** con tiempo y sin material → repaso de los errores frecuentes → **día previo** (repaso liviano y logística) → rendir → **retrospectiva** (qué mejorar, que alimenta la vista Mejoras).
-- ❓ **Abierto** (a definir con el usuario): tipos de examen que rinde y con cuánta anticipación empieza a prepararlos; si las flashcards viven en otra app o en papel y si STDL solo agenda su creación y su repaso; si los pasos se organizan por unidad del temario o por etapa; cuánto tiempo diario tiene en época de exámenes; y la **época de exámenes** (varios exámenes en el mismo período): una **vista de carga por día** (minutos planificados contra minutos disponibles), aviso de sobrecarga y cómo se reparte el tiempo entre exámenes que compiten (por fecha más cercana, proporcional o a elección). Depende del **reparto por minutos disponibles por día** (ver `BACKLOG.md`).
+### 9a · Hábito temporal y plantilla de examen (v0.61.0) ✅
+
+- ✅ **Hábito temporal**: una tarea de mantenimiento con **"Repetir hasta"**, una **fecha** o **"hasta que se cumpla o venza otra tarea"** (por ejemplo el examen). Al llegar el fin no crea otra copia y figura "✔ terminado" en Hábitos. Si se cambia la fecha del examen, el hábito se acorta o se alarga solo.
+- ✅ **Plantilla de examen**: nueva entidad **Plantilla** (se sincroniza con Drive). La base vive en el código y se duplica para editarla; el administrador está en Configuraciones.
+- ✅ **Alta**: asistente **"📚 Nuevo examen"** y campo **"Tipo: examen"** en el formulario, que ofrece abrir el asistente con los datos cargados (la tarea pasa a ser el hito de su instancia).
+- ✅ **Instancias**: un examen puede tener una o varias (práctica y después teórica); se resuelven con **una sola cadena en el orden de las fechas** y un hito "Rendir …" por instancia.
+- ✅ **Empezar lo antes posible**: las fechas se planifican **hacia adelante** desde hoy (o la fecha elegida) con un tope fijo de minutos por día (120 por defecto); lo que sobra hasta el examen se llena con **ciclos de práctica**, espaciados, y el simulacro, los errores y el día previo se anclan 3, 2 y 1 día antes. Las tareas heredan la categoría y la importancia del examen y tienen su fecha como límite.
+- ✅ **Tareas atómicas**: cada paso dura como máximo 60 minutos (salvo el simulacro) y trae su **"Hecho cuando…"**; por unidad del temario se hace leer → resumir → crear tarjetas de la unidad 1, después la 2, etc. Las tarjetas viven en **RemNote**: STDL solo agenda crearlas y el **repaso diario** (hábito temporal que empieza el día siguiente a las primeras tarjetas); un enlace opcional queda en las descripciones.
+- ✅ **Ciclos**: número **automático (los que entren)** o fijo al crear; al cumplir el último "corregir" de la instancia, la app pregunta **"¿agregar otro ciclo?"**.
+- ✅ **Edición**: vista previa editable (renombrar, duración, ↑ ↓, quitar) con recálculo de fechas y **administrador de plantillas** (agregar, quitar y reordenar pasos con fase, duración y "Hecho cuando…").
+- **Plantilla validada** (por defecto): 1. **Preparar** (30 min contenido y modalidad · 15 inscribirme · 60 material y exámenes anteriores · 30 dividir en unidades) → 2. **Por unidad** (60 leer · 45 resumir · 30 tarjetas en RemNote) → 3. **Hábito** (20 min de repaso diario) → 4. **Por ciclo** (60 practicar · 30 autoevaluar · 30 diagnosticar qué sé, qué no sé y qué sé mal · 45 corregir resumen y tarjetas) → 5. **Consolidar** (120 simulacro 3 días antes · 45 errores frecuentes 2 días antes · 30 día previo) → **Rendir** → **retrospectiva** (20 min, qué mejorar).
+
+### 9b · Época de exámenes (v0.62.0)
+
+- **Minutos disponibles por día leídos de Google Calendar**: el tiempo libre dentro de la franja horaria, con un tope diario configurable (hoy es un tope fijo).
+- **Vista de carga por día** (minutos planificados contra disponibles) y aviso de sobrecarga.
+- **Reparto entre exámenes que compiten** (decisión del usuario): priorizar el **más cercano** —primero se cubre el ritmo mínimo que cada examen necesita— y repartir el resto de forma **proporcional**.
+- **Gantt por minutos**: la posición estimada hoy reparte una tarea por día por carril sin mirar la duración.
+- Se apoya en la **planificación realista** (feriados y días no laborables, horizonte de Calendar), imprescindible antes de la v1.0.0.
 
 ## Hoja de ruta a la v1.0.0
 

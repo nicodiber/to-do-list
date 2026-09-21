@@ -24,6 +24,22 @@ export function calcularProximaFechaMantenimiento(desdeISODatetime, intervalo) {
 }
 
 /**
+ * Hasta qué día se repite una tarea de mantenimiento (hábito temporal), o `''` si se repite sin fin. Es lo más
+ * temprano entre `tarea_repetir_hasta` (una fecha) y lo que marque `tarea_repetir_hasta_tarea`: el día en que se
+ * cumplió esa otra tarea o, si sigue pendiente, su fecha límite (o sugerida). Si esa tarea ya no existe se ignora.
+ */
+export function fechaFinDeRepeticion(tarea, listaTareas) {
+  const dias = [];
+  if (tarea.tarea_repetir_hasta) dias.push(diaLocal(tarea.tarea_repetir_hasta));
+  const otra = tarea.tarea_repetir_hasta_tarea ? listaTareas.find((t) => t.tarea_id === tarea.tarea_repetir_hasta_tarea) : null;
+  if (otra) {
+    const dia = otra.tarea_estado === 'completada' ? otra.tarea_fecha_fin : otra.tarea_fecha_limite || otra.tarea_fecha_sugerida;
+    if (dia) dias.push(diaLocal(dia));
+  }
+  return dias.sort()[0] || '';
+}
+
+/**
  * Marca una tarea como completada (`tarea_fecha_fin` = ahora). Si es una
  * tarea de mantenimiento, además clona una nueva instancia pendiente con la
  * fecha límite recalculada desde la fecha real de finalización, dejando la
@@ -38,6 +54,11 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
 
   if (!tarea.tarea_mantenimiento) return null;
 
+  // Hábito temporal: si el próximo vencimiento cae después del día en que termina, no hay otra repetición.
+  const proximoLimite = calcularProximaFechaMantenimiento(ahora, tarea.tarea_mantenimiento_intervalo);
+  const finRepeticion = fechaFinDeRepeticion(tarea, listaTareas);
+  if (finRepeticion && proximoLimite > finRepeticion) return null;
+
   const descripcion = notaMejora
     ? `${tarea.tarea_descripcion ? tarea.tarea_descripcion + '\n\n' : ''}Mejora sugerida la vez anterior: ${notaMejora}`
     : tarea.tarea_descripcion;
@@ -46,7 +67,7 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
     tarea_nombre: tarea.tarea_nombre,
     categoria_id: tarea.categoria_id,
     tarea_estado: 'pendiente',
-    tarea_fecha_limite: calcularProximaFechaMantenimiento(ahora, tarea.tarea_mantenimiento_intervalo),
+    tarea_fecha_limite: proximoLimite,
     tarea_duracion_min: tarea.tarea_duracion_min,
     tarea_descripcion: descripcion,
     tarea_mantenimiento: tarea.tarea_mantenimiento,
@@ -60,6 +81,9 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
     meta_id: tarea.meta_id,
     tarea_checklist: (tarea.tarea_checklist || []).map((item) => ({ texto: item.texto, hecho: false })),
     tarea_desencadenante: tarea.tarea_desencadenante || null,
+    tarea_repetir_hasta: tarea.tarea_repetir_hasta || '',
+    tarea_repetir_hasta_tarea: tarea.tarea_repetir_hasta_tarea || null,
+    tarea_origen: tarea.tarea_origen || null,
   });
   listaTareas.push(nueva);
   return nueva;
@@ -446,6 +470,7 @@ export function esTareaSoloConNombre(tarea, listaTareas = []) {
   if (tarea.tarea_descripcion || tarea.ubicacion_id || tarea.tarea_requiere_clima_bueno || tarea.tarea_costo_estimado) return false;
   if (tarea.tarea_mantenimiento || (tarea.tarea_dias_habiles || []).length > 0) return false;
   if ((tarea.tarea_checklist || []).length > 0 || tarea.tarea_desencadenante) return false;
+  if (tarea.tarea_tipo || tarea.tarea_origen) return false;
   if (tarea.tarea_dependiente || proximasActivas(tarea.tarea_id, listaTareas).length > 0) return false;
   return true;
 }

@@ -127,3 +127,15 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Condición**: al dibujar el Gantt, una tarea pendiente o bloqueada no tiene `tarea_fecha_sugerida`.
 - **Proceso**: `calcularPosiciones` (`assets/js/gantt-modelo.js`) le asigna una posición **solo para dibujar** (no se guarda): si no tiene previa, va a la cola por prioridad (`compararPorPrioridad`) de su carril —una tarea por día desde hoy y no antes de su fecha habilitada real—; si tiene previa, va el día siguiente al de su previa.
 - **Resultado**: la tarea se ve como barra punteada en ese día y, si supera su fecha límite, con la bandera en rojo. Ningún dato cambia hasta que el usuario la arrastra o toca "📌 Fijar" (entonces se guarda como `tarea_fecha_sugerida`).
+
+## 22. Fin de un hábito temporal
+
+- **Condición**: se completa una tarea de mantenimiento que tiene `tarea_repetir_hasta` o `tarea_repetir_hasta_tarea`.
+- **Proceso**: `completarTarea` (`assets/js/tareas-logica.js`) calcula el próximo vencimiento y lo compara con `fechaFinDeRepeticion` (lo más temprano entre la fecha y el día en que se cumple o vence la otra tarea; si esa se borró, se ignora). Si el próximo vencimiento cae **después** de ese día, no crea la copia; si no, la crea heredando `tarea_repetir_hasta`, `tarea_repetir_hasta_tarea` y `tarea_origen`.
+- **Resultado**: el hábito termina solo (la repetición del último día sí se crea). En Hábitos figura "✔ terminado" y los días posteriores quedan "no aplica". Si mientras hay una repetición abierta se mueve la fecha del examen de referencia, el hábito se acorta o se alarga solo en la próxima copia.
+
+## 23. Oferta de otro ciclo de práctica
+
+- **Condición**: se cumple, desde Hoy, Tareas, Revisar mi día o la edición, un paso "corregir" (`tarea_origen.paso === 'correccion'`) que es del último ciclo de su instancia.
+- **Proceso**: `despuesDeCumplir` → `ofrecerOtroCiclo` (`assets/js/post-cumplir.js`) pregunta si hace falta otro ciclo. Al aceptar clona los cuatro pasos del ciclo con el número siguiente, los inserta en la cadena a continuación de la tarea cumplida (la que seguía pasa a depender del último) y, si lo que sigue quedaría pisado, lo corre con `reprogramarTareaConCascada`.
+- **Resultado**: la cadena crece cuatro pasos, con el primero pendiente y el resto bloqueados; si el ciclo nuevo termina después de la fecha del examen, avisa para revisar las fechas. Después se ofrece exportar a Calendar como siempre.
