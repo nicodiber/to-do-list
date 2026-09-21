@@ -110,13 +110,14 @@ export function renderVistaHabitos(contenedor) {
   const categorias = calcularMapaCategorias(estado, { dias });
 
   contenedor.innerHTML = `
-    <p class="ayuda">Lo que no se mide no se mejora. Cada fila es una tarea de mantenimiento (un hábito) y cada columna un día; hoy es la última.</p>
+    <blockquote class="cita-habitos">Lo que no se mide no se mejora.</blockquote>
+    <p class="ayuda">Cada fila es una tarea de mantenimiento (un hábito) y cada columna un día; hoy es la última.</p>
     <div class="selector-rango" role="group" aria-label="Período">
       ${OPCIONES.map((n) => `<button type="button" data-dias="${n}" class="${n === dias ? 'activo' : ''}">${n} días</button>`).join('')}
     </div>
 
     <section>
-      <h3>Hábitos</h3>
+      <h3>🔥 Hábitos</h3>
       ${
         habitos.length === 0
           ? '<p class="mensaje-vacio">Todavía no hay hábitos: aparecen cuando cumplís una tarea de mantenimiento (una tarea que se repite).</p>'
@@ -126,7 +127,7 @@ export function renderVistaHabitos(contenedor) {
     </section>
 
     <section>
-      <h3>Actividad por categoría</h3>
+      <h3>🗂️ Actividad por categoría</h3>
       ${
         categorias.length === 0
           ? '<p class="mensaje-vacio">Todavía no hay tareas cumplidas con categoría para mostrar.</p>'

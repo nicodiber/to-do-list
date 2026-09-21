@@ -34,7 +34,7 @@ import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.58.0';
+const VERSION = 'v0.59.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -49,19 +49,19 @@ const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 
 // El orden es el de las pestañas: primero las de mirar el trabajo (por tiempo), después las de estructura.
 const VISTAS = {
-  hoy: { etiqueta: 'Hoy', render: renderVistaHoy },
-  agenda: { etiqueta: 'Agenda', render: renderVistaAgendaConSelector },
-  semana: { etiqueta: 'Semana', render: renderVistaSemana },
-  gantt: { etiqueta: 'Gantt', render: renderVistaGantt },
-  tabla: { etiqueta: 'Tabla', render: renderVistaTabla },
-  estadisticas: { etiqueta: 'Estadísticas', render: renderVistaEstadisticas },
-  categorias: { etiqueta: 'Categorías', render: renderVistaCategorias },
-  ubicaciones: { etiqueta: 'Ubicaciones', render: renderVistaUbicaciones },
-  metas: { etiqueta: 'Metas', render: renderVistaMetas },
-  tareas: { etiqueta: 'Tareas', render: renderVistaTareas },
-  mejoras: { etiqueta: 'Mejoras', render: renderVistaMejoras },
-  personas: { etiqueta: 'Personas', render: renderVistaPersonas },
-  configuraciones: { etiqueta: 'Configuraciones', render: renderVistaConfiguraciones },
+  hoy: { etiqueta: '📌 Hoy', render: renderVistaHoy },
+  agenda: { etiqueta: '🗓️ Agenda', render: renderVistaAgendaConSelector },
+  semana: { etiqueta: '📆 Semana', render: renderVistaSemana },
+  gantt: { etiqueta: '📊 Gantt', render: renderVistaGantt },
+  tabla: { etiqueta: '🧾 Tabla', render: renderVistaTabla },
+  estadisticas: { etiqueta: '📈 Estadísticas', render: renderVistaEstadisticas },
+  categorias: { etiqueta: '🗂️ Categorías', render: renderVistaCategorias },
+  ubicaciones: { etiqueta: '📍 Ubicaciones', render: renderVistaUbicaciones },
+  metas: { etiqueta: '🏁 Metas', render: renderVistaMetas },
+  tareas: { etiqueta: '✅ Tareas', render: renderVistaTareas },
+  mejoras: { etiqueta: '💡 Mejoras', render: renderVistaMejoras },
+  personas: { etiqueta: '👥 Personas', render: renderVistaPersonas },
+  configuraciones: { etiqueta: '⚙️ Configuraciones', render: renderVistaConfiguraciones },
 };
 
 // Nombres viejos de vistas (por enlaces o marcadores guardados) que siguen llevando a la vista actual.
@@ -153,13 +153,13 @@ function actualizarCabeceraSync() {
     temporizadorRecienConectado = setTimeout(limpiarRecienConectado, 6000);
   }
   if (s.cambiosRemotosDisponibles) {
-    banners.push('<p>🔄 Hay cambios de otro dispositivo. <button type="button" data-accion-sync="actualizar">Actualizar</button></p>');
+    banners.push('<p>🔄 Hay cambios de otro dispositivo. <button type="button" data-accion-sync="actualizar">🔄 Actualizar</button></p>');
   }
   if (s.datosViejosDisponibles && s.datosListos) {
     banners.push(
       `<p>📦 Encontré datos de una versión anterior guardados en este navegador. Antes se guardaban acá; ahora todo vive en Drive.
-      <button type="button" data-accion-sync="mezclar-viejos">Mezclarlos con Drive</button>
-      <button type="button" data-accion-sync="descartar-viejos">Descartarlos</button></p>`
+      <button type="button" data-accion-sync="mezclar-viejos">🔀 Mezclarlos con Drive</button>
+      <button type="button" data-accion-sync="descartar-viejos">🗑️ Descartarlos</button></p>`
     );
   }
   if (s.relojDesfasado) {
@@ -174,7 +174,7 @@ function actualizarCabeceraSync() {
   }
   if (s.avisos.length > 0) {
     banners.push(
-      `<p>⚠️ Tenés ${s.avisos.length} aviso${s.avisos.length === 1 ? '' : 's'} de sincronización. <button type="button" data-accion-sync="ver-avisos">Ver</button></p>`
+      `<p>⚠️ Tenés ${s.avisos.length} aviso${s.avisos.length === 1 ? '' : 's'} de sincronización. <button type="button" data-accion-sync="ver-avisos">👁️ Ver</button></p>`
     );
   }
   BANNER_SYNC.innerHTML = banners.join('');
@@ -203,13 +203,13 @@ function renderPanelAvisos(avisos) {
               ? `<ul>${aviso.camposDescartados.map((c) => `<li>Se descartó <code>${escaparTexto(c.campo)}</code>: ${escaparTexto(c.valorDescartado)}</li>`).join('')}</ul>`
               : ''
           }
-          <button type="button" data-descartar-aviso="${escaparTexto(aviso.id)}">Descartar</button>
+          <button type="button" data-descartar-aviso="${escaparTexto(aviso.id)}">🗑️ Descartar</button>
         </li>`
         )
         .join('')}
     </ul>
-    <button type="button" data-accion-sync="descartar-todos">Descartar todos</button>
-    <button type="button" data-accion-sync="cerrar-avisos">Cerrar</button>
+    <button type="button" data-accion-sync="descartar-todos">🗑️ Descartar todos</button>
+    <button type="button" data-accion-sync="cerrar-avisos">✖️ Cerrar</button>
   `;
 }
 
@@ -381,11 +381,14 @@ window.addEventListener('keydown', (evento) => {
 function temaEfectivo() {
   const guardado = localStorage.getItem(CLAVE_LOCALSTORAGE_TEMA);
   if (guardado === 'claro' || guardado === 'oscuro') return guardado;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+  // Sin elección guardada la app se abre en oscuro (es como se usa casi siempre), aunque el sistema esté en claro.
+  return 'oscuro';
 }
 
 function aplicarTema(tema) {
   document.documentElement.dataset.tema = tema;
+  const colorTema = document.querySelector('meta[name="theme-color"]');
+  if (colorTema) colorTema.content = tema === 'oscuro' ? '#1c1f27' : '#ffffff';
   BOTON_TEMA.textContent = tema === 'oscuro' ? '☀️' : '🌙';
   const etiqueta = tema === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
   BOTON_TEMA.title = etiqueta;

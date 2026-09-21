@@ -42,7 +42,7 @@ export function renderVistaSemana(contenedor) {
   const dias = todosLosDias.slice(primerDiaVisible, primerDiaVisible + visibles);
 
   contenedor.innerHTML = `
-    <h2>Semana</h2>
+    <h2>📆 Semana</h2>
     <p class="ayuda">Tareas fijas (con horario agendado) y proyección de las pendientes según su fecha sugerida o límite. Hacé clic en una tarea para editarla.</p>
     ${
       visibles < 7

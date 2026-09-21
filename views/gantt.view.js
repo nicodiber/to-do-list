@@ -53,11 +53,11 @@ export function renderVistaGantt(contenedor) {
   const agruparPor = leerPref('agrupar', AGRUPACIONES, 'categoria');
 
   contenedor.innerHTML = `
-    <h2>Gantt</h2>
+    <h2>📊 Gantt</h2>
     <div class="controles-gantt">
       <div class="selector-rango" role="group" aria-label="Modo">
-        <button type="button" data-modo="plan" class="${modo === 'plan' ? 'activo' : ''}" title="Cada tarea en su día sugerido">Plan</button>
-        <button type="button" data-modo="ventana" class="${modo === 'ventana' ? 'activo' : ''}" title="El margen (holgura) entre habilitada y límite">Ventana</button>
+        <button type="button" data-modo="plan" class="${modo === 'plan' ? 'activo' : ''}" title="Cada tarea en su día sugerido">📅 Plan</button>
+        <button type="button" data-modo="ventana" class="${modo === 'ventana' ? 'activo' : ''}" title="El margen (holgura) entre habilitada y límite">↔️ Ventana</button>
       </div>
       <div class="selector-rango" role="group" aria-label="Escala">
         ${SEMANAS.map((n) => `<button type="button" data-semanas="${n}" class="${n === semanas ? 'activo' : ''}" title="Ver ${n} semanas a la vez">${n} sem.</button>`).join('')}
@@ -65,10 +65,10 @@ export function renderVistaGantt(contenedor) {
       </div>
     </div>
     <div class="filtros filtros-gantt">
-      <label>Agrupar por
+      <label>🧩 Agrupar por
         <select id="gantt-agrupar">${AGRUPACIONES.map((a) => `<option value="${a}" ${a === agruparPor ? 'selected' : ''}>${ETIQUETAS_AGRUPACION[a]}</option>`).join('')}</select>
       </label>
-      <label>Categoría
+      <label>🗂️ Categoría
         <select id="gantt-categoria">
           <option value="">Todas</option>
           ${arbolCategorias(estado.categorias)
@@ -76,16 +76,16 @@ export function renderVistaGantt(contenedor) {
             .join('')}
         </select>
       </label>
-      <label>Meta
+      <label>🏁 Meta
         <select id="gantt-meta">
           <option value="">Todas</option>
           ${estado.metas.map((m) => `<option value="${m.meta_id}" ${filtros.meta === m.meta_id ? 'selected' : ''}>${escaparHtml(m.meta_nombre)}</option>`).join('')}
         </select>
       </label>
-      <label>Estado
+      <label>🚦 Estado
         <select id="gantt-estado">${Object.entries(ETIQUETAS_ESTADO).map(([clave, texto]) => `<option value="${clave}" ${filtros.estado === clave ? 'selected' : ''}>${texto}</option>`).join('')}</select>
       </label>
-      <label>Buscar
+      <label>🔎 Buscar
         <input type="search" id="gantt-texto" placeholder="Nombre de la tarea" value="${escaparHtml(filtros.texto)}" />
       </label>
     </div>

@@ -6,8 +6,8 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## Principios transversales
 
-- ✅ **Atajos de teclado** en casi todo lo que se pueda, para que un usuario experto maneje STDL sin mouse (hoy solo existe "N").
-- ✅ **Emojis representativos** complementando todos los textos de la interfaz, de forma consistente.
+- ✅ **Atajos de teclado** en casi todo lo que se pueda, para que un usuario experto maneje STDL sin mouse (hoy solo existe "N"). *(Pendiente para la 8b, v0.60.0: N, Ctrl+Enter, G + letra, F y ? con ventana de ayuda; ver más abajo.)*
+- ✅ **Emojis representativos** complementando todos los textos de la interfaz, de forma consistente. *(Implementado en v0.59.0: en pestañas, títulos, botones y títulos de campos, escritos directo en cada texto —sin diccionario central— para ir quitando los que sobren con el uso.)*
 - ✅ **Los datos de tareas nunca dependen solo de `localStorage`.** `localStorage` queda solo para preferencias (tema, ubicación actual). *(Implementado en v0.51.0.)*
 - ✅ **La UI nunca dice "guardado" hasta que sea cierto** (confirmado en el destino real). *(Implementado en v0.51.0.)*
 - ✅ **Hora local y en 24 h**: la app toma como referencia la zona horaria del dispositivo (en Argentina, UTC-3 sin horario de verano) y muestra las horas en 24 h en todas las pantallas; el día de un instante nunca se saca cortando el texto UTC. *(Implementado en v0.56.1.)* Feriados nacionales y días no laborables: pendiente (ver `BACKLOG.md`).
@@ -153,7 +153,9 @@ Orden aprobado, pensado para tener listo **antes de cargar datos reales** lo que
 5. ✅ **ABMs** (v0.54.0, **hecha antes que la 4** a pedido del usuario, para pulir la creación de categorías, ubicaciones y metas antes de cargar datos reales): editar categorías, ubicaciones, metas y personas, crear con ventana modal (también desde el desplegable de la tarea), vista Configuraciones.
 6. ✅ **Hábitos, Progreso por categoría y Mejoras** (v0.57.0): solapas de Estadísticas (Resumen · Progreso por categoría · Hábitos con mapa de calor en matriz) y la vista Mejoras; el modelo suma el intervalo y los días hábiles a cada cumplimiento y `mejora_aplicada`.
 7. ✅ **Gantt** (v0.58.0): todas las tareas, con filtros, modo Plan / Ventana, posición estimada para las tareas sin fecha, cadenas y anillos con flechas, escala de 2 · 4 · 12 semanas y arrastre.
-8. **Rediseño visual, emojis y atajos** (transversal).
+8. **Rediseño visual, emojis y atajos** (transversal), en dos versiones:
+   - ✅ **8a · Sistema visual y formulario** (v0.59.0): tema **oscuro por defecto** (el botón de tema sigue eligiendo y se recuerda); **un color por tipo de acción** en los botones (confirmar/crear azul · cumplir verde · posponer ámbar · eliminar rojo · integración externa violeta · neutral gris; un solo botón relleno por contexto y el resto con fondo tenue y borde de su color; contraste de texto ≥ 4,5 : 1 en oscuro y en claro); **emojis en todo**; **interruptores Sí/No** en lugar de casillas para lo que activa algo (requiere buen tiempo, mantenimiento, agrupar por categoría) y **fichas L M X J V S D** para los días hábiles; **formulario de tarea en cinco secciones con título** (📝 Qué · 📅 Cuándo · 📍 Dónde y costo · 🔗 Enlaces · 🔁 Repetición), todos los campos con título y más grandes; botón **"🧹 Limpiar campos"** (con confirmación) en el alta e **interruptor "✅ Completada"** en la edición (misma lógica de cumplir/reabrir de la vista Tareas); la frase "lo que no se mide no se mejora" como cita destacada en Hábitos.
+   - **8b · Atajos** (v0.60.0, pendiente): **N** (nueva tarea), **Ctrl+Enter** guarda o agrega desde cualquier ventana, **G** y una letra para ir a cada vista, **F** enfoca el buscador o filtro, **?** abre la ayuda de atajos (y un botón ⌨️). Se evitan las teclas que usan el navegador o Windows (Ctrl+N/T/W/S/P/F/G/H/J/K/L/O/R/U/D/E/B/A, Ctrl+1…9, Alt+←/→/Inicio/D, F1/F5/F6/F11/F12, Alt+Shift y Ctrl+Alt —AltGr en teclados latinoamericanos—).
 
 ## Post-v1.0
 

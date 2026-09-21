@@ -34,7 +34,7 @@ export function activarMayusculaInicial(campo) {
  * (CSS `order`) cambia cómo se muestran. `reiniciarFirma()` toma el estado actual del
  * formulario como "sin cambios" (por ejemplo después de vaciarlo para cargar otra tarea).
  */
-export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = 'Guardar cambios', botonesGuardar = null, conectar = () => {}, alGuardar, alCerrar = () => {} }) {
+export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '💾 Guardar cambios', botonesGuardar = null, conectar = () => {}, alGuardar, alCerrar = () => {} }) {
   const dialogo = document.createElement('dialog');
   dialogo.className = 'dialogo-tarea';
   dialogo.innerHTML = `
@@ -42,7 +42,7 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = 'Gua
     <form class="formulario-tarea formulario-modal">
       ${cuerpoHtml}
       <div class="acciones-modal">
-        <button type="button" data-accion="cancelar-dialogo">Cancelar</button>
+        <button type="button" data-accion="cancelar-dialogo">↩️ Cancelar</button>
       </div>
     </form>
   `;

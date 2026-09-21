@@ -225,10 +225,10 @@ export function renderVistaTabla(contenedor) {
   }
 
   contenedor.innerHTML = `
-    <h2>Tabla</h2>
+    <h2>🧾 Tabla</h2>
     <p class="ayuda">Todas tus tareas, en el orden real de prioridad de la app. Filtrá, buscá u ordená por columna para auditar o encontrar algo puntual. Hacé clic en una fila para editarla.</p>
     <div class="filtros">
-      <label>Categoría
+      <label>🗂️ Categoría
         <select id="filtro-categoria-todas">
           <option value="">Todas</option>
           ${arbolCategorias(estado.categorias)
@@ -239,7 +239,7 @@ export function renderVistaTabla(contenedor) {
             .join('')}
         </select>
       </label>
-      <label>Estado
+      <label>🚦 Estado
         <select id="filtro-estado-todas">
           <option value="">Todos</option>
           <option value="bloqueada" ${filtroEstado === 'bloqueada' ? 'selected' : ''}>Bloqueada</option>
@@ -247,7 +247,7 @@ export function renderVistaTabla(contenedor) {
           <option value="completada" ${filtroEstado === 'completada' ? 'selected' : ''}>Completada</option>
         </select>
       </label>
-      <label>Importancia
+      <label>❗ Importancia
         <select id="filtro-importancia-todas">
           <option value="">Todas</option>
           ${NIVELES_IMPORTANCIA.map(
@@ -255,10 +255,10 @@ export function renderVistaTabla(contenedor) {
           ).join('')}
         </select>
       </label>
-      <label>Buscar
+      <label>🔎 Buscar
         <input type="search" id="buscador-nombre-todas" placeholder="Nombre de la tarea..." value="${escaparHtml(textoBusqueda)}" />
       </label>
-      <button type="button" id="boton-columnas-tabla">Columnas</button>
+      <button type="button" id="boton-columnas-tabla">🧱 Columnas</button>
       <button type="button" id="boton-reset-orden-todas">↺ Prioridad</button>
       <button type="button" id="boton-versus-todas">⚔️ Versus</button>
     </div>
@@ -431,7 +431,7 @@ function crearPanelVersus(contenedorVista) {
       </div>
     </div>
     <div class="versus-acciones">
-      <button type="button" data-accion="omitir">Da igual / Omitir</button>
+      <button type="button" data-accion="omitir">🤷 Da igual / Omitir</button>
     </div>
   `;
 

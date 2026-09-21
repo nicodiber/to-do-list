@@ -9,7 +9,7 @@ function diasDesdeContacto(persona) {
 
 export function renderVistaPersonas(contenedor) {
   contenedor.innerHTML = `
-    <h2>Personas</h2>
+    <h2>👥 Personas</h2>
     <p class="ayuda">Hace cuánto no te reunís con cada persona, ordenado de mayor a menor tiempo — para no perder el contacto con quienes importan.</p>
     <div class="barra-acciones-vista"><button type="button" id="boton-nueva-persona" class="boton-primario">＋ Nueva persona</button></div>
     <div id="lista-personas" class="lista-categorias"></div>
@@ -38,8 +38,8 @@ function renderPersona(persona) {
     <div class="encabezado-categoria">
       <strong>${escaparHtml(persona.persona_nombre)}</strong>
       <span class="acciones-prioridad">
-        <button type="button" data-accion="editar-persona" title="Editar persona y último contacto">Editar</button>
-        <button type="button" data-accion="eliminar-persona" title="Eliminar persona">✕</button>
+        <button type="button" data-accion="editar-persona" title="Editar persona y último contacto">✏️ Editar</button>
+        <button type="button" data-accion="eliminar-persona" title="Eliminar persona">🗑️</button>
       </span>
     </div>
     <span class="etiquetas">
@@ -48,7 +48,7 @@ function renderPersona(persona) {
       </span>
       ${persona.persona_ultimo_contacto ? `<span class="etiqueta-fecha">Último: ${formatearFecha(persona.persona_ultimo_contacto)}</span>` : ''}
     </span>
-    <button type="button" data-accion="marcar-contacto" class="boton-primario">Marcar contacto hoy</button>
+    <button type="button" data-accion="marcar-contacto" class="boton-primario">🤝 Marcar contacto hoy</button>
   `;
 
   tarjeta.querySelector('[data-accion="editar-persona"]').addEventListener('click', () => abrirDialogoPersona({ id: persona.persona_id }));

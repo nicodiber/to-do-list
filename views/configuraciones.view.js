@@ -6,16 +6,16 @@ const PALABRA_CONFIRMACION = 'BORRAR';
 export function renderVistaConfiguraciones(contenedor) {
   const franja = obtenerFranjaHoraria();
   contenedor.innerHTML = `
-    <h2>Configuraciones</h2>
+    <h2>⚙️ Configuraciones</h2>
 
     <section class="seccion-config">
-      <h3>Agenda y Calendar</h3>
+      <h3>🗓️ Agenda y Calendar</h3>
       <p class="ayuda">Al buscar «el próximo hueco libre» de una tarea (botón que aparece cuando se superpone con un evento de Calendar), solo se proponen horarios dentro de esta franja del día. Se guarda en este dispositivo.</p>
       <div class="acciones-config franja-horaria">
-        <label>Desde
+        <label>🌅 Desde
           <select id="franja-inicio">${HORAS_FRANJA.slice(0, -1).map((h) => `<option value="${h}" ${h === franja.inicio ? 'selected' : ''}>${h}</option>`).join('')}</select>
         </label>
-        <label>Hasta
+        <label>🌇 Hasta
           <select id="franja-fin">${HORAS_FRANJA.slice(1).map((h) => `<option value="${h}" ${h === franja.fin ? 'selected' : ''}>${h}</option>`).join('')}</select>
         </label>
       </div>
@@ -23,22 +23,22 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
 
     <section class="seccion-config">
-      <h3>Copia de seguridad</h3>
+      <h3>💾 Copia de seguridad</h3>
       <p class="ayuda">Tus datos viven en tu Google Drive. Exportar descarga una copia en un archivo JSON; importar reemplaza todo lo que hay por el contenido de un archivo (también en Drive).</p>
       <div class="acciones-config">
-        <button type="button" id="boton-exportar">Exportar JSON</button>
+        <button type="button" id="boton-exportar">⬇️ Exportar JSON</button>
         <label class="boton-archivo">
-          Importar JSON
+          ⬆️ Importar JSON
           <input type="file" id="input-importar" accept="application/json" hidden />
         </label>
       </div>
     </section>
 
     <section class="seccion-config seccion-peligro">
-      <h3>Borrar todos los datos</h3>
+      <h3>🗑️ Borrar todos los datos</h3>
       <p class="ayuda">Elimina <strong>todas</strong> tus tareas, categorías, ubicaciones, metas, personas, notas de mejora y registros de cumplimiento. También se borran en Google Drive y en tus otros dispositivos. Conviene exportar antes una copia.</p>
       <div class="acciones-config">
-        <button type="button" id="boton-borrar-todo" class="boton-peligro">Borrar todos los datos</button>
+        <button type="button" id="boton-borrar-todo" class="boton-peligro">🗑️ Borrar todos los datos</button>
       </div>
     </section>
   `;

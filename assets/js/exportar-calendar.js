@@ -44,8 +44,8 @@ export function construirUrlExportarGoogleCalendar(tarea) {
  */
 export function ofrecerExportarACalendar(tarea) {
   abrirDialogoFormulario({
-    titulo: 'Guardar en Google Calendar',
-    textoGuardar: 'Abrir en Calendar',
+    titulo: '📅 Guardar en Google Calendar',
+    textoGuardar: '📅 Abrir en Calendar',
     cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Abrir «${escaparHtml(tarea.tarea_nombre)}» en Google Calendar para guardarla como registro histórico? Se abre una pestaña con el evento ya cargado y lo guardás vos.</p>`,
     alGuardar: () => {
       const ventana = window.open(construirUrlExportarGoogleCalendar(tarea), '_blank');
