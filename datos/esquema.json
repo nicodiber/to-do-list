@@ -47,6 +47,7 @@
         "persona_id": { "type": "string" },
         "persona_nombre": { "type": "string", "minLength": 1 },
         "persona_ultimo_contacto": { "type": "string" },
+        "persona_proximo_contacto": { "type": "string" },
         "persona_creada_en": { "type": "string" },
         "persona_modificado_en": { "type": "string" }
       }
@@ -87,6 +88,7 @@
         "tarea_requiere_clima_bueno": { "type": "boolean" },
         "tarea_costo_estimado": { "type": "number", "minimum": 0 },
         "meta_id": { "type": ["string", "null"] },
+        "persona_id": { "type": ["string", "null"] },
         "tarea_prioridad_manual": { "type": ["number", "null"] },
         "tarea_disfrute": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
         "tarea_exportada_calendar": { "type": "boolean" },

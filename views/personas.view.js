@@ -47,6 +47,7 @@ function renderPersona(persona) {
         ${dias === Infinity ? 'Todavía no registraste un contacto' : `Hace ${dias} día(s)`}
       </span>
       ${persona.persona_ultimo_contacto ? `<span class="etiqueta-fecha">Último: ${formatearFecha(persona.persona_ultimo_contacto)}</span>` : ''}
+      ${persona.persona_proximo_contacto ? `<span class="etiqueta-fecha">📅 Próximo: ${formatearFecha(persona.persona_proximo_contacto)}</span>` : ''}
     </span>
     <button title="Anotar que hoy tuviste contacto con esta persona" type="button" data-accion="marcar-contacto" class="boton-primario">🤝 Marcar contacto hoy</button>
   `;
@@ -59,7 +60,10 @@ function renderPersona(persona) {
   });
 
   tarjeta.querySelector('[data-accion="eliminar-persona"]').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar a "${persona.persona_nombre}"?`)) return;
+    if (!confirm(`¿Eliminar a "${persona.persona_nombre}"? Las tareas asociadas quedan sin persona.`)) return;
+    estado.tareas.forEach((tarea) => {
+      if (tarea.persona_id === persona.persona_id) tarea.persona_id = null;
+    });
     estado.personas = estado.personas.filter((p) => p.persona_id !== persona.persona_id);
     await persistirYNotificar();
   });

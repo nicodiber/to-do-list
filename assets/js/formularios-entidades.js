@@ -5,9 +5,11 @@
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { crearCategoria, crearUbicacion, crearMeta, crearPersona, PLAZOS_META, ETIQUETAS_PLAZO } from './modelos.js';
-import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera } from './utilidades.js';
+import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera, caminoCategoria, formatearFechaOFechaHora } from './utilidades.js';
 import { abrirDialogoFormulario, activarMayusculaInicial } from './dialogo-formulario.js';
 import { crearSelectorColor } from './selector-color.js';
+import { compararPorPrioridad, reprogramarTareaConCascada } from './tareas-logica.js';
+import { abrirEdicionTarea } from './modal-tarea.js';
 
 const COLOR_POR_DEFECTO = '#4f7cff';
 
@@ -253,19 +255,49 @@ export function abrirDialogoMeta({ id = null, alCrear = null } = {}) {
 // Persona
 // ---------------------------------------------------------------------------
 
+/** Las tareas pendientes asociadas a una persona, en el orden real de prioridad de la app. */
+function tareasPendientesDe(personaId) {
+  return estado.tareas.filter((t) => t.persona_id === personaId && t.tarea_estado !== 'completada').sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+}
+
+function htmlTareaAsociada(tarea) {
+  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
+  return `
+    <li class="item-tarea-persona" data-tarea="${tarea.tarea_id}">
+      <span>${tarea.tarea_estado === 'bloqueada' ? '⛓️' : '⏳'} ${escaparHtml(tarea.tarea_nombre)}${categoria ? ` · ${escaparHtml(caminoCategoria(categoria, estado.categorias))}` : ''}${tarea.tarea_fecha_sugerida ? ` · ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}` : ''}</span>
+      <button type="button" data-accion="editar-tarea-persona" title="Editar esta tarea">✏️</button>
+    </li>`;
+}
+
 export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
   const persona = id ? estado.personas.find((p) => p.persona_id === id) : null;
   if (id && !persona) return;
+  const tareasAsociadas = persona ? tareasPendientesDe(persona.persona_id) : [];
+  const proximoContactoAnterior = persona ? persona.persona_proximo_contacto || '' : '';
 
   abrirDialogoFormulario({
     titulo: persona ? '✏️ Editar persona' : '➕ Nueva persona',
     textoGuardar: persona ? '💾 Guardar cambios' : '➕ Agregar persona',
-    conectar: (formulario) => activarMayusculaInicial(formulario.persona_nombre),
+    conectar: (formulario) => {
+      activarMayusculaInicial(formulario.persona_nombre);
+      formulario.querySelectorAll('[data-accion="editar-tarea-persona"]').forEach((boton) => {
+        boton.addEventListener('click', () => abrirEdicionTarea(boton.closest('[data-tarea]').dataset.tarea));
+      });
+    },
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
         <input type="text" name="persona_nombre" value="${escaparHtml(persona ? persona.persona_nombre : '')}" placeholder="Nombre" required />
       </div>
       <label>Último contacto <input type="date" name="persona_ultimo_contacto" value="${persona ? persona.persona_ultimo_contacto || '' : ''}" /></label>
+      <label title="Al guardar, reprograma la fecha sugerida de todas las tareas pendientes asociadas a esta fecha">📅 Próximo contacto <input type="date" name="persona_proximo_contacto" value="${proximoContactoAnterior}" /></label>
+      ${
+        persona
+          ? `<div class="ancho-completo">
+              <p class="campo-titulo">Tareas pendientes asociadas${tareasAsociadas.length ? ` (${tareasAsociadas.length})` : ''}</p>
+              ${tareasAsociadas.length ? `<ul class="lista-tareas-persona">${tareasAsociadas.map(htmlTareaAsociada).join('')}</ul>` : '<p class="ayuda">Ninguna todavía. Se asocian desde el campo "👤 Persona" del formulario de tarea.</p>'}
+            </div>`
+          : ''
+      }
     `,
     alGuardar: async (formulario) => {
       const nombre = capitalizarPrimera(formulario.persona_nombre.value.trim());
@@ -274,19 +306,31 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
         return false;
       }
       const ultimoContacto = formulario.persona_ultimo_contacto.value;
+      const proximoContacto = formulario.persona_proximo_contacto.value;
+      let actual;
       if (id) {
-        const actual = estado.personas.find((p) => p.persona_id === id);
+        actual = estado.personas.find((p) => p.persona_id === id);
         if (!actual) {
           noExiste('Esta persona');
           return true;
         }
-        Object.assign(actual, { persona_nombre: nombre, persona_ultimo_contacto: ultimoContacto });
+        Object.assign(actual, { persona_nombre: nombre, persona_ultimo_contacto: ultimoContacto, persona_proximo_contacto: proximoContacto });
       } else {
-        const nueva = crearPersona({ persona_nombre: nombre, persona_ultimo_contacto: ultimoContacto });
-        estado.personas.push(nueva);
-        if (alCrear) alCrear(nueva);
+        actual = crearPersona({ persona_nombre: nombre, persona_ultimo_contacto: ultimoContacto, persona_proximo_contacto: proximoContacto });
+        estado.personas.push(actual);
+        if (alCrear) alCrear(actual);
+      }
+      let reprogramadas = 0;
+      if (proximoContacto && proximoContacto !== proximoContactoAnterior) {
+        tareasPendientesDe(actual.persona_id).forEach((tarea) => {
+          reprogramarTareaConCascada(tarea, proximoContacto, estado.tareas);
+          reprogramadas += 1;
+        });
       }
       await persistirYNotificar();
+      if (reprogramadas > 0) {
+        alert(`Se reprogramó la fecha sugerida de ${reprogramadas} tarea${reprogramadas === 1 ? '' : 's'} pendiente${reprogramadas === 1 ? '' : 's'} al ${formatearFechaOFechaHora(proximoContacto)}.`);
+      }
       return true;
     },
   });

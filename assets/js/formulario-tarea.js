@@ -13,7 +13,7 @@ import {
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
-import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta } from './formularios-entidades.js';
+import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDialogoPersona } from './formularios-entidades.js';
 
 import { activarMayusculaInicial } from './dialogo-formulario.js';
 
@@ -64,6 +64,14 @@ export function htmlOpcionesMeta(seleccionada = '') {
     '<option value="">Sin meta</option>',
     ...estado.metas.map((m) => `<option value="${m.meta_id}" ${m.meta_id === seleccionada ? 'selected' : ''}>${escaparHtml(m.meta_nombre)}</option>`),
     `<option value="${CREAR_NUEVA}">＋ Crear nueva meta…</option>`,
+  ].join('');
+}
+
+export function htmlOpcionesPersona(seleccionada = '') {
+  return [
+    '<option value="">Sin persona</option>',
+    ...estado.personas.map((p) => `<option value="${p.persona_id}" ${p.persona_id === seleccionada ? 'selected' : ''}>${escaparHtml(p.persona_nombre)}</option>`),
+    `<option value="${CREAR_NUEVA}">＋ Crear nueva persona…</option>`,
   ].join('');
 }
 
@@ -227,6 +235,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       <label class="campo" title="Qué tan importante es: cuenta para ordenar la lista"><span class="campo-titulo">❗ Importancia</span><select name="tarea_importancia">${htmlOpcionesImportancia(t.tarea_importancia || '')}</select></label>
       <label class="campo" title="Cuánto disfrutás hacerla (1 a 5)"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
       <label class="campo" title="La meta a la que aporta esta tarea"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
+      <label class="campo" title="Con quién la hacés, si depende de otra persona"><span class="campo-titulo">👤 Persona</span><select name="persona_id">${htmlOpcionesPersona(t.persona_id || '')}</select></label>
     </fieldset>
 
     <fieldset class="seccion-form">
@@ -332,6 +341,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
     ['categoria_id', htmlOpcionesCategoria, abrirDialogoCategoria],
     ['ubicacion_id', htmlOpcionesUbicacion, abrirDialogoUbicacion],
     ['meta_id', htmlOpcionesMeta, abrirDialogoMeta],
+    ['persona_id', htmlOpcionesPersona, abrirDialogoPersona],
   ].forEach(([nombre, htmlOpciones, abrirDialogo]) => {
     const select = formulario[nombre];
     select.dataset.previo = select.value;
@@ -347,7 +357,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
       select.value = select.dataset.previo || '';
       abrirDialogo({
         alCrear: (nueva) => {
-          const id = nueva.categoria_id || nueva.ubicacion_id || nueva.meta_id;
+          const id = nueva.categoria_id || nueva.ubicacion_id || nueva.meta_id || nueva.persona_id;
           // Se selecciona por propiedad (no por el atributo `selected`): así cuenta como un cambio del usuario y el
           // borrador del alta lo conserva cuando la vista se redibuja al guardar la entidad.
           select.innerHTML = htmlOpciones('');
@@ -460,6 +470,7 @@ export function leerFormularioTarea(formulario) {
       tarea_descripcion: String(datos.get('tarea_descripcion') || '').trim(),
       ubicacion_id: valorSeleccion(datos.get('ubicacion_id')),
       meta_id: valorSeleccion(datos.get('meta_id')),
+      persona_id: valorSeleccion(datos.get('persona_id')),
       tarea_requiere_clima_bueno: datos.get('tarea_requiere_clima_bueno') === 'on',
       tarea_mantenimiento: esMantenimiento,
       tarea_mantenimiento_intervalo: esMantenimiento
