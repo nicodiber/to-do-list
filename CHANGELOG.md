@@ -2,6 +2,20 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.66.0] - 2026-09-22
+
+Tercera ronda con datos reales: asociación Tarea↔Persona (ver `CHANGELOG.md` v0.64.0 y v0.65.0).
+
+### Agregado
+
+- **Campo "👤 Persona"** en el formulario de tarea (una sola por tarea, junto a "🏁 Meta"), con "＋ Crear nueva persona…" igual que categoría/ubicación/meta. Se muestra en la tarjeta de Tareas.
+- **Diálogo de Persona ampliado** (reemplaza al anterior): suma **"📅 Próximo contacto"** y, al editar una persona existente, la lista de sus **tareas pendientes asociadas** (con un ✏️ para editar cada una sin salir del diálogo). Al guardar con un "Próximo contacto" nuevo, se reprograma la fecha sugerida de todas esas tareas pendientes a esa fecha (en cascada sobre lo que dependa de ellas) y se avisa cuántas se movieron.
+- **Filtro por persona y columna opcional "Persona"** en Tabla.
+
+### Documentación
+
+- `DICCIONARIO_DE_DATOS.md`, `LOGICA_FUNCIONES.md`, `CASOS_DE_USO.md` (C3), `BACKLOG.md`.
+
 ## [v0.65.0] - 2026-09-22
 
 Segunda ronda con datos reales: rediseño de la vista Semana (ver `CHANGELOG.md` v0.64.0). La v0.66.0 sigue con la asociación Tarea↔Persona.

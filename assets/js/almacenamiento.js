@@ -195,12 +195,13 @@ function migrarMeta(m) {
 function migrarPersona(p) {
   if ('id' in p) {
     const { id, nombre, ultimo_contacto, creada_en } = p;
-    return { persona_id: id, persona_nombre: nombre, persona_ultimo_contacto: ultimo_contacto, persona_creada_en: creada_en };
+    return { persona_id: id, persona_nombre: nombre, persona_ultimo_contacto: ultimo_contacto, persona_proximo_contacto: '', persona_creada_en: creada_en };
   }
   // `persona_notas` se eliminó del modelo: si el objeto la trae de una
   // versión anterior, se descarta acá (destructuring sin volver a usarla).
   const { persona_notas, ...resto } = p;
-  return resto;
+  // Campo de la v0.66.0: ausente en datos anteriores.
+  return { ...resto, persona_proximo_contacto: resto.persona_proximo_contacto || '' };
 }
 
 function migrarTarea(t) {
@@ -220,6 +221,8 @@ function migrarTarea(t) {
       tarea_repetir_hasta: resto.tarea_repetir_hasta || '',
       tarea_repetir_hasta_tarea: resto.tarea_repetir_hasta_tarea || null,
       tarea_origen: resto.tarea_origen || null,
+      // Campo de la v0.66.0: ausente en datos anteriores.
+      persona_id: resto.persona_id || null,
     };
   }
 
@@ -271,6 +274,7 @@ function migrarTarea(t) {
     tarea_repetir_hasta: '',
     tarea_repetir_hasta_tarea: null,
     tarea_origen: null,
+    persona_id: null,
   };
 }
 

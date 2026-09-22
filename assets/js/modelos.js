@@ -48,11 +48,12 @@ export function crearUbicacion({ ubicacion_nombre, ubicacion_latitud, ubicacion_
   return { ubicacion_id: generarId(), ubicacion_nombre: capitalizarPrimera(ubicacion_nombre), ubicacion_latitud, ubicacion_longitud };
 }
 
-export function crearPersona({ persona_nombre, persona_ultimo_contacto = '' }) {
+export function crearPersona({ persona_nombre, persona_ultimo_contacto = '', persona_proximo_contacto = '' }) {
   return {
     persona_id: generarId(),
     persona_nombre: capitalizarPrimera(persona_nombre),
     persona_ultimo_contacto,
+    persona_proximo_contacto,
     persona_creada_en: ahoraISO(),
   };
 }
@@ -102,6 +103,7 @@ export function crearTarea({
   tarea_requiere_clima_bueno = false,
   tarea_costo_estimado = 0,
   meta_id = null,
+  persona_id = null,
   tarea_prioridad_manual = null,
   tarea_disfrute = null,
   tarea_exportada_calendar = false,
@@ -135,6 +137,7 @@ export function crearTarea({
     tarea_requiere_clima_bueno,
     tarea_costo_estimado,
     meta_id: meta_id || null,
+    persona_id: persona_id || null,
     tarea_prioridad_manual,
     tarea_disfrute,
     tarea_exportada_calendar,

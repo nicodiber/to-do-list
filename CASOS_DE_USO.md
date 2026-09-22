@@ -286,19 +286,20 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Resultado**: Ubicacion nueva, editada o eliminada.
 - **Fricciones**: coordenadas 100% manuales, sin buscador de dirección ni GPS (decisión del usuario por ahora): hay que conseguirlas afuera.
 
-### C3. Gestionar personas
+### C3. Gestionar personas y sus tareas asociadas
 
-- **Objetivo**: no perder de vista hace cuánto no se ve/habla con alguien importante.
-- **Pasos**: Personas → alta (nombre, último contacto) → lista ordenada de mayor a menor tiempo sin contacto → "Editar" permite cambiar el nombre y la fecha del último contacto (además de "Marcar contacto hoy", que fija la de hoy) → eliminar.
+- **Objetivo**: no perder de vista hace cuánto no se ve/habla con alguien importante, y llegar al próximo encuentro con todo lo pendiente que depende de esa persona ya reprogramado.
+- **Pasos**: Personas → alta (nombre, último contacto) → lista ordenada de mayor a menor tiempo sin contacto → "Editar" abre el detalle: nombre, último contacto, **próximo contacto** y, si tiene, sus **tareas pendientes asociadas** (con un ✏️ para editar cada una) → eliminar. Una tarea se asocia desde su propio formulario, campo "👤 Persona" (con "＋ Crear nueva persona…", igual que categoría/ubicación/meta).
 - **Flujo usuario/sistema**:
-  1. Usuario abre Personas, presiona "＋ Nueva persona", completa el nombre (y opcionalmente el último contacto) y presiona "Agregar persona".
-  2. Sistema crea la persona, la guarda y ordena la lista de mayor a menor tiempo sin contacto (sin registro va primero).
-  3. Usuario presiona "Marcar contacto hoy" en una persona.
-  4. Sistema fija `persona_ultimo_contacto` en la fecha de hoy, guarda y reordena.
-  5. Usuario (alternativa) presiona "Editar", cambia el nombre o el último contacto y guarda; o presiona ✕ y confirma y el sistema elimina la persona.
-- **Vistas/funciones**: `views/personas.view.js`, `assets/js/formularios-entidades.js` (`abrirDialogoPersona`).
-- **Resultado**: Persona nueva, actualizada o eliminada.
-- **Fricciones**: sin relación con Tareas — no se puede crear una tarea del tipo "llamar a X" vinculada a una persona; es una lista aislada del resto del sistema.
+  1. Usuario, al cargar o editar una tarea, elige una persona en "👤 Persona" (o crea una nueva sin salir del formulario); sistema guarda `tarea_persona_id` en la tarea.
+  2. Usuario abre Personas y presiona "Editar" sobre una persona; sistema arma la lista de sus tareas con `persona_id` igual a esta persona y `tarea_estado !== 'completada'`, ordenada por prioridad.
+  3. Usuario presiona ✏️ en una de esas tareas; sistema abre su edición encima, sin cerrar el diálogo de la persona.
+  4. Usuario completa "Próximo contacto" (la fecha del próximo encuentro) y guarda.
+  5. Sistema reprograma la `tarea_fecha_sugerida` de cada tarea pendiente asociada a esa fecha (en cascada sobre lo que dependa de ellas) y avisa cuántas se movieron. Guardar sin cambiar "Próximo contacto" no reprograma nada.
+  6. Usuario (alternativa) presiona "Marcar contacto hoy" en la tarjeta de la lista (fija `persona_ultimo_contacto` a hoy); o elimina la persona (las tareas asociadas quedan con `persona_id: null`).
+- **Vistas/funciones**: `views/personas.view.js`, `views/tareas.view.js` (etiqueta 👤), `views/tabla.view.js` (filtro y columna "Persona"), `assets/js/formulario-tarea.js` (`htmlOpcionesPersona`), `assets/js/formularios-entidades.js` (`abrirDialogoPersona`, `tareasPendientesDe`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`).
+- **Resultado**: Persona nueva, actualizada (posible reprogramación en cascada de sus tareas pendientes) o eliminada.
+- **Fricciones**: una tarea admite una sola persona asociada; sin un aviso previo a "cuándo es el próximo contacto" (hay que entrar a la persona a mano para verlo o cambiarlo).
 
 ---
 

@@ -276,7 +276,7 @@ Vista "Semana": grilla horaria (07:00-23:00) con tareas fijas y proyectadas, con
 La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 
 - **`renderVistaTareas(contenedor)`**: botón "＋ Nueva tarea" (abre `abrirAltaTarea`), los filtros y la lista. Orden: pendientes → bloqueadas (por prioridad dentro de cada grupo) y, al final, las completadas plegadas en un `<details class="completadas-plegadas">` "Completadas (N)" que recuerda si estaba abierto (y se muestra abierto con el filtro Estado = Completada).
-- **`renderTarea(tarea)`**: tarjeta con el borde izquierdo del color de la categoría (`--color-categoria`), etiqueta "⚠️ Vencida" y fondo rojizo si está vencida, los badges, el checklist con casillas que se tildan ahí mismo (`checklist-tarjeta.js`, persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
+- **`renderTarea(tarea)`**: tarjeta con el borde izquierdo del color de la categoría (`--color-categoria`), etiqueta "⚠️ Vencida" y fondo rojizo si está vencida, los badges (incluida la persona asociada, 👤, desde la v0.66.0), el checklist con casillas que se tildan ahí mismo (`checklist-tarjeta.js`, persiste al tildar) y las acciones (cambiar estado — solo `pendiente`/`completada` —, posponer, editar, duplicar, crearle previa/posterior, eliminar). "Editar" abre `abrirEdicionTarea`; completar usa `cumplirTarea`, volver a pendiente `reabrirTarea` y eliminar `eliminarTarea`.
 - **`crearPanelIAPrioridades()`**: UI del flujo de copiar/pegar con IA para reestructurar `tarea_importancia` de las tareas accionables.
 
 ## `assets/js/formulario-tarea.js`
@@ -285,7 +285,8 @@ Formulario de tarea compartido por el alta, la ventana de edición y "Completar 
 
 - **`htmlFormularioTarea(tarea | null, { modo, botonesNombre, botonesPie })`**: nombre arriba (con autocompletado por nombre solo en el alta) y debajo todos los campos: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, "depende de (tarea previa)" y "bloquea a (tarea próxima)" (`opcionesPrevia`/`opcionesProxima`), clima, mantenimiento con intervalo, desencadenante y checklist editable, y días hábiles. También exporta los helpers de opciones (`htmlOpcionesCategoria`, etc.) y `tareasUnicasPorNombre`.
 - **`regenerarOpcionesEnlace(formulario, referencia)`** (v0.64.0): reconstruye las opciones de "Depende de" y "Bloquea a" (por ejemplo tras "Agregar y cargar otra"). `nombreConCategoria(tarea)` muestra "Categoría · Tarea" (antes, al revés).
-- Los desplegables de categoría, ubicación y meta terminan con "＋ Crear nueva…" (`htmlOpcionesCategoria`/`htmlOpcionesUbicacion`/`htmlOpcionesMeta`): al elegirla se vuelve al valor anterior, se abre el diálogo de esa entidad y, al guardarla, el desplegable se reconstruye con la nueva seleccionada por propiedad (así el borrador del alta la conserva).
+- **`htmlOpcionesPersona(seleccionada)`** (v0.66.0): mismo patrón que `htmlOpcionesMeta`, con "＋ Crear nueva persona…"; el campo "👤 Persona" vive en 📝 Qué, junto a 🏁 Meta.
+- Los desplegables de categoría, ubicación, meta y persona terminan con "＋ Crear nueva…" (`htmlOpcionesCategoria`/`htmlOpcionesUbicacion`/`htmlOpcionesMeta`/`htmlOpcionesPersona`): al elegirla se vuelve al valor anterior, se abre el diálogo de esa entidad y, al guardarla, el desplegable se reconstruye con la nueva seleccionada por propiedad (así el borrador del alta la conserva).
 - **`ofrecerMarcarCadenaMantenimiento(tarea, lista)`**: si la tarea tiene desencadenante y su cadena tiene tareas que no son de mantenimiento (`tareasDeLaCadenaNoRepetibles`), avisa cuáles y ofrece marcarlas con el mismo intervalo; nada cambia sin confirmar.
 - **`nombreConCategoria(tarea)`**: nombre de la tarea con su categoría ("Revisar · Casa"), para los desplegables y las tarjetas, porque dos tareas distintas pueden llamarse igual.
 - **`conectarFormularioTarea(formulario, { modo })`**: pone en mayúscula la primera letra del nombre mientras se escribe, muestra u oculta lo de mantenimiento, agrega/quita pasos del checklist (Enter en un paso agrega otro en vez de enviar) y, en el alta, precarga los demás campos cuando el nombre coincide exacto con una tarea existente, **sin pisar lo que el usuario ya cargó** (solo completa campos que siguen como estaban o que la propia precarga había completado).
@@ -314,6 +315,7 @@ Ventana modal genérica para un formulario (tareas, categorías, ubicaciones, me
 ## `assets/js/formularios-entidades.js`
 
 Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCategoria` / `abrirDialogoUbicacion` / `abrirDialogoMeta` / `abrirDialogoPersona`** (`{ id, alCrear }`). Con `id` editan; sin `id` crean y llaman `alCrear(nueva)` antes de guardar, para que quien la pidió (el desplegable de una tarea) la seleccione. La categoría excluye de su desplegable de padre a sí misma y sus descendientes (`descendientesDeCategoria`) y, al cambiar de padre, queda al final de sus nuevas hermanas. La ubicación valida los rangos de las coordenadas y reparte el par "lat, lon" pegado en Latitud.
+- **`abrirDialogoPersona`, ampliado (v0.66.0)**: suma "📅 Próximo contacto" y, solo al editar una persona existente, la lista de sus tareas **pendientes** asociadas (`tareasPendientesDe`, `persona_id` + no completada, ordenadas con `compararPorPrioridad`), cada una con un ✏️ que abre `abrirEdicionTarea` (de `modal-tarea.js`) encima. Si "Próximo contacto" cambió y no quedó vacío, al guardar reprograma con `reprogramarTareaConCascada` la `tarea_fecha_sugerida` de cada una de esas tareas a esa fecha y avisa cuántas se movieron.
 
 ## `views/configuraciones.view.js`
 
@@ -341,8 +343,8 @@ Ventana modal de edición (`<dialog>` en `document.body`, sobrevive a los redibu
 
 Vista de referencia y auditoría: todas las tareas (de cualquier estado), con filtros y orden por columna.
 
-- **`renderVistaTabla(contenedor)`**: por defecto ordena por `compararPorPrioridad` (el orden real de la app), para detectar de un vistazo si algo quedó mal priorizado. Filtros de categoría (inclusivo de descendientes, vía `idsCategoriaYDescendientes`), estado, importancia y buscador por nombre. Clic en un header de columna cambia el orden a esa columna sola (`COMPARADORES`), con toggle asc/desc y un botón "↺ Prioridad" para volver al orden por defecto. Clic en una fila abre esa tarea en edición en Tareas.
-- **`COLUMNAS` / `columnasVisibles()` / `abrirSelectorColumnas()`**: las 20 columnas posibles (cada una con su `valor` y su `comparar`), las visibles según la preferencia `super-todo-list:tabla-columnas` (por defecto nombre, categoría con su cadena completa, importancia, estado, fecha y holgura) y el diálogo "Columnas" con una casilla por columna.
+- **`renderVistaTabla(contenedor)`**: por defecto ordena por `compararPorPrioridad` (el orden real de la app), para detectar de un vistazo si algo quedó mal priorizado. Filtros de categoría (inclusivo de descendientes, vía `idsCategoriaYDescendientes`), estado, importancia, **persona** (v0.66.0) y buscador por nombre. Clic en un header de columna cambia el orden a esa columna sola (`COMPARADORES`), con toggle asc/desc y un botón "↺ Prioridad" para volver al orden por defecto. Clic en una fila abre esa tarea en edición en Tareas.
+- **`COLUMNAS` / `columnasVisibles()` / `abrirSelectorColumnas()`**: las 21 columnas posibles (cada una con su `valor` y su `comparar`, incluida `persona` desde la v0.66.0), las visibles según la preferencia `super-todo-list:tabla-columnas` (por defecto nombre, categoría con su cadena completa, importancia, estado, fecha y holgura) y el diálogo "Columnas" con una casilla por columna.
 - **`idsCategoriaYDescendientes(categoriaId, categorias)`**: IDs de una categoría y todas sus descendientes, recorriendo `categoria_padre_id` hacia abajo — a diferencia del filtro de categoría de Tareas (que compara `categoria_id` exacto), este es inclusivo de descendientes.
 - **`crearPanelVersus(contenedorVista)`**: panel toggleable (botón "⚔️ Versus") que ofrece de a un par de tareas empatadas (`construirClusteres`/`proximoParVersus`, sobre `esTareaAccionable`) para que el usuario elija cuál prefiere, o las omita. Ver `REGLAS_DE_PRIORIDAD.md` para el mecanismo completo (asignación de `tarea_prioridad_manual`, por qué "omitir" no asigna nada).
 
@@ -386,8 +388,8 @@ Vista Gantt.
 
 ## `views/personas.view.js`
 
-- **`renderVistaPersonas(contenedor)`**: botón "＋ Nueva persona" y la lista, ordenada de mayor a menor tiempo sin contacto.
-- **`renderPersona(persona)`**: tarjeta con "Editar" (nombre y último contacto) y "Marcar contacto hoy".
+- **`renderVistaPersonas(contenedor)`**: botón flotante "＋" y la lista, ordenada de mayor a menor tiempo sin contacto.
+- **`renderPersona(persona)`**: tarjeta con "Editar" (ver `abrirDialogoPersona`, ampliado en la v0.66.0), "Marcar contacto hoy" y, si tiene `persona_proximo_contacto`, su etiqueta. Al eliminar, las tareas que la referenciaban quedan con `persona_id: null` (mismo patrón que categorías/ubicaciones/metas).
 
 ## `views/estadisticas.view.js`
 

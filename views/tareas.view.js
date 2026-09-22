@@ -175,6 +175,7 @@ function renderTarea(tarea) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
   const meta = estado.metas.find((m) => m.meta_id === tarea.meta_id);
+  const persona = estado.personas.find((per) => per.persona_id === tarea.persona_id);
   const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
   const bloqueada = tarea.tarea_estado === 'bloqueada';
   const proxima = estado.tareas.find((t) => t.tarea_dependiente === tarea.tarea_id && t.tarea_estado !== 'completada');
@@ -217,6 +218,7 @@ function renderTarea(tarea) {
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
         ${meta ? `<span class="etiqueta-fecha">🏁 ${escaparHtml(meta.meta_nombre)}</span>` : ''}
+        ${persona ? `<span class="etiqueta-fecha">👤 ${escaparHtml(persona.persona_nombre)}</span>` : ''}
       </span>
       ${bloqueada && dependeDe ? `<p class="aviso-bloqueada">⛓️ Bloqueada por: ${escaparHtml(nombreConCategoria(dependeDe))}</p>` : ''}
       ${!bloqueada && dependeDe ? `<p class="enlace-tarea">⬅️ Depende de: ${escaparHtml(nombreConCategoria(dependeDe))}${dependeDe.tarea_estado === 'completada' ? ' (completada)' : ''}</p>` : ''}

@@ -10,6 +10,7 @@ import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 let filtroCategoria = '';
 let filtroEstado = '';
 let filtroImportancia = '';
+let filtroPersona = '';
 let textoBusqueda = '';
 let columnaOrden = null; // null = orden de prioridad real de la app; o 'nombre'|'categoria'|'importancia'|'estado'|'fecha'|'holgura'
 let direccionOrden = 'asc';
@@ -123,6 +124,12 @@ const COLUMNAS = [
     comparar: (a, b) => porTexto(nombreDe(estado.metas, 'meta_id', a.meta_id, 'meta_nombre'), nombreDe(estado.metas, 'meta_id', b.meta_id, 'meta_nombre')),
   },
   {
+    clave: 'persona',
+    etiqueta: 'Persona',
+    valor: (t) => texto(nombreDe(estado.personas, 'persona_id', t.persona_id, 'persona_nombre')),
+    comparar: (a, b) => porTexto(nombreDe(estado.personas, 'persona_id', a.persona_id, 'persona_nombre'), nombreDe(estado.personas, 'persona_id', b.persona_id, 'persona_nombre')),
+  },
+  {
     clave: 'mantenimiento',
     etiqueta: 'Mantenimiento',
     valor: (t) => (t.tarea_mantenimiento && t.tarea_mantenimiento_intervalo ? `🔁 cada ${t.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[t.tarea_mantenimiento_intervalo.unidad]}` : ''),
@@ -214,6 +221,7 @@ export function renderVistaTabla(contenedor) {
     .filter((t) => !filtroCategoria || idsCategoriaYDescendientes(filtroCategoria, estado.categorias).has(t.categoria_id))
     .filter((t) => !filtroEstado || t.tarea_estado === filtroEstado)
     .filter((t) => !filtroImportancia || t.tarea_importancia === filtroImportancia)
+    .filter((t) => !filtroPersona || t.persona_id === filtroPersona)
     .filter((t) => !textoBusqueda || t.tarea_nombre.toLowerCase().includes(textoBusqueda.toLowerCase()))
     .slice();
 
@@ -257,6 +265,12 @@ export function renderVistaTabla(contenedor) {
           ).join('')}
         </select>
       </label>
+      <label title="Mostrar solo las tareas asociadas a esta persona">👤 Persona
+        <select id="filtro-persona-todas">
+          <option value="">Todas</option>
+          ${estado.personas.map((p) => `<option value="${p.persona_id}" ${filtroPersona === p.persona_id ? 'selected' : ''}>${escaparHtml(p.persona_nombre)}</option>`).join('')}
+        </select>
+      </label>
       <label>🔎 Buscar
         <input type="search" id="buscador-nombre-todas" title="Buscar por nombre (tecla F)" placeholder="Nombre de la tarea..." value="${escaparHtml(textoBusqueda)}" />
       </label>
@@ -291,6 +305,10 @@ export function renderVistaTabla(contenedor) {
   });
   contenedor.querySelector('#filtro-importancia-todas').addEventListener('change', (evento) => {
     filtroImportancia = evento.target.value;
+    renderVistaTabla(contenedor);
+  });
+  contenedor.querySelector('#filtro-persona-todas').addEventListener('change', (evento) => {
+    filtroPersona = evento.target.value;
     renderVistaTabla(contenedor);
   });
   contenedor.querySelector('#buscador-nombre-todas').addEventListener('input', (evento) => {

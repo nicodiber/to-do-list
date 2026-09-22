@@ -56,6 +56,7 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `tarea_repetir_hasta` | fecha `YYYY-MM-DD` \| `""`, default `""` | Ronda 9a | Solo tareas de mantenimiento: **hábito temporal**. Último día en que se repite; si el próximo vencimiento cae después, no se crea la copia. La copia hereda el valor |
 | `tarea_repetir_hasta_tarea` | string (UUID) \| `null`, default `null` | Ronda 9a | Solo tareas de mantenimiento: deja de repetirse cuando esa otra tarea se cumple o llega su fecha límite (o sugerida). Si esa tarea ya se completó, vale el día de su cumplimiento; si se eliminó, se ignora. Si hay también `tarea_repetir_hasta`, vale lo más temprano. La copia hereda el valor |
 | `tarea_origen` | objeto \| `null`, default `null` | Ronda 9a | **Reservado, sin uso desde la v0.63.0** (antes marcaba lo que generó el asistente de examen). Se conserva en los datos; una tarea que lo tiene no cuenta como "cargada rápido" |
+| `persona_id` | string (UUID) \| `null`, default `null` | v0.66.0 | Referencia a `Persona.persona_id`: con quién se hace la tarea (una sola). Al eliminar la persona, queda en `null` |
 
 ## Ubicacion
 
@@ -90,10 +91,11 @@ Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas 
 | `persona_id` | string (UUID) | MVP | Identificador único |
 | `persona_nombre` | string | MVP | Nombre de la persona (ej. "Mamá", "Juan") |
 | `persona_ultimo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha del último encuentro/contacto registrado. Vacío = nunca registrado |
+| `persona_proximo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | v0.66.0 | Próximo encuentro planeado. Al guardarla con un valor nuevo, reprograma la `tarea_fecha_sugerida` de todas las tareas pendientes asociadas (`persona_id`) a esa fecha |
 | `persona_creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
 | `persona_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
-Se administra desde el ABM en la vista "Personas", sin relación con Tareas por ahora. La lista se ordena de mayor a menor tiempo sin contacto; el botón "Marcar contacto hoy" actualiza `persona_ultimo_contacto` a la fecha actual.
+Se administra desde el ABM en la vista "Personas". La lista se ordena de mayor a menor tiempo sin contacto; el botón "Marcar contacto hoy" actualiza `persona_ultimo_contacto` a la fecha actual. Desde la v0.66.0, editar una persona (`abrirDialogoPersona`) muestra sus tareas pendientes (`Tarea.persona_id`) y permite reprogramarlas de una vez con "Próximo contacto".
 
 ## Mejora
 
