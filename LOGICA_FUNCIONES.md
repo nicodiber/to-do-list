@@ -262,10 +262,12 @@ Vista "Agenda" (unifica las antiguas "3 días" y "8 días"): **`renderVistaAgend
 
 ## `views/semana.view.js`
 
-Vista "Semana": grilla horaria de 7 días (07:00-23:00) con tareas fijas y proyectadas.
+Vista "Semana": grilla horaria (07:00-23:00) con tareas fijas y proyectadas, con la cantidad de días a elección.
 
-- **`renderVistaSemana(contenedor)`**: arma la grilla, ajustada al ancho de la pantalla (columnas `minmax(0, 1fr)`, sin desplazamiento lateral). En pantallas angostas (`matchMedia` ≤ 640 px) muestra 3 días (4 desde 480 px) con flechas ‹ › (`primerDiaVisible`) y se redibuja al cambiar el ancho.
+- **`renderVistaSemana(contenedor)`**: arma la grilla con la cantidad de días de `leerDiasSemana()` (`assets/js/vista-semana-preferencias.js`: preferencia en `localStorage`, opciones 1 · 3 · 7 · 8 · 15, por defecto 8, mismo patrón que Agenda) desde `offsetDias` (módulo, sesión); columnas `minmax(0, 1fr)`, siempre se estiran para llenar el ancho disponible (v0.65.0: se quitó el ajuste automático por tamaño de pantalla). Flechas ‹ › avanzan/retroceden de a `cantidadDias`, sin techo hacia adelante.
+- **`actualizarLineaAhora()`** (v0.65.0): reposiciona (o esconde) la línea de "ahora" en la columna de hoy, si está en el rango visible y la hora cae en `[HORA_INICIO, HORA_FIN)`. Corre una vez al dibujar y cada 60 s desde un `setInterval` de módulo (no hace nada si la grilla no está montada).
 - **Eventos y carga** (Ronda 9b): tras dibujar, `pintarCargas` muestra en cada día la barra "planificado/disponible" (con `crearCalculadoraCapacidad`; primero sin eventos y luego con los de Calendar) y `pintarEventos` agrega los eventos de `obtenerEventosParaMostrar` como bloques de solo lectura (enlaces a Calendar, carriles si se pisan) y la franja de los de todo el día. Tocar la barra abre `abrirCapacidadDelDia` (fija `pref_capacidad_por_fecha`).
+- **Tareas bloqueadas** (v0.65.0): las "proyectadas" (sin hora) ya no se filtran solo por `esTareaAccionable`, también entran las `bloqueada` (`esProyectable`); se marcan con la clase `bloqueada` y 🔒 en `renderBloqueTarea`. Antes de dibujarlas se ordenan con `compararPorPrioridad` + `ordenarConCadenas` (`tareas-logica.js`), para que una cadena quede junta.
 - **`renderColumnaDia(fechaDia, hoy)`**: separa tareas "fijas" (`tarea_fecha_sugerida` con hora ese día) de "proyectadas" (accionables sin hora en `tarea_fecha_sugerida`, cuya fecha de referencia cae ese día, apiladas por prioridad).
 - **`renderBloqueTarea(...)` / `agregarAsasArrastre(...)`**: cada bloque tiene asas arrastrables (Pointer Events) para modificar `tarea_fecha_sugerida` (agregándole/cambiándole la hora)/`tarea_duracion_min` directamente desde la grilla, en pasos de 15 minutos.
 
