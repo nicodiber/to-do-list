@@ -2881,3 +2881,33 @@ kbd {
   margin-right: 0.15rem;
   vertical-align: middle;
 }
+
+/* --- v0.65.0: linea de "ahora" y tareas bloqueadas en la vista Semana --- */
+
+.linea-ahora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid var(--color-peligro);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.linea-ahora-punto {
+  position: absolute;
+  left: -0.3rem;
+  top: -0.35rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--color-peligro);
+}
+
+.bloque-tarea-semana.bloqueada {
+  opacity: 0.55;
+}
+
+.bloque-tarea-semana.bloqueada.proyectada {
+  border-style: dotted;
+}

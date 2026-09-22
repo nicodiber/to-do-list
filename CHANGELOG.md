@@ -2,6 +2,24 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.65.0] - 2026-09-22
+
+Segunda ronda con datos reales: rediseño de la vista Semana (ver `CHANGELOG.md` v0.64.0). La v0.66.0 sigue con la asociación Tarea↔Persona.
+
+### Agregado
+
+- **Semana: selector de días** (1 · 3 · 7 · 8 · 15, como el de Agenda; abre en 8 por defecto) y navegación ‹ › que ahora avanza sin techo hacia adelante (antes, en escritorio, no había forma de mirar la semana siguiente).
+- **Línea de "ahora"**, como en Google Calendar: una línea roja en la columna de hoy, a la altura de la hora actual, que se mueve solita.
+- **Tareas bloqueadas visibles en Semana**: antes solo se veían si tenían una hora fija; ahora también aparecen proyectadas (atenuadas, con 🔒), y una cadena pendiente→bloqueada se ve junta (reusa `ordenarConCadenas` de la v0.64.0).
+
+### Cambiado
+
+- El ancho de cada columna de Semana ya no salta por el tamaño de pantalla (antes achicaba a 3 o 4 días en celular sin importar lo elegido): siempre se estira para llenar el ancho disponible, para la cantidad de días que elijas.
+
+### Documentación
+
+- `LOGICA_FUNCIONES.md`.
+
 ## [v0.64.0] - 2026-09-22
 
 Primera ronda de ajustes con datos reales: el usuario empezó a cargar categorías y tareas propias y anotó 21 fricciones y bugs al usar la app. Esta versión resuelve los más rápidos; el rediseño de Semana (v0.65.0) y la asociación Tarea↔Persona (v0.66.0) quedan para las próximas dos.

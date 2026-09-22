@@ -1,11 +1,12 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearHora, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
-import { esTareaAccionable, compararPorPrioridad } from '../assets/js/tareas-logica.js';
+import { esTareaAccionable, compararPorPrioridad, ordenarConCadenas } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 import { obtenerPreferencias, guardarCapacidadDeFecha } from '../assets/js/preferencias.js';
 import { crearCalculadoraCapacidad } from '../assets/js/capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventos, obtenerEventosParaMostrar } from '../assets/js/google-calendar.js';
+import { OPCIONES_DIAS_SEMANA, leerDiasSemana, guardarDiasSemana } from '../assets/js/vista-semana-preferencias.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -19,52 +20,49 @@ function fechaDeReferenciaProyectada(tarea) {
   return fecha ? diaLocal(fecha) : null;
 }
 
-// En pantallas angostas los 7 días no entran: se muestran 3 (o 4 desde 480 px) por vez, con flechas.
-const PANTALLA_ANGOSTA = window.matchMedia('(max-width: 640px)');
-const PANTALLA_MUY_ANGOSTA = window.matchMedia('(max-width: 480px)');
-let primerDiaVisible = 0;
-let ultimoContenedor = null;
-
-function cantidadDiasVisibles() {
-  if (!PANTALLA_ANGOSTA.matches) return 7;
-  return PANTALLA_MUY_ANGOSTA.matches ? 3 : 4;
+/** Una tarea sirve para "proyectarse" en Semana si está accionable o si está bloqueada (para verla igual, atenuada). */
+function esProyectable(tarea) {
+  return esTareaAccionable(tarea) || tarea.tarea_estado === 'bloqueada';
 }
 
-// Si cambia el ancho (girar el celular, cambiar el tamaño de la ventana) se redibuja con los días que caben.
-[PANTALLA_ANGOSTA, PANTALLA_MUY_ANGOSTA].forEach((mq) =>
-  mq.addEventListener('change', () => {
-    if (ultimoContenedor && ultimoContenedor.querySelector('.grilla-semana')) renderVistaSemana(ultimoContenedor);
-  })
-);
+// Cuántos días atrás de "offsetDias" arranca el rango visible (avanza/retrocede de a `cantidadDias`, sin techo
+// hacia adelante). Es de la sesión, no una preferencia guardada (a diferencia de la cantidad de días).
+let offsetDias = 0;
+let ultimoContenedor = null;
 
 export function renderVistaSemana(contenedor) {
   ultimoContenedor = contenedor;
   const hoy = hoyISO();
-  const todosLosDias = Array.from({ length: 7 }, (_, i) => fechaISOMasDias(i, hoy));
-  const visibles = cantidadDiasVisibles();
-  primerDiaVisible = Math.max(0, Math.min(primerDiaVisible, 7 - visibles));
-  const dias = todosLosDias.slice(primerDiaVisible, primerDiaVisible + visibles);
+  const cantidadDias = leerDiasSemana();
+  offsetDias = Math.max(0, offsetDias);
+  const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(offsetDias + i, hoy));
 
   contenedor.innerHTML = `
     <h2>📆 Semana</h2>
-    <p class="ayuda">Tareas fijas (con horario agendado), proyección de las pendientes según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.</p>
-    ${
-      visibles < 7
-        ? `<div class="navegacion-semana">
-            <button type="button" data-paso="-1" aria-label="Días anteriores" title="Ver los días anteriores" ${primerDiaVisible === 0 ? 'disabled' : ''}>‹</button>
-            <span>${formatearFecha(dias[0])} – ${formatearFecha(dias[dias.length - 1])}</span>
-            <button type="button" data-paso="1" aria-label="Días siguientes" title="Ver los días siguientes" ${primerDiaVisible >= 7 - visibles ? 'disabled' : ''}>›</button>
-          </div>`
-        : ''
-    }
+    <p class="ayuda">Tareas fijas (con horario agendado), proyección de las pendientes y bloqueadas 🔒 según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.</p>
+    <div class="selector-rango" role="group" aria-label="Cantidad de días">
+      ${OPCIONES_DIAS_SEMANA.map((n) => `<button type="button" data-dias="${n}" title="Ver ${n} día${n === 1 ? '' : 's'}" class="${n === cantidadDias ? 'activo' : ''}">${n} día${n === 1 ? '' : 's'}</button>`).join('')}
+    </div>
+    <div class="navegacion-semana">
+      <button type="button" data-paso="-1" aria-label="Días anteriores" title="Ver los días anteriores" ${offsetDias === 0 ? 'disabled' : ''}>‹</button>
+      <span>${formatearFecha(dias[0])}${dias.length > 1 ? ` – ${formatearFecha(dias[dias.length - 1])}` : ''}</span>
+      <button type="button" data-paso="1" aria-label="Días siguientes" title="Ver los días siguientes">›</button>
+    </div>
     <div class="grilla-semana-contenedor">
       <div class="grilla-semana"></div>
     </div>
   `;
 
+  contenedor.querySelectorAll('.selector-rango button').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      guardarDiasSemana(Number(boton.dataset.dias));
+      offsetDias = 0;
+      renderVistaSemana(contenedor);
+    });
+  });
   contenedor.querySelectorAll('.navegacion-semana button').forEach((boton) => {
     boton.addEventListener('click', () => {
-      primerDiaVisible += Number(boton.dataset.paso) * visibles;
+      offsetDias = Math.max(0, offsetDias + Number(boton.dataset.paso) * cantidadDias);
       renderVistaSemana(contenedor);
     });
   });
@@ -74,11 +72,12 @@ export function renderVistaSemana(contenedor) {
   grilla.style.setProperty('--dias-visibles', String(dias.length));
   grilla.appendChild(renderColumnaHoras());
   dias.forEach((fechaDia) => grilla.appendChild(renderColumnaDia(fechaDia, hoy)));
+  actualizarLineaAhora();
 
   // Primero se dibuja la carga sin eventos (no espera a la red); cuando llega Calendar se agregan los eventos y se recalcula.
   pintarCargas(grilla, []);
   if (hayConexionGoogleCalendar()) {
-    Promise.all([obtenerEventosParaMostrar(todosLosDias[0], todosLosDias[6]), obtenerEventos(todosLosDias[0], todosLosDias[6])])
+    Promise.all([obtenerEventosParaMostrar(dias[0], dias[dias.length - 1]), obtenerEventos(dias[0], dias[dias.length - 1])])
       .then(([paraMostrar, ocupan]) => {
         if (!grilla.isConnected) return;
         pintarEventos(grilla, paraMostrar);
@@ -87,6 +86,23 @@ export function renderVistaSemana(contenedor) {
       .catch((error) => console.warn(error.message));
   }
 }
+
+/** Reposiciona (o, si hoy no está en el rango visible o cayó fuera de horario, esconde) la línea de "ahora". */
+function actualizarLineaAhora() {
+  if (!ultimoContenedor || !ultimoContenedor.isConnected) return;
+  const columna = ultimoContenedor.querySelector('.dia-semana.es-hoy');
+  const linea = columna?.querySelector('.linea-ahora');
+  if (!linea) return;
+  const ahora = new Date();
+  const minutosDesdeInicio = (ahora.getHours() - HORA_INICIO) * 60 + ahora.getMinutes();
+  const visible = minutosDesdeInicio >= 0 && minutosDesdeInicio < MINUTOS_VISIBLES;
+  linea.hidden = !visible;
+  if (visible) linea.style.top = `${(minutosDesdeInicio / 60) * ALTO_HORA_PX}px`;
+}
+
+// A nivel de módulo (como el resto de las preferencias de UI de esta vista): sigue viva mientras la pestaña esté
+// abierta y no hace nada si la grilla no está montada.
+setInterval(actualizarLineaAhora, 60000);
 
 const MINUTOS_DEL_DIA = 24 * 60;
 
@@ -207,7 +223,9 @@ function renderColumnaDia(fechaDia, hoy) {
       <button type="button" class="carga-dia" aria-label="Carga del día"></button>
       <div class="franja-todo-el-dia" hidden></div>
     </div>
-    <div class="dia-semana-cuerpo" style="height:${(HORA_FIN - HORA_INICIO) * ALTO_HORA_PX}px"></div>
+    <div class="dia-semana-cuerpo" style="height:${(HORA_FIN - HORA_INICIO) * ALTO_HORA_PX}px">
+      ${fechaDia === hoy ? '<div class="linea-ahora" hidden><span class="linea-ahora-punto"></span></div>' : ''}
+    </div>
   `;
 
   const cuerpo = columna.querySelector('.dia-semana-cuerpo');
@@ -223,10 +241,12 @@ function renderColumnaDia(fechaDia, hoy) {
     cuerpo.appendChild(renderBloqueTarea(tarea, minutosDesdeInicio, tarea.tarea_duracion_min || 30, false, fechaDia));
   });
 
-  const proyectadas = pendientesActivas
-    .filter((t) => !tieneHora(t.tarea_fecha_sugerida) && esTareaAccionable(t))
+  // Las bloqueadas se ven igual que las pendientes (atenuadas, con 🔒): una cadena queda junta (`ordenarConCadenas`).
+  const proyectadasSinOrden = pendientesActivas
+    .filter((t) => !tieneHora(t.tarea_fecha_sugerida) && esProyectable(t))
     .filter((t) => fechaDeReferenciaProyectada(t) === fechaDia)
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const proyectadas = ordenarConCadenas(proyectadasSinOrden);
 
   let cursorMinutos = 0;
   proyectadas.forEach((tarea) => {
@@ -245,18 +265,19 @@ function renderColumnaDia(fechaDia, hoy) {
 function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, fechaDia) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const color = categoria?.categoria_color ?? '#9ca3af';
+  const bloqueada = tarea.tarea_estado === 'bloqueada';
 
   const offsetMin = Math.max(0, Math.min(minutosDesdeInicio, MINUTOS_VISIBLES));
   const alturaMin = Math.max(15, Math.min(duracionMin, MINUTOS_VISIBLES - offsetMin || duracionMin));
 
   const bloque = document.createElement('div');
-  bloque.className = 'bloque-tarea-semana' + (proyectada ? ' proyectada' : '');
+  bloque.className = 'bloque-tarea-semana' + (proyectada ? ' proyectada' : '') + (bloqueada ? ' bloqueada' : '');
   bloque.style.top = `${(offsetMin / 60) * ALTO_HORA_PX}px`;
   bloque.style.height = `${(alturaMin / 60) * ALTO_HORA_PX}px`;
   bloque.style.borderColor = color;
   bloque.style.background = proyectada ? 'transparent' : color;
-  bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${escaparHtml(tarea.tarea_nombre)}</span>`;
-  bloque.title = `${tarea.tarea_nombre} (${duracionMin} min)`;
+  bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${bloqueada ? '🔒 ' : ''}${escaparHtml(tarea.tarea_nombre)}</span>`;
+  bloque.title = `${bloqueada ? 'Bloqueada: ' : ''}${tarea.tarea_nombre} (${duracionMin} min)`;
 
   bloque.addEventListener('click', () => {
     abrirEdicionTarea(tarea.tarea_id);
