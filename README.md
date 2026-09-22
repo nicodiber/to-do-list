@@ -2,7 +2,7 @@
 
 Plataforma personal de gestión de tareas y objetivos, pensada para asistir y priorizar automáticamente qué hacer ahora y evitar reprogramación manual de fechas.
 
-La visión completa está en [SPEC.md](SPEC.md), el backlog de funcionalidades futuras en [BACKLOG.md](BACKLOG.md), el modelo de datos en [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md), las tecnologías utilizadas en [TECNOLOGIAS.md](TECNOLOGIAS.md), cómo dar acceso a alguien que va a probarla en [ACCESO_USUARIOS_PRUEBA.md](ACCESO_USUARIOS_PRUEBA.md) y las notas originales del brainstorm en [NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.md).
+La visión completa está en [SPEC.md](SPEC.md), el backlog de funcionalidades futuras en [BACKLOG.md](BACKLOG.md), el modelo de datos en [DICCIONARIO_DE_DATOS.md](DICCIONARIO_DE_DATOS.md), las tecnologías utilizadas en [TECNOLOGIAS.md](TECNOLOGIAS.md) y las notas originales del brainstorm en [NOTAS_ORIGINALES.md](NOTAS_ORIGINALES.md).
 
 Documentación de cómo funciona: [CASOS_DE_USO.md](CASOS_DE_USO.md) (flujos de usuario, foto de hoy), [PROCESOS_AUTOMATICOS.md](PROCESOS_AUTOMATICOS.md) (lo que el sistema hace solo), [REGLAS_DE_PRIORIDAD.md](REGLAS_DE_PRIORIDAD.md) (cómo se ordenan las tareas), [LOGICA_FUNCIONES.md](LOGICA_FUNCIONES.md) (qué hace cada función) y [REDISENO.md](REDISENO.md) (lo acordado para cambiar).
 
