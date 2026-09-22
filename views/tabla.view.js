@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, NIVELES_IMPORTANCIA, ORDEN_IMPORTANCIA, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, escaparHtml } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable } from '../assets/js/tareas-logica.js';
+import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable, ordenarConCadenas } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
@@ -210,7 +210,7 @@ export function renderVistaTabla(contenedor) {
   const columnas = columnasVisibles();
   // Si la columna elegida para ordenar se ocultó, vuelve el orden de prioridad.
   if (columnaOrden !== null && !columnas.some((c) => c.clave === columnaOrden)) columnaOrden = null;
-  const filas = estado.tareas
+  let filas = estado.tareas
     .filter((t) => !filtroCategoria || idsCategoriaYDescendientes(filtroCategoria, estado.categorias).has(t.categoria_id))
     .filter((t) => !filtroEstado || t.tarea_estado === filtroEstado)
     .filter((t) => !filtroImportancia || t.tarea_importancia === filtroImportancia)
@@ -218,7 +218,9 @@ export function renderVistaTabla(contenedor) {
     .slice();
 
   if (columnaOrden === null) {
+    // Cada bloqueada queda justo detrás de su previa: cadena junta, en el orden en que se va a poder hacer.
     filas.sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+    filas = ordenarConCadenas(filas);
   } else {
     const direccion = direccionOrden === 'asc' ? 1 : -1;
     filas.sort((a, b) => direccion * COMPARADORES[columnaOrden](a, b));

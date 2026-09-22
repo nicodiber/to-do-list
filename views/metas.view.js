@@ -2,6 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { crearMeta, crearTarea, ETIQUETAS_PLAZO, ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
 import { escaparHtml, formatearFecha, hoyISO, fechaISOMasDias } from '../assets/js/utilidades.js';
 import { abrirDialogoMeta } from '../assets/js/formularios-entidades.js';
+import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 import {
   construirPromptSubtareas,
   parsearRespuestaSubtareas,
@@ -15,13 +16,12 @@ export function renderVistaMetas(contenedor) {
   contenedor.innerHTML = `
     <h2>🏁 Metas</h2>
     <p class="ayuda">Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el campo "Meta" del formulario de la tarea.</p>
-    <div class="barra-acciones-vista"><button title="Crear una meta nueva" type="button" id="boton-nueva-meta" class="boton-primario">＋ Nueva meta</button></div>
-    <button title="Definir una meta charlando con tu IA" type="button" id="boton-chat-meta">🤖 Definir meta charlando con IA</button>
+<div class="barra-acciones-vista"><button title="Definir una meta charlando con tu IA" type="button" id="boton-chat-meta">🤖 Definir meta charlando con IA</button></div>
     <div id="contenedor-panel-chat-meta" hidden></div>
     <div id="lista-metas" class="lista-categorias"></div>
   `;
 
-  contenedor.querySelector('#boton-nueva-meta').addEventListener('click', () => abrirDialogoMeta());
+  agregarBotonFlotante(contenedor, { titulo: 'Crear una meta nueva', alClic: () => abrirDialogoMeta() });
 
   const contenedorPanelChat = contenedor.querySelector('#contenedor-panel-chat-meta');
   contenedor.querySelector('#boton-chat-meta').addEventListener('click', () => {

@@ -185,7 +185,7 @@ export function crearCumplimiento({ tarea, fecha }) {
 
 /** Preferencias por defecto (Ronda 9b): tiempo disponible por día y cómo se lee Calendar. */
 export const PREFERENCIAS_POR_DEFECTO = {
-  pref_tope_dias: [180, 180, 180, 180, 180, 180, 180],
+  pref_tope_dias: [1440, 1440, 1440, 1440, 1440, 1440, 1440],
   pref_franja: { inicio: '00:00', fin: '24:00' },
   pref_calendarios: null,
   pref_ignorar_todo_el_dia: true,

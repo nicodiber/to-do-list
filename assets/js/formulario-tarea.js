@@ -147,7 +147,7 @@ export function tareasUnicasPorNombre() {
  */
 export function nombreConCategoria(tarea) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  return categoria ? `${tarea.tarea_nombre} · ${caminoCategoria(categoria, estado.categorias)}` : tarea.tarea_nombre;
+  return categoria ? `${caminoCategoria(categoria, estado.categorias)} · ${tarea.tarea_nombre}` : tarea.tarea_nombre;
 }
 
 function htmlItemChecklist(item = { texto: '', hecho: false }) {
@@ -159,23 +159,38 @@ function htmlItemChecklist(item = { texto: '', hecho: false }) {
     </li>`;
 }
 
-function htmlSelectEnlace(nombre, etiqueta, opciones, actual, textoOcupada, sinValor) {
+function htmlOpcionesEnlace(opciones, actual, textoOcupada, sinValor) {
   // La tarea actualmente enlazada siempre debe figurar, aunque ya esté completada.
   const lista = actual && !opciones.some((o) => o.tarea.tarea_id === actual.tarea_id) ? [{ tarea: actual, ocupadaPor: null }, ...opciones] : opciones;
   return `
+    <option value="">${sinValor}</option>
+    ${lista
+      .map(
+        (o) =>
+          `<option value="${o.tarea.tarea_id}" ${actual && o.tarea.tarea_id === actual.tarea_id ? 'selected' : ''}>${escaparHtml(nombreConCategoria(o.tarea))}${
+            o.ocupadaPor ? ` (${textoOcupada} «${escaparHtml(nombreConCategoria(o.ocupadaPor))}»: se inserta en medio)` : ''
+          }${o.tarea.tarea_estado === 'completada' ? ' (completada)' : ''}</option>`
+      )
+      .join('')}`;
+}
+
+function htmlSelectEnlace(nombre, etiqueta, opciones, actual, textoOcupada, sinValor) {
+  return `
     <label class="campo ancho-completo" title="Una tarea puede tener una sola previa y una sola próxima"><span class="campo-titulo">${etiqueta}</span>
-      <select name="${nombre}">
-        <option value="">${sinValor}</option>
-        ${lista
-          .map(
-            (o) =>
-              `<option value="${o.tarea.tarea_id}" ${actual && o.tarea.tarea_id === actual.tarea_id ? 'selected' : ''}>${escaparHtml(nombreConCategoria(o.tarea))}${
-                o.ocupadaPor ? ` (${textoOcupada} «${escaparHtml(nombreConCategoria(o.ocupadaPor))}»: se inserta en medio)` : ''
-              }${o.tarea.tarea_estado === 'completada' ? ' (completada)' : ''}</option>`
-          )
-          .join('')}
-      </select>
+      <select name="${nombre}">${htmlOpcionesEnlace(opciones, actual, textoOcupada, sinValor)}</select>
     </label>`;
+}
+
+/**
+ * Reconstruye las opciones de "Depende de" y "Bloquea a" del alta (por ejemplo después de "Agregar y cargar otra",
+ * cuando la tarea recién creada ya tiene que poder elegirse). `referencia` es la misma que arma el resto del
+ * formulario (una tarea real en edición, o un objeto sin `tarea_id` en el alta).
+ */
+export function regenerarOpcionesEnlace(formulario, referencia = { tarea_id: '__nueva__' }) {
+  const selectPrevia = formulario.querySelector('[name="tarea_previa"]');
+  const selectProxima = formulario.querySelector('[name="tarea_proxima"]');
+  if (selectPrevia) selectPrevia.innerHTML = htmlOpcionesEnlace(opcionesPrevia(referencia, estado.tareas), null, 'ya bloquea a', 'Sin tarea previa');
+  if (selectProxima) selectProxima.innerHTML = htmlOpcionesEnlace(opcionesProxima(referencia, estado.tareas), null, 'ya depende de', 'Sin tarea próxima');
 }
 
 /**

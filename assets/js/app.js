@@ -35,7 +35,7 @@ import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.63.0';
+const VERSION = 'v0.64.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -43,7 +43,6 @@ const INDICADOR_SYNC = document.getElementById('indicador-sync');
 const BOTON_SYNC = document.getElementById('boton-sync');
 const BANNER_SYNC = document.getElementById('banner-sync');
 const PANEL_AVISOS = document.getElementById('panel-avisos');
-const BOTON_TEMA = document.getElementById('boton-tema');
 const BOTON_NUEVA_TAREA = document.getElementById('boton-nueva-tarea');
 const BOTON_COMPLETAR_CARGA = document.getElementById('boton-completar-carga');
 const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
@@ -386,20 +385,22 @@ function aplicarTema(tema) {
   document.documentElement.dataset.tema = tema;
   const colorTema = document.querySelector('meta[name="theme-color"]');
   if (colorTema) colorTema.content = tema === 'oscuro' ? '#1c1f27' : '#ffffff';
-  BOTON_TEMA.textContent = tema === 'oscuro' ? '☀️' : '🌙';
-  const etiqueta = tema === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
-  BOTON_TEMA.title = etiqueta;
-  BOTON_TEMA.setAttribute('aria-label', etiqueta);
 }
 
 let temaActual = temaEfectivo();
 aplicarTema(temaActual);
 
-BOTON_TEMA.addEventListener('click', () => {
-  temaActual = temaActual === 'oscuro' ? 'claro' : 'oscuro';
+/** Tema actual ('oscuro' | 'claro'). Lo usa Configuraciones para el interruptor. */
+export function obtenerTema() {
+  return temaActual;
+}
+
+/** Cambia el tema, lo guarda en este dispositivo y lo aplica. */
+export function establecerTema(tema) {
+  temaActual = tema === 'claro' ? 'claro' : 'oscuro';
   localStorage.setItem(CLAVE_LOCALSTORAGE_TEMA, temaActual);
   aplicarTema(temaActual);
-});
+}
 
 inicializarAlmacenamiento().then(reprogramarSiCorresponde);
 

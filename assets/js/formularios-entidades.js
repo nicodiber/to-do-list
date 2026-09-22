@@ -7,6 +7,9 @@ import { estado, persistirYNotificar } from './almacenamiento.js';
 import { crearCategoria, crearUbicacion, crearMeta, crearPersona, PLAZOS_META, ETIQUETAS_PLAZO } from './modelos.js';
 import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera } from './utilidades.js';
 import { abrirDialogoFormulario, activarMayusculaInicial } from './dialogo-formulario.js';
+import { crearSelectorColor } from './selector-color.js';
+
+const COLOR_POR_DEFECTO = '#4f7cff';
 
 function noExiste(nombre) {
   alert(`${nombre} ya no existe (se eliminó mientras la editabas).`);
@@ -22,7 +25,7 @@ function prioridadAlFinal(padreId, excluirId = null) {
   return hermanas.length === 0 ? 0 : Math.max(...hermanas.map((c) => c.categoria_prioridad || 0)) + 1;
 }
 
-export function abrirDialogoCategoria({ id = null, alCrear = null } = {}) {
+export function abrirDialogoCategoria({ id = null, alCrear = null, padreIdInicial = null } = {}) {
   const categoria = id ? estado.categorias.find((c) => c.categoria_id === id) : null;
   if (id && !categoria) return;
 
@@ -32,10 +35,12 @@ export function abrirDialogoCategoria({ id = null, alCrear = null } = {}) {
     .filter(({ categoria: c }) => !excluidas.has(c.categoria_id))
     .map(
       ({ categoria: c, profundidad }) =>
-        `<option value="${c.categoria_id}" ${categoria && c.categoria_id === categoria.categoria_padre_id ? 'selected' : ''}>${'　'.repeat(profundidad)}${escaparHtml(c.categoria_nombre)}</option>`
+        `<option value="${c.categoria_id}" ${(categoria ? categoria.categoria_padre_id : padreIdInicial) === c.categoria_id ? 'selected' : ''}>${'　'.repeat(profundidad)}${escaparHtml(c.categoria_nombre)}</option>`
     )
     .join('');
   const disfrute = categoria ? categoria.categoria_disfrute || 3 : 3;
+  const padreInicial = categoria ? categoria.categoria_padre_id : padreIdInicial;
+  const colorInicial = categoria ? categoria.categoria_color : (padreInicial && estado.categorias.find((c) => c.categoria_id === padreInicial)?.categoria_color) || COLOR_POR_DEFECTO;
 
   abrirDialogoFormulario({
     titulo: categoria ? '✏️ Editar categoría' : '➕ Nueva categoría',
@@ -50,7 +55,7 @@ export function abrirDialogoCategoria({ id = null, alCrear = null } = {}) {
           ${opcionesPadre}
         </select>
       </label>
-      <label>Color <input type="color" name="categoria_color" value="${categoria ? categoria.categoria_color : '#4f7cff'}" /></label>
+      <div class="campo-color-fila"><span>Color</span><span id="selector-color-categoria"></span></div>
       <label>Disfrute
         <select name="categoria_disfrute">
           ${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${n === disfrute ? 'selected' : ''}>${'⭐'.repeat(n)} (${n})</option>`).join('')}
@@ -58,7 +63,27 @@ export function abrirDialogoCategoria({ id = null, alCrear = null } = {}) {
       </label>
       <input type="text" name="categoria_descripcion" value="${escaparHtml(categoria ? categoria.categoria_descripcion || '' : '')}" placeholder="Descripción (opcional)" />
     `,
-    conectar: (formulario) => activarMayusculaInicial(formulario.categoria_nombre),
+    conectar: (formulario) => {
+      activarMayusculaInicial(formulario.categoria_nombre);
+      const selectorColor = crearSelectorColor({
+        contenedor: formulario.querySelector('#selector-color-categoria'),
+        nombreCampo: 'categoria_color',
+        valorInicial: colorInicial,
+      });
+      // Solo mientras se crea (no al editar) y solo si el usuario todavía no eligió un color a mano: el color
+      // sigue al padre que se vaya seleccionando en el desplegable.
+      let colorEditado = false;
+      formulario.categoria_color.addEventListener('color-aplicado', () => {
+        colorEditado = true;
+      });
+      if (!categoria) {
+        formulario.categoria_padre_id.addEventListener('change', () => {
+          if (colorEditado) return;
+          const padre = estado.categorias.find((c) => c.categoria_id === formulario.categoria_padre_id.value);
+          if (padre) selectorColor.setValor(padre.categoria_color);
+        });
+      }
+    },
     alGuardar: async (formulario) => {
       const nombre = capitalizarPrimera(formulario.categoria_nombre.value.trim());
       if (!nombre) {

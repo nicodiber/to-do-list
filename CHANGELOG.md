@@ -2,6 +2,36 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.64.0] - 2026-09-22
+
+Primera ronda de ajustes con datos reales: el usuario empezó a cargar categorías y tareas propias y anotó 21 fricciones y bugs al usar la app. Esta versión resuelve los más rápidos; el rediseño de Semana (v0.65.0) y la asociación Tarea↔Persona (v0.66.0) quedan para las próximas dos.
+
+### Agregado
+
+- **Botón flotante "＋"** en Categorías, Ubicaciones, Metas, Tareas y Personas: siempre visible, aunque la lista sea larga y haya que scrollear. Reemplaza al botón de la barra de arriba (`assets/js/boton-flotante.js`).
+- **Categorías**: **"➕ Agregar categoría hija"** en cada tarjeta (abre el alta con el padre ya elegido); el color de una categoría nueva **hereda el del padre** elegido (se puede cambiar después; deja de heredar en cuanto se aplica un color a mano); **expandir/colapsar** una rama (expandido por defecto).
+- **Selector de color propio** para categorías (`assets/js/selector-color.js`): reemplaza al selector nativo del navegador por uno con área de saturación/tono, campo de hex, un dado 🎲 que sortea un color, y **Aplicar/Cancelar** (lo que al nativo le faltaba).
+- **Tareas**: en cada tarjeta, **"📄 Duplicar"** (abre el alta con los mismos datos, sin enlaces, para cargar una tarea parecida) y **"⬅️ Crearle tarea previa"** / **"➡️ Crearle tarea posterior"** (abren el alta con los mismos datos pero nombre y descripción vacíos, y el enlace correspondiente ya elegido — funciona también para insertar en medio de una cadena existente).
+- **Tema claro/oscuro** pasa de la cabecera a Configuraciones → 🎨 Apariencia, como un interruptor.
+
+### Cambiado
+
+- **Tope de minutos por día**: el valor por defecto pasa de 180 a **1440** (un día entero), así no hay restricción hasta que cada quien ajuste el suyo; el campo no acepta menos de 0 ni más de 1440.
+- **Orden de los botones de una ventana**: en toda la app, **Cancelar queda a la izquierda y la acción principal a la derecha** (antes era al revés).
+- **Gantt**: "Agrupar por" abre por defecto en **"Nada"** (antes, "Categoría").
+- **Tareas y Tabla**: una tarea **bloqueada** aparece **justo debajo de su tarea previa**, no separada de las pendientes ni dispersa por prioridad individual — una cadena se ve junta, en el orden en que se va a poder hacer.
+- Los desplegables "Depende de"/"Bloquea a" muestran **"Categoría · Tarea"** (antes era al revés).
+- Calendar en la vista Semana respeta el interruptor **"Ignorar los eventos marcados como «Disponible»"** (antes solo se aplicaba al cálculo de capacidad, no a lo que se mostraba).
+
+### Corregido
+
+- **"Vence hoy"** aparecía en una tarea que en realidad vencía **mañana**, cuando la fecha límite tenía una hora ya pasada del día de hoy.
+- En el alta de tarea, **"Agregar y cargar otra"** no ofrecía la tarea recién creada en "Depende de"/"Bloquea a" de la siguiente (había que cerrar y volver a abrir la ventana).
+
+### Documentación
+
+- `LOGICA_FUNCIONES.md`, `PROCESOS_AUTOMATICOS.md` (26).
+
 ## [v0.63.0] - 2026-09-21
 
 Limpieza antes de cargar datos reales. El usuario decidió empezar a usar la app con sus datos reales (se borran los de prueba) y suspender lo específico de examen, que era una propuesta que no sirve para algo general. Las plantillas van a volver como un ABM general de cadenas de tareas (ver `BACKLOG.md`).
