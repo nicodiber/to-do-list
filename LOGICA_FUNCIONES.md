@@ -132,6 +132,7 @@ Lógica de negocio central sobre tareas: mantenimiento cíclico, bloqueo por dep
 - **`puedeAgregarDependencia(tareaId, candidatoId, listaTareas)`** (ahora en `dependencias.js`, reexportada): valida que asignar `candidatoId` como `tarea_dependiente` de `tareaId` no cierre un ciclo, recorriendo la cadena de `tarea_dependiente` hacia atrás desde `candidatoId`.
 - **`esTareaAccionable(tarea)`**: `true` si `tarea_estado === 'pendiente'` y ya se alcanzó `tarea_fecha_inicio_habilitada`.
 - **`renombrarHistorial(estado, nombreViejo, nombreNuevo)`**: pasa al nombre nuevo los cumplimientos y las notas de mejora de una tarea de mantenimiento (la identidad de un hábito es el nombre) y devuelve cuántos registros cambió; la llama la ventana de edición (`modal-tarea.js`) al renombrar una tarea que era de mantenimiento.
+- **`ordenarConCadenas(tareasOrdenadas)`** (v0.64.0): reordena una lista ya priorizada para que cada tarea bloqueada quede justo detrás de su tarea previa (una cadena se ve junta, en el orden en que se va a poder hacer, no separada entre pendientes y bloqueadas). Una bloqueada cuya previa no está en la lista (por ejemplo, un filtro la dejó afuera) cae al final, en su orden original. Pura. La usan `views/tareas.view.js` y `views/tabla.view.js` (esta última solo con el orden por defecto, sin columna elegida).
 
 ## `assets/js/reprogramar.js`
 
@@ -204,7 +205,7 @@ Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (
 - **`soportaGoogleCalendar()` / `hayConexionGoogleCalendar()`**: `hayConexionGoogleCalendar` es verdadero si hay token y el usuario concedió el scope de Calendar.
 - **`listarCalendarios()`**: los calendarios del usuario (`{ id, nombre, color, principal }`, el principal primero; mismo permiso de solo lectura). Con caché de 5 minutos; sin conexión o con error devuelve `[]`.
 - **`obtenerEventos(desde, hasta)`** (async): los eventos **que ocupan tiempo** entre dos fechas locales `YYYY-MM-DD`, ambas incluidas, de todos los calendarios elegidos (`pref_calendarios`; sin lista, todos). Cada evento trae `{ id, resumen, inicio, fin, todoElDia, rechazado, disponible, calendarioId, calendarioNombre, color, enlace }` (los de todo el día se pasan a medianoche local). Se descartan los que las preferencias mandan ignorar (**`ocupaTiempo`**). Pagina (250 por página), consulta cada calendario por separado (si falla uno, siguen los demás) y cachea los eventos completos 5 minutos por rango y calendarios; los filtros se aplican al leer.
-- **`obtenerEventosParaMostrar(desde, hasta)`**: todos los eventos salvo los rechazados (para la vista Semana).
+- **`obtenerEventosParaMostrar(desde, hasta)`**: todos los eventos salvo los rechazados y, si `pref_ignorar_disponible` está activo, los marcados «Disponible» (v0.64.0; antes solo influía en la capacidad, no en lo que se mostraba en Semana). Los de todo el día se muestran siempre.
 - **`obtenerEventosDeHoy()` / `obtenerEventosDelHorizonte()`**: atajos de `obtenerEventos` para hoy y para hoy + el horizonte (este último es el que usa Hoy).
 - **`invalidarCacheEventos()`**: vacía la caché de eventos y de calendarios; la usa `app.js` al sincronizar y al volver a la pestaña, y Configuraciones al cambiar calendarios u horizonte.
 - **`calcularSolapamiento(tarea, eventos)`**: compara la ventana `[tarea_fecha_sugerida (con hora), +tarea_duracion_min]` contra cada evento y devuelve el primero que se superpone (usado en Hoy). Pura.
@@ -224,6 +225,16 @@ Lógica **pura**: la consulta común de cuánto tiempo hay disponible cada día 
 
 - **`crearCalculadoraCapacidad({ preferencias, eventos, tareas, hoy, ahora, excluirIds })`** → `(dia) => { dia, tope, fija, libreCalendar, capacidad, carga, restante, sobrecarga }`, con memo por día. `tope`: la capacidad fijada para esa fecha o el tope de su día de la semana; `libreCalendar`: minutos de la franja sin los eventos que ocupan (y, hoy, sin lo que ya pasó); `capacidad = min(tope, libreCalendar)` (o `tope` si el usuario fijó ese día); `carga`: minutos de las tareas sin completar con fecha sugerida ese día (salvo `excluirIds`); `restante = max(0, capacidad − carga)`.
 - **`minutosOcupados(eventos, dia, franja, hastaMs)`** y **`unirIntervalos(intervalos)`**: la unión de intervalos que se pisan.
+
+## `assets/js/boton-flotante.js`
+
+- **`agregarBotonFlotante(contenedor, { titulo, alClic })`** (v0.64.0): botón "＋" `position: fixed` (siempre visible, aunque la lista sea larga), mismo look que el "＋" de la cabecera. Lo usan Categorías, Ubicaciones, Metas, Tareas y Personas.
+
+## `assets/js/selector-color.js`
+
+Selector de color propio (v0.64.0), parecido al nativo del navegador pero con Aplicar/Cancelar y un dado — hoy lo usa solo `categoria_color` (`assets/js/formularios-entidades.js`). Puro: `hsvAHex(h, s, v)` / `hexAHsv(hex)`.
+
+- **`crearSelectorColor({ contenedor, nombreCampo, valorInicial })`**: arma un botón-disparador (muestra + hex) y un popover con el área de saturación/valor y la barra de tono (arrastre con Pointer Events), un campo de hex, el dado 🎲 (sortea un HSV con saturación y brillo acotados) y Aplicar/Cancelar. El popover es `position: fixed` (calculado con `getBoundingClientRect`, no queda recortado por el `overflow-y: auto` del diálogo) y se cierra con Esc o clic afuera. El valor confirmado queda en un `<input type="hidden">`; solo al confirmar dispara el evento `color-aplicado` (para saber si el usuario ya eligió un color a mano). Devuelve `{ obtenerValor, setValor }`; `setValor` es silencioso, para precargar el color heredado de una categoría padre sin pisar una elección manual futura.
 
 ## `assets/js/checklist-tarjeta.js`
 
@@ -271,6 +282,7 @@ La vista más grande: alta de tareas, filtros, lista y el panel de IA.
 Formulario de tarea compartido por el alta, la ventana de edición y "Completar carga de tareas" (antes había tres copias).
 
 - **`htmlFormularioTarea(tarea | null, { modo, botonesNombre, botonesPie })`**: nombre arriba (con autocompletado por nombre solo en el alta) y debajo todos los campos: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, "depende de (tarea previa)" y "bloquea a (tarea próxima)" (`opcionesPrevia`/`opcionesProxima`), clima, mantenimiento con intervalo, desencadenante y checklist editable, y días hábiles. También exporta los helpers de opciones (`htmlOpcionesCategoria`, etc.) y `tareasUnicasPorNombre`.
+- **`regenerarOpcionesEnlace(formulario, referencia)`** (v0.64.0): reconstruye las opciones de "Depende de" y "Bloquea a" (por ejemplo tras "Agregar y cargar otra"). `nombreConCategoria(tarea)` muestra "Categoría · Tarea" (antes, al revés).
 - Los desplegables de categoría, ubicación y meta terminan con "＋ Crear nueva…" (`htmlOpcionesCategoria`/`htmlOpcionesUbicacion`/`htmlOpcionesMeta`): al elegirla se vuelve al valor anterior, se abre el diálogo de esa entidad y, al guardarla, el desplegable se reconstruye con la nueva seleccionada por propiedad (así el borrador del alta la conserva).
 - **`ofrecerMarcarCadenaMantenimiento(tarea, lista)`**: si la tarea tiene desencadenante y su cadena tiene tareas que no son de mantenimiento (`tareasDeLaCadenaNoRepetibles`), avisa cuáles y ofrece marcarlas con el mismo intervalo; nada cambia sin confirmar.
 - **`nombreConCategoria(tarea)`**: nombre de la tarea con su categoría ("Revisar · Casa"), para los desplegables y las tarjetas, porque dos tareas distintas pueden llamarse igual.
@@ -303,12 +315,13 @@ Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCatego
 
 ## `views/configuraciones.view.js`
 
-- **`renderVistaConfiguraciones(contenedor)`**: sección "Agenda y Calendar" (franja horaria para buscar horarios libres, desde/hasta; se guarda al cambiar y no acepta un inicio posterior al fin), "Tiempo disponible" (`conectarSeccionTiempo`: tope por día, horizonte, interruptores de eventos que se ignoran y lista de calendarios; guarda cada cambio con `guardarPreferencias(..., { sinNotificar: true })`), Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
+- **`renderVistaConfiguraciones(contenedor)`**: sección "Agenda y Calendar" (franja horaria para buscar horarios libres, desde/hasta; se guarda al cambiar y no acepta un inicio posterior al fin), "🎨 Apariencia" (interruptor de tema, ver `obtenerTema`/`establecerTema` de `app.js`), "Tiempo disponible" (`conectarSeccionTiempo`: tope por día de hasta 1440 minutos, horizonte, interruptores de eventos que se ignoran y lista de calendarios; guarda cada cambio con `guardarPreferencias(..., { sinNotificar: true })`), Exportar JSON, Importar JSON (con confirmación) y "Borrar todos los datos" (`borrarTodosLosDatos` de `almacenamiento.js`), que pide una confirmación y luego escribir BORRAR.
 
 ## `assets/js/modal-tarea.js`
 
 
-- **`abrirAltaTarea()`**: ventana "Nueva tarea" con el formulario compartido. "Agregar y cargar otra" va primero en el DOM (lo dispara Enter): agrega y deja la ventana vacía con el cursor en el nombre; "Agregar" agrega y cierra. Valida, crea la tarea, aplica los enlaces (un pedido contradictorio no crea la tarea ni limpia el formulario) y ofrece marcar la cadena de un anillo de mantenimiento. La abren el "＋" de la cabecera, la tecla N y el botón de la vista Tareas.
+- **`copiaDeTarea(origen, { vaciarNombre })`** (v0.64.0): copia los campos "de contenido" de una tarea (para Duplicar y Crearle previa/posterior de `views/tareas.view.js`) sin metadatos de sistema ni enlaces (`tarea_dependiente`, `tarea_desencadenante`); con `vaciarNombre` deja nombre y descripción vacíos.
+- **`abrirAltaTarea(origen, { previaId, proximaId })`**: ventana "Nueva tarea" con el formulario compartido. "Agregar y cargar otra" va primero en el DOM (lo dispara Enter): agrega, regenera las opciones de "Depende de"/"Bloquea a" (para poder elegir la tarea recién creada) y deja la ventana vacía con el cursor en el nombre; "Agregar" agrega y cierra. Con `origen` (v0.64.0) precarga el formulario con esos datos; `previaId`/`proximaId` fuerzan la selección inicial de esos desplegables. Valida, crea la tarea, aplica los enlaces (un pedido contradictorio no crea la tarea ni limpia el formulario) y ofrece marcar la cadena de un anillo de mantenimiento. La abren el "＋" de la cabecera, la tecla N y el botón flotante de la vista Tareas.
 Ventana modal de edición (`<dialog>` en `document.body`, sobrevive a los redibujados).
 
 - **Interruptor "Completada" y "Limpiar campos"** (v0.59.0): al guardar la edición, si el interruptor cambió se aplica después de los campos con `cumplirTarea` (y luego `ofrecerExportarACalendar`) o `reabrirTarea` (avisando si conservó la copia), igual que el desplegable de estado de Tareas. En el alta, "🧹 Limpiar campos" (junto a los botones de guardado) pide confirmación y usa `vaciarFormularioTarea`; como el formulario vacío coincide con el estado inicial, después no se pregunta si descartar.
@@ -335,8 +348,8 @@ Vista de referencia y auditoría: todas las tareas (de cualquier estado), con fi
 
 ABM de categorías, un árbol (Subcategoria ya no existe como entidad separada).
 
-- **`renderVistaCategorias(contenedor)`**: botón "＋ Nueva categoría" (abre `abrirDialogoCategoria`) y la lista renderizada como árbol recursivo (`arbolCategorias`).
-- **`renderCategoria(categoria, profundidad)`**: tarjeta indentada según su profundidad, con ▲/▼ para reordenar entre **hermanos** (mismo `categoria_padre_id`; `intercambiarPrioridad` intercambia `categoria_prioridad`), "Editar" (`abrirDialogoCategoria({ id })`) y eliminar (las hijas se promueven a raíz y las tareas asociadas quedan sin categoría).
+- **`renderVistaCategorias(contenedor)`**: botón flotante "＋" (abre `abrirDialogoCategoria`) y la lista renderizada como árbol recursivo (`arbolCategorias`), saltando las ramas colapsadas (`colapsados`, un `Set` de la sesión, expandido por defecto).
+- **`renderCategoria(categoria, profundidad, tieneHijas, colapsada, redibujar)`**: tarjeta indentada según su profundidad, con ▸/▾ para colapsar (solo si tiene hijas), ▲/▼ para reordenar entre **hermanos** (mismo `categoria_padre_id`; `intercambiarPrioridad` intercambia `categoria_prioridad`), "➕ Agregar categoría hija" (`abrirDialogoCategoria({ padreIdInicial })`), "Editar" (`abrirDialogoCategoria({ id })`) y eliminar (las hijas se promueven a raíz y las tareas asociadas quedan sin categoría).
 
 ## `views/ubicaciones.view.js`
 

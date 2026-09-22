@@ -171,9 +171,15 @@ export async function obtenerEventos(desdeISODate, hastaISODate) {
   return (await eventosCompletos(desdeISODate, hastaISODate)).filter((e) => ocupaTiempo(e, preferencias));
 }
 
-/** Para mostrar (vista Semana): todos los eventos salvo los rechazados; incluye los de todo el día y los "Disponible". */
+/**
+ * Para mostrar (vista Semana): todos los eventos salvo los rechazados y, si la preferencia lo pide, los marcados
+ * "Disponible". Los de todo el día se muestran siempre (son la franja informativa), sin importar esa preferencia.
+ */
 export async function obtenerEventosParaMostrar(desdeISODate, hastaISODate) {
-  return (await eventosCompletos(desdeISODate, hastaISODate)).filter((e) => !e.rechazado);
+  const preferencias = obtenerPreferencias();
+  return (await eventosCompletos(desdeISODate, hastaISODate)).filter(
+    (e) => !e.rechazado && !(e.disponible && !e.todoElDia && preferencias.pref_ignorar_disponible)
+  );
 }
 
 /** Eventos de hoy (atajo de `obtenerEventos`). */

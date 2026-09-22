@@ -1,5 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { abrirDialogoPersona } from '../assets/js/formularios-entidades.js';
+import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 import { escaparHtml, formatearFecha, hoyISO, diasEntreFechas } from '../assets/js/utilidades.js';
 
 function diasDesdeContacto(persona) {
@@ -11,11 +12,10 @@ export function renderVistaPersonas(contenedor) {
   contenedor.innerHTML = `
     <h2>👥 Personas</h2>
     <p class="ayuda">Hace cuánto no te reunís con cada persona, ordenado de mayor a menor tiempo — para no perder el contacto con quienes importan.</p>
-    <div class="barra-acciones-vista"><button title="Agregar una persona" type="button" id="boton-nueva-persona" class="boton-primario">＋ Nueva persona</button></div>
     <div id="lista-personas" class="lista-categorias"></div>
   `;
 
-  contenedor.querySelector('#boton-nueva-persona').addEventListener('click', () => abrirDialogoPersona());
+  agregarBotonFlotante(contenedor, { titulo: 'Agregar una persona', alClic: () => abrirDialogoPersona() });
 
   const listaPersonas = contenedor.querySelector('#lista-personas');
   if (estado.personas.length === 0) {

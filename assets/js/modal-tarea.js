@@ -13,6 +13,7 @@ import {
   validarFormularioTarea,
   ofrecerMarcarCadenaMantenimiento,
   vaciarFormularioTarea,
+  regenerarOpcionesEnlace,
 } from './formulario-tarea.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
@@ -94,34 +95,68 @@ export function abrirEdicionTarea(id) {
 let altaAbierta = false;
 
 /**
+ * Copia los datos "de contenido" de una tarea (para Duplicar, Crearle previa/posterior): todo lo que sirve de
+ * autocompletado, sin metadatos de sistema (id, fechas de creación/modificación) ni enlaces (`tarea_dependiente`,
+ * `tarea_desencadenante`) — eso lo decide quien la use. Con `vaciarNombre` deja el nombre y la descripción vacíos.
+ */
+export function copiaDeTarea(origen, { vaciarNombre = false } = {}) {
+  const {
+    tarea_id,
+    tarea_estado,
+    tarea_dependiente,
+    tarea_desencadenante,
+    tarea_fecha_fin,
+    tarea_creada_en,
+    tarea_modificado_en,
+    tarea_exportada_calendar,
+    tarea_carga_completa,
+    tarea_prioridad_manual,
+    tarea_tipo,
+    tarea_origen,
+    ...resto
+  } = origen;
+  return {
+    ...resto,
+    tarea_nombre: vaciarNombre ? '' : resto.tarea_nombre,
+    tarea_descripcion: vaciarNombre ? '' : resto.tarea_descripcion,
+    tarea_checklist: (resto.tarea_checklist || []).map((item) => ({ texto: item.texto, hecho: false })),
+  };
+}
+
+/**
  * Ventana para cargar una tarea nueva, con el mismo formulario que la edición. Enter
  * (o "Agregar y cargar otra") agrega la tarea y deja la ventana abierta, vacía y con el
  * cursor en el nombre, para cargar varias seguidas; "Agregar" agrega y cierra. Si el
  * pedido de enlaces es contradictorio no se crea la tarea ni se limpia el formulario.
+ *
+ * `origen` (opcional) precarga el formulario con esos datos (ver `copiaDeTarea`, usado por "Duplicar" y "Crearle
+ * tarea previa/posterior" de la vista Tareas); `enlace` fuerza la selección inicial de "Depende de"/"Bloquea a".
  */
-export function abrirAltaTarea() {
+export function abrirAltaTarea(origen = null, { previaId = null, proximaId = null } = {}) {
   if (altaAbierta) return;
   altaAbierta = true;
 
   abrirDialogoFormulario({
     titulo: '➕ Nueva tarea',
-    cuerpoHtml: htmlFormularioTarea(null, {
+    cuerpoHtml: htmlFormularioTarea(origen, {
       modo: 'alta',
       botonesPie: '<button title="Vaciar todos los campos del formulario (pide confirmación)" type="button" data-accion="limpiar-campos" class="btn-limpiar">🧹 Limpiar campos</button>',
     }),
     botonesGuardar: [
-      { texto: '➕ Agregar y cargar otra', valor: 'otra', orden: 1 },
-      { texto: '✅ Agregar', valor: 'cerrar', orden: 0 },
+      { texto: '➕ Agregar y cargar otra', valor: 'otra', orden: 0 },
+      { texto: '✅ Agregar', valor: 'cerrar', orden: 1 },
     ],
     conectar: (formulario) => {
       conectarFormularioTarea(formulario, { modo: 'alta' });
+      if (previaId) formulario.tarea_previa.value = previaId;
+      if (proximaId) formulario.tarea_proxima.value = proximaId;
       // El formulario vacío coincide con el estado inicial, así que después de limpiar no se pregunta si descartar.
       const limpiar = formulario.querySelector('[data-accion="limpiar-campos"]');
       limpiar.addEventListener('click', () => {
         if (confirm('¿Vaciar todos los campos del formulario?')) vaciarFormularioTarea(formulario);
       });
       // El botón va con los demás, en la fila de acciones (entre "Agregar" y "Cancelar").
-      limpiar.style.order = '50';
+      limpiar.style.order = '-50';
       formulario.querySelector('.acciones-modal').insertBefore(limpiar, formulario.querySelector('[data-accion="cancelar-dialogo"]'));
     },
     alCerrar: () => {
@@ -152,8 +187,10 @@ export function abrirAltaTarea() {
       await persistirYNotificar();
 
       if (valor === 'cerrar') return true;
-      // Cargar otra: se vacía el formulario y el cursor vuelve al nombre.
+      // Cargar otra: se vacía el formulario, se rearman los desplegables de enlace (para poder elegir la que se
+      // acaba de crear) y el cursor vuelve al nombre.
       vaciarFormularioTarea(formulario);
+      regenerarOpcionesEnlace(formulario);
       reiniciarFirma();
       return false;
     },

@@ -50,7 +50,7 @@ export function renderVistaGantt(contenedor) {
   // En celular la ventana por defecto es de 2 semanas: con 4 los días quedan demasiado angostos.
   const semanas = leerPref('semanas', SEMANAS, window.matchMedia('(max-width: 640px)').matches ? 2 : 4);
   const modo = leerPref('modo', MODOS, 'plan');
-  const agruparPor = leerPref('agrupar', AGRUPACIONES, 'categoria');
+  const agruparPor = leerPref('agrupar', AGRUPACIONES, 'nada');
 
   contenedor.innerHTML = `
     <h2>📊 Gantt</h2>

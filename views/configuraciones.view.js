@@ -4,6 +4,9 @@ import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferenc
 import { htmlInterruptor } from '../assets/js/formulario-tarea.js';
 import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } from '../assets/js/google-calendar.js';
 import { escaparHtml } from '../assets/js/utilidades.js';
+import { obtenerTema, establecerTema } from '../assets/js/app.js';
+
+const TOPE_MAXIMO_MIN = 1440; // minutos que tiene un día (24 h)
 
 const NOMBRES_DIA_CORTO = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo' };
 const HORIZONTES = [30, 60, 90, 180];
@@ -15,6 +18,11 @@ export function renderVistaConfiguraciones(contenedor) {
   const preferencias = obtenerPreferencias();
   contenedor.innerHTML = `
     <h2>⚙️ Configuraciones</h2>
+
+    <section class="seccion-config">
+      <h3>🎨 Apariencia</h3>
+      ${htmlInterruptor('tema_oscuro', obtenerTema() === 'oscuro', '🌙 Tema oscuro', 'title="Se guarda en este dispositivo"')}
+    </section>
 
     <section class="seccion-config">
       <h3>🗓️ Agenda y Calendar</h3>
@@ -36,7 +44,7 @@ export function renderVistaConfiguraciones(contenedor) {
       <h4>⏳ Tope por día de la semana (minutos)</h4>
       <div class="topes-dias">
         ${[1, 2, 3, 4, 5, 6, 0]
-          .map((d) => `<label title="Minutos que querés dedicar a tareas cada ${NOMBRES_DIA_CORTO[d].toLowerCase()}">${NOMBRES_DIA_CORTO[d]}<input type="number" data-tope-dia="${d}" min="0" step="15" value="${preferencias.pref_tope_dias[d]}" /></label>`)
+          .map((d) => `<label title="Minutos que querés dedicar a tareas cada ${NOMBRES_DIA_CORTO[d].toLowerCase()} (hasta ${TOPE_MAXIMO_MIN}, un día entero)">${NOMBRES_DIA_CORTO[d]}<input type="number" data-tope-dia="${d}" min="0" max="${TOPE_MAXIMO_MIN}" step="15" value="${preferencias.pref_tope_dias[d]}" /></label>`)
           .join('')}
       </div>
       <div class="acciones-config">
@@ -87,6 +95,10 @@ export function renderVistaConfiguraciones(contenedor) {
   campoInicio.addEventListener('change', guardarFranja);
   campoFin.addEventListener('change', guardarFranja);
 
+  contenedor.querySelector('[name="tema_oscuro"]').addEventListener('change', (evento) => {
+    establecerTema(evento.target.checked ? 'oscuro' : 'claro');
+  });
+
   conectarSeccionTiempo(contenedor);
 
   contenedor.querySelector('#boton-exportar').addEventListener('click', exportarJSON);
@@ -136,7 +148,7 @@ function conectarSeccionTiempo(contenedor) {
   seccion.querySelectorAll('[data-tope-dia]').forEach((campo) => {
     campo.addEventListener('change', () => {
       const topes = [...obtenerPreferencias().pref_tope_dias];
-      const minutos = Math.max(0, Math.round(Number(campo.value) || 0));
+      const minutos = Math.min(TOPE_MAXIMO_MIN, Math.max(0, Math.round(Number(campo.value) || 0)));
       topes[Number(campo.dataset.topeDia)] = minutos;
       campo.value = String(minutos);
       guardar({ pref_tope_dias: topes });

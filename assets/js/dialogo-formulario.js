@@ -61,7 +61,8 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = 'ðŸ’
     if (b.orden !== undefined) boton.style.order = String(b.orden);
     contenedorBotones.insertBefore(boton, cancelar);
   });
-  cancelar.style.order = '99';
+  // Estandar de la app: Cancelar (o volver) a la izquierda, la accion principal a la derecha.
+  cancelar.style.order = '-100';
   document.body.appendChild(dialogo);
 
   const formulario = dialogo.querySelector('form');

@@ -145,3 +145,9 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Condición**: al sincronizar, el archivo de Drive trae un `formato` mayor al que la app conoce (`FORMATO_ARCHIVO`).
 - **Proceso**: `sincronizarUnaVez` (`assets/js/almacenamiento.js`) no lo mezcla ni lo sube: pone la app en solo lectura (`soloLectura`) con el aviso "recargá la app".
 - **Resultado**: una versión vieja no puede pisar lo que no entiende (por ejemplo las preferencias). Al recargar, la app se actualiza sola (`sw.js` es network-first). Las versiones anteriores a la v0.62.0 no tienen esta guarda.
+
+## 26. Herencia del color al elegir una categoría padre
+
+- **Condición**: al crear una categoría (no al editar una existente), se elige o se cambia su categoría padre en el desplegable — o se abre el alta desde "➕ Agregar categoría hija" de una tarjeta.
+- **Proceso**: `assets/js/formularios-entidades.js` copia el `categoria_color` del padre elegido al selector de color (`setValor`, silencioso), siempre que el usuario **todavía no haya confirmado** un color a mano en esta misma ventana (evento `color-aplicado` de `selector-color.js`).
+- **Resultado**: una categoría nueva arranca con el color de su padre y se puede cambiar libremente; en cuanto se aplica un color a mano, dejar de elegir o cambiar el padre no lo vuelve a pisar.

@@ -2,6 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { formatearFechaOFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml, arbolCategorias, caminoCategoria } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
+import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 import {
   cumplirTarea,
   reabrirTarea,
@@ -9,9 +10,10 @@ import {
   reprogramarTareaConCascada,
   compararPorPrioridad,
   esTareaAccionable,
+  ordenarConCadenas,
 } from '../assets/js/tareas-logica.js';
 import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
-import { abrirEdicionTarea, abrirAltaTarea } from '../assets/js/modal-tarea.js';
+import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea } from '../assets/js/modal-tarea.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
@@ -19,8 +21,6 @@ import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/che
 
 const ESTADOS_SELECCIONABLES = ['pendiente', 'completada'];
 const ETIQUETAS_ESTADO_SELECCIONABLE = { pendiente: 'Pendiente', completada: 'Completada' };
-const ORDEN_ESTADOS = { pendiente: 0, bloqueada: 1, completada: 2 };
-
 let filtroCategoria = '';
 let filtroEstado = '';
 let filtroImportancia = '';
@@ -32,8 +32,6 @@ export function renderVistaTareas(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
   contenedor.innerHTML = `
     <h2>✅ Tareas</h2>
-    <div class="barra-acciones-vista"><button title="Crear una tarea nueva (tecla N)" type="button" id="boton-nueva-tarea-lista" class="boton-primario">＋ Nueva tarea</button></div>
-
     <div class="filtros">
       <label title="Mostrar solo las tareas de esta categoría (y sus subcategorías)">🗂️ Categoría
         <select id="filtro-categoria">
@@ -80,7 +78,7 @@ export function renderVistaTareas(contenedor) {
     <ul id="lista-tareas" class="lista-tareas"></ul>
   `;
 
-  contenedor.querySelector('#boton-nueva-tarea-lista').addEventListener('click', () => abrirAltaTarea());
+  agregarBotonFlotante(contenedor, { titulo: 'Crear una tarea nueva (tecla N)', alClic: () => abrirAltaTarea() });
 
   contenedor.querySelector('#filtro-categoria').addEventListener('change', (evento) => {
     filtroCategoria = evento.target.value;
@@ -121,10 +119,11 @@ export function renderVistaTareas(contenedor) {
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
     .filter((t) => !filtroImportancia || t.tarea_importancia === filtroImportancia)
     .slice()
-    // Primero las pendientes, luego las bloqueadas y al final las completadas; dentro de cada grupo, por prioridad.
-    .sort((a, b) => ORDEN_ESTADOS[a.tarea_estado] - ORDEN_ESTADOS[b.tarea_estado] || compararPorPrioridad(a, b, estado.categorias));
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
 
-  const activas = tareasFiltradas.filter((t) => t.tarea_estado !== 'completada');
+  // Cada bloqueada queda justo detrás de su previa (cadena junta, en el orden en que se va a poder hacer),
+  // en vez de separada de las pendientes por prioridad individual.
+  const activas = ordenarConCadenas(tareasFiltradas.filter((t) => t.tarea_estado !== 'completada'));
   const completadas = tareasFiltradas.filter((t) => t.tarea_estado === 'completada');
 
   if (tareasFiltradas.length === 0) {
@@ -237,6 +236,9 @@ function renderTarea(tarea) {
       }
       ${tarea.tarea_estado === 'completada' ? '' : '<button title="Posponer: elegir otra fecha para la tarea" type="button" data-accion="posponer">⏭️ Posponer</button>'}
       <button title="Editar la tarea" type="button" data-accion="editar">✏️ Editar</button>
+      <button title="Crear una tarea nueva con los mismos datos (sin enlaces), para editar y guardar aparte" type="button" data-accion="duplicar">📄 Duplicar</button>
+      <button title="Crear una tarea que bloquea a esta (mismos datos, nombre y descripción vacíos)" type="button" data-accion="crear-previa">⬅️ Crearle tarea previa</button>
+      <button title="Crear una tarea que depende de esta (mismos datos, nombre y descripción vacíos)" type="button" data-accion="crear-posterior">➡️ Crearle tarea posterior</button>
       <button title="Eliminar (pide confirmación)" type="button" data-accion="eliminar">🗑️ Eliminar</button>
     </div>
   `;
@@ -304,6 +306,14 @@ function renderTarea(tarea) {
   });
 
   li.querySelector('[data-accion="editar"]').addEventListener('click', () => abrirEdicionTarea(tarea.tarea_id));
+
+  li.querySelector('[data-accion="duplicar"]').addEventListener('click', () => abrirAltaTarea(copiaDeTarea(tarea)));
+  li.querySelector('[data-accion="crear-previa"]').addEventListener('click', () =>
+    abrirAltaTarea(copiaDeTarea(tarea, { vaciarNombre: true }), { proximaId: tarea.tarea_id })
+  );
+  li.querySelector('[data-accion="crear-posterior"]').addEventListener('click', () =>
+    abrirAltaTarea(copiaDeTarea(tarea, { vaciarNombre: true }), { previaId: tarea.tarea_id })
+  );
 
   conectarChecklistTarjeta(li, tarea);
 

@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
-import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO } from '../assets/js/utilidades.js';
+import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO, diasEntreFechas } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
   cumplirTarea,
@@ -199,6 +199,11 @@ export function renderVistaHoy(contenedor) {
  */
 function etiquetaHolgura(tarea) {
   if (!tarea.tarea_fecha_limite) return '';
+  // El margen en horas (calcularHolguraDias) puede dar "0 días" para una tarea que vence mañana a primera hora, si
+  // ya pasó esa hora hoy: acá se compara por día calendario para que el texto diga lo que corresponde.
+  const diasCalendario = diasEntreFechas(hoyISO(), diaLocal(tarea.tarea_fecha_limite));
+  if (diasCalendario === 0) return esVencida(tarea.tarea_fecha_limite) ? 'Vencida hoy' : 'Vence hoy';
+  if (diasCalendario === 1 && !esVencida(tarea.tarea_fecha_limite)) return 'Vence mañana';
   return textoHolgura(calcularHolguraDias(tarea));
 }
 

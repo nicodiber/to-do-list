@@ -490,3 +490,32 @@ export function tareasSoloConNombre(listaTareas) {
 export function esTareaAccionable(tarea) {
   return tarea.tarea_estado === 'pendiente' && !noPuedeEmpezarTodavia(tarea.tarea_fecha_inicio_habilitada);
 }
+
+/**
+ * Reordena una lista ya priorizada (`compararPorPrioridad`) para que cada tarea bloqueada quede justo detrás de su
+ * tarea previa: una cadena queda junta, en el orden en que se va a poder hacer, en lugar de separada entre
+ * "pendientes" y "bloqueadas" o dispersa por prioridad individual. Una bloqueada cuya previa no está en la lista
+ * (por ejemplo, un filtro la dejó afuera) cae al final, en su orden original. Pura: no muta la lista de entrada.
+ */
+export function ordenarConCadenas(tareasOrdenadas) {
+  const siguientePorPrevia = new Map();
+  tareasOrdenadas.forEach((t) => {
+    if (t.tarea_estado === 'bloqueada' && t.tarea_dependiente) siguientePorPrevia.set(t.tarea_dependiente, t);
+  });
+  const colocadas = new Set();
+  const resultado = [];
+  const colocar = (tarea) => {
+    if (colocadas.has(tarea.tarea_id)) return;
+    resultado.push(tarea);
+    colocadas.add(tarea.tarea_id);
+    const siguiente = siguientePorPrevia.get(tarea.tarea_id);
+    if (siguiente) colocar(siguiente);
+  };
+  tareasOrdenadas.forEach((t) => {
+    if (t.tarea_estado !== 'bloqueada') colocar(t);
+  });
+  tareasOrdenadas.forEach((t) => {
+    if (t.tarea_estado === 'bloqueada' && !colocadas.has(t.tarea_id)) colocar(t);
+  });
+  return resultado;
+}
