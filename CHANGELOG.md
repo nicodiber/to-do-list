@@ -2,6 +2,15 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.71.0] - 2026-09-23
+
+Tabla: color de categoría por fila y columnas reordenables.
+
+### Agregado
+
+- **Tabla: color de categoría**: cada fila muestra un borde izquierdo con el color de su categoría, igual que las tarjetas de Tareas.
+- **Tabla: reordenar columnas**: el diálogo "🧱 Columnas" deja subir/bajar cada columna (▲▼) además de elegir cuáles se ven; el orden elegido se guarda junto con la visibilidad.
+
 ## [v0.70.0] - 2026-09-23
 
 Selección múltiple y edición masiva en Tareas.

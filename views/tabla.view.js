@@ -156,50 +156,108 @@ const COLUMNAS = [
 
 const COMPARADORES = Object.fromEntries(COLUMNAS.map((c) => [c.clave, c.comparar]));
 
-// La elección de columnas es una preferencia de UI (no un dato de la app).
+// La elección y el orden de columnas son una preferencia de UI (no un dato de la app).
 const CLAVE_COLUMNAS = 'super-todo-list:tabla-columnas';
 
-/** Columnas visibles según la preferencia guardada (o las de por defecto). */
-function columnasVisibles() {
+/** Lo guardado en `localStorage`: `{ orden, visibles }`, o `null` sin preferencia (o si es ilegible). Acepta también
+ * el formato viejo (array plano de claves visibles, de antes de poder reordenar), tomándolo como `visibles`. */
+function preferenciaColumnas() {
   try {
-    const guardadas = JSON.parse(localStorage.getItem(CLAVE_COLUMNAS));
-    if (Array.isArray(guardadas)) {
-      const validas = COLUMNAS.filter((c) => guardadas.includes(c.clave));
-      if (validas.length > 0) return validas;
-    }
+    const guardado = JSON.parse(localStorage.getItem(CLAVE_COLUMNAS));
+    if (Array.isArray(guardado)) return { orden: null, visibles: guardado };
+    if (guardado && Array.isArray(guardado.orden) && Array.isArray(guardado.visibles)) return guardado;
   } catch {
     // Sin preferencia guardada o ilegible: se usan las de por defecto.
   }
-  return COLUMNAS.filter((c) => c.defecto);
+  return null;
 }
 
-function guardarColumnasVisibles(claves) {
+function guardarPreferenciaColumnas({ orden, visibles }) {
   try {
-    localStorage.setItem(CLAVE_COLUMNAS, JSON.stringify(claves));
+    localStorage.setItem(CLAVE_COLUMNAS, JSON.stringify({ orden, visibles }));
   } catch {
     // Es solo una preferencia.
   }
 }
 
-/** Diálogo con una casilla por columna para elegir cuáles se ven. */
+/** Todas las columnas (visibles u ocultas) en el orden elegido; una columna nueva que la preferencia no conozca
+ * todavía (por ejemplo, sumada en una versión futura) aparece al final. */
+function todasLasColumnasOrdenadas() {
+  const orden = preferenciaColumnas()?.orden;
+  if (!orden) return COLUMNAS;
+  const porClave = new Map(COLUMNAS.map((c) => [c.clave, c]));
+  const ordenadas = orden.map((clave) => porClave.get(clave)).filter(Boolean);
+  COLUMNAS.forEach((c) => {
+    if (!orden.includes(c.clave)) ordenadas.push(c);
+  });
+  return ordenadas;
+}
+
+/** Columnas visibles, en el orden elegido (o las de por defecto, en el orden de `COLUMNAS`). */
+function columnasVisibles() {
+  const visibles = preferenciaColumnas()?.visibles;
+  if (!visibles) return COLUMNAS.filter((c) => c.defecto);
+  const visible = todasLasColumnasOrdenadas().filter((c) => visibles.includes(c.clave));
+  return visible.length > 0 ? visible : COLUMNAS.filter((c) => c.defecto);
+}
+
+/** Diálogo con una fila por columna (casilla de visibilidad + ▲▼ para reordenar) para elegir cuáles se ven y en qué orden. */
 function abrirSelectorColumnas(alCambiar) {
   const visibles = new Set(columnasVisibles().map((c) => c.clave));
+
+  function actualizarLimites(lista) {
+    const filas = [...lista.children];
+    filas.forEach((fila, i) => {
+      fila.querySelector('[data-accion="subir"]').disabled = i === 0;
+      fila.querySelector('[data-accion="bajar"]').disabled = i === filas.length - 1;
+    });
+  }
+
   abrirDialogoFormulario({
     titulo: 'Columnas de la tabla',
     textoGuardar: 'Guardar',
     cuerpoHtml: `
-      <p class="ayuda ayuda-formulario">Elegí qué columnas mostrar. Se recuerda tu elección en este dispositivo.</p>
-      <fieldset class="dias-habiles selector-columnas">
-        ${COLUMNAS.map((c) => `<label class="dia-habil"><input type="checkbox" name="columna" value="${c.clave}" ${visibles.has(c.clave) ? 'checked' : ''} /> ${c.etiqueta}</label>`).join('')}
-      </fieldset>
+      <p class="ayuda ayuda-formulario">Elegí qué columnas mostrar y en qué orden. Se recuerda tu elección en este dispositivo.</p>
+      <div class="lista-columnas-tabla">
+        ${todasLasColumnasOrdenadas()
+          .map(
+            (c) => `
+          <div class="fila-columna-tabla" data-clave="${c.clave}">
+            <label class="dia-habil"><input type="checkbox" name="columna" value="${c.clave}" ${visibles.has(c.clave) ? 'checked' : ''} /> ${c.etiqueta}</label>
+            <span class="acciones-prioridad">
+              <button type="button" data-accion="subir" title="Subir">▲</button>
+              <button type="button" data-accion="bajar" title="Bajar">▼</button>
+            </span>
+          </div>`
+          )
+          .join('')}
+      </div>
     `,
+    conectar: (formulario) => {
+      const lista = formulario.querySelector('.lista-columnas-tabla');
+      lista.querySelectorAll('.fila-columna-tabla').forEach((fila) => {
+        fila.querySelector('[data-accion="subir"]').addEventListener('click', () => {
+          const anterior = fila.previousElementSibling;
+          if (anterior) lista.insertBefore(fila, anterior);
+          actualizarLimites(lista);
+        });
+        fila.querySelector('[data-accion="bajar"]').addEventListener('click', () => {
+          const siguiente = fila.nextElementSibling;
+          if (siguiente) lista.insertBefore(siguiente, fila);
+          actualizarLimites(lista);
+        });
+      });
+      actualizarLimites(lista);
+    },
     alGuardar: (formulario) => {
-      const elegidas = [...formulario.querySelectorAll('input[name="columna"]:checked')].map((i) => i.value);
+      const filas = [...formulario.querySelectorAll('.fila-columna-tabla')];
+      const orden = filas.map((f) => f.dataset.clave);
+      const elegidas = filas.filter((f) => f.querySelector('input[name="columna"]').checked).map((f) => f.dataset.clave);
       if (elegidas.length === 0) {
         alert('Elegí al menos una columna.');
         return false;
       }
-      guardarColumnasVisibles(elegidas);
+      guardarPreferenciaColumnas({ orden, visibles: elegidas });
       alCambiar();
       return true;
     },
@@ -359,6 +417,8 @@ export function renderVistaTabla(contenedor) {
 function renderFila(tarea, columnas, ordenManual) {
   const fila = document.createElement('tr');
   fila.className = 'fila-tabla-tarea';
+  const categoria = categoriaDe(tarea);
+  fila.style.setProperty('--color-categoria', categoria ? categoria.categoria_color : 'var(--color-borde)');
   const celdaOrden = ordenManual ? `<td class="td-orden-manual"><span class="acciones-prioridad"><button type="button" data-accion="subir-orden" title="Subir">▲</button><button type="button" data-accion="bajar-orden" title="Bajar">▼</button></span></td>` : '';
   fila.innerHTML = celdaOrden + columnas.map((c) => `<td>${c.valor(tarea)}</td>`).join('');
   fila.addEventListener('click', () => {
