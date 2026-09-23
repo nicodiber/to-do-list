@@ -79,6 +79,7 @@ export function crearSelectorColor({ contenedor, nombreCampo, valorInicial = '#4
       </div>
       <div class="selector-color-fila">
         <input type="text" class="selector-color-hex-input" maxlength="7" aria-label="Color en hexadecimal" />
+        ${window.EyeDropper ? '<button type="button" class="selector-color-pipeta" title="Elegir un color de cualquier parte de la pantalla (pipeta)">💧</button>' : ''}
         <button type="button" class="selector-color-dado" title="Sortear un color">🎲</button>
       </div>
       <div class="selector-color-acciones">
@@ -183,6 +184,17 @@ export function crearSelectorColor({ contenedor, nombreCampo, valorInicial = '#4
   hexInput.addEventListener('change', () => {
     previa = hexAHsv(hexInput.value);
     repintar();
+  });
+
+  contenedor.querySelector('.selector-color-pipeta')?.addEventListener('click', async () => {
+    // Soportada en Chrome/Edge, no en Firefox/Safari: el botón ni se dibuja si `window.EyeDropper` no existe.
+    try {
+      const resultado = await new window.EyeDropper().open();
+      previa = hexAHsv(resultado.sRGBHex);
+      repintar();
+    } catch {
+      // El usuario canceló la pipeta (Esc o clic afuera): no hace nada.
+    }
   });
 
   contenedor.querySelector('.selector-color-dado').addEventListener('click', () => {

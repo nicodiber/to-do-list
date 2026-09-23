@@ -95,11 +95,10 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
     evento.preventDefault();
     formulario.requestSubmit(principal);
   });
-  // Clic afuera: solo si el clic empezó y terminó fuera (arrastrar desde un campo hacia afuera no cierra).
-  const fuera = (evento) => {
-    const r = dialogo.getBoundingClientRect();
-    return evento.clientX < r.left || evento.clientX > r.right || evento.clientY < r.top || evento.clientY > r.bottom;
-  };
+  // Clic afuera: solo si el clic empezó y terminó fuera (arrastrar desde un campo hacia afuera no cierra). Se mide
+  // por contención en el DOM (no por coordenadas): un popover propio del formulario (por ejemplo el selector de
+  // color) puede dibujarse con `position: fixed` fuera del rectángulo visual del diálogo y aun así seguir "adentro".
+  const fuera = (evento) => !dialogo.contains(evento.target);
   let empezoAfuera = false;
   dialogo.addEventListener('mousedown', (evento) => {
     empezoAfuera = fuera(evento);

@@ -38,7 +38,7 @@ export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = nul
   });
 
   contenedor.innerHTML = `
-    <h2>🗓️ Agenda</h2>
+    <h2>📖 Agenda</h2>
     <div class="selector-rango" role="group" aria-label="Cantidad de días">
       ${[3, 8, 15].map((n) => `<button type="button" data-dias="${n}" title="Ver los próximos ${n} días" class="${n === cantidadDias ? 'activo' : ''}">${n} días</button>`).join('')}
     </div>

@@ -2,6 +2,29 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.66.1] - 2026-09-22
+
+Ajustes chicos y corrección de bugs detectados usando la app con datos reales.
+
+### Agregado
+
+- **"➡️ Agregar y crearle siguiente"** en el alta de tarea: guarda la tarea actual y abre una nueva en blanco, ya con "Depende de" apuntando a la que se acaba de crear — para cargar una cadena rápido, una detrás de otra.
+- **Pipeta de color** (💧, cuando el navegador la soporta — `EyeDropper` de Chrome/Edge) en el selector de color de categorías, además del dado.
+- Ícono de la pestaña **Agenda** cambiado a 📖.
+
+### Cambiado
+
+- Una tarea nueva que queda **bloqueada** y no tiene una "fecha desde" propia hereda la de su tarea previa (antes quedaba en la fecha de creación, como si no tuviera ninguna restricción).
+
+### Corregido
+
+- El selector de color (categorías) disparaba "¿Descartar cambios?" al tocar el dado o la pipeta: el popover se dibuja con `position: fixed`, así que un clic dentro de él podía caer fuera del rectángulo visual del diálogo aunque siguiera siendo parte de su contenido. `dialogo-formulario.js` ahora mide "clic afuera" por **contención en el DOM**, no por coordenadas.
+- Al abrir "Duplicar" o "Crearle tarea previa/posterior" y escribir (o pegar) un nombre que coincidía con otra tarea existente, la app pisaba la categoría (y otros campos) ya precargados desde la tarea de origen, porque los tomaba por "sin tocar". Esa precarga por nombre ahora se desactiva cuando el formulario ya se abrió con datos propios.
+
+### Documentación
+
+- `LOGICA_FUNCIONES.md`, `BACKLOG.md`.
+
 ## [v0.66.0] - 2026-09-22
 
 Tercera ronda con datos reales: asociación Tarea↔Persona (ver `CHANGELOG.md` v0.64.0 y v0.65.0).
