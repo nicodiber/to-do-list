@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.70.0] - 2026-09-23
+
+Selección múltiple y edición masiva en Tareas.
+
+### Agregado
+
+- **Selección múltiple y edición masiva**: "☑️ Seleccionar" en Tareas muestra una casilla en cada tarjeta; con una o más elegidas, "✏️ Editar tareas seleccionadas" abre un formulario donde solo los campos tildados con "Cambiar" (categoría, importancia, disfrute, meta, persona, ubicación, fecha límite, duración, costo estimado, días hábiles) se aplican a todas de una — el resto de cada tarea queda como estaba. Quedan afuera a propósito el nombre/descripción, los enlaces depende-de/bloquea-a (regla 1 a 1) y marcar como completada.
+
 ## [v0.69.0] - 2026-09-23
 
 Reordenar tareas a mano con ▲▼, en Tareas, Tabla y Gantt.

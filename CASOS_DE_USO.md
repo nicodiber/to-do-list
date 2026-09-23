@@ -220,6 +220,21 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Resultado**: preferencias actualizadas.
 - **Fricciones**: los eventos no se editan desde STDL (clic los abre en Google Calendar); solo Semana usa la capacidad (el Gantt y la reprogramación de fechas vencidas se suman en la 9c); no hay feriados (decisión del usuario).
 
+### A11. Editar varias tareas a la vez (v0.70.0)
+
+- **Objetivo**: aplicar el mismo cambio (por ejemplo, la misma fecha límite o categoría) a un grupo de tareas sin editarlas una por una.
+- **Disparador**: varias tareas necesitan el mismo ajuste (ej. mover un lote entero de fecha límite tras reorganizar la semana).
+- **Pasos**: Tareas → "☑️ Seleccionar" → tildar las tarjetas → "✏️ Editar tareas seleccionadas" → tildar "Cambiar" en los campos que se quieren aplicar y completarlos → "Aplicar cambios".
+- **Flujo usuario/sistema**:
+  1. Usuario activa "☑️ Seleccionar"; sistema muestra una casilla en cada tarjeta activa (no completadas) y la barra "N seleccionadas".
+  2. Usuario tilda las tarjetas que quiere editar; sistema solo actualiza el contador y el botón "Editar" (sin redibujar la lista, para no perder el scroll).
+  3. Usuario abre "Editar N tareas"; sistema muestra un formulario con una fila por campo (categoría, importancia, disfrute, meta, persona, ubicación, fecha límite, duración, costo estimado, días hábiles), cada una con una casilla "Cambiar" que habilita ese campo.
+  4. Usuario tilda solo los campos que quiere tocar y los completa; el resto queda gris/deshabilitado.
+  5. Usuario presiona "Aplicar cambios"; sistema aplica solo los campos tildados a cada tarea elegida, persiste una vez y sale del modo selección. Sin ningún campo tildado, avisa y no hace nada.
+- **Vistas/funciones**: `views/tareas.view.js` (`abrirEdicionMasiva`, `htmlFormularioEdicionMasiva`, `leerEdicionMasiva`), `assets/js/formulario-tarea.js` (`aplicarCamposATarea`, reusado).
+- **Resultado**: los campos tildados quedan iguales en todas las tareas elegidas; el resto de cada tarea no se toca.
+- **Fricciones**: a propósito no incluye nombre/descripción, los enlaces depende-de/bloquea-a (regla 1 a 1) ni marcar como completada (esa sigue siendo una acción por tarea, ver A4).
+
 ## Bloque B — Planificación de objetivos
 
 ### B1. Crear y seguir una Meta

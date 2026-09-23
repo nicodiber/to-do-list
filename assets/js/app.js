@@ -36,7 +36,7 @@ import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.69.0';
+const VERSION = 'v0.70.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
