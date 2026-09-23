@@ -426,6 +426,12 @@ h1, h2, h3 {
   color: var(--color-primario);
 }
 
+.th-orden-manual,
+.td-orden-manual {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .panel-versus {
   margin: 0.5rem 0 1rem;
   padding: 0.6rem;
@@ -1817,6 +1823,20 @@ span.etiqueta-exportada {
   cursor: pointer;
   padding: 0 0.15rem;
   font-size: 0.85rem;
+}
+
+.gantt-orden {
+  flex: none;
+  gap: 0.1rem;
+}
+
+.gantt-orden button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 0.1rem;
+  font-size: 0.7rem;
+  color: var(--color-texto-suave);
 }
 
 .gantt-pista {

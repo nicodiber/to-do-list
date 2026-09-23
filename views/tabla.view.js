@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, NIVELES_IMPORTANCIA, ORDEN_IMPORTANCIA, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, escaparHtml } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable, ordenarConCadenas } from '../assets/js/tareas-logica.js';
+import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
@@ -283,6 +283,7 @@ export function renderVistaTabla(contenedor) {
       <table class="tabla-informe">
         <thead>
           <tr>
+            ${columnaOrden === null ? '<th class="th-orden-manual" title="Reordenar a mano (solo entre tareas empatadas en prioridad y sin relación de cadena)">Orden</th>' : ''}
             ${columnas.map(({ clave, etiqueta }) => {
               const activa = columnaOrden === clave;
               const flecha = activa ? (direccionOrden === 'asc' ? ' ▲' : ' ▼') : '';
@@ -351,16 +352,45 @@ export function renderVistaTabla(contenedor) {
     return;
   }
 
-  filas.forEach((tarea) => cuerpo.appendChild(renderFila(tarea, columnas)));
+  const conOrdenManual = columnaOrden === null;
+  filas.forEach((tarea, indice) => cuerpo.appendChild(renderFila(tarea, columnas, conOrdenManual ? { indice, filas } : null)));
 }
 
-function renderFila(tarea, columnas) {
+function renderFila(tarea, columnas, ordenManual) {
   const fila = document.createElement('tr');
   fila.className = 'fila-tabla-tarea';
-  fila.innerHTML = columnas.map((c) => `<td>${c.valor(tarea)}</td>`).join('');
+  const celdaOrden = ordenManual ? `<td class="td-orden-manual"><span class="acciones-prioridad"><button type="button" data-accion="subir-orden" title="Subir">▲</button><button type="button" data-accion="bajar-orden" title="Bajar">▼</button></span></td>` : '';
+  fila.innerHTML = celdaOrden + columnas.map((c) => `<td>${c.valor(tarea)}</td>`).join('');
   fila.addEventListener('click', () => {
     abrirEdicionTarea(tarea.tarea_id);
   });
+
+  if (ordenManual) {
+    const { indice, filas } = ordenManual;
+    const anterior = indice > 0 ? filas[indice - 1] : null;
+    const siguiente = indice < filas.length - 1 ? filas[indice + 1] : null;
+    const botonSubir = fila.querySelector('[data-accion="subir-orden"]');
+    const botonBajar = fila.querySelector('[data-accion="bajar-orden"]');
+    const motivoSubir = anterior ? motivoBloqueoOrdenManual(tarea, anterior, estado.categorias) : 'Ya es la primera.';
+    const motivoBajar = siguiente ? motivoBloqueoOrdenManual(tarea, siguiente, estado.categorias) : 'Ya es la última.';
+    botonSubir.disabled = !!motivoSubir;
+    if (motivoSubir) botonSubir.title = motivoSubir;
+    botonBajar.disabled = !!motivoBajar;
+    if (motivoBajar) botonBajar.title = motivoBajar;
+    botonSubir.addEventListener('click', async (evento) => {
+      evento.stopPropagation();
+      if (!anterior) return;
+      asignarOrdenManual(tarea, anterior, estado.tareas);
+      await persistirYNotificar();
+    });
+    botonBajar.addEventListener('click', async (evento) => {
+      evento.stopPropagation();
+      if (!siguiente) return;
+      asignarOrdenManual(siguiente, tarea, estado.tareas);
+      await persistirYNotificar();
+    });
+  }
+
   return fila;
 }
 
@@ -456,9 +486,7 @@ function crearPanelVersus(contenedorVista) {
   `;
 
   async function elegir(preferida, otra) {
-    const siguienteValor = 1 + Math.max(-1, ...estado.tareas.map((t) => t.tarea_prioridad_manual).filter((v) => v != null));
-    preferida.tarea_prioridad_manual = siguienteValor;
-    otra.tarea_prioridad_manual = siguienteValor + 1;
+    asignarOrdenManual(preferida, otra, estado.tareas);
     await persistirYNotificar();
     renderVistaTabla(contenedorVista);
   }

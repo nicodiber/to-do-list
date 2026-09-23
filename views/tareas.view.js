@@ -11,6 +11,8 @@ import {
   compararPorPrioridad,
   esTareaAccionable,
   ordenarConCadenas,
+  asignarOrdenManual,
+  motivoBloqueoOrdenManual,
 } from '../assets/js/tareas-logica.js';
 import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea } from '../assets/js/modal-tarea.js';
@@ -131,19 +133,23 @@ export function renderVistaTareas(contenedor) {
     return;
   }
 
+  // El índice de ▲▼ siempre es el de este orden global (`activas`), aunque la pantalla las agrupe por categoría:
+  // la prioridad manual es un concepto global, no por grupo visual.
+  const indiceEn = (tarea) => activas.indexOf(tarea);
+
   if (!agruparPorCategoria) {
-    activas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+    activas.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, indiceEn(tarea), activas)));
   } else {
     arbolCategorias(estado.categorias).forEach(({ categoria }) => {
       const tareasDeCategoria = activas.filter((t) => t.categoria_id === categoria.categoria_id);
       if (tareasDeCategoria.length === 0) return;
       listaTareas.appendChild(crearSeparadorCategoria(caminoCategoria(categoria, estado.categorias), categoria.categoria_color));
-      tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+      tareasDeCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, indiceEn(tarea), activas)));
     });
     const tareasSinCategoria = activas.filter((t) => !t.categoria_id);
     if (tareasSinCategoria.length > 0) {
       listaTareas.appendChild(crearSeparadorCategoria('Sin categoría'));
-      tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea)));
+      tareasSinCategoria.forEach((tarea) => listaTareas.appendChild(renderTarea(tarea, indiceEn(tarea), activas)));
     }
   }
 
@@ -171,7 +177,7 @@ function crearSeparadorCategoria(nombre, color) {
   return li;
 }
 
-function renderTarea(tarea) {
+function renderTarea(tarea, indice = -1, activas = null) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
   const meta = estado.metas.find((m) => m.meta_id === tarea.meta_id);
@@ -229,6 +235,7 @@ function renderTarea(tarea) {
       <div class="contenedor-panel-mejora" hidden></div>
     </div>
     <div class="item-tarea-acciones">
+      ${activas ? '<span class="acciones-prioridad"><button type="button" data-accion="subir-orden" title="Subir">▲</button><button type="button" data-accion="bajar-orden" title="Bajar">▼</button></span>' : ''}
       ${
         bloqueada
           ? `<span class="etiqueta-fecha etiqueta-bloqueada">Bloqueada</span>`
@@ -244,6 +251,29 @@ function renderTarea(tarea) {
       <button title="Eliminar (pide confirmación)" type="button" data-accion="eliminar">🗑️ Eliminar</button>
     </div>
   `;
+
+  if (activas) {
+    const anterior = indice > 0 ? activas[indice - 1] : null;
+    const siguiente = indice < activas.length - 1 ? activas[indice + 1] : null;
+    const botonSubir = li.querySelector('[data-accion="subir-orden"]');
+    const botonBajar = li.querySelector('[data-accion="bajar-orden"]');
+    const motivoSubir = anterior ? motivoBloqueoOrdenManual(tarea, anterior, estado.categorias) : 'Ya es la primera.';
+    const motivoBajar = siguiente ? motivoBloqueoOrdenManual(tarea, siguiente, estado.categorias) : 'Ya es la última.';
+    botonSubir.disabled = !!motivoSubir;
+    if (motivoSubir) botonSubir.title = motivoSubir;
+    botonBajar.disabled = !!motivoBajar;
+    if (motivoBajar) botonBajar.title = motivoBajar;
+    botonSubir.addEventListener('click', async () => {
+      if (!anterior) return;
+      asignarOrdenManual(tarea, anterior, estado.tareas);
+      await persistirYNotificar();
+    });
+    botonBajar.addEventListener('click', async () => {
+      if (!siguiente) return;
+      asignarOrdenManual(siguiente, tarea, estado.tareas);
+      await persistirYNotificar();
+    });
+  }
 
   const contenedorMejora = li.querySelector('.contenedor-panel-mejora');
   li.querySelector('[data-accion="cambiar-estado"]')?.addEventListener('change', async (evento) => {
