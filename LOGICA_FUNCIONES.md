@@ -21,7 +21,7 @@ Bootstrap y router de toda la app.
 - **Refresco de Calendar** (`refrescarCalendar()`): al usar "Sincronizar ahora" y al volver a la pestaña (`visibilitychange`), si hay conexión con Calendar llama a `invalidarCacheEventos()` y, si la vista actual es Hoy, redibuja (salvo con una ventana abierta, texto a medio escribir o un panel de cierre/reprogramación abierto en una tarjeta).
 - **Atajos de teclado**: `configurarAtajos` (`assets/js/atajos.js`) registra un único `keydown` global; `app.js` le pasa el orden de `VISTAS` (las diez primeras se abren con las teclas 1…9 y 0), `irAVista`, `abrirNuevaTarea` (el mismo que usa el botón "＋") y `puedeUsarse()` (datos listos y no solo lectura). El botón ⌨️ de la cabecera abre la ayuda. El `title` de cada pestaña muestra su tecla.
 - **Tema claro/oscuro**: `temaEfectivo()`/`aplicarTema()` leen/aplican la preferencia guardada en `localStorage` (una preferencia, nunca datos de tareas). **El oscuro es el valor por defecto**: sin elección guardada la app se abre en oscuro aunque el sistema esté en claro (ya no sigue `prefers-color-scheme`). `aplicarTema` también actualiza `theme-color`.
-- **Reprogramado automático al iniciar** (`reprogramarSiCorresponde()`): una sola vez, cuando los datos ya están listos (después de `inicializarAlmacenamiento()` o de conectar), se llama `reprogramarFechasSugeridasVencidas(estado.tareas)` (`tareas-logica.js`) y, si afectó alguna tarea, se persiste y se avisa con un `alert()`. Ver `REGLAS_DE_PRIORIDAD.md`.
+- **Reprogramado y programación automática al iniciar** (`reprogramarSiCorresponde()`): una sola vez, cuando los datos ya están listos (después de `inicializarAlmacenamiento()` o de conectar), se llama `reprogramarFechasSugeridasVencidas(estado.tareas)` (`tareas-logica.js`) y `programarTareasSinFecha(estado)` (`programador.js`); si alguna de las dos afectó tareas, se persiste y se avisa con un `alert()` combinado. Ver `REGLAS_DE_PRIORIDAD.md`.
 - Wiring de los botones de la cabecera (sincronizar ahora, exportar/importar JSON, tema) hacia `almacenamiento.js`.
 - Al final, llama `inicializarAlmacenamiento()` y registra el service worker (`sw.js`).
 
@@ -221,10 +221,16 @@ Lectura de eventos reales de Google Calendar. Usa el token de `google-auth.js` (
 
 ## `assets/js/capacidad.js`
 
-Lógica **pura**: la consulta común de cuánto tiempo hay disponible cada día y cuánto lleva comprometido. Hoy la usa Semana (el Gantt y la reprogramación de fechas vencidas se sumarán).
+Lógica **pura**: la consulta común de cuánto tiempo hay disponible cada día y cuánto lleva comprometido. La usan Semana (la barra de carga) y `programador.js` (la programación automática).
 
 - **`crearCalculadoraCapacidad({ preferencias, eventos, tareas, hoy, ahora, excluirIds })`** → `(dia) => { dia, tope, fija, libreCalendar, capacidad, carga, restante, sobrecarga }`, con memo por día. `tope`: la capacidad fijada para esa fecha o el tope de su día de la semana; `libreCalendar`: minutos de la franja sin los eventos que ocupan (y, hoy, sin lo que ya pasó); `capacidad = min(tope, libreCalendar)` (o `tope` si el usuario fijó ese día); `carga`: minutos de las tareas sin completar con fecha sugerida ese día (salvo `excluirIds`); `restante = max(0, capacidad − carga)`.
 - **`minutosOcupados(eventos, dia, franja, hastaMs)`** y **`unirIntervalos(intervalos)`**: la unión de intervalos que se pisan.
+
+## `assets/js/programador.js`
+
+Programación automática (v0.67.0): a las tareas activas sin `tarea_fecha_sugerida` (salvo las de mantenimiento) les asigna día y hora reales. Se llama una sola vez al iniciar, desde `reprogramarSiCorresponde()` en `app.js`.
+
+- **`async programarTareasSinFecha(estado)`**: recorre las candidatas siguiendo sus cadenas (`tarea_dependiente`; cada una espera a que su previa quede programada, al menos un día después). Para cada una: el día más temprano posible es `max(hoy, tarea_fecha_inicio_habilitada real, día siguiente al de su previa)`; desde ahí busca, día por día, el primero con minutos libres suficientes (`crearCalculadoraCapacidad` de `capacidad.js` — la carga de cada día se acumula aparte, sumando lo que esta misma pasada va asignando, porque la calculadora solo ve una foto de las tareas de antes de empezar) y, dentro de ese día, el primer hueco horario (`buscarHuecoLibre` de `google-calendar.js`) que no choque ni con Calendar (si hay conexión — si no, se programa igual solo con el tope de minutos) ni con otra tarea de STDL ya asignada ese día. Si no encuentra hueco dentro del horizonte configurado, la deja sin programar (se reintenta en la próxima sesión). Devuelve las tareas que sí programó.
 
 ## `assets/js/boton-flotante.js`
 
@@ -372,7 +378,7 @@ ABM de metas, con progreso calculado al vuelo y los flujos de IA conectable.
 Lógica pura (sin DOM) del Gantt, en días locales.
 
 - **`habilitadaReal(tarea)`**: el día de `tarea_fecha_inicio_habilitada` solo si difiere de `tarea_creada_en` (por defecto vale la creación, que no cuenta como fecha real); vacío si no.
-- **`calcularPosiciones(estado, { hoy, agruparPor })`**: `Map(tarea_id → { dia, virtual, completada })`. Con `tarea_fecha_sugerida`: ese día. Sin sugerida y sin previa: cola del carril (`carrilDe`) ordenada con `compararPorPrioridad`, una por día desde hoy y no antes de `habilitadaReal`; sin sugerida y con previa: el día siguiente al de su previa (real o estimado, mínimo hoy; con protección ante ciclos). Las completadas, en el día de `tarea_fecha_fin`. Se calcula sobre todas las tareas, antes de filtrar.
+- **`calcularPosiciones(estado, { hoy, agruparPor })`**: `Map(tarea_id → { dia, virtual, completada })`. Con `tarea_fecha_sugerida`: ese día. Sin sugerida y sin previa: cola del carril (`carrilDe`) ordenada con `compararPorPrioridad`, una por día desde hoy y no antes de `habilitadaReal`; sin sugerida y con previa: el día siguiente al de su previa (real o estimado, mínimo hoy; con protección ante ciclos). Las completadas, en el día de `tarea_fecha_fin`. Se calcula sobre todas las tareas, antes de filtrar. Desde v0.67.0 casi toda tarea activa termina con `tarea_fecha_sugerida` real (ver `programador.js`); esta posición estimada solo se ve en la tarea recién creada (antes del próximo inicio de sesión) o en la que no encontró hueco dentro del horizonte.
 - **`calcularVentana(tarea, hoy)`**: `{ inicio, fin, vencida }` desde hoy (o la habilitada real) hasta el límite; si el límite pasó, del límite a hoy y `vencida`; sin límite, `null`.
 - **`aplicarFiltros(tareas, filtros, estado)`**: categoría (con `descendientesDeCategoria`), meta, estado (`activas`, `pendientes`, `bloqueadas`, `completadas`, `todas`) y texto sin distinguir mayúsculas ni acentos.
 - **`construirFilas(estado, { filtros, agruparPor, hoy })`**: separadores `{ carril }` (categoría raíz, meta o ninguno) y filas `{ tarea, plan, ventana, limite, noLlega }` ordenadas por día y prioridad.

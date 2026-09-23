@@ -8,7 +8,7 @@ Documentación de cómo funciona: [CASOS_DE_USO.md](CASOS_DE_USO.md) (flujos de 
 
 ## Estado actual
 
-**v0.66.1.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Con datos reales cargados desde la v0.63.0; el desarrollo sigue por ajustes y rondas más chicas sobre la marcha. Ver [CHANGELOG.md](CHANGELOG.md).
+**v0.67.0.** Gestión de tareas con categorías jerárquicas, dependencias, tareas de mantenimiento cíclicas, algoritmo de prioridad (holgura + categoría + importancia, con desempate manual "Versus"), programación automática de día y hora (respetando el tope de minutos por día y Google Calendar), vistas Hoy / 3 días / 8 días / Semana / Gantt / Todas / Informes, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Con datos reales cargados desde la v0.63.0; el desarrollo sigue por ajustes y rondas más chicas sobre la marcha. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Cómo correrlo
 
