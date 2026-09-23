@@ -15,6 +15,7 @@ import {
   hayTextoEnEdicion,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre } from './tareas-logica.js';
+import { programarTareasSinFecha } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
@@ -35,7 +36,7 @@ import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.66.1';
+const VERSION = 'v0.67.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -333,15 +334,18 @@ suscribirSync((s) => {
 
 let reprogramado = false;
 
-/** Reprograma fechas sugeridas vencidas una sola vez por sesión, apenas hay datos cargados. */
+/** Reprograma fechas vencidas y programa las tareas sin fecha, una sola vez por sesión, apenas hay datos cargados. */
 async function reprogramarSiCorresponde() {
   if (reprogramado || !obtenerEstadoSync().datosListos) return;
   reprogramado = true;
-  const afectadas = reprogramarFechasSugeridasVencidas(estado.tareas);
-  if (afectadas.length > 0) {
-    await persistirYNotificar();
-    alert(`Se reprogramó la fecha sugerida de ${afectadas.length} tarea${afectadas.length === 1 ? '' : 's'} que había vencido.`);
-  }
+  const vencidas = reprogramarFechasSugeridasVencidas(estado.tareas);
+  const nuevas = await programarTareasSinFecha(estado);
+  if (vencidas.length === 0 && nuevas.length === 0) return;
+  await persistirYNotificar();
+  const partes = [];
+  if (nuevas.length > 0) partes.push(`se programó la fecha sugerida de ${nuevas.length} tarea${nuevas.length === 1 ? '' : 's'} nueva${nuevas.length === 1 ? '' : 's'}`);
+  if (vencidas.length > 0) partes.push(`se reprogramó la de ${vencidas.length} tarea${vencidas.length === 1 ? '' : 's'} que había vencido`);
+  alert(`Al iniciar, ${partes.join(' y ')}.`);
 }
 
 document.getElementById('version-app').textContent = VERSION;

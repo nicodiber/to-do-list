@@ -2,6 +2,19 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.67.0] - 2026-09-23
+
+Programación automática de la lista: las tareas activas sin fecha sugerida (y que no son de mantenimiento) pasan a tener un día y una hora reales asignados solos, en vez de solo una posición estimada para dibujar.
+
+### Agregado
+
+- **Programación automática** (`assets/js/programador.js`): al iniciar la app, toda tarea activa sin `tarea_fecha_sugerida` recibe una real, respetando el tope de minutos por día, lo ocupado en Google Calendar (si hay conexión) y el orden de las cadenas de dependencia — cada tarea se programa un día después de su previa, como mínimo. Dentro del día elegido, busca la hora exacta (el primer hueco libre real, sin chocar con Calendar ni con otra tarea de STDL ya asignada). Sin conexión con Calendar, programa igual usando solo el tope de minutos. Se avisa con un `alert()` cuántas tareas se programaron, junto con las que se reprogramaron por vencidas.
+
+### Corregido
+
+- **Gantt**: una cadena de tareas con la misma fecha límite y sin fecha sugerida ahora se reparte en días distintos (antes se apilaba toda en la fecha límite, porque cada una se estimaba "un día después de la previa" sin mirar la capacidad real). Con fecha real asignada, `calcularPosiciones` las toma directamente como barras reales, ya no punteadas.
+- **Semana**: por el mismo motivo, una cadena así ya no se ve amontonada toda en el día de la fecha límite.
+
 ## [v0.66.1] - 2026-09-22
 
 Ajustes chicos y corrección de bugs detectados usando la app con datos reales.
