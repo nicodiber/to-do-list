@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.72.0] - 2026-09-23
+
+Ubicaciones: autocompletar latitud/longitud buscando una dirección.
+
+### Agregado
+
+- **Buscar una dirección o un lugar al cargar una Ubicación**: nuevo campo de búsqueda (Nominatim de OpenStreetMap, gratis y sin clave) que ofrece hasta 5 resultados; tocar uno completa la latitud y la longitud solas. La carga manual (o pegar el par que copia Google Maps) sigue funcionando igual, como alternativa.
+
 ## [v0.71.0] - 2026-09-23
 
 Tabla: color de categoría por fila y columnas reordenables.

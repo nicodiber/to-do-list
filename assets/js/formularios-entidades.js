@@ -10,6 +10,7 @@ import { abrirDialogoFormulario, activarMayusculaInicial } from './dialogo-formu
 import { crearSelectorColor } from './selector-color.js';
 import { compararPorPrioridad, reprogramarTareaConCascada } from './tareas-logica.js';
 import { abrirEdicionTarea } from './modal-tarea.js';
+import { buscarLugares } from './geocoding.js';
 
 const COLOR_POR_DEFECTO = '#4f7cff';
 
@@ -143,6 +144,59 @@ function repartirCoordenadasPegadas(evento, formulario) {
   formulario.ubicacion_longitud.value = par[2];
 }
 
+/**
+ * Busca lugares (Nominatim, `geocoding.js`) con el texto de "buscar_lugar" y ofrece hasta 5 resultados; tocar uno
+ * completa solo latitud y longitud (el nombre de la ubicación sigue siendo decisión del usuario). Busca con el
+ * botón o con Enter en ese campo, nunca en cada tecla — la política de uso de Nominatim pide no golpear la API así.
+ */
+function conectarBusquedaLugar(formulario) {
+  const campoBusqueda = formulario.buscar_lugar;
+  const contenedorResultados = formulario.querySelector('.resultados-buscar-lugar');
+
+  async function buscar() {
+    const texto = campoBusqueda.value.trim();
+    if (texto.length < 3) {
+      contenedorResultados.innerHTML = '<p class="ayuda">Escribí al menos 3 caracteres.</p>';
+      contenedorResultados.hidden = false;
+      return;
+    }
+    contenedorResultados.innerHTML = '<p class="ayuda">Buscando…</p>';
+    contenedorResultados.hidden = false;
+    const resultados = await buscarLugares(texto);
+    if (resultados.length === 0) {
+      contenedorResultados.innerHTML = '<p class="ayuda">Sin resultados; probá con otro texto o cargá las coordenadas a mano.</p>';
+      return;
+    }
+    contenedorResultados.innerHTML = `
+      <ul class="lista-resultados-lugar">
+        ${resultados
+          .map(
+            (r, i) => `<li><button type="button" data-indice="${i}">${escaparHtml(r.nombre)}</button></li>`
+          )
+          .join('')}
+      </ul>
+      <p class="ayuda atribucion-osm">Búsqueda por OpenStreetMap</p>
+    `;
+    contenedorResultados.querySelectorAll('[data-indice]').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const elegido = resultados[Number(boton.dataset.indice)];
+        formulario.ubicacion_latitud.value = elegido.latitud;
+        formulario.ubicacion_longitud.value = elegido.longitud;
+        contenedorResultados.hidden = true;
+        formulario.querySelector('button.boton-primario[type="submit"]')?.focus();
+      });
+    });
+  }
+
+  formulario.querySelector('[data-accion="buscar-lugar"]').addEventListener('click', buscar);
+  campoBusqueda.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      buscar();
+    }
+  });
+}
+
 export function abrirDialogoUbicacion({ id = null, alCrear = null } = {}) {
   const ubicacion = id ? estado.ubicaciones.find((u) => u.ubicacion_id === id) : null;
   if (id && !ubicacion) return;
@@ -153,11 +207,17 @@ export function abrirDialogoUbicacion({ id = null, alCrear = null } = {}) {
     conectar: (formulario) => {
       activarMayusculaInicial(formulario.ubicacion_nombre);
       formulario.ubicacion_latitud.addEventListener('paste', (evento) => repartirCoordenadasPegadas(evento, formulario));
+      conectarBusquedaLugar(formulario);
     },
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
         <input type="text" name="ubicacion_nombre" value="${escaparHtml(ubicacion ? ubicacion.ubicacion_nombre : '')}" placeholder="Nombre (ej. Casa)" required />
       </div>
+      <div class="fila-buscar-lugar">
+        <input type="text" name="buscar_lugar" placeholder="🔎 Buscar una dirección o un lugar…" />
+        <button type="button" data-accion="buscar-lugar">Buscar</button>
+      </div>
+      <div class="resultados-buscar-lugar" hidden></div>
       <label>Latitud <input type="number" name="ubicacion_latitud" value="${ubicacion ? ubicacion.ubicacion_latitud : ''}" placeholder="-34.6037" step="any" min="-90" max="90" required /></label>
       <label>Longitud <input type="number" name="ubicacion_longitud" value="${ubicacion ? ubicacion.ubicacion_longitud : ''}" placeholder="-58.3816" step="any" min="-180" max="180" required /></label>
       <p class="ayuda ayuda-formulario">Las coordenadas van en <strong>grados decimales</strong> (es lo que usa el pronóstico del clima): latitud entre −90 y 90 y longitud entre −180 y 180, con signo negativo al sur y al oeste (Buenos Aires: −34.6037 y −58.3816). En Google Maps: clic derecho sobre el punto y tocá las coordenadas para copiarlas; si pegás el par en Latitud, se reparte solo.</p>
