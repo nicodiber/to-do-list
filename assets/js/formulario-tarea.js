@@ -317,7 +317,7 @@ function htmlEstadoCompletada(tarea) {
  * agregar/quitar pasos del checklist y (solo en el alta) precargar los demás
  * campos cuando el nombre coincide exacto con una tarea ya cargada.
  */
-export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
+export function conectarFormularioTarea(formulario, { modo = 'edicion', precargaPorNombre = true } = {}) {
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;
   checkbox.addEventListener('change', () => campos.forEach((c) => (c.hidden = !checkbox.checked)));
@@ -388,7 +388,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion' } = {}) {
     agregarItem();
   });
 
-  if (modo !== 'alta') return;
+  if (modo !== 'alta' || !precargaPorNombre) return;
 
   // Al escribir un nombre que ya existe se precargan sus datos como sugerencia, pero **nunca se pisa
   // lo que el usuario ya cargó**: solo se completan los campos que siguen como estaban (o que la

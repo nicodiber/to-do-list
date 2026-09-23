@@ -144,10 +144,13 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
     }),
     botonesGuardar: [
       { texto: '➕ Agregar y cargar otra', valor: 'otra', orden: 0 },
-      { texto: '✅ Agregar', valor: 'cerrar', orden: 1 },
+      { texto: '➡️ Agregar y crearle siguiente', valor: 'siguiente', orden: 1 },
+      { texto: '✅ Agregar', valor: 'cerrar', orden: 2 },
     ],
     conectar: (formulario) => {
-      conectarFormularioTarea(formulario, { modo: 'alta' });
+      // Si el formulario ya viene precargado (Duplicar, Crearle previa/posterior), no se activa "escribir un
+      // nombre que coincide autocompleta": pisaría a propósito lo que ya se trajo de la tarea de origen.
+      conectarFormularioTarea(formulario, { modo: 'alta', precargaPorNombre: !origen });
       if (previaId) formulario.tarea_previa.value = previaId;
       if (proximaId) formulario.tarea_proxima.value = proximaId;
       // El formulario vacío coincide con el estado inicial, así que después de limpiar no se pregunta si descartar.
@@ -174,6 +177,7 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
         return false;
       }
 
+      const teniaFechaDesdePropia = !!leido.campos.tarea_fecha_inicio_habilitada;
       const nueva = crearTarea(leido.campos);
       estado.tareas.push(nueva);
       const enlace = aplicarEnlace(nueva.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
@@ -183,9 +187,21 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
         alert(enlace.motivo);
         return false;
       }
+      // Si queda bloqueada y no se cargó una "fecha desde" propia, hereda la de su tarea previa (por lo menos no
+      // puede empezar antes que ella): se actualiza de nuevo cuando la previa se cumpla (`desbloquearDependientes`).
+      if (nueva.tarea_estado === 'bloqueada' && !teniaFechaDesdePropia) {
+        const previa = estado.tareas.find((t) => t.tarea_id === nueva.tarea_dependiente);
+        if (previa && previa.tarea_fecha_inicio_habilitada) nueva.tarea_fecha_inicio_habilitada = previa.tarea_fecha_inicio_habilitada;
+      }
       ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
       await persistirYNotificar();
 
+      if (valor === 'siguiente') {
+        // Cierra esta ventana y abre una en blanco para la tarea siguiente, ya enlazada como dependiente de esta.
+        altaAbierta = false;
+        setTimeout(() => abrirAltaTarea(null, { previaId: nueva.tarea_id }), 0);
+        return true;
+      }
       if (valor === 'cerrar') return true;
       // Cargar otra: se vacía el formulario, se rearman los desplegables de enlace (para poder elegir la que se
       // acaba de crear) y el cursor vuelve al nombre.

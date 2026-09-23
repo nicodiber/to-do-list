@@ -35,7 +35,7 @@ import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.66.0';
+const VERSION = 'v0.66.1';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -51,7 +51,7 @@ const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 // Primero las de mirar el trabajo (por tiempo), después las de estructura y las de uso ocasional.
 const VISTAS = {
   hoy: { etiqueta: '📌 Hoy', render: renderVistaHoy },
-  agenda: { etiqueta: '🗓️ Agenda', render: renderVistaAgendaConSelector },
+  agenda: { etiqueta: '📖 Agenda', render: renderVistaAgendaConSelector },
   semana: { etiqueta: '📆 Semana', render: renderVistaSemana },
   gantt: { etiqueta: '📊 Gantt', render: renderVistaGantt },
   tabla: { etiqueta: '🧾 Tabla', render: renderVistaTabla },

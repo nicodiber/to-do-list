@@ -2837,7 +2837,8 @@ kbd {
   text-transform: lowercase;
 }
 
-.selector-color-dado {
+.selector-color-dado,
+.selector-color-pipeta {
   padding: 0.3rem 0.6rem;
   border: 1px solid var(--color-borde);
   border-radius: 6px;
