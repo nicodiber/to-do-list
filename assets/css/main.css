@@ -549,6 +549,7 @@ h1, h2, h3 {
   border-radius: var(--radio);
   padding: 0.75rem 1rem;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
@@ -853,6 +854,8 @@ span.etiqueta-clima {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .etiquetas {
@@ -884,9 +887,12 @@ span.etiqueta-clima {
 
 .item-tarea-acciones {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0.4rem;
-  align-items: flex-end;
+  justify-content: flex-end;
+  align-content: flex-start;
+  max-width: 15rem;
 }
 
 .item-tarea-acciones select {

@@ -2,6 +2,20 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.68.0] - 2026-09-23
+
+Ajustes a partir de 4 comentarios de un usuario de prueba (notados desde la v0.66.0).
+
+### Agregado
+
+- **Semana: color real de los eventos de Google Calendar** — cada evento se pinta con fondo tintado usando su color propio (`colorId`, si lo tiene) o, si no, el color de su calendario, en vez del gris plano de antes. Nueva `listarColoresEvento()` en `assets/js/google-calendar.js` (lee `calendar/v3/colors`, cacheada).
+- **Metas**: se explica en la ayuda de arriba de la pestaña que los botones "🤖" arman un prompt para copiar y pegar en un asistente de IA externo; "📋 Copiar prompt" ahora confirma visiblemente ("✅ ¡Copiado!") en vez de no mostrar nada al copiar bien.
+
+### Cambiado
+
+- **Exportar a Calendar**: el evento creado usa el horario que STDL tenía planificado (`tarea_fecha_sugerida` + duración) en vez del momento real en que se completó la tarea; se sacó la línea "Duración: N min" de la descripción.
+- **Tareas**: los botones de la tarjeta (Editar, Duplicar, Crearle previa/posterior, Eliminar, etc.) pasan de una columna vertical a filas que se acomodan solas, para que la tarjeta no se estire en altura de más.
+
 ## [v0.67.0] - 2026-09-23
 
 Programación automática de la lista: las tareas activas sin fecha sugerida (y que no son de mantenimiento) pasan a tener un día y una hora reales asignados solos, en vez de solo una posición estimada para dibujar.

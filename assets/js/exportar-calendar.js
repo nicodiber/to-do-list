@@ -13,8 +13,17 @@ function formatoUTCGoogleCalendar(fecha) {
  */
 export function construirUrlExportarGoogleCalendar(tarea) {
   const duracionMin = tarea.tarea_duracion_min || 30;
-  const fin = new Date(tarea.tarea_fecha_fin || Date.now());
-  const inicio = new Date(fin.getTime() - duracionMin * 60000);
+  // El horario planificado en STDL manda; si la tarea nunca llegó a tener uno (se completó sin programar), se
+  // arma un horario de respaldo a partir del momento real en que se completó.
+  let inicio;
+  let fin;
+  if (tarea.tarea_fecha_sugerida) {
+    inicio = new Date(tarea.tarea_fecha_sugerida);
+    fin = new Date(inicio.getTime() + duracionMin * 60000);
+  } else {
+    fin = new Date(tarea.tarea_fecha_fin || Date.now());
+    inicio = new Date(fin.getTime() - duracionMin * 60000);
+  }
 
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
 
@@ -22,9 +31,8 @@ export function construirUrlExportarGoogleCalendar(tarea) {
   if (categoria) {
     detalles += `Categoría: ${categoria.categoria_nombre}\n`;
   }
-  detalles += `Duración: ${duracionMin} min`;
-  if (tarea.tarea_descripcion) detalles += `\n\n${tarea.tarea_descripcion}`;
-  detalles += '\n\nCreada con Super To-Do List';
+  if (tarea.tarea_descripcion) detalles += `${tarea.tarea_descripcion}\n\n`;
+  detalles += 'Creada con Super To-Do List';
 
   const parametros = new URLSearchParams({
     action: 'TEMPLATE',
