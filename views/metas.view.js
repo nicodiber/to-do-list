@@ -12,10 +12,30 @@ import {
   parsearRespuestaFinalizarMeta,
 } from '../assets/js/ia-conectable.js';
 
+/**
+ * Copia `texto` al portapapeles y confirma en el propio botón (cambia su texto un momento), en vez de un `alert()`
+ * que solo se ve si falla. Reusado por los 3 lugares donde se copia un prompt de IA para pegar afuera.
+ */
+async function copiarConConfirmacion(boton, texto) {
+  try {
+    await navigator.clipboard.writeText(texto);
+  } catch {
+    alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
+    return;
+  }
+  const textoOriginal = boton.textContent;
+  boton.textContent = '✅ ¡Copiado!';
+  boton.disabled = true;
+  setTimeout(() => {
+    boton.textContent = textoOriginal;
+    boton.disabled = false;
+  }, 1500);
+}
+
 export function renderVistaMetas(contenedor) {
   contenedor.innerHTML = `
     <h2>🏁 Metas</h2>
-    <p class="ayuda">Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el campo "Meta" del formulario de la tarea.</p>
+    <p class="ayuda">Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el campo "Meta" del formulario de la tarea. Los botones "🤖" arman un prompt para copiar y pegar en tu asistente de IA favorito (ChatGPT, Claude, etc.) y pegar la respuesta de vuelta acá — no hay ninguna IA conectada dentro de STDL.</p>
 <div class="barra-acciones-vista"><button title="Definir una meta charlando con tu IA" type="button" id="boton-chat-meta">🤖 Definir meta charlando con IA</button></div>
     <div id="contenedor-panel-chat-meta" hidden></div>
     <div id="lista-metas" class="lista-categorias"></div>
@@ -117,13 +137,7 @@ function crearPanelIA(meta) {
     <div class="contenedor-preview-ia"></div>
   `;
 
-  panel.querySelector('[data-accion="copiar-prompt"]').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(prompt);
-    } catch {
-      alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
-    }
-  });
+  panel.querySelector('[data-accion="copiar-prompt"]').addEventListener('click', (evento) => copiarConConfirmacion(evento.currentTarget, prompt));
 
   const contenedorPreview = panel.querySelector('.contenedor-preview-ia');
   panel.querySelector('[data-accion="previsualizar"]').addEventListener('click', () => {
@@ -240,13 +254,7 @@ function crearPanelChatMeta(contenedorPanel) {
       render();
     });
 
-    panel.querySelector('[data-accion="copiar-prompt"]').addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(prompt);
-      } catch {
-        alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
-      }
-    });
+    panel.querySelector('[data-accion="copiar-prompt"]').addEventListener('click', (evento) => copiarConConfirmacion(evento.currentTarget, prompt));
 
     panel.querySelector('[data-accion="agregar-respuesta"]').addEventListener('click', () => {
       const textoRespuesta = panel.querySelector('[data-campo="respuesta"]').value;
@@ -267,13 +275,7 @@ function crearPanelChatMeta(contenedorPanel) {
     });
 
     if (mostrarFinal) {
-      panel.querySelector('[data-accion="copiar-prompt-final"]').addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(promptFinal);
-        } catch {
-          alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
-        }
-      });
+      panel.querySelector('[data-accion="copiar-prompt-final"]').addEventListener('click', (evento) => copiarConConfirmacion(evento.currentTarget, promptFinal));
 
       const contenedorPreviewMeta = panel.querySelector('.contenedor-preview-meta');
       panel.querySelector('[data-accion="previsualizar-meta"]').addEventListener('click', () => {

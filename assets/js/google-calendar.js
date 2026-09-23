@@ -71,6 +71,25 @@ export function listarCalendarios() {
   return promesa;
 }
 
+let cacheColoresEvento = null;
+
+/**
+ * Paleta de colores de evento de Google (`{ [colorId]: hexDeFondo }`, a partir de `datos.event`). No se invalida
+ * junto con los eventos/calendarios (`invalidarCacheEventos`): la paleta de Google prácticamente no cambia. Sin
+ * conexión con Calendar o si falla la consulta devuelve `{}` (los eventos sin color propio siguen usando el color
+ * de su calendario).
+ */
+export function listarColoresEvento() {
+  if (cacheColoresEvento && Date.now() - cacheColoresEvento.timestamp < DURACION_CACHE_MS) return cacheColoresEvento.promesa;
+  const accessToken = obtenerTokenAcceso();
+  if (!accessToken || !tieneScope('calendar')) return Promise.resolve({});
+  const promesa = pedirJSON('https://www.googleapis.com/calendar/v3/colors', accessToken)
+    .then((datos) => Object.fromEntries(Object.entries(datos.event || {}).map(([id, c]) => [id, c.background])))
+    .catch(() => ({}));
+  cacheColoresEvento = { promesa, timestamp: Date.now() };
+  return promesa;
+}
+
 /** Los calendarios a leer: los elegidos en las preferencias o, sin elección, todos (y si no se puede listar, el principal). */
 async function calendariosALeer() {
   const todos = await listarCalendarios();
@@ -84,7 +103,7 @@ function aInstante(campo) {
   return campo.dateTime || new Date(`${campo.date}T00:00:00`).toISOString();
 }
 
-async function pedirEventosDeCalendario(calendario, inicio, fin, accessToken) {
+async function pedirEventosDeCalendario(calendario, inicio, fin, accessToken, coloresEvento) {
   const eventos = [];
   let pagina = '';
   do {
@@ -110,7 +129,8 @@ async function pedirEventosDeCalendario(calendario, inicio, fin, accessToken) {
           disponible: item.transparency === 'transparent',
           calendarioId: calendario.id,
           calendarioNombre: calendario.nombre,
-          color: calendario.color,
+          // El color propio del evento (si lo tiene) gana sobre el del calendario entero.
+          color: (item.colorId && coloresEvento[item.colorId]) || calendario.color,
           enlace: item.htmlLink || '',
         })
       );
@@ -127,8 +147,8 @@ async function pedirEventos(desdeISODate, hastaISODate) {
   const fin = inicioDelDia(hastaISODate);
   fin.setDate(fin.getDate() + 1);
 
-  const calendarios = await calendariosALeer();
-  const resultados = await Promise.allSettled(calendarios.map((c) => pedirEventosDeCalendario(c, inicio, fin, accessToken)));
+  const [calendarios, coloresEvento] = await Promise.all([calendariosALeer(), listarColoresEvento()]);
+  const resultados = await Promise.allSettled(calendarios.map((c) => pedirEventosDeCalendario(c, inicio, fin, accessToken, coloresEvento)));
   // Si falla la lectura de un calendario (por ejemplo uno compartido sin permiso), los demás siguen; si fallan todos, es un error.
   if (resultados.length > 0 && resultados.every((r) => r.status === 'rejected')) throw new Error('No se pudieron obtener los eventos de Google Calendar.');
   return resultados

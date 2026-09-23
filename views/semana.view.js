@@ -15,6 +15,15 @@ const HORA_FIN = 23;
 const ALTO_HORA_PX = 48;
 const MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
 
+/** hex "#rrggbb" → "rgba(r, g, b, alpha)", para el fondo tintado de un bloque de evento. */
+function hexARgba(hex, alpha) {
+  const limpio = String(hex || '').replace('#', '');
+  const completo = limpio.length === 3 ? limpio.split('').map((c) => c + c).join('') : limpio;
+  const bigint = parseInt(completo, 16);
+  if (Number.isNaN(bigint)) return `rgba(148, 163, 184, ${alpha})`;
+  return `rgba(${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}, ${alpha})`;
+}
+
 function fechaDeReferenciaProyectada(tarea) {
   const fecha = tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite || null;
   return fecha ? diaLocal(fecha) : null;
@@ -154,6 +163,7 @@ function pintarEventos(grilla, eventos) {
       bloque.style.left = `${(x.carril / carriles.length) * 100}%`;
       bloque.style.width = `${100 / carriles.length}%`;
       bloque.style.borderLeftColor = x.e.color;
+      if (!x.e.disponible) bloque.style.background = hexARgba(x.e.color, 0.22);
       bloque.title = `${x.e.resumen} — ${formatearHora(x.e.inicio)} a ${formatearHora(x.e.fin)} (${x.e.calendarioNombre}${x.e.disponible ? ', disponible' : ''}). Se edita desde Google Calendar: hacé clic para abrirlo.`;
       bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${escaparHtml(x.e.resumen)}</span>`;
       bloque.addEventListener('click', (evento) => {
