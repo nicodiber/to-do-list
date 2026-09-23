@@ -24,7 +24,7 @@ Lista de todo lo que usa Super To-Do List, qué hace cada cosa y dónde se usa. 
 | **Web Locks API** | Que solo una pestaña edite a la vez (la otra queda en solo lectura). | `assets/js/almacenamiento.js` |
 | **Elemento `<dialog>`** | Todas las ventanas modales (alta, edición, ayuda de atajos, revisión del día). | `assets/js/dialogo-formulario.js` y otros |
 | **Pointer Events** | Arrastrar tareas en Semana y en el Gantt (mouse y táctil). | `views/semana.view.js`, `views/gantt.view.js` |
-| **Fetch** | Llamadas a las APIs de Google y de Open-Meteo. | `assets/js/google-*.js`, `assets/js/clima.js` |
+| **Fetch** | Llamadas a las APIs de Google, de Open-Meteo y de Nominatim. | `assets/js/google-*.js`, `assets/js/clima.js`, `assets/js/geocoding.js` |
 | **Clipboard** | Copiar el texto para pegarlo en la IA. | `views/metas.view.js`, `views/tareas.view.js` |
 | **`crypto.randomUUID`** | Identificadores únicos de cada dato. | `assets/js/utilidades.js` |
 | **Eventos de visibilidad y de red** | Verificar contra Drive al volver a la pestaña o al recuperar la conexión. | `assets/js/almacenamiento.js` |
@@ -38,6 +38,7 @@ Lista de todo lo que usa Super To-Do List, qué hace cada cosa y dónde se usa. 
 | **Google Calendar API v3** (solo lectura) | Leer los eventos (de todos tus calendarios, con `calendarList` y `events`) para avisar superposiciones, buscar el próximo hueco libre, calcular tu tiempo disponible y mostrarlos en Semana. | `assets/js/google-calendar.js` |
 | **Google Calendar (URL de creación de eventos)** | Abrir Calendar con una tarea completada ya cargada para guardarla como registro; sin API. | `assets/js/exportar-calendar.js` |
 | **Open-Meteo** | Pronóstico del tiempo (probabilidad de lluvia) para las tareas que piden buen clima; gratis y sin clave. | `assets/js/clima.js` |
+| **Nominatim (OpenStreetMap)** | Buscar una dirección o un lugar y completar latitud/longitud solas al cargar una Ubicación; gratis y sin clave. La carga manual (o pegar el par que copia Google Maps) sigue siendo la alternativa. | `assets/js/geocoding.js` |
 
 ## Publicación y control de versiones
 

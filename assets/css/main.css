@@ -1115,6 +1115,51 @@ section h3 {
   min-width: 0;
 }
 
+.fila-buscar-lugar {
+  flex: 1 1 100%;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fila-buscar-lugar input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.resultados-buscar-lugar {
+  flex: 1 1 100%;
+}
+
+.lista-resultados-lugar {
+  list-style: none;
+  margin: 0 0 0.3rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.lista-resultados-lugar button {
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.lista-resultados-lugar button:hover {
+  border-color: var(--color-primario);
+}
+
+.atribucion-osm {
+  font-size: 0.72rem;
+  margin: 0;
+}
+
 .dialogo-tarea {
   border: none;
   border-radius: var(--radio);

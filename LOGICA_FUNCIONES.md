@@ -166,6 +166,12 @@ Consulta de pronóstico real (Open-Meteo, sin API key) para tareas con `tarea_re
 - **`obtenerPronosticoUbicacion(latitud, longitud)`**: fetch a Open-Meteo, con caché en memoria por coordenadas.
 - **`evaluarClimaTarea(tarea)`**: si no aplica (no requiere clima, sin ubicación con coordenadas, sin fecha resoluble, fuera de la ventana de 16 días, o falló la consulta), devuelve `null`. Si hay datos, devuelve `{ favorable, probabilidadLluvia }`.
 
+## `assets/js/geocoding.js`
+
+Buscar una dirección o un lugar y obtener sus coordenadas (Nominatim de OpenStreetMap, sin API key), para completar latitud/longitud al cargar una Ubicación (v0.72.0). Mismo criterio que `clima.js`: sin backend propio, con caché en memoria.
+
+- **`async buscarLugares(texto)`**: hasta 5 lugares como `{ nombre, latitud, longitud }` (de `display_name`/`lat`/`lon`); `[]` con menos de 3 caracteres, sin resultados, sin conexión o si falla — nunca lanza.
+
 ## `assets/js/vista-agenda.js`
 
 Motor de la vista Agenda (`views/agenda.view.js` le pasa la cantidad de días).
@@ -327,6 +333,7 @@ Ventana modal genérica para un formulario (tareas, categorías, ubicaciones, me
 ## `assets/js/formularios-entidades.js`
 
 Crear y editar categorías, ubicaciones, metas y personas: **`abrirDialogoCategoria` / `abrirDialogoUbicacion` / `abrirDialogoMeta` / `abrirDialogoPersona`** (`{ id, alCrear }`). Con `id` editan; sin `id` crean y llaman `alCrear(nueva)` antes de guardar, para que quien la pidió (el desplegable de una tarea) la seleccione. La categoría excluye de su desplegable de padre a sí misma y sus descendientes (`descendientesDeCategoria`) y, al cambiar de padre, queda al final de sus nuevas hermanas. La ubicación valida los rangos de las coordenadas y reparte el par "lat, lon" pegado en Latitud.
+- **`conectarBusquedaLugar(formulario)`** (v0.72.0, usada por `abrirDialogoUbicacion`): busca con `buscarLugares` (`geocoding.js`) al tocar "Buscar" o Enter en el campo (nunca en cada tecla) y muestra hasta 5 resultados; tocar uno completa **solo** latitud y longitud (no el nombre) y enfoca "Agregar ubicación". Sin resultados o con error, un aviso corto — la carga manual sigue disponible igual.
 - **`abrirDialogoPersona`, ampliado (v0.66.0)**: suma "📅 Próximo contacto" y, solo al editar una persona existente, la lista de sus tareas **pendientes** asociadas (`tareasPendientesDe`, `persona_id` + no completada, ordenadas con `compararPorPrioridad`), cada una con un ✏️ que abre `abrirEdicionTarea` (de `modal-tarea.js`) encima. Si "Próximo contacto" cambió y no quedó vacío, al guardar reprograma con `reprogramarTareaConCascada` la `tarea_fecha_sugerida` de cada una de esas tareas a esa fecha y avisa cuántas se movieron.
 
 ## `views/configuraciones.view.js`
