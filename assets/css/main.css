@@ -1379,6 +1379,60 @@ section h3 {
   color: var(--color-sobre-primario);
 }
 
+#boton-modo-seleccion.activo {
+  background: var(--color-primario);
+  border-color: var(--color-primario);
+  color: var(--color-sobre-primario);
+}
+
+.barra-seleccion[hidden] {
+  display: none;
+}
+
+.barra-seleccion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.barra-seleccion #conteo-seleccion {
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+  margin-right: auto;
+}
+
+.item-tarea-check {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.2rem;
+}
+
+.campo-masivo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  opacity: 0.55;
+  transition: var(--transicion);
+}
+
+.campo-masivo.activo {
+  opacity: 1;
+}
+
+.campo-masivo-activar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  min-width: 11rem;
+  cursor: pointer;
+}
+
 /* Tarjetas de la vista Tareas: el borde izquierdo lleva el color de la categoría. */
 .item-tarea-tareas {
   border-left: 5px solid var(--color-categoria, var(--color-borde));
