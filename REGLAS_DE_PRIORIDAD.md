@@ -32,7 +32,7 @@ La holgura se agrupa en bandas, para que una diferencia de pocos días no tape l
 2. **Categoría raíz**: dentro de la misma banda, se compara la `categoria_prioridad` de la categoría **raíz** de cada tarea (recorriendo `categoria_padre_id` hasta el final con `categoriaRaiz`, en `utilidades.js`). Así, una tarea de una materia de Facultad compite con la prioridad de "Facultad" entre las categorías raíz, no con la de la materia en sí. Sin categoría, o categoría inexistente, queda al final.
 3. **Categoría directa**: desempate entre tareas de distinta categoría pero la misma raíz (ej. dos materias de Facultad) — se usa la `categoria_prioridad` de la categoría propia de cada tarea, entre sus hermanas.
 4. **`tarea_importancia`**: urgente > importante > sin definir.
-5. **`tarea_prioridad_manual`** (`?? Infinity`, menor = más prioritaria) — resultado de la herramienta "Versus" (ver más abajo). `null` = sin preferencia manual, no participa.
+5. **`tarea_prioridad_manual`** (`?? Infinity`, menor = más prioritaria) — resultado de la herramienta "Versus" o de reordenar a mano con ▲▼ (ver más abajo, mismo campo para las dos). `null` = sin preferencia manual, no participa.
 6. **`tarea_creada_en`** ascendente (FIFO) — último recurso, para que el orden sea siempre determinístico (no queden empates verdaderos).
 
 Los niveles 1-4 se conocen internamente como `compararEstructural` — es lo que determina si 2 tareas están "empatadas" para la herramienta Versus (ver abajo), independientemente de si ya tienen o no un `tarea_prioridad_manual` asignado.
@@ -47,6 +47,14 @@ Dentro de un mismo grupo empatado en los niveles 1-4, el desempate hoy sería FI
 - **Omitir**: no asigna nada — ambas tareas siguen en `null`, genuinamente empatadas. Solo se recuerda (en memoria, mientras se navega la vista) para no volver a ofrecer el mismo par en la misma sesión.
 - No es un torneo todos-contra-todos: se ofrecen pares adyacentes dentro de cada cluster, una sola pasada — suficiente para reducir la mayoría de los empates sin pedir demasiadas comparaciones.
 - El alcance es global (todas las tareas accionables de la app), no se acota a los filtros activos de la vista Tabla.
+
+## Reordenar a mano con ▲▼ (Tareas, Tabla y Gantt)
+
+Además de "Versus", las flechas ▲/▼ (en Tareas, en la columna "Orden" de Tabla cuando el orden es el de prioridad, y en el Gantt en modo Plan) dejan mover una tarea un lugar hacia arriba o hacia abajo — usan la misma `asignarOrdenManual` (`assets/js/tareas-logica.js`) que "Versus": valores frescos y crecientes, la que sube se queda con el más bajo.
+
+- Solo tienen efecto real entre dos tareas **empatadas en los niveles 1-4** (`compararEstructural`) y que **no sean cadena previa/próxima** entre sí — si no, cambiar `tarea_prioridad_manual` no movería nada en la lista (esos niveles ganan primero) o rompería el orden de la cadena. `motivoBloqueoOrdenManual` (`assets/js/tareas-logica.js`) hace ese chequeo; si no se puede, el botón queda deshabilitado con el motivo puntual (qué tarea vecina y por qué gana) en el `title`, para que el usuario sepa qué campo tocar si de verdad quiere reordenarlas. *(Idea a futuro, sin implementar: que confirmar el reordenamiento ajuste esos campos solo.)*
+- En el Gantt (modo Plan), además hace falta que las dos tareas caigan en el **mismo día planificado** dentro del mismo carril — es lo único que cambia el orden visual ahí; si el día difiere, el motivo lo aclara antes de mirar los niveles 1-4.
+- En Tabla, las flechas solo se muestran con el orden por prioridad activo (`↺ Prioridad`); al ordenar por una columna (clic en su header) desaparecen, porque ese orden ya no es el de prioridad.
 
 ## `mejorTareaPorCategoria(tareas, categorias)`
 

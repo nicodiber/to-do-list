@@ -2,6 +2,18 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.69.0] - 2026-09-23
+
+Reordenar tareas a mano con ▲▼, en Tareas, Tabla y Gantt.
+
+### Agregado
+
+- **Reordenar tareas a mano (▲▼)**: en la vista Tareas, en la columna "Orden" de Tabla (con el orden por prioridad activo) y en el Gantt (modo Plan, entre tareas del mismo carril con el mismo día planificado). Reusa `tarea_prioridad_manual` (el mismo campo que ya usaba "Versus"): un nivel de desempate más dentro del algoritmo de prioridad, no anula holgura/categoría/importancia. Cuando mover una tarea no cambiaría nada (porque no está empatada con su vecina en esos niveles, o porque son cadena previa/próxima) el botón queda deshabilitado con el motivo puntual — qué tarea y por qué gana — para saber qué tocar si de verdad se la quiere reordenar.
+
+### Cambiado
+
+- **Versus** ahora usa la misma función interna (`asignarOrdenManual`) que las flechas nuevas, sin cambios de comportamiento.
+
 ## [v0.68.0] - 2026-09-23
 
 Ajustes a partir de 4 comentarios de un usuario de prueba (notados desde la v0.66.0).

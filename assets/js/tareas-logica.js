@@ -400,11 +400,65 @@ function compararEstructural(a, b, categorias) {
 }
 
 /**
+ * Asigna `tarea_prioridad_manual` a un par de tareas: `preferida` queda con el valor más bajo (gana el desempate
+ * de `compararPorPrioridad`), `otra` con el siguiente. Valores frescos y siempre crecientes (nunca se reusan), así
+ * que no importa qué tuvieran antes. La usan tanto "Versus" (`views/tabla.view.js`) como reordenar a mano (▲▼).
+ */
+export function asignarOrdenManual(preferida, otra, listaTareas) {
+  const siguienteValor = 1 + Math.max(-1, ...listaTareas.map((t) => t.tarea_prioridad_manual).filter((v) => v != null));
+  preferida.tarea_prioridad_manual = siguienteValor;
+  otra.tarea_prioridad_manual = siguienteValor + 1;
+}
+
+/**
+ * Por qué `actual` no puede cambiar de orden con `vecina` (▲▼ a mano): `''` si sí puede (están empatadas en los 4
+ * niveles estructurales de `compararEstructural` y no son cadena previa/próxima — mover `tarea_prioridad_manual`
+ * entre ellas sí va a cambiar el orden mostrado); si no, un texto que nombra a `vecina` y qué la hace ganar, para
+ * que el usuario sepa qué campo tocar si de verdad quiere reordenarlas. Mismo orden de niveles que
+ * `compararEstructural` (que queda sin tocar).
+ */
+export function motivoBloqueoOrdenManual(actual, vecina, categorias) {
+  if (actual.tarea_dependiente === vecina.tarea_id || vecina.tarea_dependiente === actual.tarea_id) {
+    return `«${vecina.tarea_nombre}» está encadenada con esta tarea (previa/próxima): no pueden cambiar de orden entre sí.`;
+  }
+
+  const bandaActual = bandaHolgura(calcularHolguraDias(actual));
+  const bandaVecina = bandaHolgura(calcularHolguraDias(vecina));
+  if (bandaActual !== bandaVecina) {
+    return `«${vecina.tarea_nombre}» ${bandaVecina < bandaActual ? 'tiene menos margen hasta su fecha límite (vence antes)' : 'tiene más margen hasta su fecha límite (vence después)'}.`;
+  }
+
+  const categoriaActual = categorias.find((c) => c.categoria_id === actual.categoria_id) ?? null;
+  const categoriaVecina = categorias.find((c) => c.categoria_id === vecina.categoria_id) ?? null;
+
+  const raizActual = categoriaActual ? (categoriaRaiz(categoriaActual, categorias)?.categoria_prioridad ?? Infinity) : Infinity;
+  const raizVecina = categoriaVecina ? (categoriaRaiz(categoriaVecina, categorias)?.categoria_prioridad ?? Infinity) : Infinity;
+  if (raizActual !== raizVecina) {
+    const nombreRaiz = categoriaRaiz(categoriaVecina, categorias)?.categoria_nombre || 'sin categoría';
+    return `«${vecina.tarea_nombre}» está en la categoría «${nombreRaiz}», con ${raizVecina < raizActual ? 'mayor' : 'menor'} prioridad.`;
+  }
+
+  const directaActual = categoriaActual?.categoria_prioridad ?? Infinity;
+  const directaVecina = categoriaVecina?.categoria_prioridad ?? Infinity;
+  if (directaActual !== directaVecina) {
+    return `«${vecina.tarea_nombre}» está en la subcategoría «${categoriaVecina?.categoria_nombre || 'sin categoría'}», con ${directaVecina < directaActual ? 'mayor' : 'menor'} prioridad.`;
+  }
+
+  const importanciaActual = ORDEN_IMPORTANCIA[actual.tarea_importancia] ?? 2;
+  const importanciaVecina = ORDEN_IMPORTANCIA[vecina.tarea_importancia] ?? 2;
+  if (importanciaActual !== importanciaVecina) {
+    return `«${vecina.tarea_nombre}» tiene ${importanciaVecina < importanciaActual ? 'mayor' : 'menor'} importancia.`;
+  }
+
+  return '';
+}
+
+/**
  * Compara dos tareas por prioridad, en 6 niveles (ver REGLAS_DE_PRIORIDAD.md):
  * los 4 de `compararEstructural`, después 5) `tarea_prioridad_manual`
  * (`?? Infinity`, menor = más prioritaria — resultado de la herramienta
- * "Versus"), y por último 6) `tarea_creada_en` ascendente (FIFO), para que
- * el orden sea siempre determinístico.
+ * "Versus" o de reordenar a mano con ▲▼), y por último 6) `tarea_creada_en`
+ * ascendente (FIFO), para que el orden sea siempre determinístico.
  */
 export function compararPorPrioridad(a, b, categorias) {
   const estructural = compararEstructural(a, b, categorias);

@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, hoyISO, tieneHora, combinarFechaYHora, formatearHora, arbolCategorias } from '../assets/js/utilidades.js';
-import { reprogramarTareaConCascada } from '../assets/js/tareas-logica.js';
+import { reprogramarTareaConCascada, asignarOrdenManual, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } from '../assets/js/gantt-modelo.js';
 
@@ -192,7 +192,7 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor }) {
   let y = 0;
   const geometria = new Map();
   let filasHtml = '';
-  filas.forEach((fila) => {
+  filas.forEach((fila, i) => {
     if (fila.carril) {
       filasHtml += `<div class="gantt-carril" style="height:${ALTO_CARRIL}px"><span style="border-left-color:${fila.carril.color || 'var(--color-borde)'}">${escaparHtml(fila.carril.nombre)}</span></div>`;
       y += ALTO_CARRIL;
@@ -200,7 +200,10 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor }) {
     }
     const g = calcularGeometriaFila(fila, modo, { anchoDia, desplazamiento, izquierdaDe });
     geometria.set(fila.tarea.tarea_id, { ...g, centroY: y + ALTO_FILA / 2 });
-    filasHtml += htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista);
+    // Vecinas del mismo carril (un separador entre medio corta la adyacencia: no tiene `.tarea`), para las ▲▼.
+    const anterior = filas[i - 1]?.tarea ? filas[i - 1] : null;
+    const siguiente = filas[i + 1]?.tarea ? filas[i + 1] : null;
+    filasHtml += htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista, { anterior, siguiente });
     y += ALTO_FILA;
   });
   const altoFilas = y;
@@ -246,7 +249,16 @@ function calcularGeometriaFila(fila, modo, { anchoDia, desplazamiento, izquierda
   return { x1: xPlan, x2: xPlan + anchoPlan, ancho: anchoPlan, xPlan, anchoPlan, recortadaIzq, conVentana: false };
 }
 
-function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista) {
+/** Por qué `fila` no puede cambiar de orden con `vecinaFila` (▲▼ del Gantt): `''` si sí puede. Solo tiene efecto
+ * visual entre tareas del mismo día planificado (el resto del orden lo decide la fecha); ese chequeo va primero. */
+function motivoOrdenGantt(fila, vecinaFila) {
+  if (vecinaFila.plan.dia !== fila.plan.dia) {
+    return `«${vecinaFila.tarea.tarea_nombre}» tiene otro día planificado (${formatearFecha(vecinaFila.plan.dia)}).`;
+  }
+  return motivoBloqueoOrdenManual(fila.tarea, vecinaFila.tarea, estado.categorias);
+}
+
+function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista, { anterior, siguiente } = {}) {
   const { tarea, plan, ventana, limite, noLlega } = fila;
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const color = categoria ? categoria.categoria_color : '#9ca3af';
@@ -262,11 +274,22 @@ function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista) {
   // En modo Ventana el final de la barra ya es el límite: no se repite la bandera.
   const banderaIzq = limite && !g.conVentana ? izquierdaBandera(limite, plan.dia, g, anchoDia) : null;
 
+  let botonesOrden = '';
+  if (modo === 'plan') {
+    const motivoSubir = anterior ? motivoOrdenGantt(fila, anterior) : 'Ya es la primera del carril.';
+    const motivoBajar = siguiente ? motivoOrdenGantt(fila, siguiente) : 'Ya es la última del carril.';
+    botonesOrden = `<span class="acciones-prioridad gantt-orden">
+        <button type="button" data-subir-orden="${tarea.tarea_id}" data-vecina="${motivoSubir ? '' : anterior.tarea.tarea_id}" title="${escaparHtml(motivoSubir || 'Subir')}" ${motivoSubir ? 'disabled' : ''}>▲</button>
+        <button type="button" data-bajar-orden="${tarea.tarea_id}" data-vecina="${motivoBajar ? '' : siguiente.tarea.tarea_id}" title="${escaparHtml(motivoBajar || 'Bajar')}" ${motivoBajar ? 'disabled' : ''}>▼</button>
+      </span>`;
+  }
+
   return `
     <div class="gantt-fila" style="height:${ALTO_FILA}px">
       <div class="gantt-nombre" style="width:${nombresAncho}px" data-abrir="${tarea.tarea_id}" title="${escaparHtml(tarea.tarea_nombre)}">
         <span class="gantt-nombre-texto">${tarea.tarea_estado === 'bloqueada' ? '🔒 ' : ''}${escaparHtml(tarea.tarea_nombre)}</span>
         ${plan.virtual ? `<button type="button" class="gantt-fijar" data-fijar="${tarea.tarea_id}" title="Guardar el día estimado como fecha sugerida">📌</button>` : ''}
+        ${botonesOrden}
       </div>
       <div class="gantt-pista" style="width:${anchoPista}px">
         <div class="${clases.join(' ')}" data-tarea-id="${tarea.tarea_id}" style="left:${g.x1}px;width:${g.ancho}px;--color-barra:${color}" title="${escaparHtml(titulo)}">
@@ -343,10 +366,10 @@ function avisarSiQuedoAntesDeSuPrevia(tarea, agruparPor) {
 function conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor }) {
   const porId = new Map(filas.filter((f) => f.tarea).map((f) => [f.tarea.tarea_id, f]));
 
-  // Clic en el nombre: editar; "📌": fijar el día estimado como fecha sugerida.
+  // Clic en el nombre: editar; "📌": fijar el día estimado como fecha sugerida; ▲▼: reordenar a mano.
   desplazable.querySelectorAll('[data-abrir]').forEach((celda) =>
     celda.addEventListener('click', (evento) => {
-      if (evento.target.closest('[data-fijar]')) return;
+      if (evento.target.closest('[data-fijar], .gantt-orden')) return;
       abrirEdicionTarea(celda.dataset.abrir);
     })
   );
@@ -355,6 +378,26 @@ function conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor 
       const fila = porId.get(boton.dataset.fijar);
       if (!fila) return;
       fila.tarea.tarea_fecha_sugerida = fila.plan.dia;
+      await persistirYNotificar();
+    })
+  );
+  desplazable.querySelectorAll('[data-subir-orden]').forEach((boton) =>
+    boton.addEventListener('click', async (evento) => {
+      evento.stopPropagation();
+      const propia = porId.get(boton.dataset.subirOrden);
+      const vecina = porId.get(boton.dataset.vecina);
+      if (!propia || !vecina) return;
+      asignarOrdenManual(propia.tarea, vecina.tarea, estado.tareas);
+      await persistirYNotificar();
+    })
+  );
+  desplazable.querySelectorAll('[data-bajar-orden]').forEach((boton) =>
+    boton.addEventListener('click', async (evento) => {
+      evento.stopPropagation();
+      const propia = porId.get(boton.dataset.bajarOrden);
+      const vecina = porId.get(boton.dataset.vecina);
+      if (!propia || !vecina) return;
+      asignarOrdenManual(vecina.tarea, propia.tarea, estado.tareas);
       await persistirYNotificar();
     })
   );
