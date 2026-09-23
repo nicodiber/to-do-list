@@ -33,15 +33,18 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaEstadisticas } from '../../views/estadisticas.view.js';
 import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
+import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.72.0';
+const VERSION = 'v0.73.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
 const INDICADOR_SYNC = document.getElementById('indicador-sync');
 const BOTON_SYNC = document.getElementById('boton-sync');
+const BOTON_DESHACER = document.getElementById('boton-deshacer');
+const BOTON_REHACER = document.getElementById('boton-rehacer');
 const BANNER_SYNC = document.getElementById('banner-sync');
 const PANEL_AVISOS = document.getElementById('panel-avisos');
 const BOTON_NUEVA_TAREA = document.getElementById('boton-nueva-tarea');
@@ -136,6 +139,8 @@ function actualizarCabeceraSync() {
   `;
   BOTON_SYNC.hidden = s.estado === 'sin-destino' || s.soloLectura;
   BOTON_SYNC.disabled = ['conectando', 'verificando', 'guardando'].includes(s.estado);
+  BOTON_DESHACER.disabled = !puedeDeshacer();
+  BOTON_REHACER.disabled = !puedeRehacer();
 
   const banners = [];
   if (s.estado === 'sin-conexion' || s.estado === 'sesion-vencida') {
@@ -248,6 +253,9 @@ BOTON_SYNC.addEventListener('click', () => {
   refrescarCalendar();
   sincronizarAhora({ forzar: true });
 });
+
+BOTON_DESHACER.addEventListener('click', deshacer);
+BOTON_REHACER.addEventListener('click', rehacer);
 
 /**
  * Los eventos de Calendar se guardan unos minutos en memoria. Al sincronizar o volver a la pestaña se
@@ -375,6 +383,10 @@ configurarAtajos({
     const s = obtenerEstadoSync();
     return s.datosListos && !s.soloLectura;
   },
+  deshacer,
+  rehacer,
+  puedeDeshacer,
+  puedeRehacer,
 });
 document.getElementById('boton-atajos').addEventListener('click', abrirAyudaAtajos);
 

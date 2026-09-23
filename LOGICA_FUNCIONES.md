@@ -29,7 +29,8 @@ Bootstrap y router de toda la app.
 
 Estado en memoria, sincronización con Google Drive y migración de datos.
 
-- **Guarda de versión** (Ronda 9b): al leer el archivo de Drive, si su `formato` es mayor que `FORMATO_ARCHIVO` (3), `sincronizarUnaVez` pone `sync.soloLectura` y un mensaje de error, y no sube nada. **`persistirYNotificar({ sinNotificar })`**: con `sinNotificar: true` guarda sin redibujar las vistas (lo usa Configuraciones campo por campo).
+- **Guarda de versión** (Ronda 9b): al leer el archivo de Drive, si su `formato` es mayor que `FORMATO_ARCHIVO` (3), `sincronizarUnaVez` pone `sync.soloLectura` y un mensaje de error, y no sube nada. **`persistirYNotificar({ sinNotificar, deshacer })`**: con `sinNotificar: true` guarda sin redibujar las vistas (lo usa Configuraciones campo por campo); con `deshacer: false` (v0.73.0, lo usan `deshacer()`/`rehacer()` de `assets/js/deshacer.js`) no registra este guardado como un paso deshacible.
+- **Deshacer/rehacer** (v0.73.0, ver `assets/js/deshacer.js`): `persistirYNotificar` apila `ultimoSellado` (la foto de las colecciones de antes de este cambio) como paso deshacible antes de sellar; `sincronizarUnaVez` vacía el historial (`invalidarHistorialDeshacer`) apenas mezcla un cambio real de otro dispositivo, para que deshacer nunca "cruce" un cambio remoto.
 - **`estado`**: objeto exportado con las 8 colecciones de la app (`categorias`, `ubicaciones`, `metas`, `personas`, `tareas`, `mejoras`, `cumplimientos`, `preferencias`). Es la única fuente de verdad en memoria; todas las vistas lo mutan directamente y después llaman `persistirYNotificar()`.
 - **`suscribir(fn)` / `notificar()`**: observer simple para re-renderizar cuando cambian los datos. **`suscribirSync(fn)` / `obtenerEstadoSync()`**: observer aparte para el estado de sincronización (`estado`, `datosListos`, `soloLectura`, hora del último guardado/verificación, avisos, cambios remotos pendientes de aplicar, etc.), que solo redibuja la cabecera.
 - **Migración retrocompatible**, en dos pasos (sin cambios): **`fusionarSubcategoriasEnCategorias`** y **`migrarCategoria`/`migrarUbicacion`/`migrarMeta`/`migrarPersona`/`migrarTarea`**, encadenados por `normalizarDatosCrudos`, que al final recalcula el bloqueo de cada tarea con `recalcularBloqueo`. Los archivos de Drive de versiones anteriores (sin sellos `*_modificado_en`) pasan por acá al leerse.
@@ -43,6 +44,15 @@ Estado en memoria, sincronización con Google Drive y migración de datos.
 - **Datos viejos** (`leerDatosViejos`, `mezclarDatosViejos()`, `descartarDatosViejos()`): si en `localStorage` quedan datos de una versión anterior (`super-todo-list:datos`), se ofrece mezclarlos con Drive o descartarlos; si Drive no tiene archivo, se importan solos. Nunca se ignoran en silencio.
 - **`exportarJSON()`**: descarga el `estado` completo como `.json`. **`importarJSON(archivo)`**: pide confirmación explícita (reemplaza todo lo que hay en Drive) y pasa por `normalizarDatosCrudos`.
 - **`inicializarAlmacenamiento()`**: lee `pendiente`/`cache`/avisos de IndexedDB, muestra al instante lo último que hubo (pendiente si existe, si no la copia en cache; solo lectura si no hay conexión), adquiere el bloqueo de edición, intenta la sesión de Google y, si la hay, sincroniza. Registra los eventos de verificación y el aviso `beforeunload` si hay cambios sin confirmar.
+
+## `assets/js/deshacer.js`
+
+Deshacer/rehacer (Ctrl+Z / Ctrl+Shift+Z, v0.73.0): pila de fotos del estado completo (`fotoColecciones` de `sincronizacion.js`), en memoria de módulo — se pierde al recargar la página. Deshacer **simple** (no por entidad): revierte todas las colecciones a como estaban antes de la última acción, no solo el campo puntual que cambió. Enganchado en el único punto de guardado de la app (`persistirYNotificar`, `almacenamiento.js`), así que cubre cualquier cambio que se guarde (crear, editar, completar, eliminar, reprogramar, arrastrar en Gantt/Semana, edición masiva, Configuraciones…) sin que cada vista tenga que hacer nada especial. Import circular con `almacenamiento.js` (usado solo dentro de funciones, nunca al cargar el módulo), mismo patrón ya aceptado en el proyecto entre `app.js` y `views/configuraciones.view.js`.
+
+- **`registrarPasoDeshacer(foto)`**: apila `foto` (máx. 20, se descarta la más vieja) y vacía la pila de "rehacer" (una acción nueva invalida cualquier rehacer pendiente). La llama `persistirYNotificar` con la foto de antes del cambio.
+- **`invalidarHistorialDeshacer()`**: vacía las dos pilas. La llama `sincronizarUnaVez` apenas mezcla un cambio real de otro dispositivo — deshacer nunca "cruza" un cambio remoto (podría pisarlo); las acciones locales nuevas de ahí en más vuelven a ser deshacibles. **Idea a futuro, sin implementar**: en vez de solo invalidar, ofrecer forzar que el otro dispositivo se desconecte y pida reconectar, para poder deshacer con seguridad incluso a través de un cambio remoto.
+- **`puedeDeshacer()` / `puedeRehacer()`**: si hay algo en la pila correspondiente.
+- **`async deshacer()` / `async rehacer()`**: mueven la foto del tope de una pila a la otra (empujando antes una foto del estado actual, para poder ir y volver), reemplazan las colecciones de `estado` por las de la foto y llaman `persistirYNotificar({ deshacer: false })` (para no registrarse a sí mismos como un paso nuevo). No hacen nada si la pila está vacía.
 
 ## `assets/js/dependencias.js`
 
@@ -317,9 +327,9 @@ Formulario de tarea compartido por el alta, la ventana de edición y "Completar 
 
 Atajos de teclado y su ayuda. Teclas solas (sin Ctrl/Alt/Meta) que solo actúan con el foco fuera de un campo y sin un `<dialog>` abierto.
 
-- **`ATAJOS_FIJOS`**: tabla de los atajos que no dependen del orden de las pestañas (N, Enter, Ctrl+Enter, F, Esc, ?), única fuente de la ayuda.
+- **`ATAJOS_FIJOS`**: tabla de los atajos que no dependen del orden de las pestañas (N, Enter, Ctrl+Enter, Ctrl+Z, Ctrl+Shift+Z, F, Esc, ?), única fuente de la ayuda.
 - **`teclaDeVista(clave, vistas)` / `tituloConTecla(etiqueta, tecla)`**: la tecla de una pestaña (`1`…`9`, `0` para la décima, `null` para el resto) y el texto "Hoy (tecla 1)".
-- **`configurarAtajos({ vistas, etiquetas, irAVista, abrirNuevaTarea, puedeUsarse })`**: números → `irAVista`; **N** → nueva tarea; **F** → foco en el primer `input[type="search"]` o `select` de filtro de la vista; **?** → ayuda (funciona aun sin datos, el resto no).
+- **`configurarAtajos({ vistas, etiquetas, irAVista, abrirNuevaTarea, puedeUsarse, deshacer, rehacer, puedeDeshacer, puedeRehacer })`**: números → `irAVista`; **N** → nueva tarea; **F** → foco en el primer `input[type="search"]` o `select` de filtro de la vista; **?** → ayuda (funciona aun sin datos, el resto no); **Ctrl+Z**/**Ctrl+Shift+Z** (v0.73.0) → `deshacer()`/`rehacer()` de `assets/js/deshacer.js`, con las mismas guardas que el resto (fuera de un campo editable, sin `<dialog>` abierto) para no pisar el deshacer nativo del navegador mientras se escribe.
 - **`abrirAyudaAtajos()`**: `<dialog>` con la lista (pestañas con su tecla, las que no tienen y los atajos fijos agrupados); se cierra con Esc, con "Cerrar" o con un clic afuera.
 
 ## `assets/js/dialogo-formulario.js`

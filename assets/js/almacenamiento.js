@@ -12,6 +12,7 @@ import { crearPreferencias } from './modelos.js';
 import { recalcularBloqueo } from './tareas-logica.js';
 import { repararEnlaces } from './dependencias.js';
 import { fechaLocalISO } from './utilidades.js';
+import { registrarPasoDeshacer, invalidarHistorialDeshacer } from './deshacer.js';
 
 const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
 const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
@@ -452,9 +453,11 @@ export async function descartarTodosLosAvisos() {
  * temporal durable ("pendiente") y programa la subida a Drive. El estado
  * queda "pendiente" hasta que Drive confirme. Con `{ sinNotificar: true }` no redibuja las vistas.
  */
-export async function persistirYNotificar({ sinNotificar = false } = {}) {
+export async function persistirYNotificar({ sinNotificar = false, deshacer = true } = {}) {
   if (sync.soloLectura) return;
   const ahora = new Date().toISOString();
+  // `ultimoSellado` todavía es la foto de antes de este cambio: es el paso al que volvería un "deshacer" ahora.
+  if (deshacer && ultimoSellado) registrarPasoDeshacer(ultimoSellado);
   eliminados = sellarCambios(estado, ultimoSellado, base, eliminados, ahora);
   tomarFotoSellado();
   versionLocal += 1;
@@ -622,6 +625,9 @@ async function sincronizarUnaVez(forzar) {
   if (aplicar) {
     aplicarDatosAlEstado(resultado, ahora);
     tomarFotoSellado();
+    // Llegó un cambio real (de otro dispositivo, o de datos viejos importados): deshacer no puede "cruzarlo" sin
+    // riesgo de pisarlo, así que el historial se vacía acá; las acciones locales nuevas vuelven a ser deshacibles.
+    invalidarHistorialDeshacer();
     notificar({ conservarBorradores: true });
   }
 
