@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.73.0] - 2026-09-23
+
+Deshacer / rehacer (Ctrl+Z / Ctrl+Shift+Z).
+
+### Agregado
+
+- **Deshacer y rehacer**: Ctrl+Z (o el botón "↩️" de la cabecera) vuelve al estado de antes de la última acción guardada — crear, editar, completar, eliminar, reprogramar, arrastrar en Gantt/Semana, edición masiva, Configuraciones, básicamente cualquier cambio que se guarda; Ctrl+Shift+Z (o "↪️") rehace. Hasta 20 pasos, solo en memoria (se pierde al recargar la página). Si mientras tanto llega un cambio real de otro dispositivo, el historial se vacía solo (para no "deshacer a través" de ese cambio); las acciones locales nuevas de ahí en más vuelven a ser deshacibles.
+
 ## [v0.72.0] - 2026-09-23
 
 Ubicaciones: autocompletar latitud/longitud buscando una dirección.

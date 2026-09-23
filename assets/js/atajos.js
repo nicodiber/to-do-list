@@ -8,6 +8,8 @@ export const ATAJOS_FIJOS = [
   { tecla: 'N', descripcion: 'Nueva tarea', grupo: 'Tareas' },
   { tecla: 'Enter', descripcion: 'En el nombre de una tarea nueva: agregar y cargar otra', grupo: 'Tareas' },
   { tecla: 'Ctrl + Enter', descripcion: 'Guardar o agregar desde cualquier ventana de formulario', grupo: 'Tareas' },
+  { tecla: 'Ctrl + Z', descripcion: 'Deshacer el último cambio', grupo: 'Tareas' },
+  { tecla: 'Ctrl + Shift + Z', descripcion: 'Rehacer', grupo: 'Tareas' },
   { tecla: 'F', descripcion: 'Ir al buscador o al filtro de la vista', grupo: 'Vistas' },
   { tecla: 'Esc', descripcion: 'Cerrar la ventana abierta', grupo: 'Ventanas' },
   { tecla: '?', descripcion: 'Mostrar esta ayuda', grupo: 'Ayuda' },
@@ -81,12 +83,25 @@ export function abrirAyudaAtajos() {
 
 /**
  * Registra el listener global de teclado. `vistas` es el orden de las pestañas (las diez primeras llevan
- * las teclas 1…9 y 0), `etiquetas` sus nombres, `irAVista(clave)` navega, `abrirNuevaTarea()` abre el alta y
- * `puedeUsarse()` dice si la app tiene datos listos y no está en solo lectura.
+ * las teclas 1…9 y 0), `etiquetas` sus nombres, `irAVista(clave)` navega, `abrirNuevaTarea()` abre el alta,
+ * `puedeUsarse()` dice si la app tiene datos listos y no está en solo lectura, y `deshacer()`/`rehacer()` (con
+ * `puedeDeshacer()`/`puedeRehacer()`) son Ctrl+Z / Ctrl+Shift+Z.
  */
-export function configurarAtajos({ vistas, etiquetas, irAVista, abrirNuevaTarea, puedeUsarse }) {
+export function configurarAtajos({ vistas, etiquetas, irAVista, abrirNuevaTarea, puedeUsarse, deshacer, rehacer, puedeDeshacer, puedeRehacer }) {
   contexto = { vistas, etiquetas };
   window.addEventListener('keydown', (evento) => {
+    // Ctrl+Z / Ctrl+Shift+Z: mismas guardas que el resto (fuera de un campo, sin ventana abierta), para no pisar
+    // el deshacer nativo del navegador mientras se edita texto.
+    if ((evento.ctrlKey || evento.metaKey) && !evento.altKey && !evento.repeat && (evento.key === 'z' || evento.key === 'Z')) {
+      if (enCampoEditable(evento.target) || document.querySelector('dialog[open]') || !puedeUsarse()) return;
+      evento.preventDefault();
+      if (evento.shiftKey) {
+        if (puedeRehacer()) rehacer();
+      } else if (puedeDeshacer()) {
+        deshacer();
+      }
+      return;
+    }
     if (evento.ctrlKey || evento.altKey || evento.metaKey || evento.repeat) return;
     if (enCampoEditable(evento.target) || document.querySelector('dialog[open]')) return;
 

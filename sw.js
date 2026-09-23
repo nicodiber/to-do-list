@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v33';
+const CACHE_NAME = 'super-todo-list-v34';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -19,6 +19,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/utilidades.js',
   'assets/js/reprogramar.js',
   'assets/js/tareas-logica.js',
+  'assets/js/deshacer.js',
   'assets/js/revision-dia.js',
   'assets/js/exportar-calendar.js',
   'assets/js/clima.js',
