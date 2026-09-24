@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
+import { ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { formatearFechaOFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml, arbolCategorias, caminoCategoria } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
@@ -11,21 +11,13 @@ import {
   compararPorPrioridad,
   esTareaAccionable,
   ordenarConCadenas,
-  asignarOrdenManual,
+  intercambiarAdyacentes,
+  intercambiarCadena,
   motivoBloqueoOrdenManual,
 } from '../assets/js/tareas-logica.js';
-import {
-  nombreConCategoria,
-  htmlOpcionesCategoria,
-  htmlOpcionesImportancia,
-  htmlOpcionesDisfrute,
-  htmlOpcionesMeta,
-  htmlOpcionesPersona,
-  htmlOpcionesUbicacion,
-  htmlDiasHabiles,
-  aplicarCamposATarea,
-} from '../assets/js/formulario-tarea.js';
-import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
+import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
+import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
+import { programarParaHoy } from '../assets/js/programador.js';
 import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea } from '../assets/js/modal-tarea.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
@@ -37,12 +29,18 @@ const ETIQUETAS_ESTADO_SELECCIONABLE = { pendiente: 'Pendiente', completada: 'Co
 let filtroCategoria = '';
 let filtroEstado = '';
 let filtroImportancia = '';
+let filtroTexto = '';
 let agruparPorCategoria = false;
 // El desplegable "Completadas (N)" recuerda si estaba abierto entre redibujados.
 let completadasAbiertas = false;
 // Selección múltiple (edición masiva, v0.70.0): estado de la sesión, no un dato de la app.
 let modoSeleccion = false;
 let seleccionadas = new Set();
+
+/** Fija el filtro de categoría (lo usa "📋 Ver tareas" de Categorías, antes de navegar a esta vista). */
+export function establecerFiltroCategoria(categoriaId) {
+  filtroCategoria = categoriaId;
+}
 
 export function renderVistaTareas(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
@@ -78,16 +76,16 @@ export function renderVistaTareas(contenedor) {
             .join('')}
         </select>
       </label>
-      <label title="Mostrar solo las tareas con esta importancia">❗ Importancia
+      <label title="Mostrar solo las tareas urgentes">❗ Importancia
         <select id="filtro-importancia">
           <option value="">Todas</option>
-          ${NIVELES_IMPORTANCIA.map(
-            (nivel) =>
-              `<option value="${nivel}" ${filtroImportancia === nivel ? 'selected' : ''}>${ICONOS_IMPORTANCIA[nivel]} ${ETIQUETAS_IMPORTANCIA[nivel]}</option>`
-          ).join('')}
+          <option value="urgente" ${filtroImportancia === 'urgente' ? 'selected' : ''}>🔴 Solo urgentes</option>
         </select>
       </label>
       <label class="interruptor" title="Separar la lista por categoría"><input type="checkbox" role="switch" id="toggle-agrupar-categoria" ${agruparPorCategoria ? 'checked' : ''} /><span class="interruptor-pista" aria-hidden="true"></span><span class="interruptor-texto">🧩 Agrupar por categoría</span><span class="interruptor-estado" aria-hidden="true"></span></label>
+      <label>🔎 Buscar
+        <input type="search" id="tareas-texto" title="Buscar por nombre (tecla F)" placeholder="Nombre de la tarea" value="${escaparHtml(filtroTexto)}" />
+      </label>
       <button title="Reordenar las prioridades con ayuda de tu IA" type="button" id="boton-ia-prioridades">🤖 Reestructurar prioridades con IA</button>
       <button title="Elegir varias tareas para editarlas juntas" type="button" id="boton-modo-seleccion" class="${modoSeleccion ? 'activo' : ''}">☑️ Seleccionar</button>
     </div>
@@ -96,6 +94,7 @@ export function renderVistaTareas(contenedor) {
 
     <div id="barra-seleccion" class="barra-seleccion" ${modoSeleccion ? '' : 'hidden'}>
       <span id="conteo-seleccion">0 seleccionadas</span>
+      <button title="Elegir todas las tareas visibles" type="button" id="boton-seleccionar-todas">☑️ Seleccionar todas</button>
       <button title="Editar los campos en común de las tareas elegidas" type="button" id="boton-editar-seleccion" class="boton-primario" disabled>✏️ Editar tareas seleccionadas</button>
       <button title="Salir del modo selección" type="button" id="boton-cancelar-seleccion">Cancelar</button>
     </div>
@@ -123,6 +122,10 @@ export function renderVistaTareas(contenedor) {
   });
   contenedor.querySelector('#toggle-agrupar-categoria').addEventListener('change', (evento) => {
     agruparPorCategoria = evento.target.checked;
+    renderVistaTareas(contenedor);
+  });
+  contenedor.querySelector('#tareas-texto').addEventListener('input', (evento) => {
+    filtroTexto = evento.target.value;
     renderVistaTareas(contenedor);
   });
 
@@ -169,7 +172,8 @@ export function renderVistaTareas(contenedor) {
     .filter((t) => !filtroCategoria || t.categoria_id === filtroCategoria)
     .filter((t) => !filtroEstado || t.tarea_estado === filtroEstado)
     .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
-    .filter((t) => !filtroImportancia || t.tarea_importancia === filtroImportancia)
+    .filter((t) => !filtroImportancia || t.tarea_urgente)
+    .filter((t) => !filtroTexto || t.tarea_nombre.toLowerCase().includes(filtroTexto.toLowerCase()))
     .slice()
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
 
@@ -177,6 +181,11 @@ export function renderVistaTareas(contenedor) {
   // en vez de separada de las pendientes por prioridad individual.
   const activas = ordenarConCadenas(tareasFiltradas.filter((t) => t.tarea_estado !== 'completada'));
   const completadas = tareasFiltradas.filter((t) => t.tarea_estado === 'completada');
+
+  contenedor.querySelector('#boton-seleccionar-todas').addEventListener('click', () => {
+    activas.forEach((tarea) => seleccionadas.add(tarea.tarea_id));
+    renderVistaTareas(contenedor);
+  });
 
   if (tareasFiltradas.length === 0) {
     listaTareas.innerHTML = '<p class="mensaje-vacio">No hay tareas que coincidan con el filtro.</p>';
@@ -252,7 +261,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
         ${vencida ? '<span class="etiqueta-vencida">⚠️ Vencida</span>' : ''}
-        ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
+        ${tarea.tarea_urgente ? '<span class="etiqueta-fecha">🔴 Urgente</span>' : ''}
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(caminoCategoria(categoria, estado.categorias))}</span>` : ''}
         ${tarea.tarea_fecha_inicio_habilitada ? `<span class="etiqueta-fecha">Desde: ${formatearFechaOFechaHora(tarea.tarea_fecha_inicio_habilitada)}</span>` : ''}
         ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha">Sugerida: ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}</span>` : ''}
@@ -309,25 +318,41 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
     actualizarBarraSeleccion();
   });
 
+  // En modo selección, tocar la tarjeta (fuera de un control real) alterna su casilla; si no, doble clic abre Editar.
+  li.addEventListener('click', (evento) => {
+    if (!modoSeleccion || evento.target.closest('button, a, input, select')) return;
+    const casilla = li.querySelector('[data-seleccionar]');
+    if (!casilla) return;
+    casilla.checked = !casilla.checked;
+    casilla.dispatchEvent(new Event('change'));
+  });
+  li.addEventListener('dblclick', (evento) => {
+    if (modoSeleccion || evento.target.closest('button, a, input, select')) return;
+    abrirEdicionTarea(tarea.tarea_id);
+  });
+
   if (activas) {
     const anterior = indice > 0 ? activas[indice - 1] : null;
     const siguiente = indice < activas.length - 1 ? activas[indice + 1] : null;
+    const esCadena = (a, b) => b.tarea_id === a.tarea_dependiente;
     const botonSubir = li.querySelector('[data-accion="subir-orden"]');
     const botonBajar = li.querySelector('[data-accion="bajar-orden"]');
     const motivoSubir = anterior ? motivoBloqueoOrdenManual(tarea, anterior, estado.categorias) : 'Ya es la primera.';
     const motivoBajar = siguiente ? motivoBloqueoOrdenManual(tarea, siguiente, estado.categorias) : 'Ya es la última.';
     botonSubir.disabled = !!motivoSubir;
-    if (motivoSubir) botonSubir.title = motivoSubir;
+    botonSubir.title = motivoSubir || (anterior && esCadena(tarea, anterior) ? 'Subir (reordena la cadena)' : 'Subir');
     botonBajar.disabled = !!motivoBajar;
-    if (motivoBajar) botonBajar.title = motivoBajar;
+    botonBajar.title = motivoBajar || (siguiente && esCadena(siguiente, tarea) ? 'Bajar (reordena la cadena)' : 'Bajar');
     botonSubir.addEventListener('click', async () => {
       if (!anterior) return;
-      asignarOrdenManual(tarea, anterior, estado.tareas);
+      if (esCadena(tarea, anterior)) intercambiarCadena(tarea, anterior, estado.tareas);
+      else intercambiarAdyacentes(tarea, anterior, activas, estado.tareas, estado.categorias);
       await persistirYNotificar();
     });
     botonBajar.addEventListener('click', async () => {
       if (!siguiente) return;
-      asignarOrdenManual(siguiente, tarea, estado.tareas);
+      if (esCadena(siguiente, tarea)) intercambiarCadena(siguiente, tarea, estado.tareas);
+      else intercambiarAdyacentes(siguiente, tarea, activas, estado.tareas, estado.categorias);
       await persistirYNotificar();
     });
   }
@@ -432,7 +457,7 @@ function crearPanelIAPrioridades() {
     <textarea class="textarea-ia" readonly rows="6">${escaparHtml(prompt)}</textarea>
     <button title="Copiar el texto para pegarlo en tu IA" type="button" data-accion="copiar-prompt">📋 Copiar prompt</button>
     <p class="panel-reprogramar-etiqueta">2. Pegá acá la respuesta (el JSON) que te devolvió:</p>
-    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_id": "...", "tarea_importancia": "urgente" }]'></textarea>
+    <textarea class="textarea-ia" data-campo="respuesta" rows="6" placeholder='[{ "tarea_id": "...", "tarea_urgente": true }]'></textarea>
     <button title="Ver lo que respondió la IA antes de aplicarlo" type="button" data-accion="previsualizar" class="boton-primario">👁️ Previsualizar</button>
     <div class="contenedor-preview-ia"></div>
   `;
@@ -465,8 +490,8 @@ function crearPanelIAPrioridades() {
               <li>
                 <label>
                   <input type="checkbox" data-indice="${i}" checked />
-                  ${escaparHtml(c.tarea.tarea_nombre)}: ${c.tarea.tarea_importancia ? `${ICONOS_IMPORTANCIA[c.tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[c.tarea.tarea_importancia]}` : 'Sin definir'}
-                  → ${ICONOS_IMPORTANCIA[c.importanciaSugerida]} ${ETIQUETAS_IMPORTANCIA[c.importanciaSugerida]}
+                  ${escaparHtml(c.tarea.tarea_nombre)}: ${c.tarea.tarea_urgente ? '🔴 Urgente' : 'No urgente'}
+                  → ${c.urgenteSugerido ? '🔴 Urgente' : 'No urgente'}
                 </label>
               </li>`
           )
@@ -479,98 +504,15 @@ function crearPanelIAPrioridades() {
       const seleccionados = [...contenedorPreview.querySelectorAll('input[type="checkbox"]:checked')].map(
         (cb) => cambios[Number(cb.dataset.indice)]
       );
-      seleccionados.forEach((c) => {
-        c.tarea.tarea_importancia = c.importanciaSugerida;
-      });
+      for (const c of seleccionados) {
+        const eraUrgente = !!c.tarea.tarea_urgente;
+        c.tarea.tarea_urgente = c.urgenteSugerido;
+        // Pasó a urgente ahora: se le asigna hoy (mismo criterio que el formulario y la edición masiva).
+        if (c.tarea.tarea_urgente && !eraUrgente) await programarParaHoy(c.tarea, estado);
+      }
       await persistirYNotificar();
     });
   });
 
   return panel;
-}
-
-// ---------------------------------------------------------------------------
-// Edición masiva (v0.70.0): aplicar el mismo cambio a varias tareas elegidas.
-// ---------------------------------------------------------------------------
-
-/** Saca la opción "＋ Crear nueva…" de un HTML de `<option>`: acá no se dan de alta entidades nuevas. */
-function sinOpcionNueva(html) {
-  return html.replace(/<option value="__nueva__">[^<]*<\/option>/, '');
-}
-
-/** Una fila de campo con una casilla "Cambiar" que habilita el control real; sin tildar, ese campo no se toca. */
-function filaCampoMasivo(nombreCampo, etiqueta, controlHtml) {
-  return `
-    <div class="campo campo-masivo" data-fila="${nombreCampo}">
-      <label class="campo-masivo-activar">
-        <input type="checkbox" data-activar="${nombreCampo}" />
-        <span class="campo-titulo">${etiqueta}</span>
-      </label>
-      ${controlHtml}
-    </div>`;
-}
-
-function htmlFormularioEdicionMasiva() {
-  return `
-    <p class="ayuda">Tildá "Cambiar" en los campos que quieras aplicar a todas las tareas elegidas; los que dejes sin tildar quedan como estaban en cada una.</p>
-    ${filaCampoMasivo('categoria_id', '🗂️ Categoría', `<select name="categoria_id" disabled>${sinOpcionNueva(htmlOpcionesCategoria(''))}</select>`)}
-    ${filaCampoMasivo('tarea_importancia', '❗ Importancia', `<select name="tarea_importancia" disabled>${htmlOpcionesImportancia('')}</select>`)}
-    ${filaCampoMasivo('tarea_disfrute', '⭐ Disfrute', `<select name="tarea_disfrute" disabled>${htmlOpcionesDisfrute(null)}</select>`)}
-    ${filaCampoMasivo('meta_id', '🏁 Meta', `<select name="meta_id" disabled>${sinOpcionNueva(htmlOpcionesMeta(''))}</select>`)}
-    ${filaCampoMasivo('persona_id', '👤 Persona', `<select name="persona_id" disabled>${sinOpcionNueva(htmlOpcionesPersona(''))}</select>`)}
-    ${filaCampoMasivo('ubicacion_id', '📍 Ubicación', `<select name="ubicacion_id" disabled>${sinOpcionNueva(htmlOpcionesUbicacion(''))}</select>`)}
-    ${filaCampoMasivo('tarea_fecha_limite', '⏳ Fecha límite', '<input type="date" name="tarea_fecha_limite" disabled />')}
-    ${filaCampoMasivo('tarea_duracion_min', '⏱️ Duración (minutos)', '<input type="number" name="tarea_duracion_min" min="0" step="15" value="30" disabled />')}
-    ${filaCampoMasivo('tarea_costo_estimado', '💰 Costo estimado ($)', '<input type="number" name="tarea_costo_estimado" min="0" disabled />')}
-    ${filaCampoMasivo('tarea_dias_habiles', '🗓️ Días hábiles (sin marcar = cualquier día)', htmlDiasHabiles([]))}
-  `;
-}
-
-/** Lee los campos con su casilla "Cambiar" tildada: `{ clave: valor }`, sin las que quedaron sin tocar. */
-function leerEdicionMasiva(formulario) {
-  const datos = new FormData(formulario);
-  const activo = (campo) => formulario.querySelector(`[data-activar="${campo}"]`).checked;
-  const cambios = {};
-  if (activo('categoria_id')) cambios.categoria_id = datos.get('categoria_id') || null;
-  if (activo('tarea_importancia')) cambios.tarea_importancia = datos.get('tarea_importancia') || null;
-  if (activo('tarea_disfrute')) cambios.tarea_disfrute = datos.get('tarea_disfrute') ? Number(datos.get('tarea_disfrute')) : null;
-  if (activo('meta_id')) cambios.meta_id = datos.get('meta_id') || null;
-  if (activo('persona_id')) cambios.persona_id = datos.get('persona_id') || null;
-  if (activo('ubicacion_id')) cambios.ubicacion_id = datos.get('ubicacion_id') || null;
-  if (activo('tarea_fecha_limite')) cambios.tarea_fecha_limite = datos.get('tarea_fecha_limite') || '';
-  if (activo('tarea_duracion_min')) cambios.tarea_duracion_min = Number(datos.get('tarea_duracion_min')) || 30;
-  if (activo('tarea_costo_estimado')) cambios.tarea_costo_estimado = Number(datos.get('tarea_costo_estimado')) || 0;
-  if (activo('tarea_dias_habiles')) cambios.tarea_dias_habiles = datos.getAll('tarea_dias_habiles').map(Number);
-  return cambios;
-}
-
-/** Ventana de edición masiva sobre `tareas` (ya elegidas); `alTerminar()` se llama al aplicar los cambios. */
-function abrirEdicionMasiva(tareas, alTerminar) {
-  abrirDialogoFormulario({
-    titulo: `✏️ Editar ${tareas.length} tarea${tareas.length === 1 ? '' : 's'}`,
-    textoGuardar: 'Aplicar cambios',
-    cuerpoHtml: htmlFormularioEdicionMasiva(),
-    conectar: (formulario) => {
-      formulario.querySelectorAll('[data-activar]').forEach((casilla) => {
-        casilla.addEventListener('change', () => {
-          const fila = casilla.closest('.campo-masivo');
-          fila.classList.toggle('activo', casilla.checked);
-          fila.querySelectorAll('select, input:not([data-activar])').forEach((control) => {
-            control.disabled = !casilla.checked;
-          });
-        });
-      });
-    },
-    alGuardar: async (formulario) => {
-      const cambios = leerEdicionMasiva(formulario);
-      if (Object.keys(cambios).length === 0) {
-        alert('Tildá "Cambiar" en al menos un campo para aplicar algo.');
-        return false;
-      }
-      tareas.forEach((tarea) => aplicarCamposATarea(tarea, cambios));
-      await persistirYNotificar();
-      alTerminar();
-      return true;
-    },
-  });
 }

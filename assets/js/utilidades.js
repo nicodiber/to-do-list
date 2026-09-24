@@ -212,6 +212,24 @@ export function textoHolgura(dias) {
   return `Quedan ${dias} día${dias === 1 ? '' : 's'}`;
 }
 
+const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+/**
+ * Fecha±hora de Tarea en lenguaje humano para fechas cercanas ("hoy", "mañana", "pasado mañana",
+ * "próximo lunes"…"próximo domingo" hasta una semana), y el formato de siempre (`formatearFechaOFechaHora`)
+ * para el resto (más lejos o ya vencidas, donde el nombre del día no ayuda).
+ */
+export function textoFechaHumana(fechaISO) {
+  if (!fechaISO) return '';
+  const dias = diasEntreFechas(hoyISO(), diaLocal(fechaISO));
+  const hora = tieneHora(fechaISO) ? ` ${formatearHora(fechaISO)}` : '';
+  if (dias === 0) return `hoy${hora}`;
+  if (dias === 1) return `mañana${hora}`;
+  if (dias === 2) return `pasado mañana${hora}`;
+  if (dias >= 3 && dias <= 8) return `próximo ${DIAS_SEMANA[new Date(diaLocal(fechaISO) + 'T00:00:00').getDay()]}${hora}`;
+  return formatearFechaOFechaHora(fechaISO);
+}
+
 export function caminoCategoria(categoria, todasLasCategorias) {
   if (!categoria) return '';
   const nombres = [];

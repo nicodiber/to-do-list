@@ -1,4 +1,4 @@
-import { crearTarea, crearMejora, crearCumplimiento, ORDEN_IMPORTANCIA } from './modelos.js';
+import { crearTarea, crearMejora, crearCumplimiento } from './modelos.js';
 import { ahoraISO, hoyISO, fechaLocalISO, diaLocal, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz, combinarFechaYHora } from './utilidades.js';
 import { siguienteDiaHabil } from './reprogramar.js';
 import { recalcularBloqueo, puedeAgregarDependencia, proximasActivas, reconectarAlEliminar } from './dependencias.js';
@@ -74,7 +74,7 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
     tarea_mantenimiento_intervalo: tarea.tarea_mantenimiento_intervalo,
     tarea_costo_estimado: tarea.tarea_costo_estimado,
     tarea_disfrute: tarea.tarea_disfrute,
-    tarea_importancia: tarea.tarea_importancia,
+    tarea_urgente: tarea.tarea_urgente,
     ubicacion_id: tarea.ubicacion_id,
     tarea_dias_habiles: [...(tarea.tarea_dias_habiles || [])],
     tarea_requiere_clima_bueno: tarea.tarea_requiere_clima_bueno,
@@ -306,6 +306,18 @@ function calcularProximaFechaSugerida(tarea) {
 }
 
 /**
+ * `tarea_fecha_sugerida` nunca puede superar `tarea_fecha_limite` (la fecha límite la decide el usuario;
+ * la sugerida la puede reprogramar la app sin preguntar). Si las dos están cargadas y la sugerida queda
+ * después del día límite, se descarta en silencio (queda vacía) en vez de bloquear el guardado — la
+ * tarea vuelve a ser candidata de `programarTareasSinFecha`, que le va a asignar una nueva ya respetando
+ * el límite. No muta: devuelve el valor que debería tener `tarea_fecha_sugerida`.
+ */
+export function limitarFechaSugeridaALimite(fechaSugeridaISO, fechaLimiteISO) {
+  if (!fechaSugeridaISO || !fechaLimiteISO) return fechaSugeridaISO;
+  return diaLocal(fechaSugeridaISO) > diaLocal(fechaLimiteISO) ? '' : fechaSugeridaISO;
+}
+
+/**
  * Reprograma automáticamente (sin intervención del usuario, a diferencia de
  * `tarea_fecha_limite`) la `tarea_fecha_sugerida` de toda tarea activa (no
  * completada) que quedó vencida, a la próxima fecha disponible
@@ -373,8 +385,8 @@ function bandaHolgura(dias) {
  * holgura (`calcularHolguraDias`) — el criterio dominante; 2)
  * `categoria_prioridad` de la categoría raíz de cada tarea (`categoriaRaiz`);
  * 3) `categoria_prioridad` de la categoría directa, como desempate entre
- * categorías con la misma raíz; 4) `tarea_importancia` (urgente > importante
- * > sin definir). Sin categoría, o categoría inexistente, queda siempre al
+ * categorías con la misma raíz; 4) `tarea_urgente` (booleano, v0.75.0: antes
+ * `tarea_importancia` de 3 valores — `true` gana). Sin categoría, o categoría inexistente, queda siempre al
  * final en los niveles 2 y 3. Devuelve 0 si empatan en los 4 niveles —
  * usado tanto por `compararPorPrioridad` como por `tareasEmpatadas`.
  */
@@ -394,9 +406,7 @@ function compararEstructural(a, b, categorias) {
   const prioridadDirectaB = categoriaB?.categoria_prioridad ?? Infinity;
   if (prioridadDirectaA !== prioridadDirectaB) return prioridadDirectaA - prioridadDirectaB;
 
-  const importanciaA = ORDEN_IMPORTANCIA[a.tarea_importancia] ?? 2;
-  const importanciaB = ORDEN_IMPORTANCIA[b.tarea_importancia] ?? 2;
-  return importanciaA - importanciaB;
+  return (a.tarea_urgente ? 0 : 1) - (b.tarea_urgente ? 0 : 1);
 }
 
 /**
@@ -411,6 +421,72 @@ export function asignarOrdenManual(preferida, otra, listaTareas) {
 }
 
 /**
+ * Intercambia el orden entre dos tareas ADYACENTES en la lista mostrada (▲▼): a diferencia de
+ * `asignarOrdenManual` (pensada para "Versus", donde la ganadora debe saltar al frente de todo el grupo
+ * empatado), acá solo debe cambiar el orden relativo del par tocado — el resto del grupo todavía empatado
+ * (sin `tarea_prioridad_manual`, que por eso ordena como si fuera "infinito") no tiene que moverse. Un
+ * valor fresco a solo el par, con el enfoque de `asignarOrdenManual`, los haría saltar por delante de esas
+ * otras tareas empatadas igual, no solo de la vecina tocada — el bug real que reportó el usuario ("suben y
+ * bajan de manera no lógica") en tareas empatadas sin decidir todavía.
+ *
+ * En cambio, le da un valor fresco y creciente a **todo el tramo contiguo** de `listaOrdenada` (la lista tal
+ * como se está mostrando) que sigue empatado en `compararEstructural` (mismos 4 niveles que ordenan la
+ * lista) y sin relación de cadena con el par, respetando el orden actual de todas salvo el par que se
+ * intercambia. A
+ * partir de acá todo ese grupo queda con un valor real (ya no "infinito"), así que un próximo ▲▼ dentro del
+ * mismo grupo vuelve a ser un intercambio simple y seguro. `listaTareas` (normalmente `estado.tareas`) es
+ * solo para calcular un valor que no choque con ningún otro ya asignado en cualquier parte de la app.
+ */
+function empatadasSinCadena(a, b, categorias) {
+  if (a.tarea_dependiente === b.tarea_id || b.tarea_dependiente === a.tarea_id) return false;
+  return compararEstructural(a, b, categorias) === 0;
+}
+
+export function intercambiarAdyacentes(arriba, abajo, listaOrdenada, listaTareas, categorias) {
+  const indiceArriba = listaOrdenada.indexOf(arriba);
+  const indiceAbajo = listaOrdenada.indexOf(abajo);
+
+  let inicio = indiceArriba;
+  while (inicio > 0 && empatadasSinCadena(listaOrdenada[inicio - 1], listaOrdenada[inicio], categorias)) inicio -= 1;
+  let fin = indiceAbajo;
+  while (fin < listaOrdenada.length - 1 && empatadasSinCadena(listaOrdenada[fin], listaOrdenada[fin + 1], categorias)) fin += 1;
+
+  const tramo = listaOrdenada.slice(inicio, fin + 1);
+  const iArriba = tramo.indexOf(arriba);
+  const iAbajo = tramo.indexOf(abajo);
+  [tramo[iArriba], tramo[iAbajo]] = [tramo[iAbajo], tramo[iArriba]];
+
+  let siguienteValor = 1 + Math.max(-1, ...listaTareas.map((t) => t.tarea_prioridad_manual).filter((v) => v != null));
+  tramo.forEach((tarea) => {
+    tarea.tarea_prioridad_manual = siguienteValor;
+    siguienteValor += 1;
+  });
+}
+
+/**
+ * Intercambia dos tareas ADYACENTES en la cadena de dependencia (▲▼ entre encadenadas, v0.75.0): a
+ * diferencia de antes (que bloqueaba el botón), la app reordena la cadena sola. El llamador garantiza que
+ * `nuevoSegundo` es hoy la previa de `nuevoPrimero` (`nuevoSegundo.tarea_id === nuevoPrimero.tarea_dependiente`)
+ * — es decir, `nuevoSegundo` bloquea a `nuevoPrimero`. Tras la llamada queda al revés: `nuevoPrimero` bloquea
+ * a `nuevoSegundo`, conservando lo que hubiera antes y después del par (P→segundo→primero→N pasa a
+ * P→primero→segundo→N). Solo toca `tarea_dependiente` (no fechas) y no usa `evaluarEnlace`/`aplicarEnlace`:
+ * es una permutación local de un tramo ya válido, no puede crear ciclos ni romper la regla 1 a 1. No toca
+ * `tarea_desencadenante` (los anillos de mantenimiento quedan fuera de este alcance).
+ */
+export function intercambiarCadena(nuevoPrimero, nuevoSegundo, listaTareas) {
+  const previaDeAntes = nuevoSegundo.tarea_dependiente || null;
+  const proximaDeDespues = listaTareas.find((t) => t.tarea_dependiente === nuevoPrimero.tarea_id && t.tarea_estado !== 'completada') || null;
+
+  nuevoPrimero.tarea_dependiente = previaDeAntes;
+  nuevoSegundo.tarea_dependiente = nuevoPrimero.tarea_id;
+  if (proximaDeDespues) proximaDeDespues.tarea_dependiente = nuevoSegundo.tarea_id;
+
+  recalcularBloqueo(nuevoPrimero, listaTareas);
+  recalcularBloqueo(nuevoSegundo, listaTareas);
+  if (proximaDeDespues) recalcularBloqueo(proximaDeDespues, listaTareas);
+}
+
+/**
  * Por qué `actual` no puede cambiar de orden con `vecina` (▲▼ a mano): `''` si sí puede (están empatadas en los 4
  * niveles estructurales de `compararEstructural` y no son cadena previa/próxima — mover `tarea_prioridad_manual`
  * entre ellas sí va a cambiar el orden mostrado); si no, un texto que nombra a `vecina` y qué la hace ganar, para
@@ -418,8 +494,11 @@ export function asignarOrdenManual(preferida, otra, listaTareas) {
  * `compararEstructural` (que queda sin tocar).
  */
 export function motivoBloqueoOrdenManual(actual, vecina, categorias) {
+  // Encadenadas (previa/próxima directa): siempre se puede — ver `intercambiarCadena`, que reordena la
+  // cadena sola. No se comparan los demás niveles: la relación de cadena manda, igual que ya hace
+  // `ordenarConCadenas` al mostrarlas juntas.
   if (actual.tarea_dependiente === vecina.tarea_id || vecina.tarea_dependiente === actual.tarea_id) {
-    return `«${vecina.tarea_nombre}» está encadenada con esta tarea (previa/próxima): no pueden cambiar de orden entre sí.`;
+    return '';
   }
 
   const bandaActual = bandaHolgura(calcularHolguraDias(actual));
@@ -444,10 +523,8 @@ export function motivoBloqueoOrdenManual(actual, vecina, categorias) {
     return `«${vecina.tarea_nombre}» está en la subcategoría «${categoriaVecina?.categoria_nombre || 'sin categoría'}», con ${directaVecina < directaActual ? 'mayor' : 'menor'} prioridad.`;
   }
 
-  const importanciaActual = ORDEN_IMPORTANCIA[actual.tarea_importancia] ?? 2;
-  const importanciaVecina = ORDEN_IMPORTANCIA[vecina.tarea_importancia] ?? 2;
-  if (importanciaActual !== importanciaVecina) {
-    return `«${vecina.tarea_nombre}» tiene ${importanciaVecina < importanciaActual ? 'mayor' : 'menor'} importancia.`;
+  if (!!actual.tarea_urgente !== !!vecina.tarea_urgente) {
+    return `«${vecina.tarea_nombre}» ${vecina.tarea_urgente ? 'es urgente' : 'no es urgente'}.`;
   }
 
   return '';
@@ -516,7 +593,7 @@ export function mejorTareaPorCategoria(tareas, categorias) {
  */
 export function esTareaSoloConNombre(tarea, listaTareas = []) {
   if (tarea.tarea_estado === 'completada' || tarea.tarea_carga_completa) return false;
-  if (tarea.categoria_id || tarea.tarea_importancia || tarea.tarea_disfrute != null || tarea.meta_id) return false;
+  if (tarea.categoria_id || tarea.tarea_urgente || tarea.tarea_disfrute != null || tarea.meta_id) return false;
   if (tarea.tarea_fecha_sugerida || tarea.tarea_fecha_limite) return false;
   if (tarea.tarea_fecha_inicio_habilitada && tarea.tarea_fecha_inicio_habilitada !== tarea.tarea_creada_en) return false;
   // Cuentan como "sin datos" tanto la duración por defecto de ahora (30) como la de antes (15).

@@ -209,9 +209,13 @@ function migrarTarea(t) {
   if ('tarea_dependiente' in t) {
     // `tarea_genera_dinero` se eliminó del modelo: si el objeto lo trae de
     // una versión anterior, se descarta acá (destructuring sin volver a usarlo).
-    const { tarea_genera_dinero, ...resto } = t;
+    // `tarea_importancia` (enum 'urgente'/'importante'/null) se reemplazó por `tarea_urgente` (booleano,
+    // v0.75.0): se saca del resto y se recalcula — dato ya migrado conserva su `tarea_urgente`, dato viejo
+    // con 'urgente' pasa a `true`, cualquier otro valor ('importante', null o ausente) pasa a `false`.
+    const { tarea_genera_dinero, tarea_importancia, ...resto } = t;
     return {
       ...resto,
+      tarea_urgente: resto.tarea_urgente ?? tarea_importancia === 'urgente',
       // Campos de la Ronda 2: ausentes en datos anteriores, se completan con su valor por defecto.
       tarea_exportada_calendar: !!resto.tarea_exportada_calendar,
       tarea_checklist: Array.isArray(resto.tarea_checklist) ? resto.tarea_checklist : [],
@@ -255,7 +259,7 @@ function migrarTarea(t) {
     tarea_fecha_sugerida: fechaHoraAgendadaVieja || fechaSugeridaVieja || '',
     tarea_fecha_limite: fechaLimiteVieja || '',
     tarea_fecha_fin: completadaEnVieja || null,
-    tarea_importancia: null,
+    tarea_urgente: false,
     tarea_mantenimiento: !!mantenimientoViejo,
     tarea_mantenimiento_intervalo: mantenimientoViejo || null,
     tarea_dias_habiles: diasHabilesViejos || [],

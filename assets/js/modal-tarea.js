@@ -18,6 +18,7 @@ import {
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
 import { renombrarHistorial, cumplirTarea, reabrirTarea } from './tareas-logica.js';
+import { programarParaHoy } from './programador.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 
 let edicionAbierta = false;
@@ -65,9 +66,13 @@ export function abrirEdicionTarea(id) {
       const nombreAnterior = actual.tarea_nombre;
       const eraMantenimiento = actual.tarea_mantenimiento;
       const estabaCompletada = actual.tarea_estado === 'completada';
+      const eraUrgente = !!actual.tarea_urgente;
       aplicarCamposATarea(actual, leido.campos);
       aplicarEnlace(actual.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
       ofrecerMarcarCadenaMantenimiento(actual, estado.tareas);
+      // Pasó a urgente ahora (no ya lo era): se le asigna hoy. Re-guardar una que ya era urgente sin tocar
+      // ese campo no debe volver a moverla.
+      if (actual.tarea_urgente && !eraUrgente) await programarParaHoy(actual, estado);
       // Interruptor "Completada": misma lógica que el desplegable de estado de la vista Tareas.
       let ofrecerExportar = false;
       let copiaConservada = null;
@@ -194,6 +199,7 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
         if (previa && previa.tarea_fecha_inicio_habilitada) nueva.tarea_fecha_inicio_habilitada = previa.tarea_fecha_inicio_habilitada;
       }
       ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
+      if (nueva.tarea_urgente) await programarParaHoy(nueva, estado);
       await persistirYNotificar();
 
       if (valor === 'siguiente') {

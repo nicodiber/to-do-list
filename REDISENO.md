@@ -54,7 +54,7 @@ Estados: **✅ Definido** (decidido con el usuario, listo para implementar) · *
 
 ## A3 · Completar carga de tareas
 
-- ✅ El sistema detecta las tareas "solo con nombre": `categoria_id`, `tarea_importancia` y `tarea_disfrute` en `null`; `tarea_fecha_inicio_habilitada` igual a `tarea_creada_en`; sin `tarea_fecha_sugerida` ni `tarea_fecha_limite`; `tarea_duracion_min` 15; sin descripción, ubicación, clima, costo, mantenimiento, días hábiles, dependencia ni meta.
+- ✅ El sistema detecta las tareas "solo con nombre": `categoria_id` en `null`, `tarea_urgente` en `false` y `tarea_disfrute` en `null`; `tarea_fecha_inicio_habilitada` igual a `tarea_creada_en`; sin `tarea_fecha_sugerida` ni `tarea_fecha_limite`; `tarea_duracion_min` 15; sin descripción, ubicación, clima, costo, mantenimiento, días hábiles, dependencia ni meta.
 - ✅ Si hay al menos una, muestra en la cabecera el botón **"Completar carga de tareas (X)"** (X = cantidad). Al hacer clic, lista esas tareas cada una con su formulario y un botón **"Actualizar"**, más un botón **"Dejar así"** que marca `tarea_carga_completa` y la saca de la lista (para tareas que deben quedar con solo el nombre). *(Implementado en v0.53.0.)*
 
 ## A4 · Cumplir tareas, mejora continua y exportación a Calendar

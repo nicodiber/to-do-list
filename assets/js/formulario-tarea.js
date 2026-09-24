@@ -3,16 +3,11 @@
 // leerlos y validarlos, en lugar de tres copias.
 
 import { estado } from './almacenamiento.js';
-import {
-  UNIDADES_MANTENIMIENTO,
-  ETIQUETAS_UNIDAD_MANTENIMIENTO,
-  NIVELES_IMPORTANCIA,
-  ETIQUETAS_IMPORTANCIA,
-  ICONOS_IMPORTANCIA,
-} from './modelos.js';
+import { UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
+import { limitarFechaSugeridaALimite } from './tareas-logica.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDialogoPersona } from './formularios-entidades.js';
 
 import { activarMayusculaInicial } from './dialogo-formulario.js';
@@ -21,16 +16,6 @@ export { firmaFormulario } from './dialogo-formulario.js';
 
 /** Valor de la opción "＋ Crear nueva…" de los desplegables de categoría, ubicación y meta. */
 const CREAR_NUEVA = '__nueva__';
-
-export function htmlOpcionesImportancia(seleccionada = '') {
-  const opciones = [`<option value="" ${!seleccionada ? 'selected' : ''}>Sin definir</option>`];
-  NIVELES_IMPORTANCIA.forEach((nivel) => {
-    opciones.push(
-      `<option value="${nivel}" ${nivel === seleccionada ? 'selected' : ''}>${ICONOS_IMPORTANCIA[nivel]} ${ETIQUETAS_IMPORTANCIA[nivel]}</option>`
-    );
-  });
-  return opciones.join('');
-}
 
 export function htmlOpcionesDisfrute(seleccionado = null) {
   const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Sin definir</option>`];
@@ -232,10 +217,10 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
         <input type="text" name="tarea_descripcion" placeholder="Opcional" value="${escaparHtml(t.tarea_descripcion || '')}" />
       </label>
       <label class="campo" title="El área de tu vida a la que pertenece; define su prioridad"><span class="campo-titulo">🗂️ Categoría</span><select name="categoria_id">${htmlOpcionesCategoria(t.categoria_id || '')}</select></label>
-      <label class="campo" title="Qué tan importante es: cuenta para ordenar la lista"><span class="campo-titulo">❗ Importancia</span><select name="tarea_importancia">${htmlOpcionesImportancia(t.tarea_importancia || '')}</select></label>
       <label class="campo" title="Cuánto disfrutás hacerla (1 a 5)"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
       <label class="campo" title="La meta a la que aporta esta tarea"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
       <label class="campo" title="Con quién la hacés, si depende de otra persona"><span class="campo-titulo">👤 Persona</span><select name="persona_id">${htmlOpcionesPersona(t.persona_id || '')}</select></label>
+      <div class="ancho-completo">${htmlInterruptor('tarea_urgente', t.tarea_urgente, '❗ Urgente', 'title="Cuenta para ordenar la lista; al marcarla se le asigna la fecha sugerida de hoy (o el próximo hueco libre si no entra)"')}</div>
     </fieldset>
 
     <fieldset class="seccion-form">
@@ -425,7 +410,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
       precargar(formulario.mantenimiento_cantidad, coincidencia.tarea_mantenimiento_intervalo.cantidad);
       precargar(formulario.mantenimiento_unidad, coincidencia.tarea_mantenimiento_intervalo.unidad);
     }
-    precargar(formulario.tarea_importancia, coincidencia.tarea_importancia || '');
+    precargar(formulario.tarea_urgente, !!coincidencia.tarea_urgente);
     precargar(formulario.tarea_disfrute, coincidencia.tarea_disfrute ?? '');
     const diasSeleccionados = coincidencia.tarea_dias_habiles || [];
     formulario.querySelectorAll('input[name="tarea_dias_habiles"]').forEach((c) => precargar(c, diasSeleccionados.includes(Number(c.value))));
@@ -460,10 +445,10 @@ export function leerFormularioTarea(formulario) {
     campos: {
       tarea_nombre: capitalizarPrimera(String(datos.get('tarea_nombre') || '').trim()),
       categoria_id: valorSeleccion(datos.get('categoria_id')),
-      tarea_importancia: datos.get('tarea_importancia') || null,
+      tarea_urgente: datos.get('tarea_urgente') === 'on',
       tarea_disfrute: datos.get('tarea_disfrute') ? Number(datos.get('tarea_disfrute')) : null,
       tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
-      tarea_fecha_sugerida: combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'),
+      tarea_fecha_sugerida: limitarFechaSugeridaALimite(combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'), combinarCampoFechaHora(datos, 'tarea_fecha_limite')),
       tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
       tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 30,
       tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,

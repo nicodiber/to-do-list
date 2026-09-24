@@ -427,7 +427,9 @@ h1, h2, h3 {
 }
 
 .th-orden-manual,
-.td-orden-manual {
+.td-orden-manual,
+.th-seleccion-tabla,
+.td-seleccion-tabla {
   width: 1%;
   white-space: nowrap;
 }
@@ -550,6 +552,7 @@ h1, h2, h3 {
   padding: 0;
   margin: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
 }
 
@@ -565,6 +568,7 @@ h1, h2, h3 {
   align-items: flex-start;
   box-shadow: var(--sombra);
   transition: var(--transicion), box-shadow 0.15s ease;
+  min-width: 0;
 }
 
 .item-tarea:hover {
@@ -893,6 +897,7 @@ span.etiqueta-clima {
   margin: 0;
   font-size: 0.85rem;
   color: var(--color-texto-suave);
+  overflow-wrap: anywhere;
 }
 
 .item-tarea-acciones {
@@ -1931,6 +1936,16 @@ span.etiqueta-exportada {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.8rem;
+}
+
+.gantt-categoria {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  opacity: 0.75;
 }
 
 .gantt-fijar {

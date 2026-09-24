@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { ETIQUETAS_ESTADO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
-import { formatearFechaOFechaHora, esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO, diasEntreFechas } from '../assets/js/utilidades.js';
+import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
+import { esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO, diasEntreFechas, textoFechaHumana } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
   cumplirTarea,
@@ -52,10 +52,14 @@ export function renderVistaHoy(contenedor) {
   const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
   const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
 
-  const urgentes = disponibles
-    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite))
+  const vencidas = disponibles
+    .filter((t) => esVencida(t.tarea_fecha_limite))
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
-  const idsUrgentes = new Set(urgentes.map((t) => t.tarea_id));
+  const idsVencidas = new Set(vencidas.map((t) => t.tarea_id));
+  const urgentes = disponibles
+    .filter((t) => !idsVencidas.has(t.tarea_id) && (esHoy(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_sugerida)))
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const idsUrgentes = new Set([...idsVencidas, ...urgentes.map((t) => t.tarea_id)]);
   const resto = disponibles
     .filter((t) => !idsUrgentes.has(t.tarea_id))
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
@@ -89,6 +93,14 @@ export function renderVistaHoy(contenedor) {
       <button type="button" id="boton-enfoque-hoy" class="boton-enfoque" aria-pressed="${enfoque}" title="Con el enfoque encendido se ocultan las tareas que ya completaste hoy">🎯 Enfoque</button>
       <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">🔍 Revisar mi día</button>
     </div>
+    ${
+      vencidas.length > 0
+        ? `<section>
+            <h3>🔴 Vencidas</h3>
+            <ul id="lista-vencidas" class="lista-tareas"></ul>
+          </section>`
+        : ''
+    }
     <section>
       <h3>🚨 Urgentes</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
@@ -104,26 +116,26 @@ export function renderVistaHoy(contenedor) {
     }
     ${
       restoSinProximos.length > 0 || proximosPorCategoria.length === 0
-        ? `<section>
-            <h3>📋 Resto de tus pendientes</h3>
+        ? `<details class="completadas-plegadas">
+            <summary>📋 Resto de tus pendientes (${restoSinProximos.length})</summary>
             <ul id="lista-resto" class="lista-tareas"></ul>
-          </section>`
+          </details>`
         : ''
     }
     ${
       aunNoDisponibles.length > 0
-        ? `<section>
-            <h3>⏳ Todavía no pueden empezar</h3>
+        ? `<details class="completadas-plegadas">
+            <summary>⏳ Todavía no pueden empezar (${aunNoDisponibles.length})</summary>
             <ul id="lista-no-disponibles" class="lista-tareas"></ul>
-          </section>`
+          </details>`
         : ''
     }
     ${
       bloqueadas.length > 0
-        ? `<section>
-            <h3>🔒 Bloqueadas por otras tareas</h3>
+        ? `<details class="completadas-plegadas">
+            <summary>🔒 Bloqueadas por otras tareas (${bloqueadas.length})</summary>
             <ul id="lista-bloqueadas" class="lista-tareas"></ul>
-          </section>`
+          </details>`
         : ''
     }
     ${
@@ -137,7 +149,7 @@ export function renderVistaHoy(contenedor) {
   `;
 
   contenedor.querySelector('#boton-revisar-dia').addEventListener('click', () => {
-    iniciarRevisionDia([...urgentes, ...resto]);
+    iniciarRevisionDia([...vencidas, ...urgentes, ...resto]);
   });
 
   contenedor.querySelector('#boton-enfoque-hoy').addEventListener('click', () => {
@@ -153,9 +165,14 @@ export function renderVistaHoy(contenedor) {
     });
   }
 
+  const listaVencidas = contenedor.querySelector('#lista-vencidas');
+  if (listaVencidas) {
+    vencidas.forEach((tarea) => listaVencidas.appendChild(renderItem(tarea)));
+  }
+
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0) {
-    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas vencidas ni con fecha límite hoy.</p>';
+    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite ni sugerida para hoy.</p>';
   } else {
     urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
   }
@@ -269,12 +286,11 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
-        ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
+        ${tarea.tarea_urgente ? '<span class="etiqueta-fecha">🔴 Urgente</span>' : ''}
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(caminoCompleto ? caminoCategoria(categoria, estado.categorias) : categoria.categoria_nombre)}</span>` : ''}
-        ${tarea.tarea_fecha_inicio_habilitada ? `<span class="etiqueta-fecha">Desde: ${formatearFechaOFechaHora(tarea.tarea_fecha_inicio_habilitada)}</span>` : ''}
-        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
+        ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${textoFechaHumana(tarea.tarea_fecha_limite)}</span>` : ''}
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">${etiquetaHolgura(tarea)}</span>` : ''}
-        ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha etiqueta-agendada">Sugerida: ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}</span>` : ''}
+        ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha etiqueta-agendada">Sugerida: ${textoFechaHumana(tarea.tarea_fecha_sugerida)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.tarea_estado]}</span>
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
@@ -289,7 +305,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
                <button title="Mover la tarea al primer horario libre de tu Calendar" type="button" data-accion="proximo-hueco">🕒 Al próximo hueco libre</button>`
         }
       </div>
-      ${dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
+      ${tarea.tarea_estado === 'bloqueada' && dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
       ${htmlMejorasPendientes(tarea)}
       ${htmlChecklistTarjeta(tarea)}
       <div class="contenedor-cierre" hidden></div>

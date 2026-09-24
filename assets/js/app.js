@@ -15,7 +15,7 @@ import {
   hayTextoEnEdicion,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre } from './tareas-logica.js';
-import { programarTareasSinFecha } from './programador.js';
+import { programarTareasSinFecha, reubicarTareasSolapadas, reprogramarTareaInmediataSiVencio } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
@@ -37,7 +37,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.73.0';
+const VERSION = 'v0.75.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -347,14 +347,37 @@ async function reprogramarSiCorresponde() {
   if (reprogramado || !obtenerEstadoSync().datosListos) return;
   reprogramado = true;
   const vencidas = reprogramarFechasSugeridasVencidas(estado.tareas);
+  const { movidas: reubicadas, sinHueco } = await reubicarTareasSolapadas(estado);
   const nuevas = await programarTareasSinFecha(estado);
-  if (vencidas.length === 0 && nuevas.length === 0) return;
+  const inmediata = await reprogramarTareaInmediataSiVencio(estado);
+  if (inmediata && !inmediata.sinHueco) vencidas.push(inmediata.tarea);
+  if (inmediata && inmediata.sinHueco) sinHueco.push(inmediata.tarea);
+  if (vencidas.length === 0 && nuevas.length === 0 && reubicadas.length === 0 && sinHueco.length === 0) return;
   await persistirYNotificar();
   const partes = [];
   if (nuevas.length > 0) partes.push(`se programó la fecha sugerida de ${nuevas.length} tarea${nuevas.length === 1 ? '' : 's'} nueva${nuevas.length === 1 ? '' : 's'}`);
   if (vencidas.length > 0) partes.push(`se reprogramó la de ${vencidas.length} tarea${vencidas.length === 1 ? '' : 's'} que había vencido`);
-  alert(`Al iniciar, ${partes.join(' y ')}.`);
+  if (reubicadas.length > 0) partes.push(`se reubicó la de ${reubicadas.length} tarea${reubicadas.length === 1 ? '' : 's'} que chocaba con Calendar`);
+  let mensaje = partes.length > 0 ? `Al iniciar, ${partes.join(', ')}.` : '';
+  if (sinHueco.length > 0) {
+    const nombres = sinHueco.map((t) => `«${t.tarea_nombre}»`).join(', ');
+    mensaje += `${mensaje ? '\n\n' : ''}⚠️ No hay hueco libre antes de su fecha límite para: ${nombres}. Revisalas a mano.`;
+  }
+  if (mensaje) alert(mensaje);
 }
+
+/**
+ * Mientras la app sigue abierta, cada 1-2 minutos revisa si la tarea más inmediata ya superó su ventana
+ * estimada sin completarse (`reprogramarTareaInmediataSiVencio`) y, si la reprogramó, persiste en silencio
+ * (sin `alert()`: sería muy invasivo repetirlo cada tanto; el cambio se ve solo en la próxima vista que se
+ * redibuje, y mientras tanto la tarea sigue visible como vencida en Hoy).
+ */
+setInterval(async () => {
+  const s = obtenerEstadoSync();
+  if (!s.datosListos || s.soloLectura) return;
+  const resultado = await reprogramarTareaInmediataSiVencio(estado);
+  if (resultado && !resultado.sinHueco) await persistirYNotificar();
+}, 90 * 1000);
 
 document.getElementById('version-app').textContent = VERSION;
 

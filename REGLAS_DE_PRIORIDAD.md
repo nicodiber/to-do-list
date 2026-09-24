@@ -31,9 +31,11 @@ La holgura se agrupa en bandas, para que una diferencia de pocos días no tape l
 1. **Banda de holgura** — el criterio dominante. Una tarea vencida o por vencer siempre le gana a una que tiene mucho margen, sin importar su categoría.
 2. **Categoría raíz**: dentro de la misma banda, se compara la `categoria_prioridad` de la categoría **raíz** de cada tarea (recorriendo `categoria_padre_id` hasta el final con `categoriaRaiz`, en `utilidades.js`). Así, una tarea de una materia de Facultad compite con la prioridad de "Facultad" entre las categorías raíz, no con la de la materia en sí. Sin categoría, o categoría inexistente, queda al final.
 3. **Categoría directa**: desempate entre tareas de distinta categoría pero la misma raíz (ej. dos materias de Facultad) — se usa la `categoria_prioridad` de la categoría propia de cada tarea, entre sus hermanas.
-4. **`tarea_importancia`**: urgente > importante > sin definir.
+4. **`tarea_urgente`** (booleano, v0.75.0 — antes `tarea_importancia`, enum de 3 valores): urgente (`true`) le gana a no urgente.
 5. **`tarea_prioridad_manual`** (`?? Infinity`, menor = más prioritaria) — resultado de la herramienta "Versus" o de reordenar a mano con ▲▼ (ver más abajo, mismo campo para las dos). `null` = sin preferencia manual, no participa.
 6. **`tarea_creada_en`** ascendente (FIFO) — último recurso, para que el orden sea siempre determinístico (no queden empates verdaderos).
+
+**Reordenar tareas encadenadas con ▲▼** (v0.75.0): si `actual`/`vecina` están en relación previa/próxima directa, el ▲▼ ya no se bloquea — la app reordena la cadena sola (`intercambiarCadena`, `assets/js/tareas-logica.js`), ajustando `tarea_dependiente` de las tareas involucradas para reflejar el nuevo orden. No pasa por los niveles 1-6 de arriba: la relación de cadena manda.
 
 Los niveles 1-4 se conocen internamente como `compararEstructural` — es lo que determina si 2 tareas están "empatadas" para la herramienta Versus (ver abajo), independientemente de si ya tienen o no un `tarea_prioridad_manual` asignado.
 
@@ -50,10 +52,12 @@ Dentro de un mismo grupo empatado en los niveles 1-4, el desempate hoy sería FI
 
 ## Reordenar a mano con ▲▼ (Tareas, Tabla y Gantt)
 
-Además de "Versus", las flechas ▲/▼ (en Tareas, en la columna "Orden" de Tabla cuando el orden es el de prioridad, y en el Gantt en modo Plan) dejan mover una tarea un lugar hacia arriba o hacia abajo — usan la misma `asignarOrdenManual` (`assets/js/tareas-logica.js`) que "Versus": valores frescos y crecientes, la que sube se queda con el más bajo.
+Además de "Versus", las flechas ▲/▼ (en Tareas, en la columna "Orden" de Tabla cuando el orden es el de prioridad, y en el Gantt en modo Plan) dejan mover una tarea un lugar hacia arriba o hacia abajo contra su vecina inmediata. `motivoBloqueoOrdenManual` (`assets/js/tareas-logica.js`) decide si el botón se puede usar; si no, queda deshabilitado con el motivo puntual (qué tarea vecina y por qué) en el `title`.
 
-- Solo tienen efecto real entre dos tareas **empatadas en los niveles 1-4** (`compararEstructural`) y que **no sean cadena previa/próxima** entre sí — si no, cambiar `tarea_prioridad_manual` no movería nada en la lista (esos niveles ganan primero) o rompería el orden de la cadena. `motivoBloqueoOrdenManual` (`assets/js/tareas-logica.js`) hace ese chequeo; si no se puede, el botón queda deshabilitado con el motivo puntual (qué tarea vecina y por qué gana) en el `title`, para que el usuario sepa qué campo tocar si de verdad quiere reordenarlas. *(Idea a futuro, sin implementar: que confirmar el reordenamiento ajuste esos campos solo.)*
-- En el Gantt (modo Plan), además hace falta que las dos tareas caigan en el **mismo día planificado** dentro del mismo carril — es lo único que cambia el orden visual ahí; si el día difiere, el motivo lo aclara antes de mirar los niveles 1-4.
+- **Vecina encadenada** (previa/próxima directa): siempre se puede (v0.75.0 — antes se bloqueaba). En Tareas y Tabla usa `intercambiarCadena` (`assets/js/tareas-logica.js`): invierte el tramo de la cadena (P→A→B→N pasa a P→B→A→N), ajustando `tarea_dependiente` de las tareas involucradas — no toca `tarea_prioridad_manual` ni los niveles 1-4, la relación de cadena manda sola. En el Gantt (ver más abajo) sigue con el criterio anterior.
+- **Vecina no encadenada, empatada en los niveles 1-4** (`compararEstructural`): en Tareas y Tabla usa `intercambiarAdyacentes` (`assets/js/tareas-logica.js`, v0.74.0) — le da un valor fresco de `tarea_prioridad_manual` a todo el tramo contiguo que sigue empatado y sin cadena (no solo al par tocado), para no saltar por delante de otras tareas del mismo grupo todavía sin decidir. En el Gantt sigue usando `asignarOrdenManual` (la misma de "Versus": valores frescos y crecientes, la que sube se queda con el más bajo) — su adyacencia ya está acotada por carril y día, un caso más chico.
+- **Vecina no encadenada y no empatada**: no se puede — cambiar `tarea_prioridad_manual` no movería nada en la lista (los niveles 1-4 ganan primero). *(Idea a futuro, sin implementar: que confirmar el reordenamiento bloqueado ajuste esos campos solo.)*
+- En el Gantt (modo Plan), además hace falta que las dos tareas caigan en el **mismo día planificado** dentro del mismo carril — es lo único que cambia el orden visual ahí; si el día difiere, el motivo lo aclara antes de mirar cadena o niveles 1-4.
 - En Tabla, las flechas solo se muestran con el orden por prioridad activo (`↺ Prioridad`); al ordenar por una columna (clic en su header) desaparecen, porque ese orden ya no es el de prioridad.
 
 ## `mejorTareaPorCategoria(tareas, categorias)`
