@@ -2,6 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, arbolCategorias } from '../assets/js/utilidades.js';
 import { abrirDialogoCategoria } from '../assets/js/formularios-entidades.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
+import { establecerFiltroCategoria } from './tareas.view.js';
 
 // Categorías colapsadas (ocultan a sus hijas): preferencia de esta pestaña mientras dura la sesión, no un dato de
 // la app. Expandido por defecto.
@@ -59,6 +60,7 @@ function renderCategoria(categoria, profundidad, tieneHijas, colapsada, redibuja
         <button type="button" data-accion="subir-prioridad" title="Subir prioridad" ${indice === 0 ? 'disabled' : ''}>▲</button>
         <button type="button" data-accion="bajar-prioridad" title="Bajar prioridad" ${indice === hermanos.length - 1 ? 'disabled' : ''}>▼</button>
         <button type="button" data-accion="agregar-hija" title="Crear una categoría hija de esta">➕ Agregar categoría hija</button>
+        <button type="button" data-accion="ver-tareas" title="Ver las tareas de esta categoría">📋 Ver tareas</button>
         <button type="button" data-accion="editar-categoria" title="Editar categoría">✏️ Editar</button>
         <button type="button" data-accion="eliminar-categoria" title="Eliminar categoría">🗑️</button>
       </span>
@@ -88,6 +90,11 @@ function renderCategoria(categoria, profundidad, tieneHijas, colapsada, redibuja
   });
 
   tarjeta.querySelector('[data-accion="agregar-hija"]').addEventListener('click', () => abrirDialogoCategoria({ padreIdInicial: categoria.categoria_id }));
+
+  tarjeta.querySelector('[data-accion="ver-tareas"]').addEventListener('click', () => {
+    establecerFiltroCategoria(categoria.categoria_id);
+    location.hash = '#/tareas';
+  });
 
   tarjeta.querySelector('[data-accion="editar-categoria"]').addEventListener('click', () => abrirDialogoCategoria({ id: categoria.categoria_id }));
 

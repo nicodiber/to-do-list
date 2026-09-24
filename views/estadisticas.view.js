@@ -1,6 +1,5 @@
 import { estado } from '../assets/js/almacenamiento.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, escaparHtml } from '../assets/js/utilidades.js';
-import { ICONOS_IMPORTANCIA } from '../assets/js/modelos.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
 import { renderVistaProgreso } from './progreso.view.js';
 import { renderVistaHabitos } from './habitos.view.js';

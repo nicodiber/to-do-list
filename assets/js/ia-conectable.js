@@ -1,4 +1,4 @@
-import { ETIQUETAS_PLAZO, PLAZOS_META, NIVELES_IMPORTANCIA, ETIQUETAS_IMPORTANCIA } from './modelos.js';
+import { ETIQUETAS_PLAZO, PLAZOS_META } from './modelos.js';
 import { formatearFecha } from './utilidades.js';
 
 /**
@@ -66,9 +66,8 @@ export function parsearRespuestaSubtareas(texto) {
 }
 
 /**
- * Arma un prompt para pedirle a un LLM externo que sugiera una nueva
- * importancia (urgente/importante) para cada tarea accionable actual, según
- * urgencia/impacto. Mismo flujo manual de copiar/pegar que las subtareas.
+ * Arma un prompt para pedirle a un LLM externo que sugiera si cada tarea accionable actual es urgente o no,
+ * según urgencia/impacto. Mismo flujo manual de copiar/pegar que las subtareas.
  */
 export function construirPromptPrioridades(tareas, categorias) {
   const filas = tareas.map((tarea) => {
@@ -78,7 +77,7 @@ export function construirPromptPrioridades(tareas, categorias) {
       `nombre: ${tarea.tarea_nombre}`,
       `categoría: ${categoria ? categoria.categoria_nombre : 'sin categoría'}`,
       `fecha límite: ${tarea.tarea_fecha_limite ? formatearFecha(tarea.tarea_fecha_limite) : 'sin fecha'}`,
-      `importancia actual: ${tarea.tarea_importancia ? ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia] : 'sin definir'}`,
+      `urgente actualmente: ${tarea.tarea_urgente ? 'sí' : 'no'}`,
     ].join(', ');
   });
 
@@ -87,20 +86,19 @@ export function construirPromptPrioridades(tareas, categorias) {
     '',
     ...filas.map((f) => `- ${f}`),
     '',
-    'Revisala y sugerime una importancia (urgente o importante) para cada una, según qué tan urgente/impactante te parece cada tarea (podés dejar la misma importancia si ya te parece correcta).',
+    'Revisala y decime si cada una es urgente o no, según qué tan urgente/impactante te parece (podés dejarla igual si ya te parece correcta). Ojo: marcar una como urgente hace que se le asigne la fecha de hoy, así que usalo con criterio.',
     'Devolveme SOLO un JSON (sin texto adicional antes ni después) con este formato exacto, usando el "tarea_id" de cada tarea:',
     '',
     '[',
-    '  { "tarea_id": "...", "tarea_importancia": "urgente" }',
+    '  { "tarea_id": "...", "tarea_urgente": true }',
     ']',
   ].join('\n');
 }
 
 /**
- * Parsea y normaliza el JSON con las importancias sugeridas, y devuelve
- * solo los cambios reales (donde la sugerida difiere de la actual) contra
- * `tareasDisponibles`. Lanza un Error con mensaje legible si el formato
- * es inválido.
+ * Parsea y normaliza el JSON con las urgencias sugeridas, y devuelve solo los cambios reales (donde la
+ * sugerida difiere de la actual) contra `tareasDisponibles`. Lanza un Error con mensaje legible si el
+ * formato es inválido.
  */
 export function parsearRespuestaPrioridades(texto, tareasDisponibles) {
   let datos;
@@ -116,15 +114,15 @@ export function parsearRespuestaPrioridades(texto, tareasDisponibles) {
 
   const cambios = [];
   datos.forEach((item) => {
-    if (!item || typeof item.tarea_id !== 'string' || !NIVELES_IMPORTANCIA.includes(item.tarea_importancia)) return;
+    if (!item || typeof item.tarea_id !== 'string' || typeof item.tarea_urgente !== 'boolean') return;
     const tarea = tareasDisponibles.find((t) => t.tarea_id === item.tarea_id);
     if (!tarea) return;
-    if (tarea.tarea_importancia === item.tarea_importancia) return;
-    cambios.push({ tarea, importanciaSugerida: item.tarea_importancia });
+    if (!!tarea.tarea_urgente === item.tarea_urgente) return;
+    cambios.push({ tarea, urgenteSugerido: item.tarea_urgente });
   });
 
   if (cambios.length === 0) {
-    throw new Error('No se encontró ningún cambio de importancia válido (revisá los "tarea_id" y que "tarea_importancia" sea urgente/importante).');
+    throw new Error('No se encontró ningún cambio de urgencia válido (revisá los "tarea_id" y que "tarea_urgente" sea true/false).');
   }
 
   return cambios;

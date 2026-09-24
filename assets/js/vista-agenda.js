@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO, ETIQUETAS_IMPORTANCIA, ICONOS_IMPORTANCIA } from './modelos.js';
+import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
@@ -119,7 +119,7 @@ function renderTarjetaTarea(tarea) {
     <div class="item-tarea-info">
       <strong>${escaparHtml(tarea.tarea_nombre)}</strong>
       <span class="etiquetas">
-        ${tarea.tarea_importancia ? `<span class="etiqueta-fecha">${ICONOS_IMPORTANCIA[tarea.tarea_importancia]} ${ETIQUETAS_IMPORTANCIA[tarea.tarea_importancia]}</span>` : ''}
+        ${tarea.tarea_urgente ? '<span class="etiqueta-fecha">🔴 Urgente</span>' : ''}
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
         ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha etiqueta-agendada">Sugerida: ${formatearFechaOFechaHora(tarea.tarea_fecha_sugerida)}</span>` : ''}
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}

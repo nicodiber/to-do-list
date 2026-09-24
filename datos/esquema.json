@@ -67,7 +67,7 @@
         "tarea_fecha_sugerida": { "type": ["string", "null"] },
         "tarea_fecha_limite": { "type": ["string", "null"] },
         "tarea_fecha_fin": { "type": ["string", "null"] },
-        "tarea_importancia": { "type": ["string", "null"], "enum": ["urgente", "importante", null] },
+        "tarea_urgente": { "type": "boolean" },
         "tarea_mantenimiento": { "type": "boolean" },
         "tarea_mantenimiento_intervalo": {
           "type": ["object", "null"],

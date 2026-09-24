@@ -286,8 +286,9 @@ function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista, { anterior,
 
   return `
     <div class="gantt-fila" style="height:${ALTO_FILA}px">
-      <div class="gantt-nombre" style="width:${nombresAncho}px" data-abrir="${tarea.tarea_id}" title="${escaparHtml(tarea.tarea_nombre)}">
+      <div class="gantt-nombre" style="width:${nombresAncho}px" data-abrir="${tarea.tarea_id}" title="${escaparHtml(tarea.tarea_nombre)}${categoria ? ` (${escaparHtml(categoria.categoria_nombre)})` : ''}">
         <span class="gantt-nombre-texto">${tarea.tarea_estado === 'bloqueada' ? '🔒 ' : ''}${escaparHtml(tarea.tarea_nombre)}</span>
+        ${categoria ? `<span class="gantt-categoria" style="color:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
         ${plan.virtual ? `<button type="button" class="gantt-fijar" data-fijar="${tarea.tarea_id}" title="Guardar el día estimado como fecha sugerida">📌</button>` : ''}
         ${botonesOrden}
       </div>

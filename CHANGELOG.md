@@ -2,6 +2,41 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.75.0] - 2026-09-24
+
+Reordenar tareas encadenadas con ▲▼ y rediseño de la importancia a un booleano "urgente".
+
+### Agregado
+
+- **Reordenar tareas encadenadas con ▲▼**: subir/bajar una tarea que está en relación previa/próxima directa con su vecina ya no se bloquea — la app reordena sola la cadena (ajusta quién bloquea a quién).
+- **Importancia → "❗ Urgente" (Sí/No)**: reemplaza el nivel de importancia de 3 valores (urgente/importante/sin definir) por un interruptor booleano. Marcar una tarea como urgente le asigna la fecha sugerida de hoy (con hora, respetando Calendar); si hoy no hay hueco, se agenda para el próximo hueco libre en vez de quedar sin fecha. Disponible en el alta, la edición, la edición masiva y "Reestructurar prioridades con IA".
+
+### Corregido
+
+- Datos existentes con el nivel de importancia viejo se migran solos: "Urgente" pasa a `true`, cualquier otro valor a `false`.
+
+## [v0.74.0] - 2026-09-24
+
+Ronda de feedback de uso real: 16 ajustes en Hoy, Tareas, Tabla, Categorías, Gantt y la programación automática.
+
+### Agregado
+
+- **Vista Hoy**: nueva sección "🔴 Vencidas" antes de "Urgentes"; "Urgentes" ahora también incluye las tareas con fecha sugerida hoy; "Resto de tus pendientes", "Todavía no pueden empezar" y "Bloqueadas por otras tareas" quedan plegadas por defecto; las tarjetas ya no muestran "Desde" y las fechas cercanas se ven en lenguaje humano ("hoy", "mañana", "pasado mañana", "próximo lunes"...).
+- **Fecha sugerida nunca supera la fecha límite**: se recorta sola (queda sin sugerida, lista para reprogramarse) si se carga o se edita en bloque una combinación que la supera; el programador automático ya no asigna un día más allá del límite.
+- **Reubicación automática por choque con Calendar**: al iniciar, además de reprogramar lo vencido y programar lo nuevo, la app reubica sola cualquier tarea con fecha sugerida que quedó tapada por un evento de Calendar (respetando la fecha límite) y avisa si alguna no tiene hueco libre antes de su límite.
+- **Reprogramación de la tarea inmediata si su ventana venció**: la tarea más próxima por fecha sugerida no se toca mientras "ahora" está dentro de su ventana estimada (sugerida + duración) — evita reprogramar en cascada una tarea que el usuario está haciendo en este momento. Recién si esa ventana vence sin completarse se busca el próximo hueco real y se reprograma; se revisa al iniciar y, mientras la app sigue abierta, cada 1-2 minutos.
+- **Tareas: buscador** por nombre, "Seleccionar todas" en modo selección, tocar una tarjeta la selecciona/deselecciona, y doble clic abre Editar.
+- **Edición masiva ampliada**: ahora también en la vista Tabla (mismo botón "☑️ Seleccionar"), y con tres campos nuevos con hora — Habilitada desde, Fecha sugerida (se recorta sola contra el límite de cada tarea) y Fecha límite.
+- **Tabla**: nueva opción de Estado "🚦 Pendientes y bloqueadas", por defecto.
+- **Categorías**: botón "📋 Ver tareas" en cada tarjeta, filtra Tareas por esa categoría.
+- **Gantt**: cada tarea muestra su categoría junto al nombre.
+
+### Corregido
+
+- **Hoy**: una tarea ya no muestra "Bloqueada por" si la que la bloqueaba ya se completó (el bloqueo real ya se había levantado; solo faltaba que la tarjeta dejara de mostrarlo).
+- **Tareas: descripciones largas** ya no ensanchan la tarjeta ni la pantalla.
+- **Reordenar a mano (▲▼)**: entre tareas empatadas y todavía sin decidir, el intercambio podía saltar por delante de otras tareas del mismo grupo empatado (no solo de la vecina tocada), dando un orden "ilógico" a simple vista. Ahora el intercambio es local: solo cambia el orden relativo del par tocado.
+
 ## [v0.73.0] - 2026-09-23
 
 Deshacer / rehacer (Ctrl+Z / Ctrl+Shift+Z).

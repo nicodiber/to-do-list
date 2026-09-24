@@ -8,23 +8,6 @@ export const ETIQUETAS_ESTADO = {
   completada: 'Completada',
 };
 
-export const NIVELES_IMPORTANCIA = ['urgente', 'importante'];
-
-export const ETIQUETAS_IMPORTANCIA = {
-  urgente: 'Urgente',
-  importante: 'Importante',
-};
-
-export const ICONOS_IMPORTANCIA = {
-  urgente: '🔴',
-  importante: '🟡',
-};
-
-export const ORDEN_IMPORTANCIA = {
-  urgente: 0,
-  importante: 1,
-};
-
 export function crearCategoria({
   categoria_nombre,
   categoria_descripcion = '',
@@ -92,7 +75,7 @@ export function crearTarea({
   tarea_fecha_inicio_habilitada = '',
   tarea_fecha_sugerida = '',
   tarea_fecha_limite = '',
-  tarea_importancia = null,
+  tarea_urgente = false,
   tarea_mantenimiento = false,
   tarea_mantenimiento_intervalo = null,
   tarea_dias_habiles = [],
@@ -125,7 +108,7 @@ export function crearTarea({
     tarea_fecha_sugerida,
     tarea_fecha_limite,
     tarea_fecha_fin: null,
-    tarea_importancia,
+    tarea_urgente: !!tarea_urgente,
     tarea_mantenimiento,
     tarea_mantenimiento_intervalo,
     tarea_dias_habiles,
