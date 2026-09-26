@@ -54,6 +54,11 @@ function renderPersona(persona) {
 
   tarjeta.querySelector('[data-accion="editar-persona"]').addEventListener('click', () => abrirDialogoPersona({ id: persona.persona_id }));
 
+  tarjeta.addEventListener('dblclick', (evento) => {
+    if (evento.target.closest('button, a, input, select')) return;
+    abrirDialogoPersona({ id: persona.persona_id });
+  });
+
   tarjeta.querySelector('[data-accion="marcar-contacto"]').addEventListener('click', async () => {
     persona.persona_ultimo_contacto = hoyISO();
     await persistirYNotificar();

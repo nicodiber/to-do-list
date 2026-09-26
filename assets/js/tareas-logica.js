@@ -251,24 +251,29 @@ export function eliminarTarea(tarea, estado) {
 }
 
 /**
- * Reprograma `tarea_fecha_sugerida` y desplaza en cascada a las tareas que
- * dependen de ella (`tarea_dependiente === tarea.tarea_id`), por el mismo
- * delta de tiempo. Si la tarea no tenía una fecha sugerida previa, no hay
- * delta que propagar.
+ * Reprograma `tarea_fecha_sugerida` y desplaza en cascada la de las tareas que dependen de ella
+ * (`tarea_dependiente === tarea.tarea_id`), por el mismo delta de tiempo. Si la tarea no tenía una fecha
+ * sugerida previa, no hay delta que propagar. **No toca `tarea_fecha_limite` de nadie** (v0.76.0 — antes
+ * la desplazaba también, para que la cadena no quedara con un límite imposible; se sacó porque solo el
+ * usuario puede cambiar la fecha límite). Devuelve las tareas dependientes que, tras desplazar su sugerida,
+ * quedaron con `tarea_fecha_sugerida` después de su propia `tarea_fecha_limite` (sin tocar) — para avisar
+ * en vez de corregirlas solo; usar con `avisoInconsistentes`.
  */
 export function reprogramarTareaConCascada(tarea, nuevaFechaSugeridaISO, listaTareas) {
   const anteriorISO = tarea.tarea_fecha_sugerida;
   tarea.tarea_fecha_sugerida = nuevaFechaSugeridaISO;
 
-  if (!anteriorISO) return;
+  if (!anteriorISO) return [];
 
   const deltaMs = new Date(nuevaFechaSugeridaISO).getTime() - new Date(anteriorISO).getTime();
-  if (!deltaMs) return;
+  if (!deltaMs) return [];
 
-  desplazarDependientes(tarea.tarea_id, deltaMs, listaTareas, new Set([tarea.tarea_id]));
+  const inconsistentes = [];
+  desplazarDependientes(tarea.tarea_id, deltaMs, listaTareas, new Set([tarea.tarea_id]), inconsistentes);
+  return inconsistentes;
 }
 
-function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados) {
+function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados, inconsistentes) {
   listaTareas
     .filter((t) => t.tarea_dependiente === idTarea && !visitados.has(t.tarea_id))
     .forEach((dependiente) => {
@@ -276,13 +281,20 @@ function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados) {
 
       if (dependiente.tarea_fecha_sugerida) {
         dependiente.tarea_fecha_sugerida = desplazarFecha(dependiente.tarea_fecha_sugerida, deltaMs);
-      }
-      if (dependiente.tarea_fecha_limite) {
-        dependiente.tarea_fecha_limite = desplazarFecha(dependiente.tarea_fecha_limite, deltaMs);
+        if (limitarFechaSugeridaALimite(dependiente.tarea_fecha_sugerida, dependiente.tarea_fecha_limite) === '') {
+          inconsistentes.push(dependiente);
+        }
       }
 
-      desplazarDependientes(dependiente.tarea_id, deltaMs, listaTareas, visitados);
+      desplazarDependientes(dependiente.tarea_id, deltaMs, listaTareas, visitados, inconsistentes);
     });
+}
+
+/** Texto del aviso para `inconsistentes` (ver `reprogramarTareaConCascada`), o `''` si no hay ninguna. */
+export function avisoInconsistentes(inconsistentes) {
+  if (!inconsistentes || inconsistentes.length === 0) return '';
+  const nombres = inconsistentes.map((t) => `«${t.tarea_nombre}»`).join(', ');
+  return `${nombres}: la fecha sugerida quedó después de la fecha límite (no se tocó). Revisala a mano.`;
 }
 
 /**
@@ -323,17 +335,19 @@ export function limitarFechaSugeridaALimite(fechaSugeridaISO, fechaLimiteISO) {
  * completada) que quedó vencida, a la próxima fecha disponible
  * (`calcularProximaFechaSugerida`), en cascada sobre sus dependientes vía
  * `reprogramarTareaConCascada`. Se llama una vez al iniciar la app. Devuelve
- * las tareas afectadas, para poder avisarle al usuario.
+ * `{ afectadas, inconsistentes }`: las tareas afectadas (para avisarle al usuario) y las dependientes que,
+ * tras desplazar en cascada, quedaron con la sugerida después de su propia fecha límite (ver `avisoInconsistentes`).
  */
 export function reprogramarFechasSugeridasVencidas(listaTareas) {
   const afectadas = [];
+  const inconsistentes = [];
   listaTareas
     .filter((t) => t.tarea_estado !== 'completada' && t.tarea_fecha_sugerida && diaLocal(t.tarea_fecha_sugerida) < hoyISO())
     .forEach((tarea) => {
-      reprogramarTareaConCascada(tarea, calcularProximaFechaSugerida(tarea), listaTareas);
+      inconsistentes.push(...reprogramarTareaConCascada(tarea, calcularProximaFechaSugerida(tarea), listaTareas));
       afectadas.push(tarea);
     });
-  return afectadas;
+  return { afectadas, inconsistentes };
 }
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;

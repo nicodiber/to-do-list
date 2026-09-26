@@ -1,8 +1,9 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { formatearFechaOFechaHora, escaparHtml, formatearHora } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { cumplirTarea, reprogramarTareaConCascada } from './tareas-logica.js';
+import { cumplirTarea, reprogramarTareaConCascada, avisoInconsistentes } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
+import { ofrecerCrearTareaSeguimiento } from './modal-tarea.js';
 import { crearTarea } from './modelos.js';
 import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventosDeHoy } from './google-calendar.js';
 import { conectar } from './google-auth.js';
@@ -87,6 +88,7 @@ function renderPaso() {
       cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
       ofrecerExportarACalendar(tarea);
+      ofrecerCrearTareaSeguimiento(tarea);
       avanzar();
     });
   });
@@ -101,8 +103,10 @@ function renderPaso() {
       const panel = crearPanelReprogramar({
         diasHabiles: tarea.tarea_dias_habiles,
         onConfirmar: async (fechaSugeridaISO) => {
-          reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+          const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
           await persistirYNotificar();
+          const aviso = avisoInconsistentes(inconsistentes);
+          if (aviso) alert(aviso);
           avanzar();
         },
         onCancelar: () => {

@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from './almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
+import { reprogramarTareaConCascada, avisoInconsistentes, compararPorPrioridad } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from './ubicacion-actual.js';
 
@@ -158,10 +158,12 @@ function renderTarjetaTarea(tarea) {
     const panel = crearPanelReprogramar({
       diasHabiles: tarea.tarea_dias_habiles,
       onConfirmar: async (fechaSugeridaISO) => {
-        reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+        const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
         contenedorPanel.hidden = true;
         contenedorPanel.innerHTML = '';
         await persistirYNotificar();
+        const aviso = avisoInconsistentes(inconsistentes);
+        if (aviso) alert(aviso);
       },
       onCancelar: () => {
         contenedorPanel.hidden = true;

@@ -3,7 +3,7 @@
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { combinarFechaYHora } from './utilidades.js';
-import { limitarFechaSugeridaALimite } from './tareas-logica.js';
+import { limitarFechaSugeridaALimite, avisoInconsistentes } from './tareas-logica.js';
 import { programarParaHoy } from './programador.js';
 import {
   htmlOpcionesCategoria,
@@ -117,6 +117,7 @@ export function abrirEdicionMasiva(tareas, alTerminar) {
       // La sugerida nunca supera la fecha límite: se recorta por tarea, contra su propia fecha límite (puede
       // haber cambiado recién arriba, en el mismo `aplicarCamposATarea`, si también se tildó "Fecha límite").
       let recortadas = 0;
+      let inconsistentes = [];
       for (const tarea of tareas) {
         aplicarCamposATarea(tarea, cambios);
         if (cambios.tarea_fecha_sugerida) {
@@ -128,12 +129,17 @@ export function abrirEdicionMasiva(tareas, alTerminar) {
         }
         // Se tildó "Urgente" en Sí para el lote: cada tarea se agenda para hoy (o el próximo hueco si no
         // entra). No evita chocar entre tareas del mismo lote — `reubicarTareasSolapadas` las reacomoda solas.
-        if (cambios.tarea_urgente) await programarParaHoy(tarea, estado);
+        if (cambios.tarea_urgente) {
+          const resultado = await programarParaHoy(tarea, estado);
+          inconsistentes = inconsistentes.concat(resultado.inconsistentes);
+        }
       }
       await persistirYNotificar();
       if (recortadas > 0) {
         alert(`${recortadas} tarea${recortadas === 1 ? '' : 's'} no recibió la fecha sugerida por superar su fecha límite.`);
       }
+      const aviso = avisoInconsistentes(inconsistentes);
+      if (aviso) alert(aviso);
       alTerminar();
       return true;
     },

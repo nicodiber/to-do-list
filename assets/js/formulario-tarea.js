@@ -247,7 +247,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
 
     <fieldset class="seccion-form">
       <legend>🔁 Repetición</legend>
-      <div class="ancho-completo">${htmlInterruptor('tarea_mantenimiento', t.tarea_mantenimiento, '🔁 Es tarea de mantenimiento (se renueva sola)', 'title="Al cumplirla se crea sola la próxima repetición"')}</div>
+      <div class="ancho-completo">${htmlInterruptor('tarea_mantenimiento', t.tarea_mantenimiento, '🔁 Es tarea con repetición (se renueva sola)', 'title="Al cumplirla se crea sola la próxima repetición"')}</div>
       <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
         cada
         <input type="number" name="mantenimiento_cantidad" value="${intervalo ? intervalo.cantidad : 1}" min="1" style="width: 4.5rem" aria-label="Cantidad" />
@@ -518,7 +518,7 @@ export function ofrecerMarcarCadenaMantenimiento(tarea, listaTareas) {
   const intervalo = tarea.tarea_mantenimiento_intervalo || { cantidad: 1, unidad: 'dias' };
   const texto = `cada ${intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[intervalo.unidad] || intervalo.unidad}`;
   const quiere = confirm(
-    `Para que la cadena de «${tarea.tarea_nombre}» se repita entera, estas tareas también deben ser de mantenimiento: ${faltantes.map((t) => `«${t.tarea_nombre}»`).join(', ')}.\n\n¿Marcarlas como tareas de mantenimiento (${texto})? Después podés ajustar el intervalo de cada una.`
+    `Para que la cadena de «${tarea.tarea_nombre}» se repita entera, estas tareas también deben ser con repetición: ${faltantes.map((t) => `«${t.tarea_nombre}»`).join(', ')}.\n\n¿Marcarlas como tareas con repetición (${texto})? Después podés ajustar el intervalo de cada una.`
   );
   if (!quiere) return [];
   faltantes.forEach((t) => {

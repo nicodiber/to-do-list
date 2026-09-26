@@ -21,7 +21,7 @@ export function renderVistaMejoras(contenedor) {
 
   contenedor.innerHTML = `
     <h2>💡 Mejoras</h2>
-    <p class="ayuda">Las notas que dejás al cumplir una tarea de mantenimiento ("¿qué podrías mejorar la próxima vez?"). Repasalas y marcalas como aplicadas cuando ya las incorporaste.</p>
+    <p class="ayuda">Las notas que dejás al cumplir una tarea con repetición ("¿qué podrías mejorar la próxima vez?"). Repasalas y marcalas como aplicadas cuando ya las incorporaste.</p>
     <div class="selector-rango" role="group" aria-label="Filtro">
       ${FILTROS.map((f) => `<button type="button" data-filtro="${f.clave}" title="Mostrar las notas ${f.etiqueta.toLowerCase()}" class="${f.clave === filtro ? 'activo' : ''}">${f.etiqueta} (${mejoras.filter(f.cuenta).length})</button>`).join('')}
     </div>
@@ -39,7 +39,7 @@ export function renderVistaMejoras(contenedor) {
   if (nombres.length === 0) {
     lista.innerHTML = `<p class="mensaje-vacio">${
       mejoras.length === 0
-        ? 'Todavía no hay notas de mejora: aparecen cuando cumplís una tarea de mantenimiento y anotás qué mejorar.'
+        ? 'Todavía no hay notas de mejora: aparecen cuando cumplís una tarea con repetición y anotás qué mejorar.'
         : 'No hay notas en este filtro.'
     }</p>`;
     return;

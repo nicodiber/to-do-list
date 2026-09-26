@@ -23,8 +23,8 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 ## 4. Reprogramado en cascada al posponer
 
 - **Condición**: cambia `tarea_fecha_sugerida` de una tarea que tiene otras dependiendo de ella.
-- **Proceso**: `reprogramarTareaConCascada` calcula el delta entre la fecha vieja y la nueva, y lo aplica (`desplazarFecha`) a `tarea_fecha_sugerida` y `tarea_fecha_limite` de cada dependiente, recursivamente, con protección contra ciclos.
-- **Resultado**: toda la cadena de tareas dependientes se corre el mismo tiempo, sin tocarlas una por una.
+- **Proceso**: `reprogramarTareaConCascada` calcula el delta entre la fecha vieja y la nueva, y lo aplica (`desplazarFecha`) a `tarea_fecha_sugerida` de cada dependiente, recursivamente, con protección contra ciclos. **Nunca toca `tarea_fecha_limite`** (v0.76.0 — antes la desplazaba también, para que la cadena no quedara con un límite "imposible"; se sacó porque solo el usuario puede cambiarla).
+- **Resultado**: toda la cadena de tareas dependientes corre su fecha sugerida el mismo tiempo, sin tocarlas una por una. Si alguna dependiente queda con la sugerida después de su propia fecha límite (que no se tocó), se avisa por nombre (`avisoInconsistentes`) en vez de corregirla sola.
 
 ## 5. Reprogramado automático de fecha sugerida vencida
 
@@ -156,7 +156,7 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 
 - **Condición**: al iniciar la app (mismo momento que el proceso 5), existe una tarea activa (no `completada`, no de mantenimiento) sin `tarea_fecha_sugerida`.
 - **Proceso**: `programarTareasSinFecha` (`assets/js/programador.js`) recorre las cadenas (`tarea_dependiente`) en orden — cada tarea espera a que su previa quede programada, un día después de ella como mínimo — y para cada una busca, desde el día más temprano posible (hoy, su fecha habilitada o el día siguiente a su previa), el primer día con minutos libres suficientes (`crearCalculadoraCapacidad`, `assets/js/capacidad.js`) y, dentro de ese día, el primer hueco horario real (`buscarHuecoLibre`, `assets/js/google-calendar.js`) que no choque con Calendar (si hay conexión) ni con otra tarea de STDL ya asignada ese día, en esta pasada o de antes. La búsqueda de día nunca pasa de `tarea_fecha_limite` si la tarea la tiene (v0.74.0). Sin conexión con Calendar, se programa igual usando solo el tope de minutos por día, sin buscar eventos.
-- **Resultado**: `tarea_fecha_sugerida` queda asignada con día y hora reales (no una posición estimada); si hubo cambios se avisa junto con el aviso del proceso 5. Una tarea que no encuentra hueco dentro del horizonte configurado (`pref_horizonte_dias`) o antes de su fecha límite queda sin programar por ahora (se reintenta en la próxima sesión) y sigue viéndose con la posición estimada del proceso 21.
+- **Resultado**: `tarea_fecha_sugerida` queda asignada con día y hora reales (no una posición estimada); si hubo cambios se avisa junto con el aviso del proceso 5. Una tarea que no encuentra hueco dentro del horizonte configurado (`pref_horizonte_dias`) o antes de su fecha límite queda sin programar por ahora (se reintenta en la próxima sesión), sigue viéndose con la posición estimada del proceso 21 y **se avisa por nombre** (v0.76.0 — antes quedaba en silencio, y en Gantt podía parecer un bug que la app "no la programara").
 
 ## 28. Reubicación automática de una tarea que choca con Calendar
 
@@ -169,3 +169,9 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Condición**: al iniciar la app (mismo momento que los procesos 5, 27 y 28) y, mientras sigue abierta, cada 1-2 minutos: la tarea activa con `tarea_fecha_sugerida` con hora más próxima (sin importar si ya pasó) tiene su ventana estimada (`[tarea_fecha_sugerida, tarea_fecha_sugerida + tarea_duracion_min]`) ya vencida — "ahora" la superó sin que la tarea se haya completado.
 - **Proceso**: `reprogramarTareaInmediataSiVencio` (`assets/js/programador.js`) busca el próximo hueco real desde ahora (`buscarHuecoLibre`, sin pasar de `tarea_fecha_limite` si la tiene) y reprograma con `reprogramarTareaConCascada` (cascada a sus dependientes). Mientras "ahora" está **dentro** de esa ventana (todavía no le tocaba, o el usuario la está haciendo en este momento) no se toca — evita reprogramar en cascada una tarea que sigue en curso.
 - **Resultado**: al iniciar, se avisa junto con los procesos 5/27/28 (o que no hay hueco libre antes del límite). El chequeo periódico posterior (cada 90 s, mientras la app sigue abierta) reprograma en silencio, sin `alert()`, para no interrumpir cada vez que corre — el cambio se ve en la próxima vista que se redibuje.
+
+## 30. Refresco de Calendar en cada verificación periódica con Drive
+
+- **Condición**: la verificación automática con Drive corre (al volver a la pestaña, al recuperar red o cada 5 minutos — ver `assets/js/almacenamiento.js`, `verificar()`).
+- **Proceso** (v0.76.0): cada corrida invalida también la caché de eventos de Calendar (`invalidarCacheEventos()`, `assets/js/google-calendar.js`), antes de verificar Drive.
+- **Resultado**: las vistas que muestran eventos de Calendar (Hoy, Semana, "Revisar mi día") los vuelven a pedir en su próximo render, sin esperar los 5 minutos propios de esa caché — no hace falta redibujar aparte, porque `verificar()` ya termina en `notificar()`.

@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
-import { formatearFechaOFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml, arbolCategorias, caminoCategoria } from '../assets/js/utilidades.js';
+import { formatearFechaOFechaHora, esVencida, noPuedeEmpezarTodavia, escaparHtml, arbolCategorias, caminoCategoria, conservarFoco } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar, DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 import {
@@ -8,6 +8,7 @@ import {
   reabrirTarea,
   eliminarTarea,
   reprogramarTareaConCascada,
+  avisoInconsistentes,
   compararPorPrioridad,
   esTareaAccionable,
   ordenarConCadenas,
@@ -18,7 +19,7 @@ import {
 import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { programarParaHoy } from '../assets/js/programador.js';
-import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea } from '../assets/js/modal-tarea.js';
+import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea, ofrecerCrearTareaSeguimiento } from '../assets/js/modal-tarea.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
@@ -126,7 +127,7 @@ export function renderVistaTareas(contenedor) {
   });
   contenedor.querySelector('#tareas-texto').addEventListener('input', (evento) => {
     filtroTexto = evento.target.value;
-    renderVistaTareas(contenedor);
+    conservarFoco(contenedor, () => renderVistaTareas(contenedor));
   });
 
   contenedor.querySelector('#boton-modo-seleccion').addEventListener('click', () => {
@@ -377,6 +378,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
         contenedorMejora.innerHTML = '';
         await persistirYNotificar();
         ofrecerExportarACalendar(tarea);
+        ofrecerCrearTareaSeguimiento(tarea);
       });
       return;
     }
@@ -384,6 +386,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
       cumplirTarea(tarea, estado);
       await persistirYNotificar();
       ofrecerExportarACalendar(tarea);
+      ofrecerCrearTareaSeguimiento(tarea);
       return;
     }
     const { copiaConservada } = reabrirTarea(tarea, estado);
@@ -405,10 +408,12 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
     const panel = crearPanelReprogramar({
       diasHabiles: tarea.tarea_dias_habiles,
       onConfirmar: async (fechaSugeridaISO) => {
-        reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+        const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
         contenedorPanel.hidden = true;
         contenedorPanel.innerHTML = '';
         await persistirYNotificar();
+        const aviso = avisoInconsistentes(inconsistentes);
+        if (aviso) alert(aviso);
       },
       onCancelar: () => {
         contenedorPanel.hidden = true;
@@ -504,13 +509,19 @@ function crearPanelIAPrioridades() {
       const seleccionados = [...contenedorPreview.querySelectorAll('input[type="checkbox"]:checked')].map(
         (cb) => cambios[Number(cb.dataset.indice)]
       );
+      let inconsistentes = [];
       for (const c of seleccionados) {
         const eraUrgente = !!c.tarea.tarea_urgente;
         c.tarea.tarea_urgente = c.urgenteSugerido;
         // Pasó a urgente ahora: se le asigna hoy (mismo criterio que el formulario y la edición masiva).
-        if (c.tarea.tarea_urgente && !eraUrgente) await programarParaHoy(c.tarea, estado);
+        if (c.tarea.tarea_urgente && !eraUrgente) {
+          const resultado = await programarParaHoy(c.tarea, estado);
+          inconsistentes = inconsistentes.concat(resultado.inconsistentes);
+        }
       }
       await persistirYNotificar();
+      const aviso = avisoInconsistentes(inconsistentes);
+      if (aviso) alert(aviso);
     });
   });
 

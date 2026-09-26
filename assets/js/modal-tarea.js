@@ -17,7 +17,7 @@ import {
 } from './formulario-tarea.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
-import { renombrarHistorial, cumplirTarea, reabrirTarea } from './tareas-logica.js';
+import { renombrarHistorial, cumplirTarea, reabrirTarea, avisoInconsistentes, eliminarTarea } from './tareas-logica.js';
 import { programarParaHoy } from './programador.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 
@@ -34,12 +34,26 @@ export function abrirEdicionTarea(id) {
   abrirDialogoFormulario({
     titulo: '✏️ Editar tarea',
     cuerpoHtml: htmlFormularioTarea(tarea, { modo: 'edicion' }),
-    textoGuardar: '💾 Guardar cambios',
+    botonesGuardar: [
+      { texto: '🗑️ Eliminar', valor: 'eliminar', orden: -60 },
+      { texto: '💾 Guardar cambios', valor: 'guardar', orden: 0 },
+    ],
     conectar: (formulario) => conectarFormularioTarea(formulario, { modo: 'edicion' }),
     alCerrar: () => {
       edicionAbierta = false;
     },
-    alGuardar: async (formulario) => {
+    alGuardar: async (formulario, { valor }) => {
+      if (valor === 'eliminar') {
+        const actual = estado.tareas.find((t) => t.tarea_id === id);
+        if (!actual) {
+          alert('Esta tarea ya no existe (se eliminó mientras la editabas).');
+          return true;
+        }
+        if (!confirm(`¿Eliminar la tarea "${actual.tarea_nombre}"?`)) return false;
+        eliminarTarea(actual, estado);
+        await persistirYNotificar();
+        return true;
+      }
       const leido = leerFormularioTarea(formulario);
       if (!leido.campos.tarea_nombre) {
         alert('La tarea necesita un nombre.');
@@ -72,7 +86,8 @@ export function abrirEdicionTarea(id) {
       ofrecerMarcarCadenaMantenimiento(actual, estado.tareas);
       // Pasó a urgente ahora (no ya lo era): se le asigna hoy. Re-guardar una que ya era urgente sin tocar
       // ese campo no debe volver a moverla.
-      if (actual.tarea_urgente && !eraUrgente) await programarParaHoy(actual, estado);
+      let inconsistentesUrgente = [];
+      if (actual.tarea_urgente && !eraUrgente) ({ inconsistentes: inconsistentesUrgente } = await programarParaHoy(actual, estado));
       // Interruptor "Completada": misma lógica que el desplegable de estado de la vista Tareas.
       let ofrecerExportar = false;
       let copiaConservada = null;
@@ -91,6 +106,8 @@ export function abrirEdicionTarea(id) {
       if (copiaConservada) {
         alert(`Se reabrió «${actual.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
       }
+      const avisoUrgente = avisoInconsistentes(inconsistentesUrgente);
+      if (avisoUrgente) alert(avisoUrgente);
       if (ofrecerExportar) ofrecerExportarACalendar(actual);
       return true;
     },
@@ -126,6 +143,22 @@ export function copiaDeTarea(origen, { vaciarNombre = false } = {}) {
     tarea_descripcion: vaciarNombre ? '' : resto.tarea_descripcion,
     tarea_checklist: (resto.tarea_checklist || []).map((item) => ({ texto: item.texto, hecho: false })),
   };
+}
+
+/**
+ * Ofrece crear una tarea de seguimiento justo después de completar `tarea` (v0.76.0): mismos datos que
+ * `copiaDeTarea` (categoría, meta, persona, etc.), nombre y descripción vacíos y **sin fechas** (a diferencia
+ * de Duplicar/Crearle previa/posterior, acá no tendría sentido arrastrar la fecha límite ya vencida de la
+ * que se acaba de completar). No enlaza la nueva con la recién completada (ya no bloquearía nada). Se llama
+ * junto a `ofrecerExportarACalendar`, en los mismos puntos donde ya se llama esa.
+ */
+export function ofrecerCrearTareaSeguimiento(tarea) {
+  if (!confirm(`¿Crear una tarea de seguimiento a partir de «${tarea.tarea_nombre}»?`)) return;
+  const copia = copiaDeTarea(tarea, { vaciarNombre: true });
+  copia.tarea_fecha_sugerida = '';
+  copia.tarea_fecha_limite = '';
+  copia.tarea_fecha_inicio_habilitada = '';
+  abrirAltaTarea(copia);
 }
 
 /**

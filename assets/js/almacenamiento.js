@@ -13,6 +13,7 @@ import { recalcularBloqueo } from './tareas-logica.js';
 import { repararEnlaces } from './dependencias.js';
 import { fechaLocalISO } from './utilidades.js';
 import { registrarPasoDeshacer, invalidarHistorialDeshacer } from './deshacer.js';
+import { invalidarCacheEventos } from './google-calendar.js';
 
 const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
 const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
@@ -714,6 +715,7 @@ export function limpiarRecienConectado() {
 
 async function verificar() {
   if (sync.soloLectura || sincronizando || !sync.datosListos) return;
+  invalidarCacheEventos();
   if (navigator.onLine === false) {
     setSync({ estado: 'sin-conexion' });
     return;

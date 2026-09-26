@@ -28,12 +28,14 @@ function maximo(...dias) {
  * Asigna `tarea_fecha_sugerida` (día y hora reales) a toda tarea activa que no tenga una: primero un día con
  * capacidad libre (`crearCalculadoraCapacidad`, desde hoy o desde que la cadena lo permite), después un hueco
  * horario real dentro de ese día (`buscarHuecoLibre`) que no choque con Calendar ni con otras tareas ya asignadas.
- * Sin conexión con Calendar, solo mira el tope de minutos (sin buscar eventos). Devuelve las tareas programadas.
+ * Sin conexión con Calendar, solo mira el tope de minutos (sin buscar eventos). Devuelve `{ asignadas, sinHueco }`
+ * — `sinHueco` son las que no encontraron día antes de su horizonte o de su fecha límite (quedan sin programar
+ * por ahora, para que el usuario las revise a mano; se reintenta en la próxima sesión).
  */
 export async function programarTareasSinFecha(estado) {
   const todas = estado.tareas || [];
   const candidatas = todas.filter((t) => t.tarea_estado !== 'completada' && !t.tarea_fecha_sugerida && !t.tarea_mantenimiento);
-  if (candidatas.length === 0) return [];
+  if (candidatas.length === 0) return { asignadas: [], sinHueco: [] };
 
   const preferencias = obtenerPreferencias();
   const hoy = hoyISO();
@@ -79,6 +81,7 @@ export async function programarTareasSinFecha(estado) {
     .forEach((t) => agregarHorario(diaLocal(t.tarea_fecha_sugerida), t.tarea_fecha_sugerida, t.tarea_duracion_min));
 
   const asignadas = [];
+  const sinHueco = [];
   const enCurso = new Set();
 
   function diaMinimoDe(tarea) {
@@ -112,12 +115,18 @@ export async function programarTareasSinFecha(estado) {
         break;
       }
     }
-    if (!diaElegido) return; // No entra en el horizonte configurado (o antes de su límite): queda sin programar por ahora.
+    if (!diaElegido) {
+      sinHueco.push(tarea); // No entra en el horizonte configurado (o antes de su límite): queda sin programar por ahora.
+      return;
+    }
 
     const eventosDelDia = [...(conCalendar ? eventosCalendar.filter((e) => diaLocal(e.inicio) === diaElegido) : []), ...(horariosPorDia.get(diaElegido) || [])];
     const desde = diaElegido === hoy && ahora > new Date(`${diaElegido}T00:00:00`) ? ahora : new Date(`${diaElegido}T00:00:00`);
     const hueco = buscarHuecoLibre(eventosDelDia, duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
-    if (!hueco) return; // El día tenía minutos libres pero no un hueco contiguo: queda sin programar por ahora.
+    if (!hueco) {
+      sinHueco.push(tarea); // El día tenía minutos libres pero no un hueco contiguo: queda sin programar por ahora.
+      return;
+    }
 
     tarea.tarea_fecha_sugerida = hueco;
     marcarUso(diaElegido, duracion);
@@ -126,7 +135,7 @@ export async function programarTareasSinFecha(estado) {
   }
 
   candidatas.forEach(programarUna);
-  return asignadas;
+  return { asignadas, sinHueco };
 }
 
 /**
@@ -184,7 +193,9 @@ export async function reubicarTareasSolapadas(estado) {
  * que `reubicarTareasSolapadas`) y se reprograma con `reprogramarTareaConCascada`. Se llama una vez al iniciar
  * la app y, mientras sigue abierta, cada 1-2 minutos (`app.js`), para que la reprogramación pase apenas
  * corresponde. Devuelve `null` si no había nada que evaluar o la ventana no venció todavía; si venció,
- * `{ tarea, sinHueco }` (`sinHueco` true si no hay hueco libre antes de su fecha límite — queda como estaba).
+ * `{ tarea, sinHueco, inconsistentes }` (`sinHueco` true si no hay hueco libre antes de su fecha límite —
+ * queda como estaba; `inconsistentes` son dependientes que quedaron con la sugerida después de su propia
+ * fecha límite, ver `avisoInconsistentes` en `tareas-logica.js`).
  */
 export async function reprogramarTareaInmediataSiVencio(estado) {
   const activas = (estado.tareas || []).filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida));
@@ -211,10 +222,10 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
   const dias = diaLimite ? Math.max(1, diasEntreFechas(hoyISO(), diaLimite) + 1) : diasHorizonteCalendar();
 
   const hueco = buscarHuecoLibre(eventos, duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
-  if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true };
+  if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
-  reprogramarTareaConCascada(tarea, hueco, estado.tareas);
-  return { tarea, sinHueco: false };
+  const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
+  return { tarea, sinHueco: false, inconsistentes };
 }
 
 /**
@@ -223,7 +234,8 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
  * de tarea, la edición masiva y "Reestructurar prioridades con IA" al marcar `tarea_urgente = true` (v0.75.0).
  * No evita chocar con otras tareas del mismo lote que se estén marcando urgentes a la vez (si dos quedan
  * pisadas entre sí, `reubicarTareasSolapadas` las reacomoda sola en el próximo chequeo). Devuelve
- * `{ tarea, sinHueco }` — `sinHueco` true si no hay hueco libre antes de su fecha límite (queda como estaba).
+ * `{ tarea, sinHueco, inconsistentes }` — `sinHueco` true si no hay hueco libre antes de su fecha límite
+ * (queda como estaba); `inconsistentes` ver `reprogramarTareaInmediataSiVencio`.
  */
 export async function programarParaHoy(tarea, estado) {
   const duracion = tarea.tarea_duracion_min || 30;
@@ -243,8 +255,8 @@ export async function programarParaHoy(tarea, estado) {
   const dias = diaLimite ? Math.max(1, diasEntreFechas(hoyISO(), diaLimite) + 1) : diasHorizonteCalendar();
 
   const hueco = buscarHuecoLibre(eventos, duracion, { desde: new Date(), dias, franja: preferencias.pref_franja, diasHabiles });
-  if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true };
+  if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
-  reprogramarTareaConCascada(tarea, hueco, estado.tareas);
-  return { tarea, sinHueco: false };
+  const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
+  return { tarea, sinHueco: false, inconsistentes };
 }
