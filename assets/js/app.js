@@ -21,7 +21,7 @@ import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { caminoCategoria } from './utilidades.js';
-import { renderVistaHoy } from '../../views/hoy.view.js';
+import { renderVistaResumen } from '../../views/resumen.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
 import { renderVistaTareas } from '../../views/tareas.view.js';
@@ -38,7 +38,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.77.0';
+const VERSION = 'v0.78.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -55,7 +55,7 @@ const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 // El orden es el de las pestañas y el de sus atajos: las diez primeras se abren con las teclas 1…9 y 0 (ver atajos.js).
 // Primero las de mirar el trabajo (por tiempo), después las de estructura y las de uso ocasional.
 const VISTAS = {
-  hoy: { etiqueta: '📌 Hoy', render: renderVistaHoy },
+  resumen: { etiqueta: '📊 Resumen', render: renderVistaResumen },
   agenda: { etiqueta: '📖 Agenda', render: renderVistaAgendaConSelector },
   semana: { etiqueta: '📆 Semana', render: renderVistaSemana },
   gantt: { etiqueta: '📊 Gantt', render: renderVistaGantt },
@@ -71,12 +71,12 @@ const VISTAS = {
 };
 
 // Nombres viejos de vistas (por enlaces o marcadores guardados) que siguen llevando a la vista actual.
-const ALIAS_VISTAS = { todas: 'tabla', informes: 'estadisticas', 'tres-dias': 'agenda', 'ocho-dias': 'agenda' };
+const ALIAS_VISTAS = { todas: 'tabla', informes: 'estadisticas', 'tres-dias': 'agenda', 'ocho-dias': 'agenda', hoy: 'resumen' };
 
 function vistaActual() {
   const pedida = location.hash.replace('#/', '');
   const clave = ALIAS_VISTAS[pedida] || pedida;
-  return VISTAS[clave] ? clave : 'hoy';
+  return VISTAS[clave] ? clave : 'resumen';
 }
 
 function renderNav() {
@@ -263,14 +263,14 @@ BOTON_REHACER.addEventListener('click', rehacer);
 
 /**
  * Los eventos de Calendar se guardan unos minutos en memoria. Al sincronizar o volver a la pestaña se
- * olvidan y, si se está mirando Hoy (donde aparecen los avisos de superposición), se redibuja para
+ * olvidan y, si se está mirando Resumen (donde aparecen los avisos de superposición), se redibuja para
  * que reflejen lo que hay ahora en Calendar. No se redibuja con un diálogo abierto ni con texto a medio escribir.
  */
 function refrescarCalendar() {
   if (!hayConexionGoogleCalendar()) return;
   invalidarCacheEventos();
   const s = obtenerEstadoSync();
-  if (vistaActual() !== 'hoy' || !s.datosListos || s.soloLectura) return;
+  if (vistaActual() !== 'resumen' || !s.datosListos || s.soloLectura) return;
   if (document.querySelector('dialog[open]') || hayTextoEnEdicion()) return;
   // Tampoco si hay un panel a medio usar en la tarjeta (cerrar la tarea o elegir otra fecha).
   if (CONTENEDOR.querySelector('.panel-cierre, .panel-reprogramar')) return;

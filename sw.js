@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v38';
+const CACHE_NAME = 'super-todo-list-v39';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -52,7 +52,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/gantt-modelo.js',
   'assets/js/programador.js',
   'assets/js/progreso-categorias.js',
-  'views/hoy.view.js',
+  'views/resumen.view.js',
   'views/agenda.view.js',
   'views/semana.view.js',
   'views/tareas.view.js',

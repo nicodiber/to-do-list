@@ -2,6 +2,25 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.78.0] - 2026-09-26
+
+"Hoy" se renombra a "Resumen" y se reorganiza en secciones más finas (Vencidas siempre visible, nueva "Hoy" y nueva "Mañana"), con una tanda de ajustes de esa vista y de "Revisar mi día".
+
+### Agregado
+
+- **Vista "Hoy" renombrada a "📊 Resumen"** (`#/hoy` sigue funcionando, redirige sola). "🔴 Vencidas" ahora se ve siempre (plegada, con un mensaje si está vacía); "🚨 Urgentes" se acota a fecha límite hoy (antes también incluía sugerida hoy); nueva sección "📌 Hoy" (sugerida hoy, sin límite hoy) y nueva "🌅 Mañana" (límite o sugerida mañana); "🧭 Próximos por categoría" se oculta mientras haya algo en Vencidas/Urgentes/Hoy.
+- **Doble clic en una tarjeta** abre un modal de solo lectura con el detalle y un botón "✏️ Editar".
+- **"Revisar mi día"**: antes de empezar, un selector de día (Hoy/Ayer/Anteayer/fecha) elige qué día de Google Calendar se lee al final del repaso (el repaso de tareas en sí no cambia); cada evento listado suma un botón "➕ Crear tarea" que crea una tarea suelta con ese nombre.
+- **"↩️ Reabrir"** en las tarjetas de "Completadas hoy". **"🗑️ Eliminar"** en el panel de "No cumplida". **"✅ Marcar aplicada"** en la nota de mejora de la tarjeta, sin salir de la vista.
+- **Temporizador de cuenta regresiva** ("⏳ Quedan Xh Ym") en las tareas urgentes con hora límite hoy, actualizado cada minuto.
+- **"➕ Tarea de seguimiento"** (al completar una tarea) pasa de un `confirm()` nativo a una ventana propia de la app, con el mismo estilo que "Guardar en Google Calendar".
+- El texto de ayuda de cada vista (Resumen, Categorías, Estadísticas, Personas, Mejoras, Semana, Tabla, Metas, Ubicaciones) pasa de un párrafo siempre visible a un tooltip al pasar el mouse por el título.
+- "✅ Completadas hoy" queda siempre disponible como sección plegable (abierta por defecto); se saca el botón "🎯 Enfoque".
+
+### Corregido
+
+- "No cumplida"/"Cumplida" cambian de orden (No cumplida primero).
+
 ## [v0.77.0] - 2026-09-26
 
 Bug: tareas con fecha sugerida hoy se reprogramaban solas para mañana pese a haber tiempo libre en Calendar.

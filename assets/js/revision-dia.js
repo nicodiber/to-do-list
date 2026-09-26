@@ -1,11 +1,11 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { formatearFechaOFechaHora, escaparHtml, formatearHora } from './utilidades.js';
+import { formatearFechaOFechaHora, formatearFecha, escaparHtml, formatearHora, hoyISO } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
 import { cumplirTarea, reprogramarTareaConCascada, avisoInconsistentes } from './tareas-logica.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { ofrecerCrearTareaSeguimiento } from './modal-tarea.js';
 import { crearTarea } from './modelos.js';
-import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventosDeHoy } from './google-calendar.js';
+import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventos } from './google-calendar.js';
 import { conectar } from './google-auth.js';
 
 // El <dialog> vive en document.body (no en el contenedor de la vista) para
@@ -13,6 +13,7 @@ import { conectar } from './google-auth.js';
 let dialogo = null;
 let cola = [];
 let indice = 0;
+let diaCalendario = hoyISO();
 
 function asegurarDialogo() {
   if (dialogo) return dialogo;
@@ -22,13 +23,20 @@ function asegurarDialogo() {
   dialogo.addEventListener('close', () => {
     cola = [];
     indice = 0;
+    diaCalendario = hoyISO();
   });
   return dialogo;
 }
 
-export function iniciarRevisionDia(tareas) {
+/**
+ * `diaCalendario` (v0.78.0, `YYYY-MM-DD`, por defecto hoy) es solo el día de Google Calendar que se lee en el
+ * paso final del asistente — el repaso de tareas paso a paso siempre es sobre las mismas `tareas` recibidas,
+ * sin importar qué día se haya elegido ahí.
+ */
+export function iniciarRevisionDia(tareas, { diaCalendario: diaElegido = hoyISO() } = {}) {
   cola = tareas.filter((t) => t.tarea_estado !== 'completada');
   indice = 0;
+  diaCalendario = diaElegido;
   const dlg = asegurarDialogo();
   renderPaso();
   if (!dlg.open) dlg.showModal();
@@ -158,6 +166,11 @@ function wirePreguntaContinuidad(contenedor) {
 }
 
 async function renderSeccionCalendario(contenedor) {
+  const esHoy = diaCalendario === hoyISO();
+  // "de hoy" / "del 25/09/2026" (nunca "de el…", agramatical) para "eventos ___"; "hoy" / "el 25/09/2026" para "agendados ___".
+  const deDia = esHoy ? 'de hoy' : `del ${formatearFecha(diaCalendario)}`;
+  const elDia = esHoy ? 'hoy' : `el ${formatearFecha(diaCalendario)}`;
+
   if (!soportaGoogleCalendar()) {
     contenedor.innerHTML = renderHtmlPreguntaContinuidad();
     wirePreguntaContinuidad(contenedor);
@@ -166,8 +179,8 @@ async function renderSeccionCalendario(contenedor) {
 
   if (!hayConexionGoogleCalendar()) {
     contenedor.innerHTML = `
-      <p class="panel-reprogramar-etiqueta">Conectá tu Google Calendar para ver los eventos de hoy:</p>
-      <button title="Conectar Google Calendar para ver los eventos de hoy" type="button" data-accion="conectar-calendar-revision">📅 Conectar con Google Calendar</button>
+      <p class="panel-reprogramar-etiqueta">Conectá tu Google Calendar para ver los eventos ${deDia}:</p>
+      <button title="Conectar Google Calendar para ver los eventos ${deDia}" type="button" data-accion="conectar-calendar-revision">📅 Conectar con Google Calendar</button>
       ${renderHtmlPreguntaContinuidad()}
     `;
     contenedor.querySelector('[data-accion="conectar-calendar-revision"]').addEventListener('click', async () => {
@@ -182,11 +195,11 @@ async function renderSeccionCalendario(contenedor) {
     return;
   }
 
-  contenedor.innerHTML = '<p class="mensaje-vacio">Cargando eventos de hoy...</p>';
+  contenedor.innerHTML = `<p class="mensaje-vacio">Cargando eventos ${deDia}...</p>`;
 
   let eventos;
   try {
-    eventos = await obtenerEventosDeHoy();
+    eventos = await obtenerEventos(diaCalendario, diaCalendario);
   } catch {
     contenedor.innerHTML = renderHtmlPreguntaContinuidad();
     wirePreguntaContinuidad(contenedor);
@@ -196,13 +209,16 @@ async function renderSeccionCalendario(contenedor) {
   contenedor.innerHTML = `
     ${
       eventos.length === 0
-        ? '<p class="mensaje-vacio">No tuviste eventos agendados hoy.</p>'
+        ? `<p class="mensaje-vacio">No tuviste eventos agendados ${elDia}.</p>`
         : `<ul class="lista-eventos-revision">
             ${eventos
-              .map((evento) => {
+              .map((evento, indiceEvento) => {
                 const inicio = formatearHora(evento.inicio);
                 const fin = formatearHora(evento.fin);
-                return `<li>${escaparHtml(evento.resumen)} (${inicio}–${fin})</li>`;
+                return `<li data-indice-evento="${indiceEvento}">
+                  <span>${escaparHtml(evento.resumen)} (${inicio}–${fin})</span>
+                  <button title="Crear una tarea nueva con este nombre" type="button" data-accion="crear-tarea-evento">➕ Crear tarea</button>
+                </li>`;
               })
               .join('')}
           </ul>`
@@ -210,4 +226,15 @@ async function renderSeccionCalendario(contenedor) {
     ${renderHtmlPreguntaContinuidad()}
   `;
   wirePreguntaContinuidad(contenedor);
+
+  contenedor.querySelectorAll('[data-accion="crear-tarea-evento"]').forEach((boton) => {
+    boton.addEventListener('click', async () => {
+      const li = boton.closest('[data-indice-evento]');
+      const evento = eventos[Number(li.dataset.indiceEvento)];
+      boton.disabled = true;
+      estado.tareas.push(crearTarea({ tarea_nombre: evento.resumen }));
+      await persistirYNotificar();
+      boton.replaceWith(Object.assign(document.createElement('span'), { className: 'etiqueta-fecha etiqueta-exportada', textContent: '✓ Tarea creada' }));
+    });
+  });
 }

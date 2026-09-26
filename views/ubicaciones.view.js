@@ -5,8 +5,7 @@ import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 
 export function renderVistaUbicaciones(contenedor) {
   contenedor.innerHTML = `
-    <h2>📍 Ubicaciones</h2>
-    <p class="ayuda">Cada ubicación tiene una latitud/longitud asociada, para poder chequear el clima real de las tareas que la usan (ej. "Casa", "Facultad").</p>
+    <h2 title="Cada ubicación tiene una latitud/longitud asociada, para poder chequear el clima real de las tareas que la usan (ej. «Casa», «Facultad»).">📍 Ubicaciones</h2>
     <div id="lista-ubicaciones" class="lista-categorias"></div>
   `;
 

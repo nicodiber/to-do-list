@@ -34,8 +34,7 @@ async function copiarConConfirmacion(boton, texto) {
 
 export function renderVistaMetas(contenedor) {
   contenedor.innerHTML = `
-    <h2>🏁 Metas</h2>
-    <p class="ayuda">Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el campo "Meta" del formulario de la tarea. Los botones "🤖" arman un prompt para copiar y pegar en tu asistente de IA favorito (ChatGPT, Claude, etc.) y pegar la respuesta de vuelta acá — no hay ninguna IA conectada dentro de STDL.</p>
+    <h2 title="Tus objetivos de corto/mediano/largo plazo. Asociá tareas a una meta desde el campo «Meta» del formulario de la tarea. Los botones «🤖» arman un prompt para copiar y pegar en tu asistente de IA favorito (ChatGPT, Claude, etc.) y pegar la respuesta de vuelta acá — no hay ninguna IA conectada dentro de STDL.">🏁 Metas</h2>
 <div class="barra-acciones-vista"><button title="Definir una meta charlando con tu IA" type="button" id="boton-chat-meta">🤖 Definir meta charlando con IA</button></div>
     <div id="contenedor-panel-chat-meta" hidden></div>
     <div id="lista-metas" class="lista-categorias"></div>

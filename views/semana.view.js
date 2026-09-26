@@ -47,8 +47,7 @@ export function renderVistaSemana(contenedor) {
   const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(offsetDias + i, hoy));
 
   contenedor.innerHTML = `
-    <h2>📆 Semana</h2>
-    <p class="ayuda">Tareas fijas (con horario agendado), proyección de las pendientes y bloqueadas 🔒 según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.</p>
+    <h2 title="Tareas fijas (con horario agendado), proyección de las pendientes y bloqueadas 🔒 según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.">📆 Semana</h2>
     <div class="selector-rango" role="group" aria-label="Cantidad de días">
       ${OPCIONES_DIAS_SEMANA.map((n) => `<button type="button" data-dias="${n}" title="Ver ${n} día${n === 1 ? '' : 's'}" class="${n === cantidadDias ? 'activo' : ''}">${n} día${n === 1 ? '' : 's'}</button>`).join('')}
     </div>

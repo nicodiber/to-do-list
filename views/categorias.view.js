@@ -10,8 +10,7 @@ let colapsados = new Set();
 
 export function renderVistaCategorias(contenedor) {
   contenedor.innerHTML = `
-    <h2>🗂️ Categorías</h2>
-    <p class="ayuda">Las categorías representan áreas de tu vida (Personal, Facultad, Trabajo...). Pueden anidarse eligiendo una categoría padre, sin límite de niveles.</p>
+    <h2 title="Las categorías representan áreas de tu vida (Personal, Facultad, Trabajo...). Pueden anidarse eligiendo una categoría padre, sin límite de niveles.">🗂️ Categorías</h2>
     <div id="lista-categorias" class="lista-categorias"></div>
   `;
 

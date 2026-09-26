@@ -20,7 +20,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 | Vista | Tipo | Casos de uso relacionados |
 |---|---|---|
-| Hoy | Visualizador | A1, A4, A5, A6 |
+| Resumen | Visualizador | A1, A4, A5, A6 |
 | Agenda (antes 3 y 8 días) | Visualizador | A7 |
 | Semana | Visualizador | A7 |
 | Gantt | Visualizador | B2 |
@@ -48,19 +48,18 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: saber qué tarea atacar en este momento, sin tener que pensar el orden a mano.
 - **Disparador**: arranca el día, haber finalizado una tarea o aparece un rato libre.
-- **Pasos**: abre Hoy (vista por defecto) → mira "Urgentes" (vencidas o con `tarea_fecha_limite` hoy, con su holgura en texto) → si no hay nada ahí, mira "Próximos por categoría" (la tarea que más conviene de cada categoría raíz, con el camino de la categoría) → y "Resto de tus pendientes" (lo demás, ordenado por `compararPorPrioridad`, sin repetir lo de arriba) → opcionalmente filtra por ubicación actual (compartido con Tareas y Agenda) o enciende "🎯 Enfoque" para ocultar lo ya completado hoy.
+- **Pasos**: abre Resumen (vista por defecto, antes "Hoy") → mira "Vencidas" (plegada) y "Urgentes" (`tarea_fecha_limite` hoy, con su holgura en texto) → si no hay nada ahí, mira "Hoy" (`tarea_fecha_sugerida` hoy) → "Mañana" (límite o sugerida mañana) → si tampoco hay nada urgente, "Próximos por categoría" (la tarea que más conviene de cada categoría raíz) → y "Resto de tus pendientes" (lo demás, ordenado por `compararPorPrioridad`, sin repetir lo de arriba) → opcionalmente filtra por ubicación actual (compartido con Tareas y Agenda).
 - **Flujo usuario/sistema**:
-  1. Usuario abre la app (o navega a Hoy).
-  2. Sistema muestra Hoy: filtro "¿Dónde estás?" (si hay ubicaciones cargadas), botón "🎯 Enfoque", "Revisar mi día" y las secciones "Urgentes", "Próximos por categoría", "Resto de tus pendientes", "Todavía no pueden empezar", "Bloqueadas por otras tareas" y, al final, "Completadas hoy (N)" (solo con el enfoque apagado).
-  3. Usuario lee "Urgentes" (cada ítem con su holgura) y, si hay, decide cuál atacar.
-  4. Si no hay urgentes, mira "Próximos por categoría" (un rato libre sin apuro) o "Resto" (orden `compararPorPrioridad`).
-  5. Usuario (opcional) elige su ubicación actual; el sistema guarda esa preferencia (fuera de los datos de la app) y redibuja Hoy filtrada.
-  6. Usuario (opcional) enciende o apaga "🎯 Enfoque"; el sistema recuerda la elección en este dispositivo.
-  7. Usuario elige una tarea y sigue con A4 (completar) o A5 (reprogramar). En las tareas de mantenimiento puede tildar los pasos del checklist ahí mismo.
-- **Avisos en la tarjeta**: "💡 Mejora pendiente" (las notas de mejora sin aplicar de una tarea de mantenimiento, hasta 2), "☀️ Buen clima previsto" o "🌧️ Lluvia probable" (solo tareas que piden buen clima, ver `PROCESOS_AUTOMATICOS.md` 8) y "📅 Se superpone con…" con los botones "Posponer" y "Al próximo hueco libre" (ver D3 y `PROCESOS_AUTOMATICOS.md` 9 y 19).
-- **Vistas/funciones**: `views/hoy.view.js` (`renderVistaHoy`, `renderItem`, `renderCompletada`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `mejorTareaPorCategoria`, `calcularHolguraDias`, `esTareaAccionable`), `assets/js/ubicacion-actual.js`, `assets/js/checklist-tarjeta.js`.
+  1. Usuario abre la app (o navega a Resumen).
+  2. Sistema muestra Resumen: filtro "¿Dónde estás?" (si hay ubicaciones cargadas), "Revisar mi día" y las secciones "Vencidas" (siempre visible, plegada), "Urgentes", "Hoy" y "Mañana" (solo si tienen algo), "Próximos por categoría" (solo si no hay nada más urgente), "Resto de tus pendientes", "Todavía no pueden empezar", "Bloqueadas por otras tareas" y, al final, "Completadas hoy (N)" (plegada, abierta por defecto).
+  3. Usuario lee "Vencidas"/"Urgentes" (cada ítem con su holgura, y una cuenta regresiva si vence hoy con hora) y, si hay, decide cuál atacar.
+  4. Si no hay nada urgente, mira "Hoy"/"Mañana", "Próximos por categoría" (un rato libre sin apuro) o "Resto" (orden `compararPorPrioridad`).
+  5. Usuario (opcional) elige su ubicación actual; el sistema guarda esa preferencia (fuera de los datos de la app) y redibuja Resumen filtrado.
+  6. Usuario elige una tarea y sigue con A4 (completar) o A5 (reprogramar); doble clic en la tarjeta abre un modal de solo lectura con el detalle y un botón "Editar". En las tareas de mantenimiento puede tildar los pasos del checklist ahí mismo.
+- **Avisos en la tarjeta**: "💡 Mejora pendiente" (las notas de mejora sin aplicar de una tarea de mantenimiento, hasta 2, con botón "Marcar aplicada"), "☀️ Buen clima previsto" o "🌧️ Lluvia probable" (solo tareas que piden buen clima, ver `PROCESOS_AUTOMATICOS.md` 8) y "📅 Se superpone con…" con los botones "Posponer" y "Al próximo hueco libre" (ver D3 y `PROCESOS_AUTOMATICOS.md` 9 y 19).
+- **Vistas/funciones**: `views/resumen.view.js` (`renderVistaResumen`, `renderItem`, `renderCompletada`, `abrirDetalleTarea`), `assets/js/tareas-logica.js` (`compararPorPrioridad`, `mejorTareaPorCategoria`, `calcularHolguraDias`, `esTareaAccionable`), `assets/js/ubicacion-actual.js`, `assets/js/checklist-tarjeta.js`.
 - **Resultado**: no cambia datos, es de solo lectura (salvo que desde acá se accione otro caso de uso, como completar, reprogramar o mover al próximo hueco libre).
-- **Fricciones**: sin atajo de teclado para ir directo a Hoy. "Revisar mi día" (A6) sigue pendiente de redefinir ahora que Hoy ya permite cumplir, no cumplir y reprogramar cada tarea. Los días ("vence hoy", vencidas, Completadas hoy) se calculan en hora local del dispositivo, en 24 h.
+- **Fricciones**: sin atajo de teclado para ir directo a Resumen. Los días ("vence hoy", vencidas, Completadas hoy) se calculan en hora local del dispositivo, en 24 h.
 
 ### A2. Cargar una tarea (rápida o completa)
 
@@ -99,13 +98,13 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: registrar que se hizo algo y seguir.
 - **Disparador**: termina una tarea.
-- **Pasos**: desde Hoy, Tareas o "Revisar mi día", botón "Cumplida ✓" → si la tarea es de mantenimiento, campo opcional "¿cómo se podría mejorar para la próxima vez?" → Confirmar → se completa y (si aplica) se clona la siguiente instancia, se desbloquean las tareas que dependían de esta, y se ofrece exportarla a Google Calendar.
-- **Flujo usuario/sistema (desde Hoy)**:
+- **Pasos**: desde Resumen, Tareas o "Revisar mi día", botón "Cumplida ✓" → si la tarea es de mantenimiento, campo opcional "¿cómo se podría mejorar para la próxima vez?" → Confirmar → se completa y (si aplica) se clona la siguiente instancia, se desbloquean las tareas que dependían de esta, y se ofrece exportarla a Google Calendar.
+- **Flujo usuario/sistema (desde Resumen)**:
   1. Usuario hace clic en "Cumplida ✓" de una tarea.
   2. Sistema muestra un panel de confirmación (con el campo "¿cómo se podría mejorar…?" solo si la tarea es de mantenimiento).
   3. Usuario (opcional) escribe la nota y presiona "Confirmar".
   4. Sistema marca la tarea completada y fija `tarea_fecha_fin`; si es de mantenimiento, crea la siguiente instancia; desbloquea las tareas que dependían de esta; guarda y redibuja.
-  5. Sistema muestra una ventana de la página: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?" con los botones "Abrir en Calendar" y "Cancelar". La tarea pasa a la sección "Completadas hoy" de Hoy, donde queda el botón "📅 Exportar a Calendar" (o "Exportar de nuevo", con la etiqueta "📅 Exportada") para hacerlo más tarde o repetirlo.
+  5. Sistema muestra una ventana de la página: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?" con los botones "Abrir en Calendar" y "Cancelar". La tarea pasa a la sección "Completadas hoy" de Resumen, donde queda el botón "📅 Exportar a Calendar" (o "Exportar de nuevo", con la etiqueta "📅 Exportada") para hacerlo más tarde o repetirlo.
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
   8. **(v0.76.0)** Justo después, sistema pregunta "¿Crear una tarea de seguimiento a partir de «tarea»?"; si el usuario acepta, abre el alta con los mismos datos (categoría, meta, persona, etc.) pero nombre, descripción y las 3 fechas vacías, sin enlazarla con la recién completada.
@@ -118,10 +117,10 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Objetivo**: mover la fecha de una tarea que no se va a cumplir cuando estaba prevista.
 - **Disparador**: no se llegó a hacer (reactivo), se decide adelantar/atrasar a propósito (proactivo), o el sistema detecta que ya venció.
 - **Pasos — reactivo**: botón "No cumplida ✗" → "Reprogramar" → panel con atajos de día/hora → confirma → se mueve `tarea_fecha_sugerida`, en cascada a dependientes.
-- **Pasos — proactivo**: botón "Posponer" (disponible en Tareas, Hoy y Agenda) → mismo panel.
+- **Pasos — proactivo**: botón "Posponer" (disponible en Tareas, Resumen y Agenda) → mismo panel.
 - **Pasos — automático**: `tarea_fecha_sugerida` vencida de una tarea activa se reprograma sola al abrir la app, con aviso (ver `PROCESOS_AUTOMATICOS.md`).
-- **Pasos — fecha límite vencida**: botón "📅 Revalorizar fecha límite" (solo visible en "Urgentes" de Hoy) → mismo panel, pero escribe `tarea_fecha_limite` directamente, **sin** cascada a dependientes (a diferencia de los anteriores).
-- **Flujo usuario/sistema — reactivo (desde Hoy)**:
+- **Pasos — fecha límite vencida**: botón "📅 Revalorizar fecha límite" (solo visible en "Vencidas" de Resumen) → mismo panel, pero escribe `tarea_fecha_limite` directamente, **sin** cascada a dependientes (a diferencia de los anteriores).
+- **Flujo usuario/sistema — reactivo (desde Resumen)**:
   1. Usuario hace clic en "No cumplida ✗".
   2. Sistema muestra un panel con el botón "Reprogramar".
   3. Usuario hace clic en "Reprogramar".
@@ -141,23 +140,24 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Resultado**: `tarea_fecha_sugerida` y/o `tarea_fecha_limite` actualizada; posible cascada a dependientes.
 - **Fricciones**: 4 puntos de entrada distintos al mismo panel (consistente, pero repartido). La cascada no siempre es evidente para el usuario — no hay un resumen visual de "esto además corrió a estas otras N tareas".
 
-### A6. "Revisar mi día" ⚠️ a redefinir
+### A6. "Revisar mi día"
 
 - **Objetivo**: cerrar el día repasando una por una las tareas de hoy, sin tener que ir abriendo tarjeta por tarjeta.
-- **Disparador**: ritual de cierre de día.
-- **Pasos**: botón "Revisar mi día" (Hoy) → recibe la lista combinada de Urgentes + Resto → abre un `<dialog>` modal → por cada tarea: Cumplida / No cumplida / Saltar → al llegar al final, si hay conexión con Google Calendar muestra los eventos reales de hoy y pregunta en secuencia si para cada evento se generó una nueva tarea para cargar (alta rápida inline) *(⏳ hoy no es en secuencia por evento: se listan todos los eventos juntos y hay un único alta rápida — pedido del usuario, ver `REDISENO.md`)*; si no hay conexión, indica que no hay conexión y ofrece botón para intentar conectar → Si no conecta, indicar el mensaje correspondiente → Cerrar.
+- **Disparador**: ritual de cierre de día (o, con el selector de día, ponerse al día si anoche no se pudo).
+- **Pasos**: botón "Revisar mi día" (Resumen) → panel con atajos Hoy/Ayer/Anteayer/fecha (**v0.78.0**: elige qué día de Google Calendar se va a leer al final; el repaso de tareas en sí no cambia con esta elección) → "Empezar repaso" → recibe la lista combinada de Vencidas + Urgentes + Hoy + Resto → abre un `<dialog>` modal → por cada tarea: Cumplida / No cumplida / Saltar → al llegar al final, si hay conexión con Google Calendar muestra los eventos reales del día elegido, cada uno con un botón "➕ Crear tarea" (v0.78.0: crea al toque una tarea suelta con el nombre del evento, sin fecha ni enlace) además de la pregunta general "¿alguno generó una tarea nueva?"; si no hay conexión, indica que no hay conexión y ofrece botón para intentar conectar → Cerrar.
 - **Flujo usuario/sistema**:
-  1. Usuario hace clic en "Revisar mi día" (en Hoy).
-  2. Sistema abre un diálogo modal con la primera tarea de la lista (Urgentes + Resto, sin completadas) y el progreso "Tarea 1 de N".
-  3. Usuario elige Cumplida, No cumplida o Saltar.
-  4. Si Cumplida: sistema pide confirmar (con la nota de mejora si es de mantenimiento); usuario confirma; sistema completa la tarea (todo lo de A4) y avanza. Si No cumplida: sistema ofrece "Reprogramar"; usuario elige fecha en el panel; sistema mueve la fecha y avanza. Si Saltar: sistema avanza sin cambios.
-  5. Al terminar la lista, sistema muestra "¡Repasaste todas tus tareas de hoy!" y la sección de Calendar: sin conexión con Calendar (sesión vencida o permiso no concedido), un botón para reconectar con Google; con conexión, los eventos de hoy.
-  6. Usuario (opcional) escribe el nombre de una tarea de continuidad en el alta rápida inline.
-  7. Sistema crea esa tarea con valores por defecto, la guarda y la agrega a una lista de confirmación.
-  8. Usuario presiona "Cerrar" (o "Cerrar repaso" en cualquier momento).
-- **Vistas/funciones**: `assets/js/revision-dia.js` (`iniciarRevisionDia`, `renderPaso`, `renderPasoFinal`, `renderSeccionCalendario`), `assets/js/reprogramar.js`, `assets/js/tareas-logica.js`, `assets/js/google-calendar.js`.
-- **Resultado**: igual que completar/reprogramar cada tarea una por una, más posibles tareas nuevas de continuidad.
-- **⚠️ Pendiente de redefinir con el usuario** (marcado explícitamente, no resuelto acá): ¿tiene sentido como flujo modal separado, o alcanza con iterar la lista de Hoy directamente? ¿el paso de "eventos de Calendar → tarea nueva" debería vivir acá o en otro lugar del flujo diario?
+  1. Usuario hace clic en "Revisar mi día" (en Resumen).
+  2. Sistema muestra el selector de día (Hoy/Ayer/Anteayer/fecha, tope hoy).
+  3. Usuario elige un día (o deja "Hoy") y toca "Empezar repaso".
+  4. Sistema abre un diálogo modal con la primera tarea de la lista de pendientes (sin completadas) y el progreso "Tarea 1 de N".
+  5. Usuario elige Cumplida, No cumplida o Saltar.
+  6. Si Cumplida: sistema pide confirmar (con la nota de mejora si es de mantenimiento); usuario confirma; sistema completa la tarea (todo lo de A4) y avanza. Si No cumplida: sistema ofrece "Reprogramar"; usuario elige fecha en el panel; sistema mueve la fecha y avanza. Si Saltar: sistema avanza sin cambios.
+  7. Al terminar la lista, sistema muestra "¡Repasaste todas tus tareas de hoy!" y la sección de Calendar: sin conexión con Calendar (sesión vencida o permiso no concedido), un botón para reconectar con Google; con conexión, los eventos del día elegido en el paso 2, cada uno con "➕ Crear tarea".
+  8. Usuario (opcional) toca "➕ Crear tarea" en algún evento, o escribe el nombre de una tarea de continuidad en el alta rápida inline.
+  9. Sistema crea esa tarea con valores por defecto, la guarda y confirma en el lugar (el botón del evento pasa a "✓ Tarea creada", o se agrega a la lista de confirmación del alta inline).
+  10. Usuario presiona "Cerrar" (o "Cerrar repaso" en cualquier momento).
+- **Vistas/funciones**: `assets/js/revision-dia.js` (`iniciarRevisionDia`, `renderPaso`, `renderPasoFinal`, `renderSeccionCalendario`), `views/resumen.view.js` (`crearSelectorDiaRevision`), `assets/js/reprogramar.js`, `assets/js/tareas-logica.js`, `assets/js/google-calendar.js` (`obtenerEventos`).
+- **Resultado**: igual que completar/reprogramar cada tarea una por una, más posibles tareas nuevas (de continuidad o por evento de Calendar).
 
 ### A7. Anticipar los próximos días
 
@@ -199,10 +199,10 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: manejar lo más usado sin el mouse.
 - **Atajos** (teclas solas, con el cursor fuera de un campo y sin ninguna ventana abierta; se ignoran con Ctrl, Alt o Meta y en la pantalla inicial):
-  - **1…9 y 0**: abren las diez primeras pestañas en su orden (1 Hoy · 2 Agenda · 3 Semana · 4 Gantt · 5 Tabla · 6 Categorías · 7 Ubicaciones · 8 Metas · 9 Tareas · 0 Estadísticas). Mejoras, Personas y Configuraciones solo con el mouse.
+  - **1…9 y 0**: abren las diez primeras pestañas en su orden (1 Resumen · 2 Agenda · 3 Semana · 4 Gantt · 5 Tabla · 6 Categorías · 7 Ubicaciones · 8 Metas · 9 Tareas · 0 Estadísticas). Mejoras, Personas y Configuraciones solo con el mouse.
   - **N**: nueva tarea. **F**: lleva el cursor al buscador o al primer filtro de la vista. **?** (o el botón ⌨️ de la cabecera): abre la ayuda con la lista de atajos.
   - En una ventana de formulario: **Ctrl+Enter** guarda o agrega (con el botón principal); **Enter** en el nombre de una tarea nueva la agrega y deja la ventana abierta; **Esc** cierra.
-- **Tooltips**: al pasar el mouse por pestañas, botones, filtros y campos del formulario aparece el `title` del navegador con una explicación y, si hay atajo, su tecla ("Hoy (tecla 1)").
+- **Tooltips**: al pasar el mouse por pestañas, botones, filtros y campos del formulario aparece el `title` del navegador con una explicación y, si hay atajo, su tecla ("Resumen (tecla 1)"). Desde v0.78.0 el mismo mecanismo reemplaza también el texto de ayuda fijo bajo el título de varias vistas (Resumen, Categorías, Estadísticas, Personas, Mejoras, Semana, Tabla, Metas, Ubicaciones): pasa a vivir en el `title` del `<h2>`, visible solo al pasar el mouse.
 - **Vistas/funciones**: `assets/js/atajos.js` (`configurarAtajos`, `abrirAyudaAtajos`), `assets/js/dialogo-formulario.js` (Ctrl+Enter), `assets/js/app.js` (orden de las pestañas).
 - **Fricciones**: las teclas se eligieron para no chocar con el navegador ni con Windows (por eso no se usa Ctrl); en el celular no hay atajos ni tooltips.
 
@@ -369,11 +369,11 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Pasos — "Revisar mi día"**: si hay conexión, el paso final muestra los eventos reales del día (ver A6).
 - **Flujo usuario/sistema — detectar solapamientos**:
   1. Usuario autoriza Google (Drive y Calendar de solo lectura, ver D2).
-  2. Sistema guarda el token en memoria (no persiste) y redibuja Hoy.
+  2. Sistema guarda el token en memoria (no persiste) y redibuja Resumen.
   3. Sistema, por cada tarea con `tarea_fecha_sugerida` con hora, consulta los eventos de los próximos 15 días (una sola consulta por rango, con caché en memoria de 5 minutos) y compara ventanas.
   4. Sistema muestra "📅 Se superpone con…" (con el día si no es hoy) y los botones "Posponer" y "Al próximo hueco libre" en las tareas que chocan con un evento. (El flujo de exportar una completada está en A4, pasos 5-7.)
   5. Si el usuario elige "Al próximo hueco libre", el sistema busca desde la hora sugerida (nunca antes de ahora), en pasos de 15 minutos, el primer momento en que la ventana `[inicio, inicio + tarea_duracion_min]` cae dentro de la franja horaria elegida en Configuraciones, en un día hábil de la tarea, y no choca con ningún evento; reprograma con `reprogramarTareaConCascada`. Si no hay hueco en el horizonte, avisa y abre el panel de Posponer.
-  6. Al usar "Sincronizar ahora" o volver a la pestaña, el sistema olvida los eventos guardados y (si se está mirando Hoy) redibuja: los avisos aparecen o desaparecen según lo que hay ahora en Calendar.
+  6. Al usar "Sincronizar ahora" o volver a la pestaña, el sistema olvida los eventos guardados y (si se está mirando Resumen) redibuja: los avisos aparecen o desaparecen según lo que hay ahora en Calendar.
 - **Vistas/funciones**: `assets/js/exportar-calendar.js`, `assets/js/google-calendar.js`, `assets/js/google-auth.js`, `views/hoy.view.js`, `assets/js/revision-dia.js`, `assets/js/preferencias-horario.js`.
 - **Resultado**: eventos creados en Calendar (fuera de STDL); ningún dato de STDL cambia por esto, salvo que el usuario reprograme a partir del aviso de solapamiento.
 - **Fricciones**: la lectura de eventos cubre desde hoy hasta el horizonte configurado — no hay lectura de eventos pasados (relevante para la nota abierta de Estadísticas, E1) — y Agenda todavía no muestra los eventos de Calendar (Semana sí, ver A10). La franja horaria del "próximo hueco libre" se elige en **Configuraciones** ("Agenda y Calendar", desde/hasta en tramos de 30 minutos; por defecto 00:00 a 24:00; se guarda en este dispositivo). Exportar es manual paso a paso (abrir pestaña, guardar a mano); no queda una confirmación de que efectivamente se guardó.
@@ -423,7 +423,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 ### E4. Repasar y aplicar mejoras
 
 - **Objetivo**: convertir las notas de "¿qué podrías mejorar la próxima vez?" en mejoras reales de la rutina.
-- **Pasos**: al cumplir una tarea de mantenimiento se anota la mejora (A4) → vista **Mejoras** (después de Tareas) → filtro Pendientes / Aplicadas / Todas → notas agrupadas por tarea, cada una con su fecha → "Marcar aplicada" cuando ya se incorporó (o "Volver a pendiente"), "Editar" para corregir el texto, "Eliminar" para quitarla. Mientras estén pendientes, se ven también en la tarjeta de Hoy de esa tarea ("💡 Mejora pendiente").
+- **Pasos**: al cumplir una tarea de mantenimiento se anota la mejora (A4) → vista **Mejoras** (después de Tareas) → filtro Pendientes / Aplicadas / Todas → notas agrupadas por tarea, cada una con su fecha → "Marcar aplicada" cuando ya se incorporó (o "Volver a pendiente"), "Editar" para corregir el texto, "Eliminar" para quitarla. Mientras estén pendientes, se ven también en la tarjeta de Resumen de esa tarea ("💡 Mejora pendiente"), con un botón para marcarla aplicada ahí mismo.
 - **Vistas/funciones**: `views/mejoras.view.js`; `views/hoy.view.js` (`htmlMejorasPendientes`).
 - **Resultado**: cambia `mejora_aplicada` o `mejora_texto`, o elimina la nota (queda registrada la eliminación para las demás pantallas y dispositivos, como cualquier baja).
 
