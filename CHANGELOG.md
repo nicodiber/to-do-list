@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.77.0] - 2026-09-26
+
+Bug: tareas con fecha sugerida hoy se reprogramaban solas para mañana pese a haber tiempo libre en Calendar.
+
+### Corregido
+
+- **Causa**: un evento marcado "Disponible" en Google Calendar se contaba como tiempo ocupado al buscar hueco libre, porque la preferencia "Ignorar los eventos marcados como «Disponible»" traía `No` de fábrica. Ahora el valor por defecto es `Sí` (coincide con lo que "Disponible" significa realmente en Calendar); la preferencia ya guardada del usuario se migró a `Sí`.
+
 ## [v0.76.0] - 2026-09-26
 
 Segunda ronda de ajustes tras uso real: la app ya no toca la fecha límite al reprogramar, buscadores que no pierden el foco, y varios ajustes chicos en Hoy, Tabla, Personas, el modal de tarea, Agenda y Semana.
