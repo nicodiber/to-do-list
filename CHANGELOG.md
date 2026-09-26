@@ -2,6 +2,29 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.76.0] - 2026-09-26
+
+Segunda ronda de ajustes tras uso real: la app ya no toca la fecha límite al reprogramar, buscadores que no pierden el foco, y varios ajustes chicos en Hoy, Tabla, Personas, el modal de tarea, Agenda y Semana.
+
+### Agregado
+
+- **Hoy**: la sección "🧭 Próximos por categoría" se oculta mientras haya algo en "🚨 Urgentes"; las bloqueadas con fecha límite vencida/hoy o sugerida hoy ahora aparecen ahí también (de solo lectura), en vez de perderse en "Bloqueadas por otras tareas".
+- **Tarea de seguimiento al completar**: al confirmar una tarea cumplida (Hoy, Tareas, Revisar mi día), se ofrece crear una tarea de seguimiento con los mismos datos, nombre y fechas vacíos.
+- **Buscadores sin perder el foco**: los de Tareas, Tabla y Gantt ya no reinician el cursor en cada letra escrita.
+- **Tabla**: encabezado de columnas fijo al scrollear.
+- **Personas**: doble clic en una tarjeta abre editar; "Próximo contacto" no permite elegir una fecha pasada.
+- **Pestaña "Mejoras"** muestra la cantidad de notas pendientes.
+- **Modal de editar tarea**: botón "🗑️ Eliminar" (pide confirmación).
+- **Posponer (Hoy, Tareas, Agenda, Revisar mi día)**: atajos con nombres de día reales (hoy, mañana, pasado mañana y los 7 próximos días de la semana) y resaltado del elegido.
+- **Semana**: los eventos de Calendar se ven con un color de fondo más vistoso; los bloques de 15 minutos ya no cortan el texto.
+- **Sincronización periódica**: cada verificación con Drive también refresca los eventos de Calendar mostrados.
+- Renombrado en la interfaz: "tarea de mantenimiento" pasa a llamarse "tarea con repetición" (sin cambios en los datos).
+
+### Corregido
+
+- **STDL ya no modifica la fecha límite de nadie al reprogramar en cascada** (antes la desplazaba junto con la sugerida). Si al reprogramar una tarea, alguna dependiente queda con la sugerida después de su propia fecha límite, se avisa por nombre en vez de corregirla sola.
+- **Tareas que el programador automático no pudo agendar** (por ejemplo porque su fecha límite no deja hueco) ahora se avisan al iniciar, en vez de quedar sin sugerida en silencio (podían verse en Gantt con su posición virtual como si algo estuviera roto).
+
 ## [v0.75.0] - 2026-09-24
 
 Reordenar tareas encadenadas con ▲▼ y rediseño de la importancia a un booleano "urgente".

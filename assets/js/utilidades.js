@@ -244,3 +244,24 @@ export function caminoCategoria(categoria, todasLasCategorias) {
   }
   return nombres.join(' / ');
 }
+
+/**
+ * Ejecuta `redibujar()` (que reemplaza el HTML de `contenedor`) conservando el foco: si el elemento
+ * enfocado está dentro de `contenedor` y tiene `id`, después de redibujar busca ese mismo `id` y le
+ * devuelve el foco y la posición del cursor (útil para buscadores que se redibujan en cada tecla).
+ */
+export function conservarFoco(contenedor, redibujar) {
+  const activo = document.activeElement;
+  const idActivo = activo && contenedor.contains(activo) && activo.id ? activo.id : null;
+  const seleccion = idActivo && 'selectionStart' in activo ? { inicio: activo.selectionStart, fin: activo.selectionEnd } : null;
+
+  redibujar();
+
+  if (!idActivo) return;
+  const nuevo = contenedor.querySelector(`#${CSS.escape(idActivo)}`);
+  if (!nuevo) return;
+  nuevo.focus();
+  if (seleccion && 'setSelectionRange' in nuevo) {
+    nuevo.setSelectionRange(seleccion.inicio, seleccion.fin);
+  }
+}

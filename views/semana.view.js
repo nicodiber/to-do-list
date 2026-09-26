@@ -163,7 +163,7 @@ function pintarEventos(grilla, eventos) {
       bloque.style.left = `${(x.carril / carriles.length) * 100}%`;
       bloque.style.width = `${100 / carriles.length}%`;
       bloque.style.borderLeftColor = x.e.color;
-      if (!x.e.disponible) bloque.style.background = hexARgba(x.e.color, 0.22);
+      if (!x.e.disponible) bloque.style.background = hexARgba(x.e.color, 0.55);
       bloque.title = `${x.e.resumen} — ${formatearHora(x.e.inicio)} a ${formatearHora(x.e.fin)} (${x.e.calendarioNombre}${x.e.disponible ? ', disponible' : ''}). Se edita desde Google Calendar: hacé clic para abrirlo.`;
       bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${escaparHtml(x.e.resumen)}</span>`;
       bloque.addEventListener('click', (evento) => {
@@ -281,7 +281,8 @@ function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, f
   const alturaMin = Math.max(15, Math.min(duracionMin, MINUTOS_VISIBLES - offsetMin || duracionMin));
 
   const bloque = document.createElement('div');
-  bloque.className = 'bloque-tarea-semana' + (proyectada ? ' proyectada' : '') + (bloqueada ? ' bloqueada' : '');
+  bloque.className =
+    'bloque-tarea-semana' + (proyectada ? ' proyectada' : '') + (bloqueada ? ' bloqueada' : '') + (duracionMin <= 15 ? ' corto' : '');
   bloque.style.top = `${(offsetMin / 60) * ALTO_HORA_PX}px`;
   bloque.style.height = `${(alturaMin / 60) * ALTO_HORA_PX}px`;
   bloque.style.borderColor = color;

@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, hoyISO, tieneHora, combinarFechaYHora, formatearHora, arbolCategorias } from '../assets/js/utilidades.js';
-import { reprogramarTareaConCascada, asignarOrdenManual, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
+import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, hoyISO, tieneHora, combinarFechaYHora, formatearHora, arbolCategorias, conservarFoco } from '../assets/js/utilidades.js';
+import { reprogramarTareaConCascada, avisoInconsistentes, asignarOrdenManual, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } from '../assets/js/gantt-modelo.js';
 
@@ -132,7 +132,7 @@ export function renderVistaGantt(contenedor) {
   );
   contenedor.querySelector('#gantt-texto').addEventListener('input', (evento) => {
     filtros.texto = evento.target.value;
-    redibujar();
+    conservarFoco(contenedor, redibujar);
   });
 
   redibujar();
@@ -445,8 +445,10 @@ function conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor 
         barra.classList.remove('arrastrando');
         if (dias === 0) return;
         const nuevoDia = fechaISOMasDias(dias, fila.plan.dia);
-        reprogramarTareaConCascada(tarea, conservandoHora(tarea.tarea_fecha_sugerida, nuevoDia), estado.tareas);
+        const inconsistentes = reprogramarTareaConCascada(tarea, conservandoHora(tarea.tarea_fecha_sugerida, nuevoDia), estado.tareas);
         await persistirYNotificar();
+        const aviso = avisoInconsistentes(inconsistentes);
+        if (aviso) alert(aviso);
         avisarSiQuedoAntesDeSuPrevia(tarea, agruparPor);
       };
       barra.addEventListener('pointermove', mover);

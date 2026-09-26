@@ -14,12 +14,13 @@ import {
   descartarDatosViejos,
   hayTextoEnEdicion,
 } from './almacenamiento.js';
-import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre } from './tareas-logica.js';
+import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre, avisoInconsistentes } from './tareas-logica.js';
 import { programarTareasSinFecha, reubicarTareasSolapadas, reprogramarTareaInmediataSiVencio } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
+import { caminoCategoria } from './utilidades.js';
 import { renderVistaHoy } from '../../views/hoy.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
@@ -37,7 +38,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.75.0';
+const VERSION = 'v0.76.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -84,7 +85,10 @@ function renderNav() {
   Object.entries(VISTAS).forEach(([clave, vista]) => {
     const enlace = document.createElement('a');
     enlace.href = `#/${clave}`;
-    enlace.textContent = vista.etiqueta;
+    enlace.textContent =
+      clave === 'mejoras'
+        ? `${vista.etiqueta} (${estado.mejoras.filter((m) => !m.mejora_aplicada).length})`
+        : vista.etiqueta;
     enlace.title = tituloConTecla(vista.etiqueta.replace(/^\S+\s/, ''), teclaDeVista(clave, Object.keys(VISTAS)));
     enlace.className = clave === actual ? 'enlace-nav activo' : 'enlace-nav';
     NAV.appendChild(enlace);
@@ -342,27 +346,47 @@ suscribirSync((s) => {
 
 let reprogramado = false;
 
+/** «Tarea» (Camino / de / Categoría) — para no confundir tareas con el mismo nombre en los avisos. */
+function nombrarConCategoria(tarea) {
+  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
+  const camino = categoria ? caminoCategoria(categoria, estado.categorias) : '';
+  return `«${tarea.tarea_nombre}»${camino ? ` (${camino})` : ''}`;
+}
+
+function nombrarLista(tareas) {
+  return tareas.map(nombrarConCategoria).join(', ');
+}
+
 /** Reprograma fechas vencidas y programa las tareas sin fecha, una sola vez por sesión, apenas hay datos cargados. */
 async function reprogramarSiCorresponde() {
   if (reprogramado || !obtenerEstadoSync().datosListos) return;
   reprogramado = true;
-  const vencidas = reprogramarFechasSugeridasVencidas(estado.tareas);
-  const { movidas: reubicadas, sinHueco } = await reubicarTareasSolapadas(estado);
-  const nuevas = await programarTareasSinFecha(estado);
+  const { afectadas: vencidas, inconsistentes: inconsistentesVencidas } = reprogramarFechasSugeridasVencidas(estado.tareas);
+  const { movidas: reubicadas, sinHueco: sinHuecoReubicadas } = await reubicarTareasSolapadas(estado);
+  const { asignadas: nuevas, sinHueco: sinHuecoNuevas } = await programarTareasSinFecha(estado);
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
-  if (inmediata && !inmediata.sinHueco) vencidas.push(inmediata.tarea);
-  if (inmediata && inmediata.sinHueco) sinHueco.push(inmediata.tarea);
-  if (vencidas.length === 0 && nuevas.length === 0 && reubicadas.length === 0 && sinHueco.length === 0) return;
-  await persistirYNotificar();
-  const partes = [];
-  if (nuevas.length > 0) partes.push(`se programó la fecha sugerida de ${nuevas.length} tarea${nuevas.length === 1 ? '' : 's'} nueva${nuevas.length === 1 ? '' : 's'}`);
-  if (vencidas.length > 0) partes.push(`se reprogramó la de ${vencidas.length} tarea${vencidas.length === 1 ? '' : 's'} que había vencido`);
-  if (reubicadas.length > 0) partes.push(`se reubicó la de ${reubicadas.length} tarea${reubicadas.length === 1 ? '' : 's'} que chocaba con Calendar`);
-  let mensaje = partes.length > 0 ? `Al iniciar, ${partes.join(', ')}.` : '';
-  if (sinHueco.length > 0) {
-    const nombres = sinHueco.map((t) => `«${t.tarea_nombre}»`).join(', ');
-    mensaje += `${mensaje ? '\n\n' : ''}⚠️ No hay hueco libre antes de su fecha límite para: ${nombres}. Revisalas a mano.`;
+
+  const sinHueco = [...sinHuecoReubicadas, ...sinHuecoNuevas];
+  const inconsistentes = [...inconsistentesVencidas];
+  if (inmediata) {
+    if (inmediata.sinHueco) sinHueco.push(inmediata.tarea);
+    else vencidas.push(inmediata.tarea);
+    inconsistentes.push(...inmediata.inconsistentes);
   }
+
+  if (vencidas.length === 0 && nuevas.length === 0 && reubicadas.length === 0 && sinHueco.length === 0 && inconsistentes.length === 0) return;
+  await persistirYNotificar();
+
+  const partes = [];
+  if (nuevas.length > 0) partes.push(`se programó la fecha sugerida de ${nombrarLista(nuevas)}`);
+  if (vencidas.length > 0) partes.push(`se reprogramó la de ${nombrarLista(vencidas)} (había vencido)`);
+  if (reubicadas.length > 0) partes.push(`se reubicó la de ${nombrarLista(reubicadas)} (chocaba con Calendar)`);
+  let mensaje = partes.length > 0 ? `Al iniciar: ${partes.join('; ')}.` : '';
+  if (sinHueco.length > 0) {
+    mensaje += `${mensaje ? '\n\n' : ''}⚠️ No hay hueco libre antes de su fecha límite para: ${nombrarLista(sinHueco)}. Revisalas a mano.`;
+  }
+  const avisoInc = avisoInconsistentes(inconsistentes);
+  if (avisoInc) mensaje += `${mensaje ? '\n\n' : ''}⚠️ ${avisoInc}`;
   if (mensaje) alert(mensaje);
 }
 

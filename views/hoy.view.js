@@ -5,12 +5,14 @@ import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
   cumplirTarea,
   reprogramarTareaConCascada,
+  avisoInconsistentes,
   compararPorPrioridad,
   calcularHolguraDias,
   mejorTareaPorCategoria,
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
+import { ofrecerCrearTareaSeguimiento } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre } from '../assets/js/google-calendar.js';
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
@@ -47,7 +49,14 @@ export function renderVistaHoy(contenedor) {
   const coincideUbicacion = (t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion;
   const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada').filter(coincideUbicacion);
 
-  const bloqueadas = pendientesActivas.filter((t) => t.tarea_estado === 'bloqueada');
+  const bloqueadasTodas = pendientesActivas.filter((t) => t.tarea_estado === 'bloqueada');
+  // Una bloqueada con límite vencido/hoy o sugerida hoy también es urgente: se muestra ahí (de solo lectura,
+  // no se puede completar todavía) en vez de perderse en "Bloqueadas por otras tareas".
+  const bloqueadasHoy = bloqueadasTodas
+    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_sugerida))
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const idsBloqueadasHoy = new Set(bloqueadasHoy.map((t) => t.tarea_id));
+  const bloqueadas = bloqueadasTodas.filter((t) => !idsBloqueadasHoy.has(t.tarea_id));
   const accionables = pendientesActivas.filter((t) => t.tarea_estado === 'pendiente');
   const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
   const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
@@ -106,7 +115,7 @@ export function renderVistaHoy(contenedor) {
       <ul id="lista-urgentes" class="lista-tareas"></ul>
     </section>
     ${
-      proximosPorCategoria.length > 0
+      proximosPorCategoria.length > 0 && urgentes.length === 0 && bloqueadasHoy.length === 0
         ? `<section>
             <h3>🧭 Próximos por categoría</h3>
             <p class="ayuda">¿Tenés un rato libre y no hay nada urgente? Acá tenés la tarea que más conviene de cada categoría, para elegir vos.</p>
@@ -171,10 +180,11 @@ export function renderVistaHoy(contenedor) {
   }
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
-  if (urgentes.length === 0) {
+  if (urgentes.length === 0 && bloqueadasHoy.length === 0) {
     listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite ni sugerida para hoy.</p>';
   } else {
     urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
+    bloqueadasHoy.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { soloInfo: true })));
   }
 
   const listaPorCategoria = contenedor.querySelector('#lista-por-categoria');
@@ -358,8 +368,10 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     const botonPosponer = li.querySelector('[data-accion="posponer-solapamiento"]');
     const botonHueco = li.querySelector('[data-accion="proximo-hueco"]');
     const reprogramar = async (fechaISO) => {
-      reprogramarTareaConCascada(tarea, fechaISO, estado.tareas);
+      const inconsistentes = reprogramarTareaConCascada(tarea, fechaISO, estado.tareas);
       await persistirYNotificar();
+      const aviso = avisoInconsistentes(inconsistentes);
+      if (aviso) alert(aviso);
     };
     if (botonPosponer) {
       botonPosponer.addEventListener('click', () => {
@@ -421,6 +433,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
       ofrecerExportarACalendar(tarea);
+      ofrecerCrearTareaSeguimiento(tarea);
     });
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
       contenedorCierre.hidden = true;
@@ -448,8 +461,10 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       contenedorCierre.hidden = true;
       contenedorCierre.innerHTML = '';
       abrirPanelReprogramar(contenedorPanel, tarea, async (fechaSugeridaISO) => {
-        reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+        const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
         await persistirYNotificar();
+        const aviso = avisoInconsistentes(inconsistentes);
+        if (aviso) alert(aviso);
       });
     });
   });

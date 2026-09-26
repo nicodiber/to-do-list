@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
-import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, escaparHtml } from '../assets/js/utilidades.js';
+import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, escaparHtml, conservarFoco } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
 import { compararPorPrioridad, calcularHolguraDias, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
@@ -136,7 +136,7 @@ const COLUMNAS = [
   },
   {
     clave: 'mantenimiento',
-    etiqueta: 'Mantenimiento',
+    etiqueta: 'Repetición',
     valor: (t) => (t.tarea_mantenimiento && t.tarea_mantenimiento_intervalo ? `🔁 cada ${t.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[t.tarea_mantenimiento_intervalo.unidad]}` : ''),
     comparar: (a, b) => Number(!!b.tarea_mantenimiento) - Number(!!a.tarea_mantenimiento),
   },
@@ -386,7 +386,7 @@ export function renderVistaTabla(contenedor) {
   });
   contenedor.querySelector('#buscador-nombre-todas').addEventListener('input', (evento) => {
     textoBusqueda = evento.target.value;
-    renderVistaTabla(contenedor);
+    conservarFoco(contenedor, () => renderVistaTabla(contenedor));
   });
   contenedor.querySelector('#boton-reset-orden-todas').addEventListener('click', () => {
     columnaOrden = null;

@@ -5,10 +5,10 @@
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { crearCategoria, crearUbicacion, crearMeta, crearPersona, PLAZOS_META, ETIQUETAS_PLAZO } from './modelos.js';
-import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera, caminoCategoria, formatearFechaOFechaHora } from './utilidades.js';
+import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera, caminoCategoria, formatearFechaOFechaHora, hoyISO } from './utilidades.js';
 import { abrirDialogoFormulario, activarMayusculaInicial } from './dialogo-formulario.js';
 import { crearSelectorColor } from './selector-color.js';
-import { compararPorPrioridad, reprogramarTareaConCascada } from './tareas-logica.js';
+import { compararPorPrioridad, reprogramarTareaConCascada, avisoInconsistentes } from './tareas-logica.js';
 import { abrirEdicionTarea } from './modal-tarea.js';
 import { buscarLugares } from './geocoding.js';
 
@@ -349,7 +349,7 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
         <input type="text" name="persona_nombre" value="${escaparHtml(persona ? persona.persona_nombre : '')}" placeholder="Nombre" required />
       </div>
       <label>Último contacto <input type="date" name="persona_ultimo_contacto" value="${persona ? persona.persona_ultimo_contacto || '' : ''}" /></label>
-      <label title="Al guardar, reprograma la fecha sugerida de todas las tareas pendientes asociadas a esta fecha">📅 Próximo contacto <input type="date" name="persona_proximo_contacto" value="${proximoContactoAnterior}" /></label>
+      <label title="Al guardar, reprograma la fecha sugerida de todas las tareas pendientes asociadas a esta fecha">📅 Próximo contacto <input type="date" name="persona_proximo_contacto" value="${proximoContactoAnterior}" min="${hoyISO()}" /></label>
       ${
         persona
           ? `<div class="ancho-completo">
@@ -367,6 +367,10 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
       }
       const ultimoContacto = formulario.persona_ultimo_contacto.value;
       const proximoContacto = formulario.persona_proximo_contacto.value;
+      if (proximoContacto && proximoContacto < hoyISO()) {
+        alert('El próximo contacto no puede ser una fecha pasada.');
+        return false;
+      }
       let actual;
       if (id) {
         actual = estado.personas.find((p) => p.persona_id === id);
@@ -381,9 +385,10 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
         if (alCrear) alCrear(actual);
       }
       let reprogramadas = 0;
+      let inconsistentes = [];
       if (proximoContacto && proximoContacto !== proximoContactoAnterior) {
         tareasPendientesDe(actual.persona_id).forEach((tarea) => {
-          reprogramarTareaConCascada(tarea, proximoContacto, estado.tareas);
+          inconsistentes = inconsistentes.concat(reprogramarTareaConCascada(tarea, proximoContacto, estado.tareas));
           reprogramadas += 1;
         });
       }
@@ -391,6 +396,8 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
       if (reprogramadas > 0) {
         alert(`Se reprogramó la fecha sugerida de ${reprogramadas} tarea${reprogramadas === 1 ? '' : 's'} pendiente${reprogramadas === 1 ? '' : 's'} al ${formatearFechaOFechaHora(proximoContacto)}.`);
       }
+      const aviso = avisoInconsistentes(inconsistentes);
+      if (aviso) alert(aviso);
       return true;
     },
   });

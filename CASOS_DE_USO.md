@@ -108,7 +108,8 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   5. Sistema muestra una ventana de la página: "¿Abrir «tarea» en Google Calendar para guardarla como registro histórico?" con los botones "Abrir en Calendar" y "Cancelar". La tarea pasa a la sección "Completadas hoy" de Hoy, donde queda el botón "📅 Exportar a Calendar" (o "Exportar de nuevo", con la etiqueta "📅 Exportada") para hacerlo más tarde o repetirlo.
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
-- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); la sección "Completadas hoy" de `views/hoy.view.js`.
+  8. **(v0.76.0)** Justo después, sistema pregunta "¿Crear una tarea de seguimiento a partir de «tarea»?"; si el usuario acepta, abre el alta con los mismos datos (categoría, meta, persona, etc.) pero nombre, descripción y las 3 fechas vacías, sin enlazarla con la recién completada.
+- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); `assets/js/modal-tarea.js` (`ofrecerCrearTareaSeguimiento`, v0.76.0); la sección "Completadas hoy" de `views/hoy.view.js`.
 - **Resultado**: `tarea_estado='completada'`, `tarea_fecha_fin` seteada; se registra un cumplimiento; posible Mejora (si hay nota) y posible clon nuevo, enlazado a la cadena o al desencadenante (ver `PROCESOS_AUTOMATICOS.md`, procesos 1 y 15); posibles dependientes desbloqueadas; si se acepta abrir Calendar, `tarea_exportada_calendar` queda en `true`. **Reabrir** una completada (desplegable "Cambiar estado" → Pendiente en Tareas) deshace el cumplimiento y la marca de exportada, y borra la copia de mantenimiento si sigue sin tocar (si se modificó, se conserva y se avisa).
 - **Fricciones**: las 3 vistas comparten ahora `cumplirTarea` (la lógica ya no está duplicada; el panel de confirmación sí sigue repetido en cada vista). (La sugerencia de tarea de alto disfrute — Premack — se eliminó; el `confirm()` de exportar a Calendar no resulta invasivo según el usuario.)
 
@@ -126,11 +127,11 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   3. Usuario hace clic en "Reprogramar".
   4. Sistema muestra atajos de día y de horario (opcional) y un selector de fecha, respetando los días hábiles de la tarea.
   5. Usuario elige día (y hora, si quiere) y confirma.
-  6. Sistema mueve `tarea_fecha_sugerida`, desplaza en cascada a las tareas dependientes, guarda y redibuja.
+  6. Sistema mueve `tarea_fecha_sugerida`, desplaza en cascada a las tareas dependientes (**nunca** su `tarea_fecha_limite`, v0.76.0), guarda y redibuja; si alguna dependiente queda con la sugerida después de su propia fecha límite, avisa por nombre.
 - **Flujo usuario/sistema — automático**:
   1. Usuario abre la app.
   2. Sistema detecta tareas activas con `tarea_fecha_sugerida` vencida, las mueve a la próxima fecha disponible y guarda.
-  3. Sistema avisa con un cuadro del navegador cuántas tareas reprogramó.
+  3. Sistema avisa con un cuadro del navegador, nombrando las tareas reprogramadas (y, aparte, las que quedaron inconsistentes por la cascada, v0.76.0).
 - **Flujo usuario/sistema — fecha límite vencida**:
   1. Usuario ve una tarea vencida en "Urgentes" y hace clic en "📅 Revalorizar fecha límite".
   2. Sistema muestra el mismo panel de atajos de día/hora.

@@ -111,7 +111,7 @@ export function renderVistaHabitos(contenedor) {
 
   contenedor.innerHTML = `
     <blockquote class="cita-habitos">Lo que no se mide no se mejora.</blockquote>
-    <p class="ayuda">Cada fila es una tarea de mantenimiento (un hábito) y cada columna un día; hoy es la última.</p>
+    <p class="ayuda">Cada fila es una tarea con repetición (un hábito) y cada columna un día; hoy es la última.</p>
     <div class="selector-rango" role="group" aria-label="Período">
       ${OPCIONES.map((n) => `<button type="button" data-dias="${n}" title="Ver los últimos ${n} días" class="${n === dias ? 'activo' : ''}">${n} días</button>`).join('')}
     </div>
@@ -120,7 +120,7 @@ export function renderVistaHabitos(contenedor) {
       <h3>🔥 Hábitos</h3>
       ${
         habitos.length === 0
-          ? '<p class="mensaje-vacio">Todavía no hay hábitos: aparecen cuando cumplís una tarea de mantenimiento (una tarea que se repite).</p>'
+          ? '<p class="mensaje-vacio">Todavía no hay hábitos: aparecen cuando cumplís una tarea con repetición (una tarea que se repite).</p>'
           : htmlMatrizHabitos(habitos)
       }
       <p class="ayuda leyenda-habitos"><strong>✓</strong> cumplido — <strong>✗</strong> incumplido (día hábil sin hacer, o vencimiento que se cumplió tarde o sigue vencido) — <strong>▫</strong> pendiente hoy — <strong>·</strong> no aplica (día no hábil o sin vencimiento). 🔥 racha: días hábiles seguidos cumplidos (en hábitos que no son diarios, veces seguidas a tiempo). % = cumplimientos a tiempo sobre los que tocaban en el período.</p>
