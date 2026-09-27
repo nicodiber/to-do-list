@@ -300,8 +300,7 @@ export function renderVistaTabla(contenedor) {
   }
 
   contenedor.innerHTML = `
-    <h2>🧾 Tabla</h2>
-    <p class="ayuda">Todas tus tareas, en el orden real de prioridad de la app. Filtrá, buscá u ordená por columna para auditar o encontrar algo puntual. Hacé clic en una fila para editarla.</p>
+    <h2 title="Todas tus tareas, en el orden real de prioridad de la app. Filtrá, buscá u ordená por columna para auditar o encontrar algo puntual. Hacé clic en una fila para editarla.">🧾 Tabla</h2>
     <div class="filtros">
       <label title="Mostrar solo las tareas de esta categoría (y sus subcategorías)">🗂️ Categoría
         <select id="filtro-categoria-todas">

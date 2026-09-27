@@ -1,91 +1,107 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
-import { esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO, diasEntreFechas, textoFechaHumana } from '../assets/js/utilidades.js';
+import { esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO, fechaISOMasDias, diasEntreFechas, textoFechaHumana } from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
   cumplirTarea,
+  reabrirTarea,
+  eliminarTarea,
   reprogramarTareaConCascada,
   avisoInconsistentes,
   compararPorPrioridad,
   calcularHolguraDias,
   mejorTareaPorCategoria,
+  ordenarConCadenas,
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { ofrecerCrearTareaSeguimiento } from '../assets/js/modal-tarea.js';
+import { ofrecerCrearTareaSeguimiento, abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre } from '../assets/js/google-calendar.js';
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
-// Preferencia de UI (no un dato de la app): con el enfoque encendido, Hoy oculta lo ya completado.
-const CLAVE_ENFOQUE = 'super-todo-list:hoy-enfoque';
-
-function leerEnfoque() {
-  try {
-    return localStorage.getItem(CLAVE_ENFOQUE) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function guardarEnfoque(activo) {
-  try {
-    localStorage.setItem(CLAVE_ENFOQUE, activo ? '1' : '0');
-  } catch {
-    // Solo es una preferencia: sin almacenamiento local vuelve a estar apagado.
-  }
-}
-
 /** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
   return !!tarea.tarea_fecha_fin && diaLocal(tarea.tarea_fecha_fin) === hoyISO();
 }
 
-export function renderVistaHoy(contenedor) {
+/** Texto "⏳ Quedan Xh Ym" para una fecha límite de hoy, con hora, todavía no vencida. */
+function textoCuentaRegresiva(fechaLimiteISO) {
+  const restanteMs = new Date(fechaLimiteISO).getTime() - Date.now();
+  if (restanteMs <= 0) return '⏳ Venciendo…';
+  const minutos = Math.floor(restanteMs / 60000);
+  const horas = Math.floor(minutos / 60);
+  const minutosRestantes = minutos % 60;
+  if (minutos < 1) return '⏳ Queda menos de 1 min';
+  return `⏳ Quedan ${horas > 0 ? `${horas}h ` : ''}${minutosRestantes}min`;
+}
+
+// Actualiza los temporizadores de cuenta regresiva de las tarjetas visibles cada 60 s, sin
+// redibujar la vista entera (mismo patrón que la línea de "ahora" de views/semana.view.js).
+setInterval(() => {
+  document.querySelectorAll('.temporizador-urgente').forEach((el) => {
+    el.textContent = textoCuentaRegresiva(el.dataset.limite);
+  });
+}, 60 * 1000);
+
+export function renderVistaResumen(contenedor) {
   const filtroUbicacion = obtenerUbicacionActual();
-  const enfoque = leerEnfoque();
   const coincideUbicacion = (t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion;
   const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada').filter(coincideUbicacion);
+  const manana = fechaISOMasDias(1, hoyISO());
 
   const bloqueadasTodas = pendientesActivas.filter((t) => t.tarea_estado === 'bloqueada');
-  // Una bloqueada con límite vencido/hoy o sugerida hoy también es urgente: se muestra ahí (de solo lectura,
-  // no se puede completar todavía) en vez de perderse en "Bloqueadas por otras tareas".
+  // Una bloqueada con límite vencido/hoy también es urgente: se muestra ahí (de solo lectura, no se puede
+  // completar todavía) en vez de perderse en "Bloqueadas por otras tareas". Mismo criterio para "Hoy"/"Mañana".
   const bloqueadasHoy = bloqueadasTodas
-    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_sugerida))
+    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite))
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
   const idsBloqueadasHoy = new Set(bloqueadasHoy.map((t) => t.tarea_id));
-  const bloqueadas = bloqueadasTodas.filter((t) => !idsBloqueadasHoy.has(t.tarea_id));
+  const bloqueadasHoyNueva = bloqueadasTodas
+    .filter((t) => !idsBloqueadasHoy.has(t.tarea_id) && esHoy(t.tarea_fecha_sugerida))
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const idsBloqueadasHastaHoy = new Set([...idsBloqueadasHoy, ...bloqueadasHoyNueva.map((t) => t.tarea_id)]);
+  const bloqueadasManana = bloqueadasTodas
+    .filter((t) => !idsBloqueadasHastaHoy.has(t.tarea_id) && (diaLocal(t.tarea_fecha_limite) === manana || diaLocal(t.tarea_fecha_sugerida) === manana))
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const idsBloqueadasMostradas = new Set([...idsBloqueadasHastaHoy, ...bloqueadasManana.map((t) => t.tarea_id)]);
+  const bloqueadas = bloqueadasTodas.filter((t) => !idsBloqueadasMostradas.has(t.tarea_id));
   const accionables = pendientesActivas.filter((t) => t.tarea_estado === 'pendiente');
   const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
   const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
 
-  const vencidas = disponibles
-    .filter((t) => esVencida(t.tarea_fecha_limite))
-    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const vencidas = ordenarConCadenas(disponibles.filter((t) => esVencida(t.tarea_fecha_limite)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias)));
   const idsVencidas = new Set(vencidas.map((t) => t.tarea_id));
-  const urgentes = disponibles
-    .filter((t) => !idsVencidas.has(t.tarea_id) && (esHoy(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_sugerida)))
-    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const urgentes = ordenarConCadenas(
+    disponibles.filter((t) => !idsVencidas.has(t.tarea_id) && esHoy(t.tarea_fecha_limite)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
+  );
   const idsUrgentes = new Set([...idsVencidas, ...urgentes.map((t) => t.tarea_id)]);
-  const resto = disponibles
-    .filter((t) => !idsUrgentes.has(t.tarea_id))
-    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
+  const hoyNueva = ordenarConCadenas(
+    disponibles.filter((t) => !idsUrgentes.has(t.tarea_id) && esHoy(t.tarea_fecha_sugerida)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
+  );
+  const idsHoyNueva = new Set(hoyNueva.map((t) => t.tarea_id));
+  const idsHasta = new Set([...idsUrgentes, ...idsHoyNueva]);
+  const tareasManana = ordenarConCadenas(
+    disponibles
+      .filter((t) => !idsHasta.has(t.tarea_id) && (diaLocal(t.tarea_fecha_limite) === manana || diaLocal(t.tarea_fecha_sugerida) === manana))
+      .sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
+  );
+  const idsManana = new Set(tareasManana.map((t) => t.tarea_id));
+  const idsHastaManana = new Set([...idsHasta, ...idsManana]);
+  const resto = disponibles.filter((t) => !idsHastaManana.has(t.tarea_id)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
   // "Próximos por categoría" va primero y "Resto" muestra lo que queda sin repetirlos.
   const proximosPorCategoria = mejorTareaPorCategoria(resto, estado.categorias);
   const idsProximos = new Set(proximosPorCategoria.map(({ tarea }) => tarea.tarea_id));
-  const restoSinProximos = resto.filter((t) => !idsProximos.has(t.tarea_id));
-  const completadasHoy = enfoque
-    ? []
-    : estado.tareas
-        .filter((t) => t.tarea_estado === 'completada' && seCompletoHoy(t))
-        .filter(coincideUbicacion)
-        .sort((a, b) => b.tarea_fecha_fin.localeCompare(a.tarea_fecha_fin));
+  const restoSinProximos = ordenarConCadenas(resto.filter((t) => !idsProximos.has(t.tarea_id)));
+  const completadasHoy = estado.tareas
+    .filter((t) => t.tarea_estado === 'completada' && seCompletoHoy(t))
+    .filter(coincideUbicacion)
+    .sort((a, b) => b.tarea_fecha_fin.localeCompare(a.tarea_fecha_fin));
 
   contenedor.innerHTML = `
-    <h2>📌 Hoy</h2>
-    <p class="ayuda">Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.</p>
+    <h2 title="Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.">📊 Resumen</h2>
     <div class="controles-hoy">
       ${
         estado.ubicaciones.length > 0
@@ -99,26 +115,37 @@ export function renderVistaHoy(contenedor) {
             </label>`
           : ''
       }
-      <button type="button" id="boton-enfoque-hoy" class="boton-enfoque" aria-pressed="${enfoque}" title="Con el enfoque encendido se ocultan las tareas que ya completaste hoy">🎯 Enfoque</button>
       <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">🔍 Revisar mi día</button>
+      <div class="contenedor-selector-dia-revision" hidden></div>
     </div>
-    ${
-      vencidas.length > 0
-        ? `<section>
-            <h3>🔴 Vencidas</h3>
-            <ul id="lista-vencidas" class="lista-tareas"></ul>
-          </section>`
-        : ''
-    }
+    <details class="completadas-plegadas">
+      <summary title="Tareas accionables cuya fecha límite ya venció">🔴 Vencidas (${vencidas.length})</summary>
+      <ul id="lista-vencidas" class="lista-tareas"></ul>
+    </details>
     <section>
-      <h3>🚨 Urgentes</h3>
+      <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy">🚨 Urgentes</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
     </section>
     ${
-      proximosPorCategoria.length > 0 && urgentes.length === 0 && bloqueadasHoy.length === 0
+      hoyNueva.length > 0 || bloqueadasHoyNueva.length > 0
         ? `<section>
-            <h3>🧭 Próximos por categoría</h3>
-            <p class="ayuda">¿Tenés un rato libre y no hay nada urgente? Acá tenés la tarea que más conviene de cada categoría, para elegir vos.</p>
+            <h3 title="Tareas con fecha sugerida hoy, cuya fecha límite no es hoy">📌 Hoy</h3>
+            <ul id="lista-hoy-nueva" class="lista-tareas"></ul>
+          </section>`
+        : ''
+    }
+    ${
+      tareasManana.length > 0 || bloqueadasManana.length > 0
+        ? `<section>
+            <h3 title="Tareas con fecha límite o sugerida mañana">🌅 Mañana</h3>
+            <ul id="lista-manana" class="lista-tareas"></ul>
+          </section>`
+        : ''
+    }
+    ${
+      proximosPorCategoria.length > 0 && vencidas.length === 0 && urgentes.length === 0 && bloqueadasHoy.length === 0 && hoyNueva.length === 0 && bloqueadasHoyNueva.length === 0
+        ? `<section>
+            <h3 title="¿Tenés un rato libre y no hay nada urgente? Acá tenés la tarea que más conviene de cada categoría, para elegir vos.">🧭 Próximos por categoría</h3>
             <ul id="lista-por-categoria" class="lista-tareas"></ul>
           </section>`
         : ''
@@ -126,7 +153,7 @@ export function renderVistaHoy(contenedor) {
     ${
       restoSinProximos.length > 0 || proximosPorCategoria.length === 0
         ? `<details class="completadas-plegadas">
-            <summary>📋 Resto de tus pendientes (${restoSinProximos.length})</summary>
+            <summary title="El resto de tus tareas accionables, sin fecha urgente">📋 Resto de tus pendientes (${restoSinProximos.length})</summary>
             <ul id="lista-resto" class="lista-tareas"></ul>
           </details>`
         : ''
@@ -134,7 +161,7 @@ export function renderVistaHoy(contenedor) {
     ${
       aunNoDisponibles.length > 0
         ? `<details class="completadas-plegadas">
-            <summary>⏳ Todavía no pueden empezar (${aunNoDisponibles.length})</summary>
+            <summary title="Tareas cuya fecha de inicio habilitada todavía no llegó">⏳ Todavía no pueden empezar (${aunNoDisponibles.length})</summary>
             <ul id="lista-no-disponibles" class="lista-tareas"></ul>
           </details>`
         : ''
@@ -142,49 +169,70 @@ export function renderVistaHoy(contenedor) {
     ${
       bloqueadas.length > 0
         ? `<details class="completadas-plegadas">
-            <summary>🔒 Bloqueadas por otras tareas (${bloqueadas.length})</summary>
+            <summary title="Tareas bloqueadas por otra que todavía no se completó">🔒 Bloqueadas por otras tareas (${bloqueadas.length})</summary>
             <ul id="lista-bloqueadas" class="lista-tareas"></ul>
           </details>`
         : ''
     }
     ${
       completadasHoy.length > 0
-        ? `<section>
-            <h3>✅ Completadas hoy (${completadasHoy.length})</h3>
+        ? `<details open class="completadas-plegadas">
+            <summary title="Tareas que completaste hoy">✅ Completadas hoy (${completadasHoy.length})</summary>
             <ul id="lista-completadas-hoy" class="lista-tareas"></ul>
-          </section>`
+          </details>`
         : ''
     }
   `;
 
+  const contenedorSelectorDia = contenedor.querySelector('.contenedor-selector-dia-revision');
   contenedor.querySelector('#boton-revisar-dia').addEventListener('click', () => {
-    iniciarRevisionDia([...vencidas, ...urgentes, ...resto]);
-  });
-
-  contenedor.querySelector('#boton-enfoque-hoy').addEventListener('click', () => {
-    guardarEnfoque(!enfoque);
-    renderVistaHoy(contenedor);
+    const yaAbierto = !contenedorSelectorDia.hidden;
+    contenedorSelectorDia.innerHTML = '';
+    contenedorSelectorDia.hidden = true;
+    if (yaAbierto) return;
+    contenedorSelectorDia.appendChild(
+      crearSelectorDiaRevision((diaCalendario) => {
+        contenedorSelectorDia.hidden = true;
+        contenedorSelectorDia.innerHTML = '';
+        iniciarRevisionDia([...vencidas, ...urgentes, ...hoyNueva, ...resto], { diaCalendario });
+      })
+    );
+    contenedorSelectorDia.hidden = false;
   });
 
   const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-hoy');
   if (selectFiltroUbicacion) {
     selectFiltroUbicacion.addEventListener('change', (evento) => {
       establecerUbicacionActual(evento.target.value);
-      renderVistaHoy(contenedor);
+      renderVistaResumen(contenedor);
     });
   }
 
   const listaVencidas = contenedor.querySelector('#lista-vencidas');
-  if (listaVencidas) {
+  if (vencidas.length === 0) {
+    listaVencidas.innerHTML = '<p class="mensaje-vacio">No tenés tareas vencidas 🎉</p>';
+  } else {
     vencidas.forEach((tarea) => listaVencidas.appendChild(renderItem(tarea)));
   }
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0 && bloqueadasHoy.length === 0) {
-    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite ni sugerida para hoy.</p>';
+    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy.</p>';
   } else {
     urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
     bloqueadasHoy.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { soloInfo: true })));
+  }
+
+  const listaHoyNueva = contenedor.querySelector('#lista-hoy-nueva');
+  if (listaHoyNueva) {
+    hoyNueva.forEach((tarea) => listaHoyNueva.appendChild(renderItem(tarea)));
+    bloqueadasHoyNueva.forEach((tarea) => listaHoyNueva.appendChild(renderItem(tarea, { soloInfo: true })));
+  }
+
+  const listaManana = contenedor.querySelector('#lista-manana');
+  if (listaManana) {
+    tareasManana.forEach((tarea) => listaManana.appendChild(renderItem(tarea)));
+    bloqueadasManana.forEach((tarea) => listaManana.appendChild(renderItem(tarea, { soloInfo: true })));
   }
 
   const listaPorCategoria = contenedor.querySelector('#lista-por-categoria');
@@ -217,6 +265,36 @@ export function renderVistaHoy(contenedor) {
   if (listaCompletadasHoy) {
     completadasHoy.forEach((tarea) => listaCompletadasHoy.appendChild(renderCompletada(tarea)));
   }
+}
+
+/** Panel chico con atajos de día (para elegir qué día de Calendar leer al final de "Revisar mi día"). */
+function crearSelectorDiaRevision(alElegir) {
+  const panel = document.createElement('div');
+  panel.className = 'panel-reprogramar';
+  const hoy = hoyISO();
+  const atajos = [
+    { etiqueta: 'Hoy', dia: hoy },
+    { etiqueta: 'Ayer', dia: fechaISOMasDias(-1, hoy) },
+    { etiqueta: 'Anteayer', dia: fechaISOMasDias(-2, hoy) },
+  ];
+  panel.innerHTML = `
+    <p class="panel-reprogramar-etiqueta">¿Qué día de tu Calendar querés revisar al final del repaso?</p>
+    <div class="panel-reprogramar-fila">
+      ${atajos.map((a) => `<button type="button" data-dia="${a.dia}" title="Revisar el Calendar de: ${a.etiqueta}">${a.etiqueta}</button>`).join('')}
+      <input type="date" data-campo="fecha-revision" value="${hoy}" max="${hoy}" />
+      <button type="button" data-accion="empezar-repaso" class="boton-primario">🔍 Empezar repaso</button>
+    </div>
+  `;
+  const campoFecha = panel.querySelector('[data-campo="fecha-revision"]');
+  panel.querySelectorAll('[data-dia]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      campoFecha.value = boton.dataset.dia;
+    });
+  });
+  panel.querySelector('[data-accion="empezar-repaso"]').addEventListener('click', () => {
+    alElegir(campoFecha.value || hoy);
+  });
+  return panel;
 }
 
 /**
@@ -269,10 +347,18 @@ function renderCompletada(tarea) {
       </span>
     </div>
     <div class="item-tarea-acciones">
+      <button title="Volver a marcarla como pendiente (por si se completó por error)" type="button" data-accion="reabrir">↩️ Reabrir</button>
       <button title="Abrir Google Calendar con la tarea cargada para guardarla como registro" type="button" data-accion="exportar-calendar">${tarea.tarea_exportada_calendar ? '📅 Exportar de nuevo' : '📅 Exportar a Calendar'}</button>
     </div>
   `;
   li.querySelector('[data-accion="exportar-calendar"]').addEventListener('click', () => ofrecerExportarACalendar(tarea));
+  li.querySelector('[data-accion="reabrir"]').addEventListener('click', async () => {
+    const { copiaConservada } = reabrirTarea(tarea, estado);
+    await persistirYNotificar();
+    if (copiaConservada) {
+      alert(`Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
+    }
+  });
   return li;
 }
 
@@ -283,7 +369,24 @@ function htmlMejorasPendientes(tarea) {
     .filter((m) => m.mejora_tarea_nombre === tarea.tarea_nombre && !m.mejora_aplicada)
     .sort((a, b) => b.mejora_fecha.localeCompare(a.mejora_fecha))
     .slice(0, 2);
-  return pendientes.map((m) => `<p class="mejora-pendiente-hoy">💡 Mejora pendiente: «${escaparHtml(m.mejora_texto)}»</p>`).join('');
+  return pendientes
+    .map(
+      (m) =>
+        `<p class="mejora-pendiente-hoy">💡 Mejora pendiente: «${escaparHtml(m.mejora_texto)}» <button title="Marcar esta mejora como aplicada" type="button" data-accion="marcar-mejora-aplicada" data-mejora="${m.mejora_id}">✅ Marcar aplicada</button></p>`
+    )
+    .join('');
+}
+
+/** Conecta los botones "Marcar aplicada" que arma `htmlMejorasPendientes` dentro de `li`. */
+function conectarMejorasPendientes(li) {
+  li.querySelectorAll('[data-accion="marcar-mejora-aplicada"]').forEach((boton) => {
+    boton.addEventListener('click', async () => {
+      const mejora = (estado.mejoras || []).find((m) => m.mejora_id === boton.dataset.mejora);
+      if (!mejora) return;
+      mejora.mejora_aplicada = true;
+      await persistirYNotificar();
+    });
+  });
 }
 
 function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
@@ -300,6 +403,11 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
         ${categoria ? `<span class="etiqueta" style="background:${categoria.categoria_color}">${escaparHtml(caminoCompleto ? caminoCategoria(categoria, estado.categorias) : categoria.categoria_nombre)}</span>` : ''}
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${textoFechaHumana(tarea.tarea_fecha_limite)}</span>` : ''}
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">${etiquetaHolgura(tarea)}</span>` : ''}
+        ${
+          tieneHora(tarea.tarea_fecha_limite) && esHoy(tarea.tarea_fecha_limite) && !esVencida(tarea.tarea_fecha_limite)
+            ? `<span class="etiqueta-fecha temporizador-urgente" data-limite="${tarea.tarea_fecha_limite}">${textoCuentaRegresiva(tarea.tarea_fecha_limite)}</span>`
+            : ''
+        }
         ${tarea.tarea_fecha_sugerida ? `<span class="etiqueta-fecha etiqueta-agendada">Sugerida: ${textoFechaHumana(tarea.tarea_fecha_sugerida)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.tarea_estado]}</span>
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}
@@ -325,14 +433,20 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       ${
         soloInfo
           ? ''
-          : `<button title="Marcar la tarea como cumplida" type="button" data-accion="cumplida">✅ Cumplida</button>
-             <button title="No se hizo: elegir una nueva fecha para la tarea" type="button" data-accion="no-cumplida">❌ No cumplida</button>
+          : `<button title="No se hizo: elegir una nueva fecha para la tarea" type="button" data-accion="no-cumplida">❌ No cumplida</button>
+             <button title="Marcar la tarea como cumplida" type="button" data-accion="cumplida">✅ Cumplida</button>
              ${esVencida(tarea.tarea_fecha_limite) ? `<button title="Cambiar la fecha límite de esta tarea vencida" type="button" data-accion="revalorizar-limite">📅 Revalorizar fecha límite</button>` : ''}`
       }
     </div>
   `;
 
   conectarChecklistTarjeta(li, tarea);
+  conectarMejorasPendientes(li);
+
+  li.addEventListener('dblclick', (evento) => {
+    if (evento.target.closest('button, a, input, select')) return;
+    abrirDetalleTarea(tarea);
+  });
 
   // Clima: aviso de lluvia si el pronóstico no acompaña, o "☀️" si acompaña (solo en tareas que piden buen clima).
   const etiquetaClima = li.querySelector('.etiqueta-clima');
@@ -447,6 +561,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     contenedorCierre.innerHTML = `
       <div class="panel-cierre">
         <button title="Seguir y elegir la nueva fecha" type="button" data-accion="continuar-reprogramar" class="boton-primario">📅 Reprogramar</button>
+        <button title="Eliminar esta tarea (pide confirmación)" type="button" data-accion="eliminar-tarea">🗑️ Eliminar</button>
         <button title="Cancelar y volver a la tarea" type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
       </div>
     `;
@@ -455,6 +570,12 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
       contenedorCierre.hidden = true;
       contenedorCierre.innerHTML = '';
+    });
+
+    contenedorCierre.querySelector('[data-accion="eliminar-tarea"]').addEventListener('click', async () => {
+      if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;
+      eliminarTarea(tarea, estado);
+      await persistirYNotificar();
     });
 
     contenedorCierre.querySelector('[data-accion="continuar-reprogramar"]').addEventListener('click', () => {
@@ -482,4 +603,33 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
   }
 
   return li;
+}
+
+/** Modal de solo lectura al hacer doble clic en una tarjeta: mismo contenido que la tarjeta (sin acciones), más "Editar". */
+function abrirDetalleTarea(tarea) {
+  const dialogo = document.createElement('dialog');
+  dialogo.className = 'dialogo-tarea dialogo-detalle-tarea';
+  const contenidoTarjeta = renderItem(tarea, { soloInfo: true, caminoCompleto: true }).querySelector('.item-tarea-info');
+  dialogo.innerHTML = `
+    <h3>👁️ Detalle de la tarea</h3>
+    <div class="contenedor-detalle-tarea"></div>
+    <div class="acciones-modal">
+      <button title="Cerrar sin editar (Esc)" type="button" data-accion="cerrar">✖️ Cerrar</button>
+      <button title="Abrir esta tarea para editarla" type="button" data-accion="editar" class="boton-primario">✏️ Editar</button>
+    </div>
+  `;
+  dialogo.querySelector('.contenedor-detalle-tarea').appendChild(contenidoTarjeta);
+  document.body.appendChild(dialogo);
+
+  const cerrar = () => {
+    if (dialogo.open) dialogo.close();
+    dialogo.remove();
+  };
+  dialogo.addEventListener('close', cerrar);
+  dialogo.querySelector('[data-accion="cerrar"]').addEventListener('click', cerrar);
+  dialogo.querySelector('[data-accion="editar"]').addEventListener('click', () => {
+    cerrar();
+    abrirEdicionTarea(tarea.tarea_id);
+  });
+  dialogo.showModal();
 }

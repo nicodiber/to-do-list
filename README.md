@@ -8,7 +8,7 @@ Documentación de cómo funciona: [CASOS_DE_USO.md](CASOS_DE_USO.md) (flujos de 
 
 ## Estado actual
 
-**v0.76.0.** Gestión de tareas con categorías jerárquicas, dependencias (encadenadas también reordenables a mano), tareas con repetición cíclicas, algoritmo de prioridad (holgura + categoría + urgencia, con desempate manual "Versus" y reordenar a mano con ▲▼), selección múltiple y edición masiva (en Tareas y en Tabla), deshacer/rehacer (Ctrl+Z), programación automática de día y hora (respetando el tope de minutos por día y Google Calendar, reubicando sola una tarea si un evento nuevo la tapa y agendando para hoy una tarea recién marcada urgente, sin tocar nunca la fecha límite de nadie), vistas Hoy / Agenda / Semana / Gantt / Tabla / Estadísticas, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Con datos reales cargados desde la v0.63.0; el desarrollo sigue por ajustes y rondas más chicas sobre la marcha. Ver [CHANGELOG.md](CHANGELOG.md).
+**v0.79.0.** Gestión de tareas con categorías jerárquicas, dependencias (encadenadas también reordenables a mano), tareas con repetición cíclicas, algoritmo de prioridad (holgura + categoría + urgencia, con desempate manual "Versus" y reordenar a mano con ▲▼), selección múltiple y edición masiva (en Tareas y en Tabla), deshacer/rehacer (Ctrl+Z), programación automática de día y hora (respetando el tope de minutos por día y Google Calendar, reubicando sola una tarea si un evento nuevo la tapa y agendando para hoy una tarea recién marcada urgente, sin tocar nunca la fecha límite de nadie), vistas Resumen / Agenda / Semana (con pronóstico del tiempo, amanecer/atardecer y degradé de temperatura o lluvia) / Gantt / Tabla / Estadísticas, almacenamiento en Google Drive (único destino, con sincronización entre dispositivos) e integración con Google Calendar. Con datos reales cargados desde la v0.63.0; el desarrollo sigue por ajustes y rondas más chicas sobre la marcha. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Cómo correrlo
 
@@ -35,7 +35,7 @@ Usá un navegador moderno (Chrome, Edge, Safari o Firefox). La app usa IndexedDB
 index.html          Punto de entrada
 assets/css/         Estilos
 assets/js/          Motor de la app: estado, persistencia, modelos, utilidades, router
-views/               Una vista por pantalla (Hoy, Tareas, Categorías)
+views/               Una vista por pantalla (Resumen, Tareas, Categorías)
 datos/               Esquema JSON y datos de ejemplo (versionados); los datos reales no se versionan
 ```
 

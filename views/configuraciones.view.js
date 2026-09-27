@@ -1,7 +1,8 @@
-import { exportarJSON, importarJSON, borrarTodosLosDatos } from '../assets/js/almacenamiento.js';
+import { estado, exportarJSON, importarJSON, borrarTodosLosDatos } from '../assets/js/almacenamiento.js';
 import { obtenerFranjaHoraria, establecerFranjaHoraria, HORAS_FRANJA } from '../assets/js/preferencias-horario.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
-import { htmlInterruptor } from '../assets/js/formulario-tarea.js';
+import { htmlInterruptor, htmlOpcionesUbicacion, conectarCrearNueva } from '../assets/js/formulario-tarea.js';
+import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } from '../assets/js/google-calendar.js';
 import { escaparHtml } from '../assets/js/utilidades.js';
 import { obtenerTema, establecerTema } from '../assets/js/app.js';
@@ -36,6 +37,17 @@ export function renderVistaConfiguraciones(contenedor) {
         </label>
       </div>
       <p class="ayuda" id="mensaje-franja" hidden></p>
+    </section>
+
+    <section class="seccion-config">
+      <h3>🌦️ Clima</h3>
+      <p class="ayuda">La ubicación que se usa para el pronóstico de la vista Semana (ícono del día, amanecer/atardecer y el degradé de temperatura/lluvia). Si no tiene latitud/longitud cargadas, esas funciones no muestran nada. Se guarda en tu Drive.</p>
+      <div class="acciones-config">
+        <label title="Ubicación de referencia para el pronóstico del tiempo">📍 Ubicación para el clima
+          <select id="ubicacion-clima">${htmlOpcionesUbicacion(preferencias.pref_ubicacion_clima || '')}</select>
+        </label>
+      </div>
+      <p class="ayuda" id="mensaje-clima" hidden></p>
     </section>
 
     <section class="seccion-config" id="seccion-tiempo">
@@ -94,6 +106,13 @@ export function renderVistaConfiguraciones(contenedor) {
   };
   campoInicio.addEventListener('change', guardarFranja);
   campoFin.addEventListener('change', guardarFranja);
+
+  const mensajeClima = contenedor.querySelector('#mensaje-clima');
+  conectarCrearNueva(contenedor.querySelector('#ubicacion-clima'), htmlOpcionesUbicacion, abrirDialogoUbicacion, (n) => n.ubicacion_id, async (id) => {
+    await guardarPreferencias({ pref_ubicacion_clima: id || null }, { sinNotificar: true });
+    mensajeClima.textContent = '✓ Guardado en tu Drive.';
+    mensajeClima.hidden = false;
+  });
 
   contenedor.querySelector('[name="tema_oscuro"]').addEventListener('change', (evento) => {
     establecerTema(evento.target.checked ? 'oscuro' : 'claro');

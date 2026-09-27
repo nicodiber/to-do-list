@@ -20,3 +20,42 @@ export function guardarDiasSemana(dias) {
     // Solo es una preferencia: sin almacenamiento local se vuelve a la opción por defecto.
   }
 }
+
+// Interruptor "🌅 Sol" (amanecer/atardecer) y filtro de degradé (ninguno/temperatura/lluvia) — v0.79.0, mismo
+// patrón de preferencia de UI en `localStorage` que la cantidad de días.
+const CLAVE_MOSTRAR_SOL = 'super-todo-list:semana-mostrar-sol';
+const CLAVE_FILTRO_CLIMA = 'super-todo-list:semana-filtro-clima';
+export const FILTROS_CLIMA = ['ninguno', 'temperatura', 'lluvia'];
+
+export function leerMostrarSol() {
+  try {
+    return localStorage.getItem(CLAVE_MOSTRAR_SOL) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function guardarMostrarSol(activo) {
+  try {
+    localStorage.setItem(CLAVE_MOSTRAR_SOL, activo ? '1' : '0');
+  } catch {
+    // Solo es una preferencia: sin almacenamiento local vuelve a estar apagado.
+  }
+}
+
+export function leerFiltroClima() {
+  try {
+    const guardado = localStorage.getItem(CLAVE_FILTRO_CLIMA);
+    return FILTROS_CLIMA.includes(guardado) ? guardado : 'ninguno';
+  } catch {
+    return 'ninguno';
+  }
+}
+
+export function guardarFiltroClima(filtro) {
+  try {
+    localStorage.setItem(CLAVE_FILTRO_CLIMA, filtro);
+  } catch {
+    // Solo es una preferencia: sin almacenamiento local vuelve a "ninguno".
+  }
+}

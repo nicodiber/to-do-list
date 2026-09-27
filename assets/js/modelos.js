@@ -176,9 +176,10 @@ export const PREFERENCIAS_POR_DEFECTO = {
   pref_calendarios: null,
   pref_ignorar_todo_el_dia: true,
   pref_ignorar_rechazados: true,
-  pref_ignorar_disponible: false,
+  pref_ignorar_disponible: true,
   pref_horizonte_dias: 90,
   pref_capacidad_por_fecha: {},
+  pref_ubicacion_clima: null,
 };
 
 /**

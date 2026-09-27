@@ -25,13 +25,52 @@ async function obtenerPronosticoUbicacion(latitud, longitud) {
   if (cachePronosticos.has(clave)) return cachePronosticos.get(clave);
 
   const promesa = fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitud}&longitude=${longitud}&hourly=precipitation_probability&timezone=auto&forecast_days=${DIAS_MAX_PRONOSTICO}`
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitud}&longitude=${longitud}&hourly=precipitation_probability,temperature_2m&daily=weathercode,sunrise,sunset&timezone=auto&forecast_days=${DIAS_MAX_PRONOSTICO}`
   )
     .then((respuesta) => (respuesta.ok ? respuesta.json() : null))
     .catch(() => null);
 
   cachePronosticos.set(clave, promesa);
   return promesa;
+}
+
+/**
+ * Pronóstico diario y horario de una ubicación, en una forma lista para consumir (sin conocer el formato
+ * crudo de Open-Meteo) — la usa `views/semana.view.js` para el ícono de clima, amanecer/atardecer y el
+ * degradé de temperatura/lluvia. `null` sin datos (sin conexión o falla la consulta).
+ */
+export async function obtenerPronosticoDiario(latitud, longitud) {
+  const datos = await obtenerPronosticoUbicacion(latitud, longitud);
+  if (!datos || !datos.daily || !datos.hourly) return null;
+  return {
+    dias: datos.daily.time.map((fecha, i) => ({
+      fecha,
+      weathercode: datos.daily.weathercode[i],
+      sunrise: datos.daily.sunrise[i],
+      sunset: datos.daily.sunset[i],
+    })),
+    horas: datos.hourly.time.map((fechaHora, i) => ({
+      fechaHora,
+      temperatura: datos.hourly.temperature_2m[i],
+      probabilidadLluvia: datos.hourly.precipitation_probability[i],
+    })),
+  };
+}
+
+// Códigos de tiempo WMO que devuelve Open-Meteo (`weathercode`), agrupados a un emoji representativo.
+const ICONOS_POR_CODIGO = [
+  { codigos: [0], icono: '☀️' },
+  { codigos: [1, 2], icono: '🌤️' },
+  { codigos: [3], icono: '☁️' },
+  { codigos: [45, 48], icono: '🌫️' },
+  { codigos: [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82], icono: '🌧️' },
+  { codigos: [71, 73, 75, 77, 85, 86], icono: '❄️' },
+  { codigos: [95, 96, 99], icono: '⛈️' },
+];
+
+/** Emoji representativo de un código de tiempo WMO (Open-Meteo `weathercode`); ☁️ si no está en la tabla. */
+export function iconoClima(weathercode) {
+  return ICONOS_POR_CODIGO.find((grupo) => grupo.codigos.includes(weathercode))?.icono || '☁️';
 }
 
 /**

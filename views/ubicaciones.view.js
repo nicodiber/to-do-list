@@ -2,11 +2,11 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml } from '../assets/js/utilidades.js';
 import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
+import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
 
 export function renderVistaUbicaciones(contenedor) {
   contenedor.innerHTML = `
-    <h2>📍 Ubicaciones</h2>
-    <p class="ayuda">Cada ubicación tiene una latitud/longitud asociada, para poder chequear el clima real de las tareas que la usan (ej. "Casa", "Facultad").</p>
+    <h2 title="Cada ubicación tiene una latitud/longitud asociada, para poder chequear el clima real de las tareas que la usan (ej. «Casa», «Facultad»).">📍 Ubicaciones</h2>
     <div id="lista-ubicaciones" class="lista-categorias"></div>
   `;
 
@@ -43,7 +43,13 @@ function renderUbicacion(ubicacion) {
       if (tarea.ubicacion_id === ubicacion.ubicacion_id) tarea.ubicacion_id = null;
     });
     estado.ubicaciones = estado.ubicaciones.filter((u) => u.ubicacion_id !== ubicacion.ubicacion_id);
-    await persistirYNotificar();
+    // La ubicación de referencia para el clima (Configuraciones) también queda sin valor si era esta.
+    // `guardarPreferencias` ya persiste (incluye los cambios de arriba, hechos en memoria): no llamar aparte.
+    if (obtenerPreferencias().pref_ubicacion_clima === ubicacion.ubicacion_id) {
+      await guardarPreferencias({ pref_ubicacion_clima: null });
+    } else {
+      await persistirYNotificar();
+    }
   });
 
   return tarjeta;

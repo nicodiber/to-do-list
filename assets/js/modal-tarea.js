@@ -4,6 +4,7 @@
 // encima de cualquier vista.
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
+import { escaparHtml } from './utilidades.js';
 import { crearTarea } from './modelos.js';
 import {
   htmlFormularioTarea,
@@ -153,12 +154,19 @@ export function copiaDeTarea(origen, { vaciarNombre = false } = {}) {
  * junto a `ofrecerExportarACalendar`, en los mismos puntos donde ya se llama esa.
  */
 export function ofrecerCrearTareaSeguimiento(tarea) {
-  if (!confirm(`¿Crear una tarea de seguimiento a partir de «${tarea.tarea_nombre}»?`)) return;
-  const copia = copiaDeTarea(tarea, { vaciarNombre: true });
-  copia.tarea_fecha_sugerida = '';
-  copia.tarea_fecha_limite = '';
-  copia.tarea_fecha_inicio_habilitada = '';
-  abrirAltaTarea(copia);
+  abrirDialogoFormulario({
+    titulo: '➕ Tarea de seguimiento',
+    textoGuardar: '➕ Crear',
+    cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Crear una tarea de seguimiento a partir de «${escaparHtml(tarea.tarea_nombre)}»? Se abre el alta con los mismos datos (categoría, meta, persona, etc.), nombre y fechas vacíos.</p>`,
+    alGuardar: () => {
+      const copia = copiaDeTarea(tarea, { vaciarNombre: true });
+      copia.tarea_fecha_sugerida = '';
+      copia.tarea_fecha_limite = '';
+      copia.tarea_fecha_inicio_habilitada = '';
+      abrirAltaTarea(copia);
+      return true;
+    },
+  });
 }
 
 /**

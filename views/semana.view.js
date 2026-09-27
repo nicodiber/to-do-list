@@ -6,7 +6,19 @@ import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 import { obtenerPreferencias, guardarCapacidadDeFecha } from '../assets/js/preferencias.js';
 import { crearCalculadoraCapacidad } from '../assets/js/capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventos, obtenerEventosParaMostrar } from '../assets/js/google-calendar.js';
-import { OPCIONES_DIAS_SEMANA, leerDiasSemana, guardarDiasSemana } from '../assets/js/vista-semana-preferencias.js';
+import { obtenerPronosticoDiario, iconoClima } from '../assets/js/clima.js';
+import {
+  OPCIONES_DIAS_SEMANA,
+  leerDiasSemana,
+  guardarDiasSemana,
+  leerMostrarSol,
+  guardarMostrarSol,
+  leerFiltroClima,
+  guardarFiltroClima,
+  FILTROS_CLIMA,
+} from '../assets/js/vista-semana-preferencias.js';
+
+const ETIQUETAS_FILTRO_CLIMA = { ninguno: 'Ninguno', temperatura: '🌡️ Temperatura', lluvia: '🌧️ Lluvia' };
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -29,6 +41,99 @@ function fechaDeReferenciaProyectada(tarea) {
   return fecha ? diaLocal(fecha) : null;
 }
 
+// Escala de color para el degradé de temperatura (frío → calor), en tramos [°C, [r,g,b]].
+const ESCALA_TEMPERATURA = [
+  [-10, [30, 58, 138]],
+  [0, [56, 189, 248]],
+  [15, [74, 222, 128]],
+  [25, [250, 204, 21]],
+  [35, [239, 68, 68]],
+];
+
+/** Color de fondo (tenue) para un valor de temperatura en °C, interpolando `ESCALA_TEMPERATURA`. */
+function colorTemperatura(celsius) {
+  if (celsius == null) return 'transparent';
+  if (celsius <= ESCALA_TEMPERATURA[0][0]) return `rgba(${ESCALA_TEMPERATURA[0][1].join(',')}, 0.35)`;
+  for (let i = 1; i < ESCALA_TEMPERATURA.length; i += 1) {
+    const [t1, c1] = ESCALA_TEMPERATURA[i];
+    if (celsius <= t1) {
+      const [t0, c0] = ESCALA_TEMPERATURA[i - 1];
+      const f = (celsius - t0) / (t1 - t0);
+      const c = c0.map((v, idx) => Math.round(v + (c1[idx] - v) * f));
+      return `rgba(${c.join(',')}, 0.35)`;
+    }
+  }
+  return `rgba(${ESCALA_TEMPERATURA[ESCALA_TEMPERATURA.length - 1][1].join(',')}, 0.35)`;
+}
+
+/** Color de fondo (azul, más opaco cuanto más probable) para una probabilidad de lluvia (0-100). */
+function colorLluvia(porcentaje) {
+  if (porcentaje == null) return 'transparent';
+  const alpha = Math.min(0.6, (porcentaje / 100) * 0.6);
+  return `rgba(56, 132, 255, ${alpha.toFixed(2)})`;
+}
+
+/** El dato horario de `pronostico` para un día y una hora en punto (`YYYY-MM-DDTHH:00`). */
+function datosDeHora(pronostico, fechaDia, hora) {
+  const prefijo = `${fechaDia}T${String(hora).padStart(2, '0')}:00`;
+  return pronostico.horas.find((h) => h.fechaHora.startsWith(prefijo)) || null;
+}
+
+/** `linear-gradient` de tramos duros, uno por hora visible (`HORA_INICIO`..`HORA_FIN`), para el fondo de un día. */
+function construirGradienteClima(pronostico, fechaDia, filtroClima) {
+  const totalHoras = HORA_FIN - HORA_INICIO;
+  const tramos = [];
+  for (let i = 0; i < totalHoras; i += 1) {
+    const datos = datosDeHora(pronostico, fechaDia, HORA_INICIO + i);
+    const color = !datos ? 'transparent' : filtroClima === 'temperatura' ? colorTemperatura(datos.temperatura) : colorLluvia(datos.probabilidadLluvia);
+    const desde = (i / totalHoras) * 100;
+    const hasta = ((i + 1) / totalHoras) * 100;
+    tramos.push(`${color} ${desde}%`, `${color} ${hasta}%`);
+  }
+  return `linear-gradient(to bottom, ${tramos.join(', ')})`;
+}
+
+/** Ícono de clima por día, marcas de amanecer/atardecer y degradé de fondo (temperatura o lluvia) — v0.79.0. */
+function pintarClima(grilla, dias, pronostico, { mostrarSol, filtroClima }) {
+  grilla.querySelectorAll('.dia-semana').forEach((columna) => {
+    const fechaDia = columna.dataset.dia;
+    const datosDia = pronostico.dias.find((d) => d.fecha === fechaDia);
+    const cuerpo = columna.querySelector('.dia-semana-cuerpo');
+
+    if (datosDia) {
+      const contenedorNombre = columna.querySelector('.dia-semana-encabezado > div');
+      let icono = contenedorNombre.querySelector('.icono-clima-dia');
+      if (!icono) {
+        icono = document.createElement('span');
+        icono.className = 'icono-clima-dia';
+        contenedorNombre.appendChild(icono);
+      }
+      icono.textContent = iconoClima(datosDia.weathercode);
+    }
+
+    cuerpo.querySelectorAll('.marca-sol').forEach((m) => m.remove());
+    if (mostrarSol && datosDia) {
+      [
+        { fechaHora: datosDia.sunrise, clase: 'amanecer', emoji: '🌅', etiqueta: 'Amanecer' },
+        { fechaHora: datosDia.sunset, clase: 'atardecer', emoji: '🌇', etiqueta: 'Atardecer' },
+      ].forEach(({ fechaHora, clase, emoji, etiqueta }) => {
+        if (!fechaHora) return;
+        const fecha = new Date(fechaHora);
+        const minutosDesdeInicio = (fecha.getHours() - HORA_INICIO) * 60 + fecha.getMinutes();
+        if (minutosDesdeInicio < 0 || minutosDesdeInicio >= MINUTOS_VISIBLES) return;
+        const marca = document.createElement('div');
+        marca.className = `marca-sol ${clase}`;
+        marca.style.top = `${(minutosDesdeInicio / 60) * ALTO_HORA_PX}px`;
+        marca.title = `${etiqueta}: ${formatearHora(fechaHora)}`;
+        marca.innerHTML = `<span class="marca-sol-icono">${emoji}</span>`;
+        cuerpo.appendChild(marca);
+      });
+    }
+
+    cuerpo.style.background = filtroClima !== 'ninguno' && datosDia ? construirGradienteClima(pronostico, fechaDia, filtroClima) : '';
+  });
+}
+
 /** Una tarea sirve para "proyectarse" en Semana si está accionable o si está bloqueada (para verla igual, atenuada). */
 function esProyectable(tarea) {
   return esTareaAccionable(tarea) || tarea.tarea_estado === 'bloqueada';
@@ -43,12 +148,13 @@ export function renderVistaSemana(contenedor) {
   ultimoContenedor = contenedor;
   const hoy = hoyISO();
   const cantidadDias = leerDiasSemana();
+  const mostrarSol = leerMostrarSol();
+  const filtroClima = leerFiltroClima();
   offsetDias = Math.max(0, offsetDias);
   const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(offsetDias + i, hoy));
 
   contenedor.innerHTML = `
-    <h2>📆 Semana</h2>
-    <p class="ayuda">Tareas fijas (con horario agendado), proyección de las pendientes y bloqueadas 🔒 según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.</p>
+    <h2 title="Tareas fijas (con horario agendado), proyección de las pendientes y bloqueadas 🔒 según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.">📆 Semana</h2>
     <div class="selector-rango" role="group" aria-label="Cantidad de días">
       ${OPCIONES_DIAS_SEMANA.map((n) => `<button type="button" data-dias="${n}" title="Ver ${n} día${n === 1 ? '' : 's'}" class="${n === cantidadDias ? 'activo' : ''}">${n} día${n === 1 ? '' : 's'}</button>`).join('')}
     </div>
@@ -57,12 +163,18 @@ export function renderVistaSemana(contenedor) {
       <span>${formatearFecha(dias[0])}${dias.length > 1 ? ` – ${formatearFecha(dias[dias.length - 1])}` : ''}</span>
       <button type="button" data-paso="1" aria-label="Días siguientes" title="Ver los días siguientes">›</button>
     </div>
+    <div class="controles-clima-semana">
+      <button type="button" id="boton-sol-semana" class="boton-enfoque" aria-pressed="${mostrarSol}" title="Mostrar marcas de amanecer y atardecer (necesita una ubicación de clima en Configuraciones)">🌅 Sol</button>
+      <div class="selector-rango" role="group" aria-label="Degradé de clima de fondo">
+        ${FILTROS_CLIMA.map((f) => `<button type="button" data-filtro-clima="${f}" title="Fondo por hora según ${ETIQUETAS_FILTRO_CLIMA[f].replace(/^\S+\s/, '').toLowerCase()}" class="${f === filtroClima ? 'activo' : ''}">${ETIQUETAS_FILTRO_CLIMA[f]}</button>`).join('')}
+      </div>
+    </div>
     <div class="grilla-semana-contenedor">
       <div class="grilla-semana"></div>
     </div>
   `;
 
-  contenedor.querySelectorAll('.selector-rango button').forEach((boton) => {
+  contenedor.querySelectorAll('.selector-rango button[data-dias]').forEach((boton) => {
     boton.addEventListener('click', () => {
       guardarDiasSemana(Number(boton.dataset.dias));
       offsetDias = 0;
@@ -72,6 +184,16 @@ export function renderVistaSemana(contenedor) {
   contenedor.querySelectorAll('.navegacion-semana button').forEach((boton) => {
     boton.addEventListener('click', () => {
       offsetDias = Math.max(0, offsetDias + Number(boton.dataset.paso) * cantidadDias);
+      renderVistaSemana(contenedor);
+    });
+  });
+  contenedor.querySelector('#boton-sol-semana').addEventListener('click', () => {
+    guardarMostrarSol(!mostrarSol);
+    renderVistaSemana(contenedor);
+  });
+  contenedor.querySelectorAll('.selector-rango button[data-filtro-clima]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      guardarFiltroClima(boton.dataset.filtroClima);
       renderVistaSemana(contenedor);
     });
   });
@@ -91,6 +213,17 @@ export function renderVistaSemana(contenedor) {
         if (!grilla.isConnected) return;
         pintarEventos(grilla, paraMostrar);
         pintarCargas(grilla, ocupan);
+      })
+      .catch((error) => console.warn(error.message));
+  }
+
+  // El ícono de clima por día se muestra siempre que haya ubicación configurada; "Sol" y el degradé son aparte.
+  const ubicacionClima = estado.ubicaciones.find((u) => u.ubicacion_id === obtenerPreferencias().pref_ubicacion_clima);
+  if (ubicacionClima && ubicacionClima.ubicacion_latitud != null && ubicacionClima.ubicacion_longitud != null) {
+    obtenerPronosticoDiario(ubicacionClima.ubicacion_latitud, ubicacionClima.ubicacion_longitud)
+      .then((pronostico) => {
+        if (!grilla.isConnected || !pronostico) return;
+        pintarClima(grilla, dias, pronostico, { mostrarSol, filtroClima });
       })
       .catch((error) => console.warn(error.message));
   }

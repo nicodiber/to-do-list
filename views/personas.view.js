@@ -10,8 +10,7 @@ function diasDesdeContacto(persona) {
 
 export function renderVistaPersonas(contenedor) {
   contenedor.innerHTML = `
-    <h2>👥 Personas</h2>
-    <p class="ayuda">Hace cuánto no te reunís con cada persona, ordenado de mayor a menor tiempo — para no perder el contacto con quienes importan.</p>
+    <h2 title="Hace cuánto no te reunís con cada persona, ordenado de mayor a menor tiempo — para no perder el contacto con quienes importan.">👥 Personas</h2>
     <div id="lista-personas" class="lista-categorias"></div>
   `;
 
