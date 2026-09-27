@@ -66,9 +66,9 @@ export function renderVistaConfiguraciones(contenedor) {
       </div>
       <h4>📅 Eventos de Calendar que cuentan como ocupados</h4>
       <div class="interruptores-config">
-        ${htmlInterruptor('ignorar_todo_el_dia', preferencias.pref_ignorar_todo_el_dia, 'Ignorar los eventos de todo el día', 'title="Los eventos de todo el día (cumpleaños, recordatorios) no le quitan tiempo al día"')}
-        ${htmlInterruptor('ignorar_rechazados', preferencias.pref_ignorar_rechazados, 'Ignorar los eventos que rechacé', 'title="Los eventos a los que respondiste que no vas no le quitan tiempo al día"')}
-        ${htmlInterruptor('ignorar_disponible', preferencias.pref_ignorar_disponible, 'Ignorar los eventos marcados como «Disponible»', 'title="En Google Calendar cada evento se muestra como Ocupado o Disponible: si esto está activado, los Disponible no le quitan tiempo al día"')}
+        ${htmlInterruptor('ignorar_todo_el_dia', !preferencias.pref_ignorar_todo_el_dia, '¿Un evento de todo el día cuenta como ocupado al buscar hueco libre?', 'title="Un evento de todo el día (cumpleaños, recordatorios) puede o no quitarle tiempo al día"')}
+        ${htmlInterruptor('ignorar_rechazados', !preferencias.pref_ignorar_rechazados, '¿Un evento que rechazaste cuenta como ocupado al buscar hueco libre?', 'title="Un evento al que respondiste que no vas puede o no quitarle tiempo al día"')}
+        ${htmlInterruptor('ignorar_disponible', !preferencias.pref_ignorar_disponible, '¿Un evento marcado como «Disponible» en Google Calendar cuenta como ocupado al buscar hueco libre?', 'title="En Google Calendar cada evento se muestra como Ocupado o Disponible: esto decide si un Disponible le quita tiempo al día"')}
       </div>
       <h4>🗓️ Calendarios que se leen</h4>
       <div id="lista-calendarios" class="lista-calendarios"><p class="ayuda">${hayConexionGoogleCalendar() ? 'Cargando tus calendarios…' : 'Conectá Google para elegir los calendarios.'}</p></div>
@@ -175,7 +175,7 @@ function conectarSeccionTiempo(contenedor) {
   });
   seccion.querySelector('#horizonte-calendar').addEventListener('change', (evento) => guardar({ pref_horizonte_dias: Number(evento.target.value) }, { recalendar: true }));
   [['ignorar_todo_el_dia', 'pref_ignorar_todo_el_dia'], ['ignorar_rechazados', 'pref_ignorar_rechazados'], ['ignorar_disponible', 'pref_ignorar_disponible']].forEach(([nombre, clave]) => {
-    seccion.querySelector(`[name="${nombre}"]`).addEventListener('change', (evento) => guardar({ [clave]: evento.target.checked }));
+    seccion.querySelector(`[name="${nombre}"]`).addEventListener('change', (evento) => guardar({ [clave]: !evento.target.checked }));
   });
 
   if (!hayConexionGoogleCalendar()) return;

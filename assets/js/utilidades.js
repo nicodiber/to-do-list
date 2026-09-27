@@ -218,6 +218,21 @@ export function textoHolgura(dias) {
   return `Quedan ${dias} día${dias === 1 ? '' : 's'}`;
 }
 
+/** Igual que `textoHolgura`, pero con precisión de horas (v0.88.0, columna Holgura de Tabla): a partir del
+ * total de horas de margen, arma "Quedan N días Mh" / "Vencida hace N días Mh" (sin el día si es 0). */
+export function textoHolguraConHoras(horasTotal) {
+  if (horasTotal === Infinity) return '';
+  const vencida = horasTotal < 0;
+  const totalAbs = Math.abs(horasTotal);
+  const dias = Math.floor(totalAbs / 24);
+  const horas = totalAbs % 24;
+  const partes = [];
+  if (dias > 0) partes.push(`${dias} día${dias === 1 ? '' : 's'}`);
+  partes.push(`${horas}h`);
+  const texto = partes.join(' ');
+  return vencida ? `Vencida hace ${texto}` : `Quedan ${texto}`;
+}
+
 const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 /**

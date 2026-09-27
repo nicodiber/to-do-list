@@ -14,7 +14,7 @@ import {
   descartarDatosViejos,
   hayTextoEnEdicion,
 } from './almacenamiento.js';
-import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre, avisoInconsistentes } from './tareas-logica.js';
+import { reprogramarFechasSugeridasVencidas, pasarProximoContactoVencido, tareasSoloConNombre, avisoInconsistentes } from './tareas-logica.js';
 import { programarTareasSinFecha, reubicarTareasSolapadas, reprogramarTareaInmediataSiVencio, adelantarTareasSiHayHuecoMejor } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
@@ -38,7 +38,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.87.0';
+const VERSION = 'v0.88.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -390,6 +390,7 @@ async function reprogramarSiCorresponde() {
   const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas } = await reubicarTareasSolapadas(estado);
   const { asignadas: nuevas, sinHueco: sinHuecoNuevas } = await programarTareasSinFecha(estado);
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
+  const personasAfectadas = pasarProximoContactoVencido(estado.personas);
 
   const sinHueco = [...sinHuecoReubicadas, ...sinHuecoNuevas];
   const inconsistentes = [...inconsistentesVencidas, ...inconsistentesReubicadas];
@@ -399,7 +400,15 @@ async function reprogramarSiCorresponde() {
     inconsistentes.push(...inmediata.inconsistentes);
   }
 
-  if (vencidas.length === 0 && nuevas.length === 0 && reubicadas.length === 0 && sinHueco.length === 0 && inconsistentes.length === 0) return;
+  if (
+    vencidas.length === 0 &&
+    nuevas.length === 0 &&
+    reubicadas.length === 0 &&
+    sinHueco.length === 0 &&
+    inconsistentes.length === 0 &&
+    personasAfectadas.length === 0
+  )
+    return;
   await persistirYNotificar();
 
   const partes = [];

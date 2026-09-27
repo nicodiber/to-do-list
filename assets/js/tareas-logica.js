@@ -350,19 +350,34 @@ export function reprogramarFechasSugeridasVencidas(listaTareas) {
   return { afectadas, inconsistentes };
 }
 
-const MS_POR_DIA = 24 * 60 * 60 * 1000;
-
 /**
- * Calcula cuántos días de margen le quedan a una tarea antes de que sea
- * imposible cumplir su `tarea_fecha_limite`, contados desde hoy (no desde
- * que se creó): `tarea_fecha_limite − max(ahora, tarea_fecha_inicio_habilitada)`.
- * Sin fecha límite, devuelve `Infinity` (sin apuro). Negativo = vencida.
- * Una fecha sin hora se interpreta como el límite del día (fin de día para
- * `tarea_fecha_limite`, inicio de día para `tarea_fecha_inicio_habilitada`),
- * para que una tarea que vence "hoy" no aparezca vencida a la mañana.
+ * Cuando ya pasó el día de `persona_proximo_contacto` (el día terminó, no solo llegó), lo pasa a
+ * `persona_ultimo_contacto` y vacía `persona_proximo_contacto` — se asume que el contacto ya sucedió o ya no
+ * aplica. Se llama una sola vez al iniciar sesión (v0.88.0), en silencio (sin `alert()`, es un ajuste de
+ * bookkeeping sin nada que el usuario deba revisar). Devuelve las personas afectadas.
  */
-export function calcularHolguraDias(tarea) {
-  if (!tarea.tarea_fecha_limite) return Infinity;
+export function pasarProximoContactoVencido(personas) {
+  const hoy = hoyISO();
+  const afectadas = [];
+  personas.forEach((persona) => {
+    if (persona.persona_proximo_contacto && persona.persona_proximo_contacto < hoy) {
+      persona.persona_ultimo_contacto = persona.persona_proximo_contacto;
+      persona.persona_proximo_contacto = '';
+      afectadas.push(persona);
+    }
+  });
+  return afectadas;
+}
+
+const MS_POR_DIA = 24 * 60 * 60 * 1000;
+const MS_POR_HORA = 60 * 60 * 1000;
+
+/** Margen en ms entre ahora (o `tarea_fecha_inicio_habilitada`, si es más tarde) y `tarea_fecha_limite`.
+ * `null` sin fecha límite. Una fecha sin hora se interpreta como el límite del día (fin de día para
+ * `tarea_fecha_limite`, inicio de día para `tarea_fecha_inicio_habilitada`), para que una tarea que vence
+ * "hoy" no aparezca vencida a la mañana. Privada: `calcularHolguraDias`/`calcularHolguraHoras` la usan. */
+function margenMsHastaLimite(tarea) {
+  if (!tarea.tarea_fecha_limite) return null;
 
   const limite = new Date(tieneHora(tarea.tarea_fecha_limite) ? tarea.tarea_fecha_limite : tarea.tarea_fecha_limite + 'T23:59:59');
 
@@ -375,7 +390,25 @@ export function calcularHolguraDias(tarea) {
     if (inicio > desde) desde = inicio;
   }
 
-  return Math.floor((limite.getTime() - desde.getTime()) / MS_POR_DIA);
+  return limite.getTime() - desde.getTime();
+}
+
+/**
+ * Calcula cuántos días de margen le quedan a una tarea antes de que sea
+ * imposible cumplir su `tarea_fecha_limite`, contados desde hoy (no desde
+ * que se creó): `tarea_fecha_limite − max(ahora, tarea_fecha_inicio_habilitada)`.
+ * Sin fecha límite, devuelve `Infinity` (sin apuro). Negativo = vencida.
+ */
+export function calcularHolguraDias(tarea) {
+  const ms = margenMsHastaLimite(tarea);
+  return ms === null ? Infinity : Math.floor(ms / MS_POR_DIA);
+}
+
+/** Igual que `calcularHolguraDias`, pero en horas totales (sin truncar a días) — v0.88.0, para mostrar
+ * "N días Mh" en vez de solo días (Tabla, columna Holgura). Mismo margen, más precisión al mostrar. */
+export function calcularHolguraHoras(tarea) {
+  const ms = margenMsHastaLimite(tarea);
+  return ms === null ? Infinity : Math.floor(ms / MS_POR_HORA);
 }
 
 /**

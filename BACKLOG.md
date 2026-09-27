@@ -47,10 +47,10 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 - [ ] **Adoptar la capacidad en el Gantt y en la reprogramación de fechas vencidas** (Ronda 9c, decisión del usuario): la posición estimada del Gantt (`calcularPosiciones`, sin sugerida) y `reprogramarFechasSugeridasVencidas` siguen sin consultar `crearCalculadoraCapacidad` directamente. **Menos urgente desde la v0.67.0**: casi toda tarea activa termina con fecha sugerida real (que si consulta la capacidad, vía `programador.js`); esto solo afectaría a la tarea recién creada (antes del próximo inicio de sesión) o la que venció y se reprograma al día siguiente sin mirar si ese día ya está lleno.
 
 #### TABLA
-- [ ] Ordenar por default por holgura de menor a mayor (en holgura además de los días indicar las horas restantes).
+- [x] Ordenar por default por holgura de menor a mayor (en holgura además de los días indicar las horas restantes). **Hecho en la v0.88.0**.
 
 #### ATAJOS DE TECLADO
-- [ ] Intercambiar atajos de "Enter" y "Ctrl + Enter"
+- [x] Intercambiar atajos de "Enter" y "Ctrl + Enter". **Hecho en la v0.88.0**.
 
 #### SONIDOS
 - [ ] Agregar sonidos al interactuar con STDL. Permitir desactivarlos desde Configuraciones.
@@ -85,10 +85,10 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 
 #### CONFIGURACIONES
 - [ ] **Rediseño del "tope por día" de Configuraciones, de minutos a bloques horarios** (idea del usuario): en vez de un número de minutos por día de la semana, que el usuario cargue uno o más bloques "de qué hora a qué hora" por día (default: un bloque 00:00-23:59). **Pendiente, ronda propia** — toca `pref_tope_dias`/`crearCalculadoraCapacidad` y varias vistas que lo consultan, conviene una conversación aparte para no mezclarlo con los ajustes chicos de esta ronda.
-- [ ] **Reescribir "Ignorar los eventos marcados como «Disponible»" como pregunta** (idea del usuario, tras el bug de la v0.77.0): el interruptor Sí/No se presta a confusión sobre qué hace cada valor. Reformular como pregunta cerrada, por ejemplo: "¿Un evento marcado como «Disponible» en Google Calendar cuenta como tiempo ocupado al buscar hueco libre?" con Sí/No (Sí = cuenta como ocupado, o sea lo mismo que hoy `pref_ignorar_disponible: false`; No = no cuenta, lo mismo que `true`) — cuidado con el sentido invertido del campo interno (`pref_ignorar_disponible`) respecto a la nueva pregunta, para no invertir sin querer el significado al guardar. Mismo criterio aplicaría a "Ignorar los eventos de todo el día" e "Ignorar los eventos que rechacé", si se quiere consistencia entre los tres interruptores de esa sección.
+- [x] **Reescribir "Ignorar los eventos marcados como «Disponible»" como pregunta** (idea del usuario, tras el bug de la v0.77.0). **Hecho en la v0.88.0**, y por consistencia (decisión del usuario) también los otros dos: "Ignorar los eventos de todo el día" e "Ignorar los eventos que rechacé" — los tres pasaron a la pregunta cerrada con el sentido invertido respecto al campo interno guardado, que no cambió de nombre.
 
 #### PERSONAS
-- [ ] Cuando finaliza el día de "proximo contacto" de una persona, pasar valor de fecha a "último contacto" y dejar en null próximo contacto.
+- [x] Cuando finaliza el día de "proximo contacto" de una persona, pasar valor de fecha a "último contacto" y dejar en null próximo contacto. **Hecho en la v0.88.0** (`pasarProximoContactoVencido`, en blanco/`''` en vez de `null` por consistencia con el resto del campo).
 
 #### DELEGACIONES
 - [ ] Permitir a una tarea marcarla como delegada y solicitar carga al usuario sobre a quién se la delegó y, para realizarle seguimiento, cuándo quiere que se lo recuerde para que STDL asista con el seguimiento de la tarea y usuario no le pierda el rastro.

@@ -2,6 +2,20 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.88.0] - 2026-09-27
+
+Cuatro ajustes chicos e independientes, elegidos tras repasar el backlog acumulado.
+
+### Cambiado
+
+- **Atajos: Enter y Ctrl+Enter intercambiados** en los diálogos de alta/edición: Enter dispara ahora la acción principal (Guardar/Agregar), Ctrl+Enter la secundaria (Eliminar/Agregar y cargar otra) — antes era al revés, por una limitación del envío nativo del navegador. En los diálogos de un solo botón (categorías, ubicaciones, metas, personas) no cambia nada.
+- **Tabla abre ordenada por Holgura ascendente** por defecto, en vez del orden de prioridad general (que sigue disponible con "↺ Prioridad"). La columna Holgura ahora también muestra las horas restantes (ej. "Quedan 2 días 5h"), no solo los días.
+- **Configuraciones → "Eventos de Calendar que cuentan como ocupados"**: los tres interruptores pasan de una afirmación ("Ignorar los eventos de todo el día") a una pregunta cerrada con el sentido invertido ("¿Un evento de todo el día cuenta como ocupado al buscar hueco libre?"), más fácil de entender de un vistazo. El campo interno guardado no cambia de nombre ni de sentido.
+
+### Agregado
+
+- **Personas**: cuando ya pasó el día de "Próximo contacto" sin que se haya actualizado a mano, se pasa solo a "Último contacto" y "Próximo" queda vacío — corrección silenciosa al iniciar sesión, sin `alert()`.
+
 ## [v0.87.0] - 2026-09-27
 
 Gantt suma selección múltiple y edición masiva, como ya existía en Tareas y Tabla.

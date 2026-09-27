@@ -30,8 +30,9 @@ export function activarMayusculaInicial(campo) {
  * cambios?" solo si el formulario cambió desde que se abrió. Devuelve el `<dialog>`.
  *
  * Con `botonesGuardar` (`[{ texto, valor, orden }]`) hay varios botones de guardado y
- * `valor` dice cuál se apretó. El primero **en el DOM** es el que dispara Enter; `orden`
- * (CSS `order`) cambia cómo se muestran. `reiniciarFirma()` toma el estado actual del
+ * `valor` dice cuál se apretó. Enter dispara el principal (`.boton-primario`, el último
+ * de la lista); Ctrl+Enter (o Cmd+Enter) dispara el primero (v0.88.0 — antes al revés).
+ * `orden` (CSS `order`) cambia cómo se muestran. `reiniciarFirma()` toma el estado actual del
  * formulario como "sin cambios" (por ejemplo después de vaciarlo para cargar otra tarea).
  */
 export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '💾 Guardar cambios', botonesGuardar = null, conectar = () => {}, alGuardar, alCerrar = () => {} }) {
@@ -56,8 +57,9 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
     boton.className = indice === botones.length - 1 || botones.length === 1 ? 'boton-primario' : '';
     boton.dataset.valor = b.valor;
     boton.textContent = b.texto;
-    // El botón principal es el que envía Ctrl+Enter.
-    if (boton.className) boton.title = `${b.texto.replace(/^\S+\s/, '')} (Ctrl+Enter)`;
+    // El botón principal es el que envía Enter; el primero de la lista (si no es el principal), Ctrl+Enter.
+    if (boton.className) boton.title = `${b.texto.replace(/^\S+\s/, '')} (Enter)`;
+    else if (indice === 0) boton.title = `${b.texto.replace(/^\S+\s/, '')} (Ctrl+Enter)`;
     if (b.orden !== undefined) boton.style.order = String(b.orden);
     contenedorBotones.insertBefore(boton, cancelar);
   });
@@ -87,13 +89,17 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
     evento.preventDefault();
     intentarCerrar();
   });
-  // Ctrl+Enter (o Cmd+Enter) desde cualquier campo: envía el formulario con el botón principal.
+  // Enter (sin modificador, salvo en un textarea) envía con el botón principal; Ctrl+Enter (o Cmd+Enter) envía
+  // con el primero de `botonesGuardar` (v0.88.0 — antes al revés: Enter disparaba el envío nativo del
+  // navegador, que siempre manda al primero del DOM, y Ctrl+Enter al principal).
   dialogo.addEventListener('keydown', (evento) => {
-    if (evento.key !== 'Enter' || !(evento.ctrlKey || evento.metaKey)) return;
-    const principal = formulario.querySelector('button.boton-primario[type="submit"]') || formulario.querySelector('button[type="submit"]');
-    if (!principal) return;
+    if (evento.key !== 'Enter' || evento.target.tagName === 'TEXTAREA') return;
+    const enviables = [...formulario.querySelectorAll('button[type="submit"]')];
+    const principal = formulario.querySelector('button.boton-primario[type="submit"]') || enviables[0];
+    const boton = evento.ctrlKey || evento.metaKey ? enviables[0] : principal;
+    if (!boton) return;
     evento.preventDefault();
-    formulario.requestSubmit(principal);
+    formulario.requestSubmit(boton);
   });
   // Clic afuera: solo si el clic empezó y terminó fuera (arrastrar desde un campo hacia afuera no cierra). Se mide
   // por contención en el DOM (no por coordenadas): un popover propio del formulario (por ejemplo el selector de
