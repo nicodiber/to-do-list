@@ -3,6 +3,7 @@ import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, hoyISO, 
 import { reprogramarTareaConCascada, avisoInconsistentes, asignarOrdenManual, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } from '../assets/js/gantt-modelo.js';
+import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 
 // Preferencias de UI (no datos de la app): zoom, modo y agrupación se recuerdan en este dispositivo.
 const PREFIJO = 'super-todo-list:gantt-';
@@ -24,6 +25,8 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 let filtros = { categoria: '', meta: '', estado: 'activas', texto: '' };
 let scrollGuardado = { left: 0, top: 0 };
 let centrarEnHoy = true;
+let modoSeleccionGantt = false;
+let seleccionadasGantt = new Set();
 
 function leerPref(clave, validos, porDefecto) {
   try {
@@ -51,6 +54,7 @@ export function renderVistaGantt(contenedor) {
   const semanas = leerPref('semanas', SEMANAS, window.matchMedia('(max-width: 640px)').matches ? 2 : 4);
   const modo = leerPref('modo', MODOS, 'plan');
   const agruparPor = leerPref('agrupar', AGRUPACIONES, 'nada');
+  seleccionadasGantt = new Set([...seleccionadasGantt].filter((id) => estado.tareas.some((t) => t.tarea_id === id)));
 
   contenedor.innerHTML = `
     <h2>📊 Gantt</h2>
@@ -88,6 +92,13 @@ export function renderVistaGantt(contenedor) {
       <label>🔎 Buscar
         <input type="search" id="gantt-texto" title="Buscar por nombre (tecla F)" placeholder="Nombre de la tarea" value="${escaparHtml(filtros.texto)}" />
       </label>
+      <button title="Elegir varias tareas para editarlas juntas" type="button" id="boton-modo-seleccion-gantt" class="${modoSeleccionGantt ? 'activo' : ''}">☑️ Seleccionar</button>
+    </div>
+    <div id="barra-seleccion-gantt" class="barra-seleccion" ${modoSeleccionGantt ? '' : 'hidden'}>
+      <span id="conteo-seleccion-gantt">0 seleccionadas</span>
+      <button title="Elegir todas las tareas visibles" type="button" id="boton-seleccionar-todas-gantt">☑️ Seleccionar todas</button>
+      <button title="Editar los campos en común de las tareas elegidas" type="button" id="boton-editar-seleccion-gantt" class="boton-primario" disabled>✏️ Editar tareas seleccionadas</button>
+      <button title="Salir del modo selección" type="button" id="boton-cancelar-seleccion-gantt">Cancelar</button>
     </div>
     <p class="ayuda leyenda-gantt">${
       modo === 'plan'
@@ -101,7 +112,13 @@ export function renderVistaGantt(contenedor) {
   desplazable.addEventListener('scroll', () => {
     scrollGuardado = { left: desplazable.scrollLeft, top: desplazable.scrollTop };
   });
-  const redibujar = () => dibujarGrilla(desplazable, { semanas, modo, agruparPor });
+  const conteoSeleccionGantt = contenedor.querySelector('#conteo-seleccion-gantt');
+  const botonEditarSeleccionGantt = contenedor.querySelector('#boton-editar-seleccion-gantt');
+  const actualizarBarraSeleccionGantt = () => {
+    conteoSeleccionGantt.textContent = `${seleccionadasGantt.size} seleccionada${seleccionadasGantt.size === 1 ? '' : 's'}`;
+    botonEditarSeleccionGantt.disabled = seleccionadasGantt.size === 0;
+  };
+  const redibujar = () => dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarraSeleccionGantt });
 
   contenedor.querySelectorAll('[data-modo]').forEach((boton) =>
     boton.addEventListener('click', () => {
@@ -135,6 +152,34 @@ export function renderVistaGantt(contenedor) {
     conservarFoco(contenedor, redibujar);
   });
 
+  contenedor.querySelector('#boton-modo-seleccion-gantt').addEventListener('click', () => {
+    modoSeleccionGantt = !modoSeleccionGantt;
+    if (!modoSeleccionGantt) seleccionadasGantt.clear();
+    renderVistaGantt(contenedor);
+  });
+  contenedor.querySelector('#boton-cancelar-seleccion-gantt').addEventListener('click', () => {
+    modoSeleccionGantt = false;
+    seleccionadasGantt.clear();
+    renderVistaGantt(contenedor);
+  });
+  contenedor.querySelector('#boton-seleccionar-todas-gantt').addEventListener('click', () => {
+    contenedor.querySelectorAll('.gantt-nombre[data-abrir]').forEach((celda) => {
+      const tarea = estado.tareas.find((t) => t.tarea_id === celda.dataset.abrir);
+      if (tarea && tarea.tarea_estado !== 'completada') seleccionadasGantt.add(tarea.tarea_id);
+    });
+    actualizarBarraSeleccionGantt();
+    redibujar();
+  });
+  botonEditarSeleccionGantt.addEventListener('click', () => {
+    const tareasElegidas = estado.tareas.filter((t) => seleccionadasGantt.has(t.tarea_id));
+    abrirEdicionMasiva(tareasElegidas, () => {
+      modoSeleccionGantt = false;
+      seleccionadasGantt.clear();
+      renderVistaGantt(contenedor);
+    });
+  });
+  actualizarBarraSeleccionGantt();
+
   redibujar();
 }
 
@@ -147,7 +192,7 @@ function diaSemana(dia) {
   return new Date(dia + 'T00:00:00').getDay();
 }
 
-function dibujarGrilla(desplazable, { semanas, modo, agruparPor }) {
+function dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarraSeleccionGantt }) {
   const hoy = hoyISO();
   const filas = construirFilas(estado, { filtros, agruparPor, hoy });
   const tareasFilas = filas.filter((f) => f.tarea);
@@ -223,7 +268,7 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor }) {
 
   const superposicion = desplazable.querySelector('.gantt-superposicion');
   dibujarFlechas(superposicion, calcularConexiones(filas, estado), geometria, anchoPista, altoFilas);
-  conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor });
+  conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor, actualizarBarraSeleccionGantt });
 
   if (centrarEnHoy) {
     desplazable.scrollLeft = Math.max(0, (desplazamiento(hoy) - 1) * anchoDia);
@@ -275,7 +320,7 @@ function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista, { anterior,
   const banderaIzq = limite && !g.conVentana ? izquierdaBandera(limite, plan.dia, g, anchoDia) : null;
 
   let botonesOrden = '';
-  if (modo === 'plan') {
+  if (modo === 'plan' && !modoSeleccionGantt) {
     const motivoSubir = anterior ? motivoOrdenGantt(fila, anterior) : 'Ya es la primera del carril.';
     const motivoBajar = siguiente ? motivoOrdenGantt(fila, siguiente) : 'Ya es la última del carril.';
     botonesOrden = `<span class="acciones-prioridad gantt-orden">
@@ -283,13 +328,20 @@ function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista, { anterior,
         <button type="button" data-bajar-orden="${tarea.tarea_id}" data-vecina="${motivoBajar ? '' : siguiente.tarea.tarea_id}" title="${escaparHtml(motivoBajar || 'Bajar')}" ${motivoBajar ? 'disabled' : ''}>▼</button>
       </span>`;
   }
+  // En modo selección se ocultan "📌 Fijar" y "▲▼": la columna de nombres es angosta y esas dos acciones no
+  // tienen sentido mientras se está eligiendo en bloque.
+  const casillaSeleccion =
+    modoSeleccionGantt && tarea.tarea_estado !== 'completada'
+      ? `<input type="checkbox" data-seleccionar="${tarea.tarea_id}" ${seleccionadasGantt.has(tarea.tarea_id) ? 'checked' : ''} title="Elegir para editar en bloque" />`
+      : '';
 
   return `
     <div class="gantt-fila" style="height:${ALTO_FILA}px">
       <div class="gantt-nombre" style="width:${nombresAncho}px" data-abrir="${tarea.tarea_id}" title="${escaparHtml(tarea.tarea_nombre)}${categoria ? ` (${escaparHtml(categoria.categoria_nombre)})` : ''}">
+        ${casillaSeleccion}
         <span class="gantt-nombre-texto">${tarea.tarea_estado === 'bloqueada' ? '🔒 ' : ''}${escaparHtml(tarea.tarea_nombre)}</span>
         ${categoria ? `<span class="gantt-categoria" style="color:${categoria.categoria_color}">${escaparHtml(categoria.categoria_nombre)}</span>` : ''}
-        ${plan.virtual ? `<button type="button" class="gantt-fijar" data-fijar="${tarea.tarea_id}" title="Guardar el día estimado como fecha sugerida">📌</button>` : ''}
+        ${!modoSeleccionGantt && plan.virtual ? `<button type="button" class="gantt-fijar" data-fijar="${tarea.tarea_id}" title="Guardar el día estimado como fecha sugerida">📌</button>` : ''}
         ${botonesOrden}
       </div>
       <div class="gantt-pista" style="width:${anchoPista}px">
@@ -364,14 +416,29 @@ function avisarSiQuedoAntesDeSuPrevia(tarea, agruparPor) {
   }
 }
 
-function conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor }) {
+function conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor, actualizarBarraSeleccionGantt }) {
   const porId = new Map(filas.filter((f) => f.tarea).map((f) => [f.tarea.tarea_id, f]));
 
-  // Clic en el nombre: editar; "📌": fijar el día estimado como fecha sugerida; ▲▼: reordenar a mano.
+  // Clic en el nombre: en modo selección alterna la casilla; si no, editar. "📌": fijar el día estimado como
+  // fecha sugerida; ▲▼: reordenar a mano (las dos últimas no están presentes en modo selección).
   desplazable.querySelectorAll('[data-abrir]').forEach((celda) =>
     celda.addEventListener('click', (evento) => {
-      if (evento.target.closest('[data-fijar], .gantt-orden')) return;
+      if (evento.target.closest('[data-fijar], .gantt-orden, [data-seleccionar]')) return;
+      if (modoSeleccionGantt) {
+        const casilla = celda.querySelector('[data-seleccionar]');
+        if (!casilla) return;
+        casilla.checked = !casilla.checked;
+        casilla.dispatchEvent(new Event('change'));
+        return;
+      }
       abrirEdicionTarea(celda.dataset.abrir);
+    })
+  );
+  desplazable.querySelectorAll('[data-seleccionar]').forEach((casilla) =>
+    casilla.addEventListener('change', () => {
+      if (casilla.checked) seleccionadasGantt.add(casilla.dataset.seleccionar);
+      else seleccionadasGantt.delete(casilla.dataset.seleccionar);
+      actualizarBarraSeleccionGantt();
     })
   );
   desplazable.querySelectorAll('[data-fijar]').forEach((boton) =>

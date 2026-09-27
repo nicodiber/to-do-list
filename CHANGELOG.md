@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.87.0] - 2026-09-27
+
+Gantt suma selección múltiple y edición masiva, como ya existía en Tareas y Tabla.
+
+### Agregado
+
+- **Gantt: "☑️ Seleccionar"** en los filtros: tilda tareas (casilla junto al nombre, no las completadas) y "✏️ Editar tareas seleccionadas" abre el mismo diálogo de edición masiva de Tareas/Tabla, para aplicar un cambio a todas de una vez. Mientras dura el modo selección, se ocultan "📌 Fijar" y las flechas ▲▼ de reordenar (no tienen sentido eligiendo en bloque, y la columna de nombres es angosta).
+
 ## [v0.86.0] - 2026-09-27
 
 Semana, Gantt y Tabla dejan de estar acotadas a 860px de ancho: en un monitor ancho aprovechan todo el espacio disponible en vez de dejar dos franjas vacías a los costados. El resto de las vistas (Resumen, Tareas, etc.) sigue con la columna angosta de siempre.
