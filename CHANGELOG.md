@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.86.0] - 2026-09-27
+
+Semana, Gantt y Tabla dejan de estar acotadas a 860px de ancho: en un monitor ancho aprovechan todo el espacio disponible en vez de dejar dos franjas vacías a los costados. El resto de las vistas (Resumen, Tareas, etc.) sigue con la columna angosta de siempre.
+
+### Corregido
+
+- **Semana**, **Gantt** y **Tabla** ya eran fluidas por dentro (columnas `1fr`, ancho de día calculado del contenedor, tabla al 100%) pero quedaban encerradas en el límite de ancho general de la app. Ahora esas tres vistas no tienen tope de ancho.
+
 ## [v0.85.0] - 2026-09-27
 
 Ronda de pulido de la vista Resumen (y dos ajustes iguales en Agenda).

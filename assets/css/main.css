@@ -254,6 +254,12 @@ h1, h2, h3 {
   padding: 1.5rem;
 }
 
+/* Semana, Gantt y Tabla ya son fluidas (grilla de 1fr, ancho de día calculado del contenedor, tabla al 100%):
+   les alcanza con no tener techo, para aprovechar el ancho completo del monitor en vez de dos franjas vacías. */
+.vista.vista-ancha {
+  max-width: none;
+}
+
 .ayuda {
   color: var(--color-texto-suave);
   font-size: 0.9rem;

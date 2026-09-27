@@ -38,7 +38,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.85.0';
+const VERSION = 'v0.86.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -72,6 +72,9 @@ const VISTAS = {
 
 // Nombres viejos de vistas (por enlaces o marcadores guardados) que siguen llevando a la vista actual.
 const ALIAS_VISTAS = { todas: 'tabla', informes: 'estadisticas', 'tres-dias': 'agenda', 'ocho-dias': 'agenda', hoy: 'resumen' };
+
+// Vistas cuyo contenido ya es fluido (grilla, tabla) y aprovecha no tener el tope de ancho de `.vista` (v0.86.0).
+const VISTAS_ANCHAS = ['semana', 'gantt', 'tabla'];
 
 function vistaActual() {
   const pedida = location.hash.replace('#/', '');
@@ -341,6 +344,7 @@ function render({ conservarBorradores = false } = {}) {
   // marcados (`data-conservar-borrador`, el alta de tareas), para que los demás se vacíen al agregar.
   const borradores = s.datosListos && !s.soloLectura ? capturarBorradores(CONTENEDOR, conservarBorradores ? {} : { soloEn: '[data-conservar-borrador]' }) : null;
   renderNav();
+  CONTENEDOR.classList.toggle('vista-ancha', VISTAS_ANCHAS.includes(vistaActual()));
   actualizarBotonesTareas(s);
   actualizarCabeceraSync();
   claveUltimoRender = claveDeRender(s);
