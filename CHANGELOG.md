@@ -2,6 +2,36 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.87.0] - 2026-09-27
+
+Gantt suma selección múltiple y edición masiva, como ya existía en Tareas y Tabla.
+
+### Agregado
+
+- **Gantt: "☑️ Seleccionar"** en los filtros: tilda tareas (casilla junto al nombre, no las completadas) y "✏️ Editar tareas seleccionadas" abre el mismo diálogo de edición masiva de Tareas/Tabla, para aplicar un cambio a todas de una vez. Mientras dura el modo selección, se ocultan "📌 Fijar" y las flechas ▲▼ de reordenar (no tienen sentido eligiendo en bloque, y la columna de nombres es angosta).
+
+## [v0.86.0] - 2026-09-27
+
+Semana, Gantt y Tabla dejan de estar acotadas a 860px de ancho: en un monitor ancho aprovechan todo el espacio disponible en vez de dejar dos franjas vacías a los costados. El resto de las vistas (Resumen, Tareas, etc.) sigue con la columna angosta de siempre.
+
+### Corregido
+
+- **Semana**, **Gantt** y **Tabla** ya eran fluidas por dentro (columnas `1fr`, ancho de día calculado del contenedor, tabla al 100%) pero quedaban encerradas en el límite de ancho general de la app. Ahora esas tres vistas no tienen tope de ancho.
+
+## [v0.85.0] - 2026-09-27
+
+Ronda de pulido de la vista Resumen (y dos ajustes iguales en Agenda).
+
+### Agregado
+
+- **Contador de tareas** junto al título de "🚨 Urgentes", "📌 Hoy" y "🌅 Mañana" (mismo criterio que ya usan "Vencidas"/"Resto"/etc.: cuenta accionables + bloqueadas de solo lectura mostradas ahí).
+- **"🧭 Próximos por categoría"** se reposiciona antes de "🌅 Mañana" y pasa a mostrarse siempre que tenga contenido (antes solo aparecía si no había nada en Vencidas/Urgentes/Hoy).
+
+### Cambiado
+
+- **"🌅 Mañana"** pasa a estar plegada por defecto (mismo patrón que "Vencidas"/"Resto de tus pendientes").
+- **Se saca el filtro "📍 ¿Dónde estás?"** de Resumen y de Agenda (sigue disponible en Tareas). El módulo `assets/js/ubicacion-actual.js` no se tocó.
+
 ## [v0.84.0] - 2026-09-27
 
 Al reprogramar una tarea automáticamente, sus dependientes en cadena ahora también se revalidan contra Calendar y contra el resto de las tareas — antes solo se les sumaba el mismo corrimiento de tiempo que a la cabeza, sin chequear nada.

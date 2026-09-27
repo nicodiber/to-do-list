@@ -20,7 +20,6 @@ import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre } from '../assets/js/google-calendar.js';
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
-import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
@@ -47,9 +46,7 @@ setInterval(() => {
 }, 60 * 1000);
 
 export function renderVistaResumen(contenedor) {
-  const filtroUbicacion = obtenerUbicacionActual();
-  const coincideUbicacion = (t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion;
-  const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada').filter(coincideUbicacion);
+  const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
   const manana = fechaISOMasDias(1, hoyISO());
 
   const bloqueadasTodas = pendientesActivas.filter((t) => t.tarea_estado === 'bloqueada');
@@ -97,24 +94,11 @@ export function renderVistaResumen(contenedor) {
   const restoSinProximos = ordenarConCadenas(resto.filter((t) => !idsProximos.has(t.tarea_id)));
   const completadasHoy = estado.tareas
     .filter((t) => t.tarea_estado === 'completada' && seCompletoHoy(t))
-    .filter(coincideUbicacion)
     .sort((a, b) => b.tarea_fecha_fin.localeCompare(a.tarea_fecha_fin));
 
   contenedor.innerHTML = `
     <h2 title="Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.">📌 Resumen</h2>
     <div class="controles-hoy">
-      ${
-        estado.ubicaciones.length > 0
-          ? `<label class="filtro-ubicacion-hoy" title="Ver solo las tareas de tu lugar actual (tecla F para elegir)">📍 ¿Dónde estás?
-              <select id="filtro-ubicacion-hoy">
-                <option value="">Cualquier ubicación</option>
-                ${estado.ubicaciones
-                  .map((u) => `<option value="${u.ubicacion_id}" ${filtroUbicacion === u.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.ubicacion_nombre)}</option>`)
-                  .join('')}
-              </select>
-            </label>`
-          : ''
-      }
       <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">🔍 Revisar mi día</button>
       <div class="contenedor-selector-dia-revision" hidden></div>
     </div>
@@ -123,31 +107,31 @@ export function renderVistaResumen(contenedor) {
       <ul id="lista-vencidas" class="lista-tareas"></ul>
     </details>
     <section>
-      <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy">🚨 Urgentes</h3>
+      <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy">🚨 Urgentes (${urgentes.length + bloqueadasHoy.length})</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
     </section>
     ${
       hoyNueva.length > 0 || bloqueadasHoyNueva.length > 0
         ? `<section>
-            <h3 title="Tareas con fecha sugerida hoy, cuya fecha límite no es hoy">📌 Hoy</h3>
+            <h3 title="Tareas con fecha sugerida hoy, cuya fecha límite no es hoy">📌 Hoy (${hoyNueva.length + bloqueadasHoyNueva.length})</h3>
             <ul id="lista-hoy-nueva" class="lista-tareas"></ul>
           </section>`
         : ''
     }
     ${
-      tareasManana.length > 0 || bloqueadasManana.length > 0
-        ? `<section>
-            <h3 title="Tareas con fecha límite o sugerida mañana">🌅 Mañana</h3>
-            <ul id="lista-manana" class="lista-tareas"></ul>
-          </section>`
-        : ''
-    }
-    ${
-      proximosPorCategoria.length > 0 && vencidas.length === 0 && urgentes.length === 0 && bloqueadasHoy.length === 0 && hoyNueva.length === 0 && bloqueadasHoyNueva.length === 0
+      proximosPorCategoria.length > 0
         ? `<section>
             <h3 title="¿Tenés un rato libre y no hay nada urgente? Acá tenés la tarea que más conviene de cada categoría, para elegir vos.">🧭 Próximos por categoría</h3>
             <ul id="lista-por-categoria" class="lista-tareas"></ul>
           </section>`
+        : ''
+    }
+    ${
+      tareasManana.length > 0 || bloqueadasManana.length > 0
+        ? `<details class="completadas-plegadas">
+            <summary title="Tareas con fecha límite o sugerida mañana">🌅 Mañana (${tareasManana.length + bloqueadasManana.length})</summary>
+            <ul id="lista-manana" class="lista-tareas"></ul>
+          </details>`
         : ''
     }
     ${
@@ -199,14 +183,6 @@ export function renderVistaResumen(contenedor) {
     );
     contenedorSelectorDia.hidden = false;
   });
-
-  const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-hoy');
-  if (selectFiltroUbicacion) {
-    selectFiltroUbicacion.addEventListener('change', (evento) => {
-      establecerUbicacionActual(evento.target.value);
-      renderVistaResumen(contenedor);
-    });
-  }
 
   const listaVencidas = contenedor.querySelector('#lista-vencidas');
   if (vencidas.length === 0) {

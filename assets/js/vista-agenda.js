@@ -4,7 +4,6 @@ import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearFechaOFecha
 import { crearPanelReprogramar } from './reprogramar.js';
 import { reprogramarTareaConCascada, avisoInconsistentes, compararPorPrioridad } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
-import { obtenerUbicacionActual, establecerUbicacionActual } from './ubicacion-actual.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -26,11 +25,8 @@ export function fechaDeReferencia(tarea) {
 export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = null) {
   const hoy = hoyISO();
   const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(i, hoy));
-  const filtroUbicacion = obtenerUbicacionActual();
 
-  const pendientesActivas = estado.tareas
-    .filter((t) => t.tarea_estado !== 'completada')
-    .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion);
+  const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
   const porDia = new Map(dias.map((d) => [d, []]));
   pendientesActivas.forEach((tarea) => {
     const fecha = fechaDeReferencia(tarea);
@@ -43,18 +39,6 @@ export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = nul
       ${[3, 8, 15].map((n) => `<button type="button" data-dias="${n}" title="Ver los próximos ${n} días" class="${n === cantidadDias ? 'activo' : ''}">${n} días</button>`).join('')}
     </div>
     <p class="ayuda">Tareas con fecha límite o sugerida en este período — para anticipar cuellos de botella antes de que se conviertan en urgencias.</p>
-    ${
-      estado.ubicaciones.length > 0
-        ? `<label class="filtro-ubicacion-hoy" title="Ver solo las tareas de tu lugar actual (tecla F para elegir)">📍 ¿Dónde estás?
-            <select id="filtro-ubicacion-agenda">
-              <option value="">Cualquier ubicación</option>
-              ${estado.ubicaciones
-                .map((u) => `<option value="${u.ubicacion_id}" ${filtroUbicacion === u.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.ubicacion_nombre)}</option>`)
-                .join('')}
-            </select>
-          </label>`
-        : ''
-    }
     <div class="agenda"></div>
   `;
 
@@ -65,14 +49,6 @@ export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = nul
       renderVistaAgenda(contenedor, dias, alCambiarRango);
     });
   });
-
-  const selectFiltroUbicacion = contenedor.querySelector('#filtro-ubicacion-agenda');
-  if (selectFiltroUbicacion) {
-    selectFiltroUbicacion.addEventListener('change', (evento) => {
-      establecerUbicacionActual(evento.target.value);
-      renderVistaAgenda(contenedor, cantidadDias, alCambiarRango);
-    });
-  }
 
   const contenedorAgenda = contenedor.querySelector('.agenda');
   dias.forEach((fechaDia) => {
