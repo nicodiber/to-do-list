@@ -101,7 +101,7 @@ export function renderVistaResumen(contenedor) {
     .sort((a, b) => b.tarea_fecha_fin.localeCompare(a.tarea_fecha_fin));
 
   contenedor.innerHTML = `
-    <h2 title="Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.">📊 Resumen</h2>
+    <h2 title="Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.">📌 Resumen</h2>
     <div class="controles-hoy">
       ${
         estado.ubicaciones.length > 0

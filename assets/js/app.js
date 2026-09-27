@@ -15,7 +15,7 @@ import {
   hayTextoEnEdicion,
 } from './almacenamiento.js';
 import { reprogramarFechasSugeridasVencidas, tareasSoloConNombre, avisoInconsistentes } from './tareas-logica.js';
-import { programarTareasSinFecha, reubicarTareasSolapadas, reprogramarTareaInmediataSiVencio } from './programador.js';
+import { programarTareasSinFecha, reubicarTareasSolapadas, reprogramarTareaInmediataSiVencio, adelantarTareasSiHayHuecoMejor } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
@@ -38,7 +38,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.79.0';
+const VERSION = 'v0.80.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -55,7 +55,7 @@ const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
 // El orden es el de las pestañas y el de sus atajos: las diez primeras se abren con las teclas 1…9 y 0 (ver atajos.js).
 // Primero las de mirar el trabajo (por tiempo), después las de estructura y las de uso ocasional.
 const VISTAS = {
-  resumen: { etiqueta: '📊 Resumen', render: renderVistaResumen },
+  resumen: { etiqueta: '📌 Resumen', render: renderVistaResumen },
   agenda: { etiqueta: '📖 Agenda', render: renderVistaAgendaConSelector },
   semana: { etiqueta: '📆 Semana', render: renderVistaSemana },
   gantt: { etiqueta: '📊 Gantt', render: renderVistaGantt },
@@ -262,24 +262,42 @@ BOTON_DESHACER.addEventListener('click', deshacer);
 BOTON_REHACER.addEventListener('click', rehacer);
 
 /**
- * Los eventos de Calendar se guardan unos minutos en memoria. Al sincronizar o volver a la pestaña se
- * olvidan y, si se está mirando Resumen (donde aparecen los avisos de superposición), se redibuja para
- * que reflejen lo que hay ahora en Calendar. No se redibuja con un diálogo abierto ni con texto a medio escribir.
+ * Los eventos de Calendar se guardan unos minutos en memoria. Al sincronizar, volver a la pestaña o cada 5
+ * minutos mientras la app sigue abierta, se olvidan y se reintenta reubicar/adelantar tareas activas según lo
+ * que haya ahora en Calendar (`reubicarTareasSolapadas`/`adelantarTareasSiHayHuecoMejor`, v0.80.0 — antes solo
+ * corrían una vez al iniciar sesión). Sin `alert()`: sería muy invasivo repetirlo cada tanto, mismo criterio que
+ * ya usa el intervalo de `reprogramarTareaInmediataSiVencio`; el cambio se ve solo al redibujarse la vista
+ * activa. Si nada se movió pero la caché sí se refrescó, se redibuja igual para que la vista (Semana, Agenda,
+ * Gantt, Resumen — cualquiera, no solo Resumen como antes de la v0.80.0) muestre los eventos nuevos de
+ * Calendar. No se redibuja con un diálogo abierto ni con texto a medio escribir.
  */
-function refrescarCalendar() {
+async function refrescarCalendar() {
   if (!hayConexionGoogleCalendar()) return;
   invalidarCacheEventos();
   const s = obtenerEstadoSync();
-  if (vistaActual() !== 'resumen' || !s.datosListos || s.soloLectura) return;
+  if (!s.datosListos || s.soloLectura) return;
   if (document.querySelector('dialog[open]') || hayTextoEnEdicion()) return;
   // Tampoco si hay un panel a medio usar en la tarjeta (cerrar la tarea o elegir otra fecha).
   if (CONTENEDOR.querySelector('.panel-cierre, .panel-reprogramar')) return;
-  render();
+
+  let cambio = false;
+  try {
+    const { movidas: reubicadas } = await reubicarTareasSolapadas(estado);
+    const { movidas: adelantadas } = await adelantarTareasSiHayHuecoMejor(estado);
+    cambio = reubicadas.length > 0 || adelantadas.length > 0;
+  } catch {
+    // Falla momentánea de red al pedir eventos: se reintenta en el próximo refresco.
+  }
+
+  if (cambio) await persistirYNotificar(); // ya redibuja
+  else render(); // solo para reflejar los eventos nuevos de Calendar
 }
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') refrescarCalendar();
 });
+
+setInterval(refrescarCalendar, 5 * 60 * 1000);
 
 function renderPantallaInicial(contenedor) {
   const s = obtenerEstadoSync();
