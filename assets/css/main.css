@@ -1033,7 +1033,14 @@ section h3 {
   text-align: center;
 }
 
+.horas-semana-cuerpo {
+  position: relative;
+}
+
 .columna-horas-semana .etiqueta-hora-semana {
+  position: absolute;
+  left: 0;
+  right: 0;
   height: var(--alto-hora, 48px);
   font-size: 0.72rem;
   color: var(--color-texto-suave);

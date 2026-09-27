@@ -1,5 +1,5 @@
 import { soportaGoogle, hayToken, tieneScope, obtenerTokenAcceso, invalidarToken } from './google-auth.js';
-import { fechaLocalISO } from './utilidades.js';
+import { fechaLocalISO, minutosDeHHMM } from './utilidades.js';
 import { obtenerPreferencias } from './preferencias.js';
 
 const DURACION_CACHE_MS = 5 * 60 * 1000;
@@ -241,11 +241,6 @@ export function calcularSolapamiento(tarea, eventos) {
   );
 }
 
-function minutosDe(hhmm) {
-  const [horas, minutos] = String(hhmm).split(':').map(Number);
-  return horas * 60 + minutos;
-}
-
 /**
  * Primer momento libre para una tarea de `duracionMin` minutos: el primer inicio (en pasos de 15
  * min) cuya ventana entera cae dentro de la franja horaria del día, en un día hábil de la tarea, y
@@ -266,8 +261,8 @@ export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dia
     const dia = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + d);
     if (diasHabiles.length > 0 && !diasHabiles.includes(dia.getDay())) continue;
 
-    const inicioFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDe(franja.inicio)).getTime();
-    const finFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDe(franja.fin)).getTime();
+    const inicioFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(franja.inicio)).getTime();
+    const finFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(franja.fin)).getTime();
 
     let candidato = Math.max(inicioFranja, minimo);
     while (candidato + duracionMs <= finFranja) {

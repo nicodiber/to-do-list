@@ -2,6 +2,7 @@
 // preferencias (`preferencias.js`, sincronizadas con Drive); este módulo conserva la API de antes.
 
 import { obtenerPreferencias, guardarPreferencias } from './preferencias.js';
+import { minutosDeHHMM } from './utilidades.js';
 
 /** Por defecto se puede agendar a cualquier hora del día. */
 export const FRANJA_POR_DEFECTO = { inicio: '00:00', fin: '24:00' };
@@ -9,17 +10,12 @@ export const FRANJA_POR_DEFECTO = { inicio: '00:00', fin: '24:00' };
 /** Horas ofrecidas en Configuraciones, cada 30 minutos: de 00:00 a 24:00. */
 export const HORAS_FRANJA = Array.from({ length: 49 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 === 0 ? '00' : '30'}`);
 
-function aMinutos(hhmm) {
-  const [horas, minutos] = String(hhmm).split(':').map(Number);
-  return horas * 60 + minutos;
-}
-
 function esFranjaValida(franja) {
   return (
     !!franja &&
     HORAS_FRANJA.includes(franja.inicio) &&
     HORAS_FRANJA.includes(franja.fin) &&
-    aMinutos(franja.inicio) < aMinutos(franja.fin)
+    minutosDeHHMM(franja.inicio) < minutosDeHHMM(franja.fin)
   );
 }
 

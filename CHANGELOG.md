@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.83.0] - 2026-09-27
+
+La vista Semana mostraba siempre de 07:00 a 23:00, sin importar la franja horaria configurada en Configuraciones → 🗓️ Agenda y Calendar. Ahora es reactiva a esa franja.
+
+### Corregido
+
+- **Semana: horario visible fijo (07:00-23:00)**: las tareas con horario fuera de ese rango (por ejemplo de madrugada o de noche) existían y estaban bien agendadas, pero no se veían en la grilla, dando la sensación de que faltaban tareas respecto a la carga indicada del día. Ahora la grilla muestra el rango configurado en "🗓️ Agenda y Calendar" (desde/hasta), sea cual sea — incluida una franja que no arranca en una hora en punto.
+
 ## [v0.82.0] - 2026-09-27
 
 `reubicarTareasSolapadas` (la que reubica sola una tarea cuando choca con un evento nuevo de Calendar) ahora arrastra en cascada a sus dependientes, en vez de mover solo la tarea que chocaba.

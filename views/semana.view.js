@@ -1,9 +1,10 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearHora, escaparHtml, combinarFechaYHora, tieneHora } from '../assets/js/utilidades.js';
+import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearHora, escaparHtml, combinarFechaYHora, tieneHora, minutosDeHHMM } from '../assets/js/utilidades.js';
 import { esTareaAccionable, compararPorPrioridad, ordenarConCadenas } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 import { obtenerPreferencias, guardarCapacidadDeFecha } from '../assets/js/preferencias.js';
+import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { crearCalculadoraCapacidad } from '../assets/js/capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventos, obtenerEventosParaMostrar } from '../assets/js/google-calendar.js';
 import { obtenerPronosticoDiario, iconoClima } from '../assets/js/clima.js';
@@ -22,10 +23,14 @@ const ETIQUETAS_FILTRO_CLIMA = { ninguno: 'Ninguno', temperatura: '🌡️ Tempe
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-const HORA_INICIO = 7;
-const HORA_FIN = 23;
+// Reactivos a la franja horaria de Configuraciones (`pref_franja`), reasignados al principio de cada
+// `renderVistaSemana` — mismo patrón que `offsetDias`/`ultimoContenedor` (variables de módulo que el resto
+// de las funciones de este archivo leen sin que se les pase por parámetro). Los valores de acá son solo el
+// default hasta el primer render.
+let HORA_INICIO = 7;
+let HORA_FIN = 23;
 const ALTO_HORA_PX = 48;
-const MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
+let MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
 
 /** hex "#rrggbb" → "rgba(r, g, b, alpha)", para el fondo tintado de un bloque de evento. */
 function hexARgba(hex, alpha) {
@@ -79,15 +84,18 @@ function datosDeHora(pronostico, fechaDia, hora) {
   return pronostico.horas.find((h) => h.fechaHora.startsWith(prefijo)) || null;
 }
 
-/** `linear-gradient` de tramos duros, uno por hora visible (`HORA_INICIO`..`HORA_FIN`), para el fondo de un día. */
+/** `linear-gradient` de tramos duros, uno por hora en punto que cae dentro de la franja visible, para el fondo
+ * de un día. El pronóstico de Open-Meteo solo tiene datos por hora en punto, así que con una franja que no
+ * arranca/termina en una (ej. 07:30) el primer/último tramo se recorta a `[0, 100]%` en vez de salirse del
+ * degradé. */
 function construirGradienteClima(pronostico, fechaDia, filtroClima) {
   const totalHoras = HORA_FIN - HORA_INICIO;
   const tramos = [];
-  for (let i = 0; i < totalHoras; i += 1) {
-    const datos = datosDeHora(pronostico, fechaDia, HORA_INICIO + i);
+  for (let hora = Math.floor(HORA_INICIO); hora < Math.ceil(HORA_FIN); hora += 1) {
+    const datos = datosDeHora(pronostico, fechaDia, hora);
     const color = !datos ? 'transparent' : filtroClima === 'temperatura' ? colorTemperatura(datos.temperatura) : colorLluvia(datos.probabilidadLluvia);
-    const desde = (i / totalHoras) * 100;
-    const hasta = ((i + 1) / totalHoras) * 100;
+    const desde = Math.max(0, ((hora - HORA_INICIO) / totalHoras) * 100);
+    const hasta = Math.min(100, ((hora + 1 - HORA_INICIO) / totalHoras) * 100);
     tramos.push(`${color} ${desde}%`, `${color} ${hasta}%`);
   }
   return `linear-gradient(to bottom, ${tramos.join(', ')})`;
@@ -146,6 +154,10 @@ let ultimoContenedor = null;
 
 export function renderVistaSemana(contenedor) {
   ultimoContenedor = contenedor;
+  const franja = obtenerFranjaHoraria();
+  HORA_INICIO = minutosDeHHMM(franja.inicio) / 60;
+  HORA_FIN = minutosDeHHMM(franja.fin) / 60;
+  MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
   const hoy = hoyISO();
   const cantidadDias = leerDiasSemana();
   const mostrarSol = leerMostrarSol();
@@ -345,10 +357,14 @@ function abrirCapacidadDelDia(dia, c) {
 function renderColumnaHoras() {
   const columna = document.createElement('div');
   columna.className = 'columna-horas-semana';
-  let html = '<div class="dia-semana-encabezado"></div>';
-  for (let hora = HORA_INICIO; hora < HORA_FIN; hora += 1) {
-    html += `<div class="etiqueta-hora-semana">${String(hora).padStart(2, '0')}:00</div>`;
+  // Posición absoluta (no apiladas): con una franja que no arranca en una hora en punto (ej. 07:30) no hay
+  // una etiqueta exactamente en el borde, así que cada una se ubica por su propio `top` en vez de asumir
+  // que ocupa exactamente una fila de `ALTO_HORA_PX`.
+  let html = `<div class="dia-semana-encabezado"></div><div class="horas-semana-cuerpo" style="height:${MINUTOS_VISIBLES / 60 * ALTO_HORA_PX}px">`;
+  for (let hora = Math.ceil(HORA_INICIO); hora < HORA_FIN; hora += 1) {
+    html += `<div class="etiqueta-hora-semana" style="top:${(hora - HORA_INICIO) * ALTO_HORA_PX}px">${String(hora).padStart(2, '0')}:00</div>`;
   }
+  html += '</div>';
   columna.innerHTML = html;
   return columna;
 }
