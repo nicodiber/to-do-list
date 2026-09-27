@@ -30,6 +30,12 @@ export function formatearHora(fechaISO) {
   return `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
 }
 
+/** Minutos desde medianoche de un horario `HH:MM` (admite "24:00" = 1440). */
+export function minutosDeHHMM(hhmm) {
+  const [horas, minutos] = String(hhmm).split(':').map(Number);
+  return horas * 60 + minutos;
+}
+
 /** Hoy, como día local. */
 export function hoyISO() {
   return fechaLocalISO();

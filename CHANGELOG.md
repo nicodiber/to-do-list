@@ -2,6 +2,22 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.84.0] - 2026-09-27
+
+Al reprogramar una tarea automáticamente, sus dependientes en cadena ahora también se revalidan contra Calendar y contra el resto de las tareas — antes solo se les sumaba el mismo corrimiento de tiempo que a la cabeza, sin chequear nada.
+
+### Corregido
+
+- **Un dependiente podía quedar solapado con un evento de Calendar, o con otra tarea de una cadena distinta**, tras el corrimiento en cascada de la tarea de la que depende. Ahora, si el corrimiento lo deja chocando (o antes de que su propia previa termine), se le busca un hueco real más adelante — la cadena marca orden, no una separación exacta, así que romperla puntualmente para evitar un choque es lo esperado.
+
+## [v0.83.0] - 2026-09-27
+
+La vista Semana mostraba siempre de 07:00 a 23:00, sin importar la franja horaria configurada en Configuraciones → 🗓️ Agenda y Calendar. Ahora es reactiva a esa franja.
+
+### Corregido
+
+- **Semana: horario visible fijo (07:00-23:00)**: las tareas con horario fuera de ese rango (por ejemplo de madrugada o de noche) existían y estaban bien agendadas, pero no se veían en la grilla, dando la sensación de que faltaban tareas respecto a la carga indicada del día. Ahora la grilla muestra el rango configurado en "🗓️ Agenda y Calendar" (desde/hasta), sea cual sea — incluida una franja que no arranca en una hora en punto.
+
 ## [v0.82.0] - 2026-09-27
 
 `reubicarTareasSolapadas` (la que reubica sola una tarea cuando choca con un evento nuevo de Calendar) ahora arrastra en cascada a sus dependientes, en vez de mover solo la tarea que chocaba.

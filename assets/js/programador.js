@@ -147,6 +147,58 @@ export async function programarTareasSinFecha(estado) {
 }
 
 /**
+ * Tras un corrimiento en cascada, revalida cada dependiente de `cabeza` (recorriendo la cadena por
+ * `tarea_dependiente` — la regla 1 a 1 del modelo garantiza que es lineal, sin ramas) contra Calendar y contra
+ * el resto de las tareas ya ocupadas, algo que `reprogramarTareaConCascada` no hace (solo suma el mismo delta
+ * de tiempo a cada uno — ver `tareas-logica.js`; no se tocó esa función para evitar un ciclo de imports con
+ * `google-calendar.js` y porque tiene otros ~8 usos, de acciones directas del usuario, que quedan fuera de
+ * esta ronda). El objetivo de una cadena es marcar orden, no una separación exacta (decisión del usuario,
+ * v0.84.0): si un dependiente queda solapado, se le busca un hueco real más adelante (respetando que siga
+ * después del fin de su propia previa, ya resuelta) en vez de dejarlo así — y se sigue por la cadena con la
+ * posición final de cada uno, no con el delta original. Sin hueco disponible antes de su fecha límite (caso
+ * raro), queda con el corrimiento de la cascada tal cual: se reintenta en el próximo refresco.
+ */
+function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
+  // El resto de la cadena (todavía sin procesar) queda afuera de "otras": todavía tiene la posición vieja del
+  // corrimiento plano y está a punto de moverse — contarla como ocupada empujaría a los eslabones anteriores
+  // más de lo necesario.
+  const idsCadena = new Set([cabeza.tarea_id]);
+  for (let t = todas.find((x) => x.tarea_dependiente === cabeza.tarea_id); t; t = todas.find((x) => x.tarea_dependiente === t.tarea_id)) {
+    idsCadena.add(t.tarea_id);
+  }
+
+  let previa = cabeza;
+  let actual = todas.find((t) => t.tarea_dependiente === previa.tarea_id && t.tarea_estado !== 'completada');
+
+  while (actual) {
+    if (tieneHora(actual.tarea_fecha_sugerida)) {
+      const duracion = actual.tarea_duracion_min || 30;
+      const otras = todas
+        .filter((t) => !idsCadena.has(t.tarea_id) && t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida))
+        .map((t) => ({ inicio: t.tarea_fecha_sugerida, fin: new Date(new Date(t.tarea_fecha_sugerida).getTime() + (t.tarea_duracion_min || 30) * 60000).toISOString() }));
+
+      const finPrevia = tieneHora(previa.tarea_fecha_sugerida)
+        ? new Date(previa.tarea_fecha_sugerida).getTime() + (previa.tarea_duracion_min || 30) * 60000
+        : null;
+      // El corrimiento plano puede dejarla sin chocar con nada y aun así antes de que su propia previa
+      // termine (por ejemplo, si la previa tuvo que correrse más de lo que le tocaba a esta por otro choque).
+      const antesDeSuPrevia = finPrevia != null && new Date(actual.tarea_fecha_sugerida).getTime() < finPrevia;
+
+      if (antesDeSuPrevia || calcularSolapamiento(actual, eventos) || calcularSolapamiento(actual, otras)) {
+        let desde = new Date(actual.tarea_fecha_sugerida);
+        if (finPrevia != null && finPrevia > desde.getTime()) desde = new Date(finPrevia);
+        const diaLimite = actual.tarea_fecha_limite ? diaLocal(actual.tarea_fecha_limite) : null;
+        const dias = diaLimite ? Math.max(1, diasEntreFechas(fechaLocalISO(desde), diaLimite) + 1) : diasHorizonteCalendar();
+        const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles: actual.tarea_dias_habiles || [] });
+        if (hueco && !superaLimite(hueco, actual.tarea_fecha_limite)) actual.tarea_fecha_sugerida = hueco;
+      }
+    }
+    previa = actual;
+    actual = todas.find((t) => t.tarea_dependiente === previa.tarea_id && t.tarea_estado !== 'completada');
+  }
+}
+
+/**
  * Tareas activas con `tarea_fecha_sugerida` (con hora) que quedó tapada por un evento de Calendar cargado
  * después de asignarla (por ejemplo, una reunión nueva): las reubica solas en el próximo hueco libre, sin
  * pasar de `tarea_fecha_limite` si la tiene, arrastrando a sus dependientes en cascada (v0.82.0, con
@@ -188,6 +240,7 @@ export async function reubicarTareasSolapadas(estado) {
     const hueco = buscarHuecoLibre(eventos, duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
     if (hueco && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
       inconsistentes.push(...reprogramarTareaConCascada(tarea, hueco, estado.tareas));
+      resolverColisionesEnCadena(tarea, estado.tareas, eventos, preferencias);
       movidas.push(tarea);
     } else {
       sinHueco.push(tarea);
@@ -238,6 +291,7 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
   if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
   const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
+  resolverColisionesEnCadena(tarea, estado.tareas, eventos, preferencias);
   return { tarea, sinHueco: false, inconsistentes };
 }
 
@@ -271,6 +325,7 @@ export async function programarParaHoy(tarea, estado) {
   if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
   const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
+  resolverColisionesEnCadena(tarea, estado.tareas, eventos, preferencias);
   return { tarea, sinHueco: false, inconsistentes };
 }
 
@@ -327,6 +382,7 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
     const hueco = buscarHuecoLibre([...eventos, ...ocupados], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
     if (hueco && new Date(hueco).getTime() < new Date(tarea.tarea_fecha_sugerida).getTime() && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
       reprogramarTareaConCascada(tarea, hueco, todas);
+      resolverColisionesEnCadena(tarea, todas, eventos, preferencias);
       movidas.push(tarea);
     }
 
