@@ -2,6 +2,20 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.85.0] - 2026-09-27
+
+Ronda de pulido de la vista Resumen (y dos ajustes iguales en Agenda).
+
+### Agregado
+
+- **Contador de tareas** junto al título de "🚨 Urgentes", "📌 Hoy" y "🌅 Mañana" (mismo criterio que ya usan "Vencidas"/"Resto"/etc.: cuenta accionables + bloqueadas de solo lectura mostradas ahí).
+- **"🧭 Próximos por categoría"** se reposiciona antes de "🌅 Mañana" y pasa a mostrarse siempre que tenga contenido (antes solo aparecía si no había nada en Vencidas/Urgentes/Hoy).
+
+### Cambiado
+
+- **"🌅 Mañana"** pasa a estar plegada por defecto (mismo patrón que "Vencidas"/"Resto de tus pendientes").
+- **Se saca el filtro "📍 ¿Dónde estás?"** de Resumen y de Agenda (sigue disponible en Tareas). El módulo `assets/js/ubicacion-actual.js` no se tocó.
+
 ## [v0.84.0] - 2026-09-27
 
 Al reprogramar una tarea automáticamente, sus dependientes en cadena ahora también se revalidan contra Calendar y contra el resto de las tareas — antes solo se les sumaba el mismo corrimiento de tiempo que a la cabeza, sin chequear nada.
