@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.82.0] - 2026-09-27
+
+`reubicarTareasSolapadas` (la que reubica sola una tarea cuando choca con un evento nuevo de Calendar) ahora arrastra en cascada a sus dependientes, en vez de mover solo la tarea que chocaba.
+
+### Corregido
+
+- Al reubicar una tarea que chocaba con un evento de Calendar, la tarea siguiente en su cadena de dependencias no se corría con ella (quedaba en su horario viejo, potencialmente antes de que terminara la que la bloqueaba). Era la única de las cuatro funciones de reprogramación automática que no usaba `reprogramarTareaConCascada` — un caso suelto de antes de que existiera esa utilidad (v0.76.0), nunca actualizado.
+
 ## [v0.81.0] - 2026-09-27
 
 Las tareas "proyectadas" (línea punteada, fondo transparente en Semana — sin `tarea_fecha_sugerida`, o con fecha cargada pero sin hora) ahora también se revisan contra Google Calendar en cada refresco, no solo al iniciar sesión.

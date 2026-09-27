@@ -149,26 +149,31 @@ export async function programarTareasSinFecha(estado) {
 /**
  * Tareas activas con `tarea_fecha_sugerida` (con hora) que quedó tapada por un evento de Calendar cargado
  * después de asignarla (por ejemplo, una reunión nueva): las reubica solas en el próximo hueco libre, sin
- * pasar de `tarea_fecha_limite` si la tiene. Sin conexión a Calendar no hace nada. Devuelve `{ movidas,
- * sinHueco }` — `sinHueco` son las que chocan pero no tienen hueco libre antes de su límite (quedan como
- * estaban, para que el usuario las revise a mano).
+ * pasar de `tarea_fecha_limite` si la tiene, arrastrando a sus dependientes en cascada (v0.82.0, con
+ * `reprogramarTareaConCascada` — antes asignaba la fecha directo, sin correr a la tarea siguiente en la
+ * cadena; era la única de las cuatro funciones de esta sección que no la usaba, por ser anterior a esa
+ * utilidad). Sin conexión a Calendar no hace nada. Devuelve `{ movidas, sinHueco, inconsistentes }` —
+ * `sinHueco` son las que chocan pero no tienen hueco libre antes de su límite (quedan como estaban, para
+ * que el usuario las revise a mano); `inconsistentes` son dependientes que quedaron con la sugerida después
+ * de su propia fecha límite tras el corrimiento (ver `avisoInconsistentes` en `tareas-logica.js`).
  */
 export async function reubicarTareasSolapadas(estado) {
-  if (!hayConexionGoogleCalendar()) return { movidas: [], sinHueco: [] };
+  if (!hayConexionGoogleCalendar()) return { movidas: [], sinHueco: [], inconsistentes: [] };
 
   const candidatas = (estado.tareas || []).filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida));
-  if (candidatas.length === 0) return { movidas: [], sinHueco: [] };
+  if (candidatas.length === 0) return { movidas: [], sinHueco: [], inconsistentes: [] };
 
   let eventos = [];
   try {
     eventos = await obtenerEventosDelHorizonte();
   } catch {
-    return { movidas: [], sinHueco: [] }; // Falla momentánea de red: se reintenta en la próxima sesión.
+    return { movidas: [], sinHueco: [], inconsistentes: [] }; // Falla momentánea de red: se reintenta en la próxima sesión.
   }
 
   const preferencias = obtenerPreferencias();
   const movidas = [];
   const sinHueco = [];
+  const inconsistentes = [];
 
   candidatas.forEach((tarea) => {
     const choque = calcularSolapamiento(tarea, eventos);
@@ -182,14 +187,14 @@ export async function reubicarTareasSolapadas(estado) {
 
     const hueco = buscarHuecoLibre(eventos, duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
     if (hueco && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
-      tarea.tarea_fecha_sugerida = hueco;
+      inconsistentes.push(...reprogramarTareaConCascada(tarea, hueco, estado.tareas));
       movidas.push(tarea);
     } else {
       sinHueco.push(tarea);
     }
   });
 
-  return { movidas, sinHueco };
+  return { movidas, sinHueco, inconsistentes };
 }
 
 /**
