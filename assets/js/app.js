@@ -38,7 +38,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.81.0';
+const VERSION = 'v0.82.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -383,12 +383,12 @@ async function reprogramarSiCorresponde() {
   if (reprogramado || !obtenerEstadoSync().datosListos) return;
   reprogramado = true;
   const { afectadas: vencidas, inconsistentes: inconsistentesVencidas } = reprogramarFechasSugeridasVencidas(estado.tareas);
-  const { movidas: reubicadas, sinHueco: sinHuecoReubicadas } = await reubicarTareasSolapadas(estado);
+  const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas } = await reubicarTareasSolapadas(estado);
   const { asignadas: nuevas, sinHueco: sinHuecoNuevas } = await programarTareasSinFecha(estado);
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
 
   const sinHueco = [...sinHuecoReubicadas, ...sinHuecoNuevas];
-  const inconsistentes = [...inconsistentesVencidas];
+  const inconsistentes = [...inconsistentesVencidas, ...inconsistentesReubicadas];
   if (inmediata) {
     if (inmediata.sinHueco) sinHueco.push(inmediata.tarea);
     else vencidas.push(inmediata.tarea);
