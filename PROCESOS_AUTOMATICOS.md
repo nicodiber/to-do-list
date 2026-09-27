@@ -112,9 +112,9 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 
 ## 19. Búsqueda del próximo hueco libre y refresco de los eventos de Calendar
 
-- **Condición**: (a) una tarea con horario se superpone con un evento y el usuario aprieta "Al próximo hueco libre" en Hoy; (b) el usuario usa "Sincronizar ahora" o vuelve a la pestaña con la conexión de Calendar activa.
-- **Proceso**: (a) `buscarHuecoLibre` (`assets/js/google-calendar.js`) recorre día por día los eventos del horizonte, dentro de la franja horaria de Configuraciones (`obtenerFranjaHoraria`) y solo en días hábiles de la tarea, y devuelve el primer inicio (en pasos de 15 minutos, desde la hora sugerida y nunca antes de ahora) cuya ventana no choca con ningún evento. (b) `refrescarCalendar` (`assets/js/app.js`) llama a `invalidarCacheEventos` y, si se está mirando Hoy sin ventanas ni paneles abiertos ni texto en edición, redibuja.
-- **Resultado**: (a) la tarea se reprograma con `reprogramarTareaConCascada` (las tareas que dependen de ella se corren en cascada) y se guarda; si no hay hueco en 15 días avisa y ofrece el panel de fecha. (b) los avisos de superposición reflejan lo que hay ahora en Calendar sin esperar los 5 minutos de la caché.
+- **Condición**: (a) una tarea con horario se superpone con un evento y el usuario aprieta "Al próximo hueco libre" en Hoy; (b) el usuario usa "Sincronizar ahora", vuelve a la pestaña o pasan 5 minutos con la conexión de Calendar activa.
+- **Proceso**: (a) `buscarHuecoLibre` (`assets/js/google-calendar.js`) recorre día por día los eventos del horizonte, dentro de la franja horaria de Configuraciones (`obtenerFranjaHoraria`) y solo en días hábiles de la tarea, y devuelve el primer inicio (en pasos de 15 minutos, desde la hora sugerida y nunca antes de ahora) cuya ventana no choca con ningún evento. (b) `refrescarCalendar` (`assets/js/app.js`) llama a `invalidarCacheEventos`, corre los procesos 28 y 29b (ver abajo) y, sin ventanas ni paneles abiertos ni texto en edición, redibuja **la vista que esté activa** (v0.80.0: antes solo si era Resumen).
+- **Resultado**: (a) la tarea se reprograma con `reprogramarTareaConCascada` (las tareas que dependen de ella se corren en cascada) y se guarda; si no hay hueco en 15 días avisa y ofrece el panel de fecha. (b) cualquier vista que muestre eventos de Calendar (Resumen, Semana, Agenda, Gantt) refleja lo que hay ahora, sin esperar los 5 minutos de la caché ni tener que recargar la página.
 
 ## 20. El historial de un hábito sigue a la tarea cuando se la renombra
 
@@ -160,9 +160,9 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 
 ## 28. Reubicación automática de una tarea que choca con Calendar
 
-- **Condición**: al iniciar la app (mismo momento que los procesos 5 y 27), hay conexión con Google Calendar y una tarea activa tiene `tarea_fecha_sugerida` con hora que se superpone con un evento (por ejemplo, uno cargado después de asignarle esa hora).
+- **Condición**: al iniciar la app (mismo momento que los procesos 5 y 27) y, desde la v0.80.0, cada vez que se refresca la lectura de Calendar (proceso 19: al sincronizar, volver a la pestaña o cada 5 minutos), hay conexión con Google Calendar y una tarea activa tiene `tarea_fecha_sugerida` con hora que se superpone con un evento (por ejemplo, uno cargado después de asignarle esa hora).
 - **Proceso**: `reubicarTareasSolapadas` (`assets/js/programador.js`) detecta el choque (`calcularSolapamiento`, mismo mecanismo que el proceso 9) y busca el próximo hueco libre (`buscarHuecoLibre`) desde la hora sugerida actual, sin pasar de `tarea_fecha_limite` si la tiene.
-- **Resultado**: si encuentra hueco, `tarea_fecha_sugerida` se reubica sola y se avisa junto con los avisos de los procesos 5 y 27. Si no hay hueco libre antes de su fecha límite (o, sin límite, dentro del horizonte configurado), la tarea queda como estaba y se avisa por nombre para que el usuario la revise a mano.
+- **Resultado**: si encuentra hueco, `tarea_fecha_sugerida` se reubica sola. Al iniciar la app se avisa junto con los avisos de los procesos 5 y 27; en los refrescos posteriores (v0.80.0) es silencioso, sin `alert()` (mismo criterio que el proceso 29 y el 30 de abajo) — el cambio se ve en la vista que se redibuje. Si no hay hueco libre antes de su fecha límite (o, sin límite, dentro del horizonte configurado), la tarea queda como estaba (solo se avisa por nombre al iniciar la app, no en los refrescos posteriores).
 
 ## 29. Reprogramación de la tarea inmediata cuando su ventana venció sin completarse
 
@@ -170,8 +170,8 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Proceso**: `reprogramarTareaInmediataSiVencio` (`assets/js/programador.js`) busca el próximo hueco real desde ahora (`buscarHuecoLibre`, sin pasar de `tarea_fecha_limite` si la tiene) y reprograma con `reprogramarTareaConCascada` (cascada a sus dependientes). Mientras "ahora" está **dentro** de esa ventana (todavía no le tocaba, o el usuario la está haciendo en este momento) no se toca — evita reprogramar en cascada una tarea que sigue en curso.
 - **Resultado**: al iniciar, se avisa junto con los procesos 5/27/28 (o que no hay hueco libre antes del límite). El chequeo periódico posterior (cada 90 s, mientras la app sigue abierta) reprograma en silencio, sin `alert()`, para no interrumpir cada vez que corre — el cambio se ve en la próxima vista que se redibuje.
 
-## 30. Refresco de Calendar en cada verificación periódica con Drive
+## 30. Adelanto automático de una tarea cuando se libera un hueco mejor en Calendar
 
-- **Condición**: la verificación automática con Drive corre (al volver a la pestaña, al recuperar red o cada 5 minutos — ver `assets/js/almacenamiento.js`, `verificar()`).
-- **Proceso** (v0.76.0): cada corrida invalida también la caché de eventos de Calendar (`invalidarCacheEventos()`, `assets/js/google-calendar.js`), antes de verificar Drive.
-- **Resultado**: las vistas que muestran eventos de Calendar (Hoy, Semana, "Revisar mi día") los vuelven a pedir en su próximo render, sin esperar los 5 minutos propios de esa caché — no hace falta redibujar aparte, porque `verificar()` ya termina en `notificar()`.
+- **Condición** (v0.80.0): se refresca la lectura de Calendar (proceso 19: al sincronizar, volver a la pestaña o cada 5 minutos) y una tarea activa con `tarea_fecha_sugerida` con hora podría empezar más temprano que su horario actual — por ejemplo, se movió o se borró un evento que antes le tapaba un hueco anterior.
+- **Proceso**: `adelantarTareasSiHayHuecoMejor` (`assets/js/programador.js`) busca, para cada tarea con horario (en orden de prioridad, para que dos tareas no compitan por el mismo hueco liberado), el primer hueco real desde ahora — sin pasar de `tarea_fecha_limite`, sin adelantarla antes de su fecha de habilitación ni del fin de su tarea previa en la cadena — y, si es más temprano que el que ya tenía, la mueve con `reprogramarTareaConCascada` (cascada a sus dependientes). A diferencia del proceso 28, no espera un choque: es oportunista, no reactiva.
+- **Resultado**: la tarea (y su cadena, si corresponde) se adelanta sola, en silencio y sin `alert()` (mismo criterio que el proceso 29) — el cambio se ve en la vista que se redibuje. (Nota: hasta la v0.79.0, la caché de eventos de Calendar se invalidaba también desde la verificación periódica con Drive, `assets/js/almacenamiento.js`; desde la v0.80.0 ese refresco quedó centralizado en el proceso 19, junto con este.)

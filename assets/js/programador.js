@@ -3,14 +3,15 @@
 // Calendar (si está conectado) y las cadenas de dependencia. `programarTareasSinFecha`/`reubicarTareasSolapadas`
 // se llaman una sola vez por sesión desde `app.js` (`reprogramarSiCorresponde`), igual que
 // `reprogramarFechasSugeridasVencidas` ya hace con las vencidas; `reprogramarTareaInmediataSiVencio` además se
-// repite cada 1-2 minutos mientras la app sigue abierta (ver `app.js`).
+// repite cada 1-2 minutos mientras la app sigue abierta, y `adelantarTareasSiHayHuecoMejor` cada vez que se
+// refresca la lectura de Calendar (`refrescarCalendar`, ver `app.js`).
 
 import { diaLocal, hoyISO, fechaISOMasDias, tieneHora, diasEntreFechas } from './utilidades.js';
 import { obtenerPreferencias } from './preferencias.js';
 import { crearCalculadoraCapacidad } from './capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento } from './google-calendar.js';
 import { habilitadaReal } from './gantt-modelo.js';
-import { reprogramarTareaConCascada } from './tareas-logica.js';
+import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
 
 /** ¿`fechaISO` pasa (o iguala) `limiteISO`? Con hora, compara el instante exacto; sin hora, el día calendario
  * (mismo criterio que ya usaba la app). `false` sin límite cargado. */
@@ -259,4 +260,68 @@ export async function programarParaHoy(tarea, estado) {
 
   const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
   return { tarea, sinHueco: false, inconsistentes };
+}
+
+/**
+ * Tareas activas con `tarea_fecha_sugerida` (con hora) que podrían adelantarse a un hueco mejor que quedó libre
+ * en Calendar (por ejemplo, se movió o se borró un evento) — a diferencia de `reubicarTareasSolapadas`, que solo
+ * reacciona cuando el horario actual choca, esta es oportunista: adelanta aunque no haya conflicto, si aparece
+ * un hueco real más temprano. No hace falta excluir la tarea "en curso": `buscarHuecoLibre` nunca devuelve un
+ * hueco anterior a "ahora", así que si la tarea ya empezó ningún hueco puede salir "mejor" y la comparación la
+ * descarta sola. Respeta la fecha de habilitación y el fin de su previa en la cadena (no la adelanta antes de
+ * que la previa termine). Se llama junto con `reubicarTareasSolapadas` cada vez que se refresca la lectura de
+ * Calendar (`refrescarCalendar`, `app.js`), en silencio (sin `alert()`, mismo criterio que el intervalo de 90 s
+ * de `reprogramarTareaInmediataSiVencio`). Devuelve `{ movidas }`.
+ */
+export async function adelantarTareasSiHayHuecoMejor(estado) {
+  if (!hayConexionGoogleCalendar()) return { movidas: [] };
+
+  const todas = estado.tareas || [];
+  const porId = new Map(todas.map((t) => [t.tarea_id, t]));
+  const candidatas = todas
+    .filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida))
+    .sort(compararPorPrioridad); // la de más prioridad se queda con el hueco si dos compiten por el mismo
+
+  if (candidatas.length === 0) return { movidas: [] };
+
+  let eventos = [];
+  try {
+    eventos = await obtenerEventosDelHorizonte();
+  } catch {
+    return { movidas: [] }; // falla momentánea de red: se reintenta en el próximo refresco
+  }
+
+  const preferencias = obtenerPreferencias();
+  const movidas = [];
+  const ocupados = []; // lo que ya se resolvió en esta pasada, para que dos tareas no se peleen el mismo hueco
+
+  candidatas.forEach((tarea) => {
+    const duracion = tarea.tarea_duracion_min || 30;
+    const diasHabiles = tarea.tarea_dias_habiles || [];
+    const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
+    const dias = diaLimite ? Math.max(1, diasEntreFechas(hoyISO(), diaLimite) + 1) : diasHorizonteCalendar();
+
+    // Piso: ahora, la fecha de habilitación (si es futura) y el fin de su previa en la cadena (si tiene una con
+    // fecha propia) — para no adelantarla antes de que pueda empezar de verdad.
+    let desde = new Date();
+    const habilitada = habilitadaReal(tarea);
+    if (habilitada && habilitada > hoyISO()) desde = new Date(`${habilitada}T00:00:00`);
+    const previa = tarea.tarea_dependiente ? porId.get(tarea.tarea_dependiente) : null;
+    if (previa && previa.tarea_fecha_sugerida) {
+      const finPrevia = new Date(previa.tarea_fecha_sugerida).getTime() + (previa.tarea_duracion_min || 30) * 60000;
+      if (finPrevia > desde.getTime()) desde = new Date(finPrevia);
+    }
+
+    const hueco = buscarHuecoLibre([...eventos, ...ocupados], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
+    if (hueco && new Date(hueco).getTime() < new Date(tarea.tarea_fecha_sugerida).getTime() && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
+      reprogramarTareaConCascada(tarea, hueco, todas);
+      movidas.push(tarea);
+    }
+
+    // Reserva el horario final (nuevo o el que ya tenía) para la próxima tarea de esta misma pasada.
+    const inicio = new Date(tarea.tarea_fecha_sugerida).getTime();
+    ocupados.push({ inicio: tarea.tarea_fecha_sugerida, fin: new Date(inicio + duracion * 60000).toISOString() });
+  });
+
+  return { movidas };
 }

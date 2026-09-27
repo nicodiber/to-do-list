@@ -2,6 +2,19 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.80.0] - 2026-09-26
+
+La app vuelve a reaccionar a los cambios de Google Calendar mientras sigue abierta, no solo al iniciar sesión: al sincronizar, volver a la pestaña o cada 5 minutos, refresca la lectura de Calendar en la vista que estés mirando (antes solo redibujaba en Resumen) y reintenta acomodar mejor las tareas ya programadas si se liberó un hueco más temprano.
+
+### Agregado
+
+- **Reprogramación oportunista**: si un evento de Calendar se mueve o se borra y deja un hueco más temprano que el que ya tenía asignada una tarea, la tarea se adelanta sola (respetando su fecha límite, su fecha de habilitación y el fin de su tarea previa en la cadena). Antes solo se reubicaba una tarea si su horario chocaba con un evento nuevo.
+
+### Corregido
+
+- **"🔄 Sincronizar ahora" no actualizaba la lectura de Calendar fuera de la vista Resumen**: invalidaba la caché de eventos pero solo forzaba el redibujado si estabas mirando Resumen; en Semana, Agenda o Gantt seguías viendo los eventos viejos hasta navegar a otra pestaña o recargar la página. Ahora se redibuja la vista que corresponda, sea cual sea.
+- La reubicación y la nueva reprogramación oportunista ahora también corren al sincronizar a mano, al volver a la pestaña y cada 5 minutos mientras la app sigue abierta — antes solo se ejecutaban una vez, al iniciar sesión.
+
 ## [v0.79.0] - 2026-09-26
 
 Clima en la vista Semana: ícono de pronóstico por día, amanecer/atardecer y degradé de temperatura/lluvia, sobre una ubicación de referencia elegida en Configuraciones.
