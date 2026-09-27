@@ -38,7 +38,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.80.0';
+const VERSION = 'v0.81.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -263,13 +263,15 @@ BOTON_REHACER.addEventListener('click', rehacer);
 
 /**
  * Los eventos de Calendar se guardan unos minutos en memoria. Al sincronizar, volver a la pestaña o cada 5
- * minutos mientras la app sigue abierta, se olvidan y se reintenta reubicar/adelantar tareas activas según lo
- * que haya ahora en Calendar (`reubicarTareasSolapadas`/`adelantarTareasSiHayHuecoMejor`, v0.80.0 — antes solo
- * corrían una vez al iniciar sesión). Sin `alert()`: sería muy invasivo repetirlo cada tanto, mismo criterio que
- * ya usa el intervalo de `reprogramarTareaInmediataSiVencio`; el cambio se ve solo al redibujarse la vista
- * activa. Si nada se movió pero la caché sí se refrescó, se redibuja igual para que la vista (Semana, Agenda,
- * Gantt, Resumen — cualquiera, no solo Resumen como antes de la v0.80.0) muestre los eventos nuevos de
- * Calendar. No se redibuja con un diálogo abierto ni con texto a medio escribir.
+ * minutos mientras la app sigue abierta, se olvidan y se reintenta reubicar/asignar/adelantar tareas activas
+ * según lo que haya ahora en Calendar (`reubicarTareasSolapadas`/`programarTareasSinFecha`/
+ * `adelantarTareasSiHayHuecoMejor` — antes de la v0.80.0/v0.81.0 corrían una sola vez al iniciar sesión, y
+ * `programarTareasSinFecha` además no contemplaba las tareas "proyectadas" con fecha cargada sin hora). Sin
+ * `alert()`: sería muy invasivo repetirlo cada tanto, mismo criterio que ya usa el intervalo de
+ * `reprogramarTareaInmediataSiVencio`; el cambio se ve solo al redibujarse la vista activa. Si nada se movió
+ * pero la caché sí se refrescó, se redibuja igual para que la vista (Semana, Agenda, Gantt, Resumen —
+ * cualquiera, no solo Resumen como antes de la v0.80.0) muestre los eventos nuevos de Calendar. No se redibuja
+ * con un diálogo abierto ni con texto a medio escribir.
  */
 async function refrescarCalendar() {
   if (!hayConexionGoogleCalendar()) return;
@@ -283,8 +285,9 @@ async function refrescarCalendar() {
   let cambio = false;
   try {
     const { movidas: reubicadas } = await reubicarTareasSolapadas(estado);
+    const { asignadas } = await programarTareasSinFecha(estado);
     const { movidas: adelantadas } = await adelantarTareasSiHayHuecoMejor(estado);
-    cambio = reubicadas.length > 0 || adelantadas.length > 0;
+    cambio = reubicadas.length > 0 || asignadas.length > 0 || adelantadas.length > 0;
   } catch {
     // Falla momentánea de red al pedir eventos: se reintenta en el próximo refresco.
   }

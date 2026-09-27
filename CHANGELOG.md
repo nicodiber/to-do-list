@@ -2,6 +2,15 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.81.0] - 2026-09-27
+
+Las tareas "proyectadas" (línea punteada, fondo transparente en Semana — sin `tarea_fecha_sugerida`, o con fecha cargada pero sin hora) ahora también se revisan contra Google Calendar en cada refresco, no solo al iniciar sesión.
+
+### Agregado
+
+- `programarTareasSinFecha` ahora también asigna hora a las tareas que ya tienen una fecha sugerida sin hora (antes solo a las que no tenían ninguna), sin adelantarlas antes de esa fecha, y corre en cada refresco de Calendar (sincronizar, volver a la pestaña, cada 5 minutos), no solo al iniciar.
+- **Cadenas de tareas sin hora**: si varias tareas encadenadas no tienen hora, se agendan según el orden de la cadena y la duración real de cada una (una detrás de la otra, el mismo día si entran), en vez de forzar un salto de un día completo por cada eslabón.
+
 ## [v0.80.0] - 2026-09-26
 
 La app vuelve a reaccionar a los cambios de Google Calendar mientras sigue abierta, no solo al iniciar sesión: al sincronizar, volver a la pestaña o cada 5 minutos, refresca la lectura de Calendar en la vista que estés mirando (antes solo redibujaba en Resumen) y reintenta acomodar mejor las tareas ya programadas si se liberó un hueco más temprano.

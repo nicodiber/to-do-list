@@ -1,12 +1,13 @@
-// Programación automática: a las tareas activas sin `tarea_fecha_sugerida` (y sin ser de mantenimiento, que tienen
-// su propio ritmo) les asigna un día y una hora reales, respetando el tope de minutos por día, lo ocupado en Google
-// Calendar (si está conectado) y las cadenas de dependencia. `programarTareasSinFecha`/`reubicarTareasSolapadas`
-// se llaman una sola vez por sesión desde `app.js` (`reprogramarSiCorresponde`), igual que
-// `reprogramarFechasSugeridasVencidas` ya hace con las vencidas; `reprogramarTareaInmediataSiVencio` además se
-// repite cada 1-2 minutos mientras la app sigue abierta, y `adelantarTareasSiHayHuecoMejor` cada vez que se
-// refresca la lectura de Calendar (`refrescarCalendar`, ver `app.js`).
+// Programación automática: a las tareas activas sin hora real en `tarea_fecha_sugerida` (sin ninguna fecha, o con
+// fecha cargada pero sin hora — "proyectadas" en Semana; y sin ser de mantenimiento, que tienen su propio ritmo)
+// les asigna un día y una hora reales, respetando el tope de minutos por día, lo ocupado en Google Calendar (si
+// está conectado) y las cadenas de dependencia (por orden y duración real, no un salto fijo de un día).
+// `reprogramarFechasSugeridasVencidas` se llama una sola vez por sesión desde `app.js` (`reprogramarSiCorresponde`);
+// `reprogramarTareaInmediataSiVencio` además se repite cada 1-2 minutos mientras la app sigue abierta, y
+// `programarTareasSinFecha`/`reubicarTareasSolapadas`/`adelantarTareasSiHayHuecoMejor` cada vez que se refresca la
+// lectura de Calendar (`refrescarCalendar`, ver `app.js`), no solo al iniciar sesión (v0.81.0).
 
-import { diaLocal, hoyISO, fechaISOMasDias, tieneHora, diasEntreFechas } from './utilidades.js';
+import { diaLocal, hoyISO, fechaLocalISO, fechaISOMasDias, tieneHora, diasEntreFechas } from './utilidades.js';
 import { obtenerPreferencias } from './preferencias.js';
 import { crearCalculadoraCapacidad } from './capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento } from './google-calendar.js';
@@ -21,21 +22,18 @@ function superaLimite(fechaISO, limiteISO) {
   return diaLocal(fechaISO) > limiteISO;
 }
 
-function maximo(...dias) {
-  return dias.filter(Boolean).sort().pop();
-}
-
 /**
- * Asigna `tarea_fecha_sugerida` (día y hora reales) a toda tarea activa que no tenga una: primero un día con
- * capacidad libre (`crearCalculadoraCapacidad`, desde hoy o desde que la cadena lo permite), después un hueco
- * horario real dentro de ese día (`buscarHuecoLibre`) que no choque con Calendar ni con otras tareas ya asignadas.
- * Sin conexión con Calendar, solo mira el tope de minutos (sin buscar eventos). Devuelve `{ asignadas, sinHueco }`
- * — `sinHueco` son las que no encontraron día antes de su horizonte o de su fecha límite (quedan sin programar
- * por ahora, para que el usuario las revise a mano; se reintenta en la próxima sesión).
+ * Asigna `tarea_fecha_sugerida` (día y hora reales) a toda tarea activa sin hora real todavía — sin ninguna fecha
+ * sugerida, o con una fecha cargada a mano pero sin hora (v0.81.0: antes solo la primera): primero un día con
+ * capacidad libre (`crearCalculadoraCapacidad`, desde ahora, desde la fecha que ya tenía o desde que la cadena lo
+ * permite), después un hueco horario real dentro de ese día (`buscarHuecoLibre`) que no choque con Calendar ni con
+ * otras tareas ya asignadas. Sin conexión con Calendar, solo mira el tope de minutos (sin buscar eventos). Devuelve
+ * `{ asignadas, sinHueco }` — `sinHueco` son las que no encontraron día antes de su horizonte o de su fecha límite
+ * (quedan sin programar por ahora, para que el usuario las revise a mano; se reintenta en el próximo refresco).
  */
 export async function programarTareasSinFecha(estado) {
   const todas = estado.tareas || [];
-  const candidatas = todas.filter((t) => t.tarea_estado !== 'completada' && !t.tarea_fecha_sugerida && !t.tarea_mantenimiento);
+  const candidatas = todas.filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida) && !t.tarea_mantenimiento);
   if (candidatas.length === 0) return { asignadas: [], sinHueco: [] };
 
   const preferencias = obtenerPreferencias();
@@ -85,22 +83,31 @@ export async function programarTareasSinFecha(estado) {
   const sinHueco = [];
   const enCurso = new Set();
 
-  function diaMinimoDe(tarea) {
-    let dm = hoy;
+  // Instante a partir del cual puede empezar (no un día: ahora, la habilitación, la fecha que ya tenía cargada
+  // sin hora, o el fin real de su previa — orden de la cadena por duración, no un salto fijo de un día).
+  function pisoDe(tarea) {
+    let piso = ahora;
     const habilitada = habilitadaReal(tarea);
-    if (habilitada) dm = maximo(dm, habilitada);
+    if (habilitada) piso = new Date(Math.max(piso.getTime(), new Date(`${habilitada}T00:00:00`).getTime()));
+    if (tarea.tarea_fecha_sugerida && !tieneHora(tarea.tarea_fecha_sugerida)) {
+      piso = new Date(Math.max(piso.getTime(), new Date(`${tarea.tarea_fecha_sugerida}T00:00:00`).getTime()));
+    }
     const previa = tarea.tarea_dependiente ? porId.get(tarea.tarea_dependiente) : null;
-    if (!previa) return dm;
-    if (previa.tarea_estado !== 'completada' && !previa.tarea_fecha_sugerida && !previa.tarea_mantenimiento) programarUna(previa);
-    if (previa.tarea_fecha_sugerida) dm = maximo(dm, fechaISOMasDias(1, diaLocal(previa.tarea_fecha_sugerida)));
-    return dm;
+    if (!previa) return piso;
+    if (previa.tarea_estado !== 'completada' && !tieneHora(previa.tarea_fecha_sugerida) && !previa.tarea_mantenimiento) programarUna(previa);
+    if (tieneHora(previa.tarea_fecha_sugerida)) {
+      const finPrevia = new Date(previa.tarea_fecha_sugerida).getTime() + (previa.tarea_duracion_min || 30) * 60000;
+      if (finPrevia > piso.getTime()) piso = new Date(finPrevia);
+    }
+    return piso;
   }
 
   function programarUna(tarea) {
-    if (tarea.tarea_fecha_sugerida || enCurso.has(tarea.tarea_id)) return;
+    if (tieneHora(tarea.tarea_fecha_sugerida) || enCurso.has(tarea.tarea_id)) return;
     enCurso.add(tarea.tarea_id);
 
-    const diaMinimo = diaMinimoDe(tarea);
+    const piso = pisoDe(tarea);
+    const diaMinimo = fechaLocalISO(piso);
     const diasHabiles = tarea.tarea_dias_habiles || [];
     const duracion = tarea.tarea_duracion_min || 30;
 
@@ -122,7 +129,7 @@ export async function programarTareasSinFecha(estado) {
     }
 
     const eventosDelDia = [...(conCalendar ? eventosCalendar.filter((e) => diaLocal(e.inicio) === diaElegido) : []), ...(horariosPorDia.get(diaElegido) || [])];
-    const desde = diaElegido === hoy && ahora > new Date(`${diaElegido}T00:00:00`) ? ahora : new Date(`${diaElegido}T00:00:00`);
+    const desde = diaElegido === diaMinimo ? piso : new Date(`${diaElegido}T00:00:00`);
     const hueco = buscarHuecoLibre(eventosDelDia, duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
     if (!hueco) {
       sinHueco.push(tarea); // El día tenía minutos libres pero no un hueco contiguo: queda sin programar por ahora.
