@@ -2,6 +2,21 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.79.0] - 2026-09-26
+
+Clima en la vista Semana: ícono de pronóstico por día, amanecer/atardecer y degradé de temperatura/lluvia, sobre una ubicación de referencia elegida en Configuraciones.
+
+### Agregado
+
+- **Configuraciones → 🌦️ Clima**: nueva preferencia "Ubicación para el clima" (desplegable con tus ubicaciones + "＋ Crear nueva ubicación…"), guardada en tu Drive. Es la que usa la vista Semana para el pronóstico; sin ubicación, o sin coordenadas cargadas, las funciones de clima no muestran nada.
+- **Semana: ícono de pronóstico por día** en el encabezado de cada columna (☀️🌤️☁️🌫️🌧️❄️⛈️ según el código de tiempo de Open-Meteo).
+- **Semana: marcas de amanecer y atardecer**, con el interruptor "🌅 Sol" (apagado por defecto).
+- **Semana: degradé de fondo por hora** con la temperatura o la probabilidad de lluvia, elegible con un selector "Ninguno · 🌡️ Temperatura · 🌧️ Lluvia" (ninguno por defecto).
+
+### Corregido
+
+- Al eliminar una ubicación que era la elegida para el clima, la preferencia vuelve a quedar sin ubicación (antes quedaba apuntando a una ubicación que ya no existía).
+
 ## [v0.78.0] - 2026-09-26
 
 "Hoy" se renombra a "Resumen" y se reorganiza en secciones más finas (Vencidas siempre visible, nueva "Hoy" y nueva "Mañana"), con una tanda de ajustes de esa vista y de "Revisar mi día".

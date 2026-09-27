@@ -3104,6 +3104,37 @@ kbd {
   background: var(--color-peligro);
 }
 
+/* --- v0.79.0: clima en la vista Semana --- */
+
+.controles-clima-semana {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.icono-clima-dia {
+  margin-left: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.marca-sol {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--color-texto-suave);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.marca-sol-icono {
+  position: absolute;
+  left: -0.2rem;
+  top: -0.55rem;
+  font-size: 0.7rem;
+}
+
 .bloque-tarea-semana.bloqueada {
   opacity: 0.55;
 }

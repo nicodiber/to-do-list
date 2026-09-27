@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-todo-list-v39';
+const CACHE_NAME = 'super-todo-list-v40';
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o

@@ -179,6 +179,7 @@ export const PREFERENCIAS_POR_DEFECTO = {
   pref_ignorar_disponible: true,
   pref_horizonte_dias: 90,
   pref_capacidad_por_fecha: {},
+  pref_ubicacion_clima: null,
 };
 
 /**

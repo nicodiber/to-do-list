@@ -135,14 +135,15 @@ Un **único registro** (`preferencias_id: "unica"`) que se sincroniza con Drive,
 |---|---|---|---|
 | `preferencias_id` | `"unica"` | Ronda 9b | Identificador (siempre el mismo) |
 | `preferencias_nombre` | string | Ronda 9b | `"Preferencias"` (para los avisos de sincronización) |
-| `pref_tope_dias` | number[7] | Ronda 9b | Minutos que se quieren dedicar a tareas cada día de la semana, **domingo primero** (índice = `Date.getDay()`). Por defecto 180 cada día |
+| `pref_tope_dias` | number[7] | Ronda 9b | Minutos que se quieren dedicar a tareas cada día de la semana, **domingo primero** (índice = `Date.getDay()`). Por defecto 1440 cada día (v0.64.0, antes 180) |
 | `pref_franja` | `{ inicio, fin }` `"HH:MM"` | Ronda 9b | Parte del día en que se proponen horarios y en que cuenta el tiempo libre. Por defecto `00:00`–`24:00` (antes solo en `localStorage`; se migra sola) |
 | `pref_calendarios` | string[] \| `null` | Ronda 9b | Ids de los calendarios de Google que se leen; `null` = todos |
 | `pref_ignorar_todo_el_dia` | boolean | Ronda 9b | Los eventos de todo el día no ocupan tiempo. Por defecto `true` |
 | `pref_ignorar_rechazados` | boolean | Ronda 9b | Los eventos que el usuario rechazó no ocupan tiempo. Por defecto `true` |
-| `pref_ignorar_disponible` | boolean | Ronda 9b | Los eventos marcados como «Disponible» (en vez de «Ocupado») no ocupan tiempo. Por defecto `false` |
+| `pref_ignorar_disponible` | boolean | Ronda 9b | Los eventos marcados como «Disponible» (en vez de «Ocupado») no ocupan tiempo. Por defecto `true` (v0.77.0, antes `false` — un evento "Disponible" contaba como ocupado, causando reprogramaciones no deseadas) |
 | `pref_horizonte_dias` | number | Ronda 9b | Cuántos días hacia adelante se leen los eventos de Calendar. Por defecto 90 (30 · 60 · 90 · 180) |
 | `pref_capacidad_por_fecha` | `{ "YYYY-MM-DD": minutos }` | Ronda 9b | Capacidad fijada por el usuario para un día puntual (0 = ningún tiempo). Manda sobre el tope y sobre Calendar; se descartan las fechas pasadas al guardar |
+| `pref_ubicacion_clima` | `ubicacion_id` \| `null` | v0.79.0 | Ubicación de referencia para el pronóstico de la vista Semana (ícono del día, amanecer/atardecer, degradé de temperatura/lluvia). Se elige en Configuraciones → 🌦️ Clima; sin ubicación (o sin coordenadas cargadas) esas funciones no muestran nada |
 | `preferencias_modificado_en` | string (ISO datetime) | Ronda 9b | Lo sella el sistema al guardar. No se edita a mano |
 
 ## Sincronización: sellos de modificación y archivo de Drive

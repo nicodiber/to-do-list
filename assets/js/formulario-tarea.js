@@ -17,6 +17,40 @@ export { firmaFormulario } from './dialogo-formulario.js';
 /** Valor de la opción "＋ Crear nueva…" de los desplegables de categoría, ubicación y meta. */
 const CREAR_NUEVA = '__nueva__';
 
+/**
+ * Conecta un desplegable de referencia (categoría/ubicación/meta/persona, o cualquier otro con el mismo
+ * patrón "＋ Crear nueva…") para que, al elegir esa opción, abra el diálogo de alta de esa entidad y,
+ * al guardarla, reconstruya las opciones con la nueva ya seleccionada. `extraerId(nueva)` saca el id de la
+ * entidad recién creada; `alCambiar(id)` (opcional) se dispara con cualquier cambio de valor real (una ya
+ * existente o la recién creada) — la usa `views/configuraciones.view.js` para guardar al toque.
+ */
+export function conectarCrearNueva(select, htmlOpciones, abrirDialogo, extraerId, alCambiar) {
+  select.dataset.previo = select.value;
+  select.addEventListener('focus', () => {
+    if (select.value !== CREAR_NUEVA) select.dataset.previo = select.value;
+  });
+  select.addEventListener('change', () => {
+    if (select.value !== CREAR_NUEVA) {
+      select.dataset.previo = select.value;
+      if (alCambiar) alCambiar(select.value);
+      return;
+    }
+    // Se vuelve al valor anterior: así un borrador nunca guarda "Crear nueva…".
+    select.value = select.dataset.previo || '';
+    abrirDialogo({
+      alCrear: (nueva) => {
+        const id = extraerId(nueva);
+        // Se selecciona por propiedad (no por el atributo `selected`): así cuenta como un cambio del usuario y el
+        // borrador del alta lo conserva cuando la vista se redibuja al guardar la entidad.
+        select.innerHTML = htmlOpciones('');
+        select.value = id;
+        select.dataset.previo = id;
+        if (alCambiar) alCambiar(id);
+      },
+    });
+  });
+}
+
 export function htmlOpcionesDisfrute(seleccionado = null) {
   const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Sin definir</option>`];
   for (let nivel = 1; nivel <= 5; nivel += 1) {
@@ -320,37 +354,14 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
     checkbox.addEventListener('change', actualizarNota);
   }
 
-  // "＋ Crear nueva…" en categoría, ubicación y meta: abre el diálogo de esa entidad y, al guardarla,
-  // reconstruye el desplegable con la nueva ya seleccionada.
+  // "＋ Crear nueva…" en categoría, ubicación, meta y persona: ver `conectarCrearNueva`.
   [
-    ['categoria_id', htmlOpcionesCategoria, abrirDialogoCategoria],
-    ['ubicacion_id', htmlOpcionesUbicacion, abrirDialogoUbicacion],
-    ['meta_id', htmlOpcionesMeta, abrirDialogoMeta],
-    ['persona_id', htmlOpcionesPersona, abrirDialogoPersona],
-  ].forEach(([nombre, htmlOpciones, abrirDialogo]) => {
-    const select = formulario[nombre];
-    select.dataset.previo = select.value;
-    select.addEventListener('focus', () => {
-      if (select.value !== CREAR_NUEVA) select.dataset.previo = select.value;
-    });
-    select.addEventListener('change', () => {
-      if (select.value !== CREAR_NUEVA) {
-        select.dataset.previo = select.value;
-        return;
-      }
-      // Se vuelve al valor anterior: así un borrador nunca guarda "Crear nueva…".
-      select.value = select.dataset.previo || '';
-      abrirDialogo({
-        alCrear: (nueva) => {
-          const id = nueva.categoria_id || nueva.ubicacion_id || nueva.meta_id || nueva.persona_id;
-          // Se selecciona por propiedad (no por el atributo `selected`): así cuenta como un cambio del usuario y el
-          // borrador del alta lo conserva cuando la vista se redibuja al guardar la entidad.
-          select.innerHTML = htmlOpciones('');
-          select.value = id;
-          select.dataset.previo = id;
-        },
-      });
-    });
+    ['categoria_id', htmlOpcionesCategoria, abrirDialogoCategoria, (n) => n.categoria_id],
+    ['ubicacion_id', htmlOpcionesUbicacion, abrirDialogoUbicacion, (n) => n.ubicacion_id],
+    ['meta_id', htmlOpcionesMeta, abrirDialogoMeta, (n) => n.meta_id],
+    ['persona_id', htmlOpcionesPersona, abrirDialogoPersona, (n) => n.persona_id],
+  ].forEach(([nombre, htmlOpciones, abrirDialogo, extraerId]) => {
+    conectarCrearNueva(formulario[nombre], htmlOpciones, abrirDialogo, extraerId);
   });
 
   // La primera letra del nombre se escribe siempre en mayúscula (sin mover el cursor).
