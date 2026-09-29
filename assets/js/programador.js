@@ -15,8 +15,9 @@ import { habilitadaReal } from './gantt-modelo.js';
 import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
 
 /** ¿`fechaISO` pasa (o iguala) `limiteISO`? Con hora, compara el instante exacto; sin hora, el día calendario
- * (mismo criterio que ya usaba la app). `false` sin límite cargado. */
-function superaLimite(fechaISO, limiteISO) {
+ * (mismo criterio que ya usaba la app). `false` sin límite cargado. Exportada (v0.89.0) para que
+ * `views/resumen.view.js` la reutilice sin duplicar la comparación con/sin hora. */
+export function superaLimite(fechaISO, limiteISO) {
   if (!limiteISO) return false;
   if (tieneHora(limiteISO)) return new Date(fechaISO).getTime() > new Date(limiteISO).getTime();
   return diaLocal(fechaISO) > limiteISO;
@@ -155,8 +156,11 @@ export async function programarTareasSinFecha(estado) {
  * esta ronda). El objetivo de una cadena es marcar orden, no una separación exacta (decisión del usuario,
  * v0.84.0): si un dependiente queda solapado, se le busca un hueco real más adelante (respetando que siga
  * después del fin de su propia previa, ya resuelta) en vez de dejarlo así — y se sigue por la cadena con la
- * posición final de cada uno, no con el delta original. Sin hueco disponible antes de su fecha límite (caso
- * raro), queda con el corrimiento de la cascada tal cual: se reintenta en el próximo refresco.
+ * posición final de cada uno, no con el delta original. También dispara si el corrimiento plano dejó al
+ * dependiente después de **su propia** `tarea_fecha_limite`, aunque no colisione con nada (v0.89.0 — antes
+ * este caso solo se marcaba "inconsistente" para un aviso, sin corregirse nunca). Sin hueco disponible antes
+ * de su fecha límite (caso raro), queda con el corrimiento de la cascada tal cual: se revisa en la nueva
+ * sección de Resumen y se reintenta en el próximo refresco.
  */
 function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
   // El resto de la cadena (todavía sin procesar) queda afuera de "otras": todavía tiene la posición vieja del
@@ -183,9 +187,17 @@ function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
       // El corrimiento plano puede dejarla sin chocar con nada y aun así antes de que su propia previa
       // termine (por ejemplo, si la previa tuvo que correrse más de lo que le tocaba a esta por otro choque).
       const antesDeSuPrevia = finPrevia != null && new Date(actual.tarea_fecha_sugerida).getTime() < finPrevia;
+      const colisionCalendar = calcularSolapamiento(actual, eventos);
+      const colisionOtras = calcularSolapamiento(actual, otras);
+      // O el corrimiento plano la dejó después de su propia fecha límite, sin colisionar con nada (v0.89.0).
+      const superaSuLimite = superaLimite(actual.tarea_fecha_sugerida, actual.tarea_fecha_limite);
 
-      if (antesDeSuPrevia || calcularSolapamiento(actual, eventos) || calcularSolapamiento(actual, otras)) {
-        let desde = new Date(actual.tarea_fecha_sugerida);
+      if (antesDeSuPrevia || superaSuLimite || colisionCalendar || colisionOtras) {
+        // Si el único motivo es haber superado su propio límite, la posición actual ya es inválida por estar
+        // demasiado tarde: no sirve de piso para buscar (buscar "hacia adelante" desde ahí nunca encontraría
+        // nada antes del límite). Se busca desde ahora en su lugar.
+        const soloSuperaLimite = superaSuLimite && !antesDeSuPrevia && !colisionCalendar && !colisionOtras;
+        let desde = soloSuperaLimite ? new Date() : new Date(actual.tarea_fecha_sugerida);
         if (finPrevia != null && finPrevia > desde.getTime()) desde = new Date(finPrevia);
         const diaLimite = actual.tarea_fecha_limite ? diaLocal(actual.tarea_fecha_limite) : null;
         const dias = diaLimite ? Math.max(1, diasEntreFechas(fechaLocalISO(desde), diaLimite) + 1) : diasHorizonteCalendar();
@@ -196,6 +208,27 @@ function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
     previa = actual;
     actual = todas.find((t) => t.tarea_dependiente === previa.tarea_id && t.tarea_estado !== 'completada');
   }
+}
+
+/**
+ * Revalida contra Calendar la cadena de cada tarea recién reprogramada por `reprogramarFechasSugeridasVencidas`
+ * (`tareas-logica.js`) — esa función no puede llamar a Calendar sin crear un ciclo de imports, así que queda
+ * afuera de la revalidación que ya corre después de las otras 4 reprogramaciones automáticas (v0.84.0). Mismo
+ * mecanismo (`resolverColisionesEnCadena`), aplicado acá desde `app.js` (`reprogramarSiCorresponde`). Sin
+ * conexión a Calendar no hace nada.
+ */
+export async function resolverColisionesDeVencidas(vencidas, estado) {
+  if (!hayConexionGoogleCalendar() || vencidas.length === 0) return;
+
+  let eventos = [];
+  try {
+    eventos = await obtenerEventosDelHorizonte();
+  } catch {
+    return; // Falla momentánea de red: se reintenta en el próximo refresco.
+  }
+
+  const preferencias = obtenerPreferencias();
+  vencidas.forEach((tarea) => resolverColisionesEnCadena(tarea, estado.tareas, eventos, preferencias));
 }
 
 /**

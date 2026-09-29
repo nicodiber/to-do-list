@@ -1,6 +1,21 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO } from '../assets/js/modelos.js';
-import { esVencida, esHoy, noPuedeEmpezarTodavia, escaparHtml, tieneHora, textoHolgura, caminoCategoria, formatearHora, diaLocal, hoyISO, fechaISOMasDias, diasEntreFechas, textoFechaHumana } from '../assets/js/utilidades.js';
+import {
+  esVencida,
+  esHoy,
+  noPuedeEmpezarTodavia,
+  escaparHtml,
+  tieneHora,
+  textoHolgura,
+  caminoCategoria,
+  formatearHora,
+  diaLocal,
+  hoyISO,
+  fechaISOMasDias,
+  fechaLocalISO,
+  diasEntreFechas,
+  textoFechaHumana,
+} from '../assets/js/utilidades.js';
 import { crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import {
   cumplirTarea,
@@ -17,9 +32,10 @@ import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { ofrecerCrearTareaSeguimiento, abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
-import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre } from '../assets/js/google-calendar.js';
+import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
+import { superaLimite } from '../assets/js/programador.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
@@ -49,7 +65,17 @@ export function renderVistaResumen(contenedor) {
   const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
   const manana = fechaISOMasDias(1, hoyISO());
 
-  const bloqueadasTodas = pendientesActivas.filter((t) => t.tarea_estado === 'bloqueada');
+  // Tareas cuya fecha sugerida quedó después de su propia fecha límite (un corrimiento en cascada, sin hueco
+  // real disponible, la dejó así) — se muestran aparte (v0.89.0), no en su sección habitual.
+  const sinHuecoAntesDelLimite = ordenarConCadenas(
+    pendientesActivas
+      .filter((t) => t.tarea_fecha_sugerida && superaLimite(t.tarea_fecha_sugerida, t.tarea_fecha_limite))
+      .sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
+  );
+  const idsSinHueco = new Set(sinHuecoAntesDelLimite.map((t) => t.tarea_id));
+  const activasRestantes = pendientesActivas.filter((t) => !idsSinHueco.has(t.tarea_id));
+
+  const bloqueadasTodas = activasRestantes.filter((t) => t.tarea_estado === 'bloqueada');
   // Una bloqueada con límite vencido/hoy también es urgente: se muestra ahí (de solo lectura, no se puede
   // completar todavía) en vez de perderse en "Bloqueadas por otras tareas". Mismo criterio para "Hoy"/"Mañana".
   const bloqueadasHoy = bloqueadasTodas
@@ -65,7 +91,7 @@ export function renderVistaResumen(contenedor) {
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
   const idsBloqueadasMostradas = new Set([...idsBloqueadasHastaHoy, ...bloqueadasManana.map((t) => t.tarea_id)]);
   const bloqueadas = bloqueadasTodas.filter((t) => !idsBloqueadasMostradas.has(t.tarea_id));
-  const accionables = pendientesActivas.filter((t) => t.tarea_estado === 'pendiente');
+  const accionables = activasRestantes.filter((t) => t.tarea_estado === 'pendiente');
   const disponibles = accionables.filter((t) => !noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
   const aunNoDisponibles = accionables.filter((t) => noPuedeEmpezarTodavia(t.tarea_fecha_inicio_habilitada));
 
@@ -99,13 +125,21 @@ export function renderVistaResumen(contenedor) {
   contenedor.innerHTML = `
     <h2 title="Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.">📌 Resumen</h2>
     <div class="controles-hoy">
-      <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">🔍 Revisar mi día</button>
+      <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">👀 Revisar mi día</button>
       <div class="contenedor-selector-dia-revision" hidden></div>
     </div>
     <details class="completadas-plegadas">
       <summary title="Tareas accionables cuya fecha límite ya venció">🔴 Vencidas (${vencidas.length})</summary>
       <ul id="lista-vencidas" class="lista-tareas"></ul>
     </details>
+    ${
+      sinHuecoAntesDelLimite.length > 0
+        ? `<section>
+            <h3 title="Tareas cuya fecha sugerida quedó después de su fecha límite: no se encontró un hueco real a tiempo (por ejemplo, por falta de disponibilidad en tu Calendar). Revisalas para reprogramarlas a mano, cambiar el límite o eliminarlas.">⚠️ Sin hueco antes del límite (${sinHuecoAntesDelLimite.length})</h3>
+            <ul id="lista-sin-hueco" class="lista-tareas"></ul>
+          </section>`
+        : ''
+    }
     <section>
       <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy">🚨 Urgentes (${urgentes.length + bloqueadasHoy.length})</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
@@ -189,6 +223,11 @@ export function renderVistaResumen(contenedor) {
     listaVencidas.innerHTML = '<p class="mensaje-vacio">No tenés tareas vencidas 🎉</p>';
   } else {
     vencidas.forEach((tarea) => listaVencidas.appendChild(renderItem(tarea)));
+  }
+
+  const listaSinHueco = contenedor.querySelector('#lista-sin-hueco');
+  if (listaSinHueco) {
+    sinHuecoAntesDelLimite.forEach((tarea) => listaSinHueco.appendChild(renderItem(tarea, { soloInfo: tarea.tarea_estado === 'bloqueada' })));
   }
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
@@ -477,13 +516,22 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
           const eventos = await obtenerEventosDelHorizonte();
           // "Próximo" = después de la hora sugerida actual (nunca antes de ahora).
           const desde = new Date(Math.max(Date.now(), new Date(tarea.tarea_fecha_sugerida).getTime()));
+          // No pasar de la fecha límite (v0.89.0 — antes buscaba en todo el horizonte configurado, pudiendo
+          // asignar de un clic una fecha después del límite).
+          const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
+          const dias = diaLimite ? Math.max(1, diasEntreFechas(fechaLocalISO(desde), diaLimite) + 1) : diasHorizonteCalendar();
           const hueco = buscarHuecoLibre(eventos, tarea.tarea_duracion_min, {
             desde,
+            dias,
             franja: obtenerFranjaHoraria(),
             diasHabiles: tarea.tarea_dias_habiles || [],
           });
-          if (!hueco) {
-            alert('No encontré un hueco libre en los próximos días con esa franja horaria. Elegí vos la fecha.');
+          if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) {
+            alert(
+              diaLimite
+                ? 'No hay hueco libre antes de tu fecha límite. Elegí vos la fecha.'
+                : 'No encontré un hueco libre en los próximos días con esa franja horaria. Elegí vos la fecha.'
+            );
             abrirPanelReprogramar(contenedorPanel, tarea, reprogramar);
             return;
           }

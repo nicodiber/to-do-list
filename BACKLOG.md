@@ -6,8 +6,16 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 
 ### Previos a v1.0.0
 
+#### PRIORIZACION DE TAREAS
+- [ ] Quisiera repasar cómo está la lógica de priorizar las tareas porque actualmente las estoy pensando así: por fecha limite, y sin fecha limite por prioridad de categoría. no le encuentro tanto sentido a la holgura siendo que si tiene fecha_desde todavía no iniciada no la vamos a poder realizar en comparación con otra tarea que si, y si el día de hoy ya tengo dos tareas con fecha_desde pasada la comparación que queda para descartar va a ser la fecha_limite.
+
+#### REPROGRAMACION DE TAREAS
+- [x] Sigo encontrando que hay tareas que se le reprograman la fecha_sugerida para una fecha mayor a su fecha_limite. Dejar de hacer eso. En este caso creo que sucede ya que no hay disponibilidad en el google calendar del usuario. Quiero que la fecha_sugerida siga siendo menor o igual que la fecha_limite, y en los casos que no haya tiempo límite ubicarlos en una sección en el módulo "Resumen" arriba de la sección "Urgentes" para que el usuario las tenga identificada y las pueda ver para que tome su decisión correspondiente si modificarlas, eliminarlas o lo que prefiera. **Hecho en la v0.89.0**: la causa era que un corrimiento en cascada solo revalidaba contra Calendar y otras tareas, no contra el propio límite del dependiente (`resolverColisionesEnCadena`, ahora también cubre las vencidas); nueva sección "⚠️ Sin hueco antes del límite" en Resumen para los casos sin solución real (decisión tomada: son tareas con límite, no sin límite — la lectura que mejor encajaba con el resto del pedido).
+- [ ] revisar reprogramar a hueco libre anterior porque encontré casos que no los aprovechan
+
 #### ALERTAS
 - [ ] A alerta del tipo: "Al iniciar: se reubicó la de <<tarea_nombre categoria_tarea>>" rediseñar por "Al iniciar: se reubicó la de <<categoria_tarea tarea_nombre>>"
+- [ ] todo tipo de alerta de "nicodiber.github.io dice ..." diseñarle una ventana dentro del STDL
 
 #### REDISEÑO
 - [ ] Transformar el diseño de pestañas a un sidebar que pueda compactarse o expandirse. Al compactarse solo mostrar el emoji representativo (ejemplo: 📌) y al expandirse mostrar el emoji con su título (ejemplo: 📌 Resumen). Además reordenar lo que antes llamábamos pestañas ahora lo llamaremos módulos, en el siguiente ordem: resumen, agemda, semana, gantt, tabla, metas, tareas, estadísticas, mejoras, personas, ubicaciones, categorías, configuraciones. Tener en cuenta de también acomodar los atajos de teclado (del "6" al "0" . En el sidebar también incluir el nombre "STDL", debajo de "STDL" la versión, debajo de eso lo de "sincronizado con Drive", luego los módulos, luego los botones de "deshacer" y "rehacer", y luego el botón de "nueva tarea". El botón de atajos de teclado sacarlo y agregarlo como sección dentro de configuraciones.
@@ -29,9 +37,18 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 
 #### RESUMEN
 - [ ] **Cadena sin horario: mostrar orden respetando el encadenamiento** (idea del usuario): se intentó en la v0.78.0 con `ordenarConCadenas` sobre las listas de Resumen (Vencidas/Urgentes/Hoy/Mañana/Resto), pero **no logra el efecto pedido**: esas listas son siempre `pendiente` (las `bloqueada` viven aparte, en sus propias listas de solo lectura), y un pendiente nunca tiene a otro pendiente inmediatamente detrás en la misma cadena directa — así que no hay nada que reordenar ahí. Para que una cadena se vea junta de verdad haría falta mezclar cada previa con su sucesora bloqueada antes de ordenar (como hacen Tareas/Tabla/Semana con una lista mixta), lo que iría en contra del diseño de Resumen de separar a propósito lo accionable de lo bloqueado. **Decisión del usuario (ronda v0.85.0): no vale la pena el cambio más grande por ahora** — una bloqueada con fecha hoy/mañana ya aparece igual, de solo lectura, en la sección correspondiente. Queda así, retomar si en el futuro se decide lo contrario.
+- [ ] "👀 Revisar mi día" recorre tareas del STDL en vez de los eventos del google calendar... corregir.
+- [ ] Modificar que si la sección "Urgentes" tiene 0 tareas, que aspecto visual de la sección "Vencidas" cuando tiene 0 tareas.
+- [ ] Modificar y que la sección "Urgentes" incluya las tareas que tienen fecha_limite hoy y mañana.
+- [ ] Tras marcar como completada una tarea, en el cartel de "¿+ Tarea seguimiento?", al texto "¿Crear una tarea de seguimiento a partir de «tarea_nombre»? Se abre el alta con los mismos datos (categoría, meta, persona, etc.), nombre y fechas vacíos." agregar categoría de la tarea de la siguiente manera: "¿Crear una tarea de seguimiento a partir de «tarea_categoria tarea_nombre»? Se abre el alta con los mismos datos (categoría, meta, persona, etc.), nombre y fechas vacíos.".
+- [ ] Tras marcar como completada una tarea, en el cartel de "¿Guardar en Google Calendar?", al texto "¿Abrir «tarea_nombre» en Google Calendar para guardarla como registro histórico? Se abre una pestaña con el evento ya cargado y lo guardás vos." agregar categoría de la tarea de la siguiente manera: "¿Abrir «tarea_categoria tarea_nombre» en Google Calendar para guardarla como registro histórico? Se abre una pestaña con el evento ya cargado y lo guardás vos."
+- [ ] Poder marcar tareas como completadas desde vista "Agenda" tras entrar a la tarjeta de la tarea
+- [ ] En revisar mi día, si usuario selecciona uno de los atajos, dejarlo destacado (como ya lo hace en agenda -> posponer -> atajo)
+- [ ] en sección urgentes, ordenar tareas desde la que queda menos tiempo a la que queda más tiempo
 
 #### AGENDA
 - [ ] Si hay tareas encadenadas dentro de un mismo día, ubicarlas en orden correspondiente al orden de la cadena.
+- [ ] Tras doble clic en tarjeta de tarea, abrir ventana para visualizar los datos de tarea con botón para editarlo (como ya está hecho en módulo "Resumen".
 
 #### SEMANA
 - [ ] **Casos sueltos de "hay un hueco libre que podría aprovecharse y no se aprovecha"** (reportado junto con el ítem de la cascada, ya resuelto en la v0.84.0): puede haber sido la misma causa de fondo (datos ya inconsistentes de antes del fix) o simplemente que no pasó por un refresco reciente de Calendar. Sin un caso puntual (nombre de la tarea, fecha/hora, qué había libre) no se puede confirmar si sigue pasando después de la v0.84.0 — retomar si se vuelve a detectar.
@@ -45,6 +62,8 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 - [ ] **Gantt: "Planificar" en bloque**: un botón que guarde como fecha sugerida las posiciones estimadas de varias tareas a la vez (con vista previa), descartado como comportamiento por defecto porque las tareas saldrían de "Completar carga de tareas" y el reprogramado automático empezaría a moverlas.
 - [ ] **Gantt: fondos de fin de semana / días no hábiles, zoom por día y arrastre táctil refinado**: ideas menores al implementar la Ronda 7; el arrastre en celular funciona con toques pero se prueba mejor con el ratón.
 - [ ] **Adoptar la capacidad en el Gantt y en la reprogramación de fechas vencidas** (Ronda 9c, decisión del usuario): la posición estimada del Gantt (`calcularPosiciones`, sin sugerida) y `reprogramarFechasSugeridasVencidas` siguen sin consultar `crearCalculadoraCapacidad` directamente. **Menos urgente desde la v0.67.0**: casi toda tarea activa termina con fecha sugerida real (que si consulta la capacidad, vía `programador.js`); esto solo afectaría a la tarea recién creada (antes del próximo inicio de sesión) o la que venció y se reprograma al día siguiente sin mirar si ese día ya está lleno.
+- [ ] Tareas que no tienen fecha_limite, en modo "ventana" mostrar que la tarea tiende al infinito hacia la derecha.
+- [ ] Así como cada semana tiene una línea visual separatoria, hacer líneas separatorias por días pero más tenues que la semanal.
 
 #### TABLA
 - [x] Ordenar por default por holgura de menor a mayor (en holgura además de los días indicar las horas restantes). **Hecho en la v0.88.0**.
@@ -96,6 +115,9 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 #### NOTIFICACIONES
 - [ ] Notificaciones locales: se eliminó la función completa (botón, `assets/js/notificaciones.js`, el campo de control en Tarea) en la ronda de rediseño del modelo de datos, por decisión del usuario. Retomar más adelante, con una versión funcional del proyecto, para reevaluar si hace falta y cómo conviene implementarla (sin repetir el problema de spam de avisos que tenía el campo eliminado)
 - [ ] **¿Se pueden emitir notificaciones?** (pregunta del usuario): las notificaciones locales del navegador se sacaron en la ronda de rediseño del modelo de datos (ver el ítem "Notificaciones locales" más arriba en este archivo) y quedaron pendientes de retomar con una versión funcional del proyecto. Con datos reales ya cargados, puede ser un buen momento para reevaluarlas — evaluar junto con el ítem de sonidos al completar (más abajo) y con qué eventos ameritan avisar (tarea por vencer, tarea urgente sin programar, etc.).
+
+#### CLIMA
+- [ ] Ver cómo se podría leer la ubicación geográfica actual del dispositivo para que la ubicación del clima sea automática y adaptable cuando el usuario viaje. 
 
 #### MEMENTO MORI
 - [ ] **Vista de calendario "memento mori"** (idea del usuario): una vista con el calendario de la vida (una cuadrícula con una casilla por semana —o por mes, o por año— de una vida esperada, con lo vivido marcado y lo que queda), para tener presente cuánto tiempo hay. Falta definir: fecha de nacimiento (dato personal a guardar en Drive, con opción de no cargarla), expectativa de vida a usar, unidad de la cuadrícula y si se cruza con las metas.
