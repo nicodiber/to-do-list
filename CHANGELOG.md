@@ -2,6 +2,19 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.89.0] - 2026-09-29
+
+La fecha sugerida de una tarea ya nunca queda después de su fecha límite por un corrimiento automático.
+
+### Corregido
+
+- **Cascada de reprogramación**: cuando una tarea encadenada se corría en cascada (por vencida, por un choque de Calendar, por marcarse urgente, o por liberarse un hueco mejor) y eso dejaba a un dependiente después de **su propia** fecha límite, antes solo se avisaba una vez al iniciar sesión sin corregir nada. Ahora se le busca un hueco real antes de su límite, respetando que siga después del fin de su propia previa; si de verdad no hay ninguno, la tarea queda visible de forma persistente en la nueva sección de Resumen (ver abajo) en vez de en un aviso que se puede perder. La revalidación de cadena (v0.84.0) ahora también cubre las tareas reprogramadas por vencidas (antes solo cubría 4 de los 5 caminos automáticos).
+- **"🕒 Al próximo hueco libre"** (Resumen, cuando una tarea choca con un evento de Calendar): buscaba en todo el horizonte configurado sin techo en la fecha límite, pudiendo asignar de un clic una fecha inválida. Ahora respeta el límite igual que el resto de la reprogramación automática.
+
+### Agregado
+
+- **Resumen: nueva sección "⚠️ Sin hueco antes del límite"**, arriba de "Urgentes": muestra, siempre visible, cualquier tarea activa cuya fecha sugerida haya quedado después de su fecha límite (por ejemplo, por falta de disponibilidad real en Calendar), para poder reprogramarla a mano, cambiar el límite o eliminarla.
+
 ## [v0.88.0] - 2026-09-27
 
 Cuatro ajustes chicos e independientes, elegidos tras repasar el backlog acumulado.

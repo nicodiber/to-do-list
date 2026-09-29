@@ -14,8 +14,14 @@ import {
   descartarDatosViejos,
   hayTextoEnEdicion,
 } from './almacenamiento.js';
-import { reprogramarFechasSugeridasVencidas, pasarProximoContactoVencido, tareasSoloConNombre, avisoInconsistentes } from './tareas-logica.js';
-import { programarTareasSinFecha, reubicarTareasSolapadas, reprogramarTareaInmediataSiVencio, adelantarTareasSiHayHuecoMejor } from './programador.js';
+import { reprogramarFechasSugeridasVencidas, pasarProximoContactoVencido, tareasSoloConNombre } from './tareas-logica.js';
+import {
+  programarTareasSinFecha,
+  reubicarTareasSolapadas,
+  reprogramarTareaInmediataSiVencio,
+  adelantarTareasSiHayHuecoMejor,
+  resolverColisionesDeVencidas,
+} from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
@@ -38,7 +44,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.88.0';
+const VERSION = 'v0.89.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -387,6 +393,7 @@ async function reprogramarSiCorresponde() {
   if (reprogramado || !obtenerEstadoSync().datosListos) return;
   reprogramado = true;
   const { afectadas: vencidas, inconsistentes: inconsistentesVencidas } = reprogramarFechasSugeridasVencidas(estado.tareas);
+  await resolverColisionesDeVencidas(vencidas, estado);
   const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas } = await reubicarTareasSolapadas(estado);
   const { asignadas: nuevas, sinHueco: sinHuecoNuevas } = await programarTareasSinFecha(estado);
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
@@ -419,8 +426,9 @@ async function reprogramarSiCorresponde() {
   if (sinHueco.length > 0) {
     mensaje += `${mensaje ? '\n\n' : ''}⚠️ No hay hueco libre antes de su fecha límite para: ${nombrarLista(sinHueco)}. Revisalas a mano.`;
   }
-  const avisoInc = avisoInconsistentes(inconsistentes);
-  if (avisoInc) mensaje += `${mensaje ? '\n\n' : ''}⚠️ ${avisoInc}`;
+  // Las "inconsistentes" (sugerida después del límite tras un corrimiento en cascada) ya no se avisan acá
+  // (v0.89.0): quedan siempre visibles en la sección "⚠️ Sin hueco antes del límite" de Resumen, en vez de un
+  // aviso único que se puede perder. `inconsistentes.length` sigue contando para decidir si hay que persistir.
   if (mensaje) alert(mensaje);
 }
 
