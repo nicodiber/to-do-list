@@ -27,6 +27,7 @@ export const estado = {
   ubicaciones: [],
   metas: [],
   personas: [],
+  etiquetas: [],
   tareas: [],
   mejoras: [],
   cumplimientos: [],
@@ -196,13 +197,26 @@ function migrarMeta(m) {
 function migrarPersona(p) {
   if ('id' in p) {
     const { id, nombre, ultimo_contacto, creada_en } = p;
-    return { persona_id: id, persona_nombre: nombre, persona_ultimo_contacto: ultimo_contacto, persona_proximo_contacto: '', persona_creada_en: creada_en };
+    return {
+      persona_id: id,
+      persona_nombre: nombre,
+      persona_ultimo_contacto: ultimo_contacto,
+      persona_proximo_contacto: '',
+      persona_etiqueta_id: null,
+      persona_fallecida: false,
+      persona_creada_en: creada_en,
+    };
   }
   // `persona_notas` se eliminó del modelo: si el objeto la trae de una
   // versión anterior, se descarta acá (destructuring sin volver a usarla).
   const { persona_notas, ...resto } = p;
-  // Campo de la v0.66.0: ausente en datos anteriores.
-  return { ...resto, persona_proximo_contacto: resto.persona_proximo_contacto || '' };
+  // Campos ausentes en datos anteriores: v0.66.0 (próximo contacto), v0.91.0 (etiqueta, fallecida).
+  return {
+    ...resto,
+    persona_proximo_contacto: resto.persona_proximo_contacto || '',
+    persona_etiqueta_id: resto.persona_etiqueta_id || null,
+    persona_fallecida: resto.persona_fallecida || false,
+  };
 }
 
 function migrarTarea(t) {
@@ -320,12 +334,14 @@ function normalizarDatosCrudos(datosOriginal) {
   const ubicaciones = (datos.ubicaciones || []).map(migrarUbicacion);
   const metas = (datos.metas || []).map(migrarMeta);
   const personas = (datos.personas || []).map(migrarPersona);
+  // `etiquetas` nació en la v0.91.0: no hay formato anterior que migrar.
+  const etiquetas = datos.etiquetas || [];
   const tareas = (datos.tareas || []).map(migrarTarea);
   tareas.forEach((t) => recalcularBloqueo(t, tareas));
   const mejoras = (datos.mejoras || []).map(migrarMejora);
   const cumplimientos = (datos.cumplimientos || []).map(migrarCumplimiento);
   const preferencias = (datos.preferencias || []).slice(0, 1).map(migrarPreferencias);
-  return { categorias, ubicaciones, metas, personas, tareas, mejoras, cumplimientos, preferencias };
+  return { categorias, ubicaciones, metas, personas, etiquetas, tareas, mejoras, cumplimientos, preferencias };
 }
 
 // ---------------------------------------------------------------------------

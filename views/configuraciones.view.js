@@ -1,10 +1,11 @@
 import { estado, exportarJSON, importarJSON, borrarTodosLosDatos } from '../assets/js/almacenamiento.js';
 import { obtenerFranjaHoraria, establecerFranjaHoraria, HORAS_FRANJA } from '../assets/js/preferencias-horario.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
-import { htmlInterruptor, htmlOpcionesUbicacion, conectarCrearNueva } from '../assets/js/formulario-tarea.js';
+import { htmlOpcionesUbicacion } from '../assets/js/formulario-tarea.js';
+import { conectarCrearNueva } from '../assets/js/dialogo-formulario.js';
 import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } from '../assets/js/google-calendar.js';
-import { escaparHtml } from '../assets/js/utilidades.js';
+import { escaparHtml, htmlInterruptor } from '../assets/js/utilidades.js';
 import { obtenerTema, establecerTema } from '../assets/js/app.js';
 
 const TOPE_MAXIMO_MIN = 1440; // minutos que tiene un día (24 h)

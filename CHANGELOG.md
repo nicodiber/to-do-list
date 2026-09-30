@@ -2,6 +2,22 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.91.0] - 2026-09-30
+
+Seis ajustes chicos de Personas, elegidos tras repasar el backlog.
+
+### Agregado
+
+- **Etiqueta compartida para Personas**: nueva entidad "Etiqueta" (nombre + color), reusable entre varias personas — se crea y edita desde un desplegable "＋ Crear nueva etiqueta…" en el formulario de Persona, sin necesitar una pestaña nueva.
+- **Personas: "☑️ Seleccionar"** para cargar "último contacto" en bloque — selector de fecha (precargado en hoy) con atajos "Hoy"/"Ayer" y "Aplicar a N".
+- **Personas: booleano "💀 Fallecida"** — la tarjeta se atenúa y la persona cae siempre al final de la lista, sin importar hace cuánto no hay contacto.
+- **Personas: validación de "Último contacto"** — ya no se puede cargar una fecha futura.
+
+### Cambiado
+
+- **Personas: "Hace X tiempo"** pasa a meses de calendario reales cuando corresponde ("Hace 1 mes y 14 días", antes siempre en días sueltos).
+- Confirmado que "Personas" ya ordenaba con los contactos más antiguos arriba (backlog); no hizo falta ningún cambio ahí.
+
 ## [v0.90.0] - 2026-09-30
 
 Se repensó de fondo la lógica de prioridad, discutida a fondo con el usuario: la fecha límite más próxima gana siempre (no una banda ancha de días), la categoría solo desempata cuando no hay fecha límite o hay un empate exacto, y una tarea que todavía no se puede empezar nunca le gana a una que sí.

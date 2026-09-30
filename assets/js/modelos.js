@@ -31,13 +31,31 @@ export function crearUbicacion({ ubicacion_nombre, ubicacion_latitud, ubicacion_
   return { ubicacion_id: generarId(), ubicacion_nombre: capitalizarPrimera(ubicacion_nombre), ubicacion_latitud, ubicacion_longitud };
 }
 
-export function crearPersona({ persona_nombre, persona_ultimo_contacto = '', persona_proximo_contacto = '' }) {
+export function crearPersona({
+  persona_nombre,
+  persona_ultimo_contacto = '',
+  persona_proximo_contacto = '',
+  persona_etiqueta_id = null,
+  persona_fallecida = false,
+}) {
   return {
     persona_id: generarId(),
     persona_nombre: capitalizarPrimera(persona_nombre),
     persona_ultimo_contacto,
     persona_proximo_contacto,
+    persona_etiqueta_id: persona_etiqueta_id || null,
+    persona_fallecida,
     persona_creada_en: ahoraISO(),
+  };
+}
+
+/** Etiqueta compartida (v0.91.0): nombre + color, para agrupar/distinguir visualmente personas. */
+export function crearEtiqueta({ etiqueta_nombre, etiqueta_color = '#4f7cff' }) {
+  return {
+    etiqueta_id: generarId(),
+    etiqueta_nombre: capitalizarPrimera(etiqueta_nombre),
+    etiqueta_color,
+    etiqueta_creada_en: ahoraISO(),
   };
 }
 

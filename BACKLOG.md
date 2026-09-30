@@ -111,13 +111,13 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 - [x] **Reescribir "Ignorar los eventos marcados como «Disponible»" como pregunta** (idea del usuario, tras el bug de la v0.77.0). **Hecho en la v0.88.0**, y por consistencia (decisión del usuario) también los otros dos: "Ignorar los eventos de todo el día" e "Ignorar los eventos que rechacé" — los tres pasaron a la pregunta cerrada con el sentido invertido respecto al campo interno guardado, que no cambió de nombre.
 
 #### PERSONAS
-- [x] Cuando finaliza el día de "proximo contacto" de una persona, pasar valor de fecha a "último contacto" y dejar en null próximo contacto. **Hecho en la v0.88.0** (`pasarProximoContactoVencido`, en blanco/`''` en vez de `null` por consistencia con el resto del campo).}
-- [ ] Ordenar por último contacto: arriba los más antiguos y abajo los más recientes.
-- [ ] Permitir asociar una persona a una etiqueta (con nombre y color) para poder asignarle colores a las tarjetas de las personas.
-- [ ] Permitir seleccionar varias personas para cargarles en un solo paso la fecha de último contacto.
-- [ ] En el cálculo de cuánto tiempo hace, convertir días en meses. Por ejemplo "Hace 1 mes y 2 días".
-- [ ] Agregar validación para no poder cargar una fecha futura a hoy en "último contacto"
-- [ ] Permitir agregar un booleano para aquellas personas fallecidas (con emoji de ataúd) y que aparezcan al abajo de todo.
+- [x] Cuando finaliza el día de "proximo contacto" de una persona, pasar valor de fecha a "último contacto" y dejar en null próximo contacto. **Hecho en la v0.88.0** (`pasarProximoContactoVencido`, en blanco/`''` en vez de `null` por consistencia con el resto del campo).
+- [x] Ordenar por último contacto: arriba los más antiguos y abajo los más recientes. **Ya estaba hecho** (confirmado en la ronda v0.91.0): `views/personas.view.js` ya ordenaba así, no hizo falta ningún cambio.
+- [x] Permitir asociar una persona a una etiqueta (con nombre y color) para poder asignarle colores a las tarjetas de las personas. **Hecho en la v0.91.0**: nueva entidad compartida "Etiqueta", gestionada desde un desplegable "＋ Crear nueva etiqueta…" en el formulario de Persona (sin pestaña propia).
+- [x] Permitir seleccionar varias personas para cargarles en un solo paso la fecha de último contacto. **Hecho en la v0.91.0**: "☑️ Seleccionar" + selector de fecha con atajos "Hoy"/"Ayer".
+- [x] En el cálculo de cuánto tiempo hace, convertir días en meses. Por ejemplo "Hace 1 mes y 2 días". **Hecho en la v0.91.0**, con meses de calendario reales (no aproximados).
+- [x] Agregar validación para no poder cargar una fecha futura a hoy en "último contacto". **Hecho en la v0.91.0**.
+- [x] Permitir agregar un booleano para aquellas personas fallecidas (con emoji de ataúd) y que aparezcan al abajo de todo. **Hecho en la v0.91.0** (`persona_fallecida`, tarjeta atenuada, 💀 antes del nombre).
 
 #### DELEGACIONES
 - [ ] Permitir a una tarea marcarla como delegada y solicitar carga al usuario sobre a quién se la delegó y, para realizarle seguimiento, cuándo quiere que se lo recuerde para que STDL asista con el seguimiento de la tarea y usuario no le pierda el rastro.

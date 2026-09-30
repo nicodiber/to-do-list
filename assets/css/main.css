@@ -1619,6 +1619,17 @@ section h3 {
   margin: 0.5rem 0 1rem;
 }
 
+/* v0.91.0: fila con el botón "☑️ Seleccionar" de Personas, mismo espaciado que .controles-hoy. */
+.controles-personas {
+  display: flex;
+  margin: 0.5rem 0 1rem;
+}
+
+/* Persona marcada como fallecida (v0.91.0) — mismo atenuado que una tarea completada hoy. */
+.tarjeta-categoria.fallecida {
+  opacity: 0.7;
+}
+
 .controles-hoy .filtro-ubicacion-hoy,
 .controles-hoy #boton-revisar-dia {
   margin: 0;
@@ -2640,6 +2651,17 @@ button[data-accion="conectar-calendar-revision"]:disabled,
 .formulario-tarea .par-fecha-hora {
   display: flex;
   gap: 0.4rem;
+}
+
+/* Un <select> con un botón chico al lado (ej. "✏️" para editar la entidad elegida) — v0.91.0, etiqueta de Persona. */
+.fila-con-boton {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.fila-con-boton select {
+  flex: 1;
 }
 
 .formulario-tarea .par-fecha-hora input[type="date"] {

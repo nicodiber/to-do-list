@@ -4,9 +4,9 @@
 // pueda seleccionarla.
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { crearCategoria, crearUbicacion, crearMeta, crearPersona, PLAZOS_META, ETIQUETAS_PLAZO } from './modelos.js';
-import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera, caminoCategoria, formatearFechaOFechaHora, hoyISO } from './utilidades.js';
-import { abrirDialogoFormulario, activarMayusculaInicial } from './dialogo-formulario.js';
+import { crearCategoria, crearUbicacion, crearMeta, crearPersona, crearEtiqueta, PLAZOS_META, ETIQUETAS_PLAZO } from './modelos.js';
+import { escaparHtml, arbolCategorias, descendientesDeCategoria, capitalizarPrimera, caminoCategoria, formatearFechaOFechaHora, hoyISO, htmlInterruptor } from './utilidades.js';
+import { abrirDialogoFormulario, activarMayusculaInicial, conectarCrearNueva, CREAR_NUEVA } from './dialogo-formulario.js';
 import { crearSelectorColor } from './selector-color.js';
 import { compararPorPrioridad, reprogramarTareaConCascada, avisoInconsistentes } from './tareas-logica.js';
 import { abrirEdicionTarea } from './modal-tarea.js';
@@ -312,6 +312,73 @@ export function abrirDialogoMeta({ id = null, alCrear = null } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Etiqueta (v0.91.0): nombre + color, compartida entre personas. Sin vista propia — se gestiona desde el
+// desplegable "＋ Crear nueva etiqueta…" del formulario de Persona (mismo patrón que Categoría/Ubicación/Meta
+// en el formulario de tarea) y desde el botón "✏️" que aparece junto al desplegable cuando hay una elegida.
+// ---------------------------------------------------------------------------
+
+function htmlOpcionesEtiqueta(seleccionada = '') {
+  return [
+    '<option value="">Sin etiqueta</option>',
+    ...estado.etiquetas.map((e) => `<option value="${e.etiqueta_id}" ${e.etiqueta_id === seleccionada ? 'selected' : ''}>${escaparHtml(e.etiqueta_nombre)}</option>`),
+    `<option value="${CREAR_NUEVA}">＋ Crear nueva etiqueta…</option>`,
+  ].join('');
+}
+
+function abrirDialogoEtiqueta({ id = null, alCrear = null } = {}) {
+  const etiqueta = id ? estado.etiquetas.find((e) => e.etiqueta_id === id) : null;
+  if (id && !etiqueta) return;
+  const colorInicial = etiqueta ? etiqueta.etiqueta_color : COLOR_POR_DEFECTO;
+
+  abrirDialogoFormulario({
+    titulo: etiqueta ? '✏️ Editar etiqueta' : '➕ Nueva etiqueta',
+    textoGuardar: etiqueta ? '💾 Guardar cambios' : '➕ Agregar etiqueta',
+    botonesGuardar: etiqueta ? [{ texto: '🗑️ Eliminar', valor: 'eliminar', orden: -60 }, { texto: '💾 Guardar cambios', valor: 'guardar', orden: 0 }] : null,
+    conectar: (formulario) => {
+      activarMayusculaInicial(formulario.etiqueta_nombre);
+      crearSelectorColor({ contenedor: formulario.querySelector('#selector-color-etiqueta'), nombreCampo: 'etiqueta_color', valorInicial: colorInicial });
+    },
+    cuerpoHtml: `
+      <div class="fila-nombre-tarea">
+        <input type="text" name="etiqueta_nombre" value="${escaparHtml(etiqueta ? etiqueta.etiqueta_nombre : '')}" placeholder="Nombre" required />
+      </div>
+      <div id="selector-color-etiqueta"></div>
+    `,
+    alGuardar: async (formulario, { valor }) => {
+      if (valor === 'eliminar') {
+        if (!confirm(`¿Eliminar la etiqueta "${etiqueta.etiqueta_nombre}"? Las personas que la tengan quedan sin etiqueta.`)) return false;
+        estado.personas.forEach((p) => {
+          if (p.persona_etiqueta_id === etiqueta.etiqueta_id) p.persona_etiqueta_id = null;
+        });
+        estado.etiquetas = estado.etiquetas.filter((e) => e.etiqueta_id !== etiqueta.etiqueta_id);
+        await persistirYNotificar();
+        return true;
+      }
+      const nombre = capitalizarPrimera(formulario.etiqueta_nombre.value.trim());
+      if (!nombre) {
+        alert('La etiqueta necesita un nombre.');
+        return false;
+      }
+      const color = formulario.etiqueta_color.value;
+      if (id) {
+        const actual = estado.etiquetas.find((e) => e.etiqueta_id === id);
+        if (!actual) {
+          noExiste('Esta etiqueta');
+          return true;
+        }
+        Object.assign(actual, { etiqueta_nombre: nombre, etiqueta_color: color });
+      } else {
+        const nueva = crearEtiqueta({ etiqueta_nombre: nombre, etiqueta_color: color });
+        estado.etiquetas.push(nueva);
+        if (alCrear) alCrear(nueva);
+      }
+      await persistirYNotificar();
+      return true;
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Persona
 // ---------------------------------------------------------------------------
 
@@ -343,13 +410,25 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
       formulario.querySelectorAll('[data-accion="editar-tarea-persona"]').forEach((boton) => {
         boton.addEventListener('click', () => abrirEdicionTarea(boton.closest('[data-tarea]').dataset.tarea));
       });
+      conectarCrearNueva(formulario.persona_etiqueta_id, htmlOpcionesEtiqueta, abrirDialogoEtiqueta, (e) => e.etiqueta_id);
+      const botonEditarEtiqueta = formulario.querySelector('[data-accion="editar-etiqueta"]');
+      botonEditarEtiqueta.addEventListener('click', () => {
+        if (formulario.persona_etiqueta_id.value) abrirDialogoEtiqueta({ id: formulario.persona_etiqueta_id.value });
+      });
     },
     cuerpoHtml: `
       <div class="fila-nombre-tarea">
         <input type="text" name="persona_nombre" value="${escaparHtml(persona ? persona.persona_nombre : '')}" placeholder="Nombre" required />
       </div>
-      <label>Último contacto <input type="date" name="persona_ultimo_contacto" value="${persona ? persona.persona_ultimo_contacto || '' : ''}" /></label>
+      <label>Último contacto <input type="date" name="persona_ultimo_contacto" value="${persona ? persona.persona_ultimo_contacto || '' : ''}" max="${hoyISO()}" /></label>
       <label title="Al guardar, reprograma la fecha sugerida de todas las tareas pendientes asociadas a esta fecha">📅 Próximo contacto <input type="date" name="persona_proximo_contacto" value="${proximoContactoAnterior}" min="${hoyISO()}" /></label>
+      <label class="campo">🏷️ Etiqueta
+        <span class="fila-con-boton">
+          <select name="persona_etiqueta_id">${htmlOpcionesEtiqueta(persona ? persona.persona_etiqueta_id || '' : '')}</select>
+          <button type="button" data-accion="editar-etiqueta" title="Editar la etiqueta elegida">✏️</button>
+        </span>
+      </label>
+      <div class="ancho-completo">${htmlInterruptor('persona_fallecida', persona ? persona.persona_fallecida : false, '💀 Fallecida')}</div>
       ${
         persona
           ? `<div class="ancho-completo">
@@ -371,6 +450,12 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
         alert('El próximo contacto no puede ser una fecha pasada.');
         return false;
       }
+      if (ultimoContacto && ultimoContacto > hoyISO()) {
+        alert('El último contacto no puede ser una fecha futura.');
+        return false;
+      }
+      const etiquetaId = formulario.persona_etiqueta_id.value || null;
+      const fallecida = formulario.persona_fallecida.checked;
       let actual;
       if (id) {
         actual = estado.personas.find((p) => p.persona_id === id);
@@ -378,9 +463,21 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
           noExiste('Esta persona');
           return true;
         }
-        Object.assign(actual, { persona_nombre: nombre, persona_ultimo_contacto: ultimoContacto, persona_proximo_contacto: proximoContacto });
+        Object.assign(actual, {
+          persona_nombre: nombre,
+          persona_ultimo_contacto: ultimoContacto,
+          persona_proximo_contacto: proximoContacto,
+          persona_etiqueta_id: etiquetaId,
+          persona_fallecida: fallecida,
+        });
       } else {
-        actual = crearPersona({ persona_nombre: nombre, persona_ultimo_contacto: ultimoContacto, persona_proximo_contacto: proximoContacto });
+        actual = crearPersona({
+          persona_nombre: nombre,
+          persona_ultimo_contacto: ultimoContacto,
+          persona_proximo_contacto: proximoContacto,
+          persona_etiqueta_id: etiquetaId,
+          persona_fallecida: fallecida,
+        });
         estado.personas.push(actual);
         if (alCrear) alCrear(actual);
       }

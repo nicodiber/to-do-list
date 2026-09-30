@@ -278,6 +278,15 @@ export function nombrarConCategoria(tarea, categorias) {
   return `«${camino ? `${camino} ` : ''}${tarea.tarea_nombre}»`;
 }
 
+/** Interruptor Sí/No genérico (checkbox estilizado), para campos booleanos de cualquier formulario — categoría,
+ * tarea, persona, etc. (v0.91.0: movida acá desde `formulario-tarea.js`, que la tenía — `formularios-entidades.js`
+ * también la necesita, y como `formulario-tarea.js` ya importa de `formularios-entidades.js`, importar en
+ * sentido contrario crearía un ciclo). `atributos` son atributos HTML crudos adicionales para el `<input>`
+ * (ej. `title="..."`, `disabled`). */
+export function htmlInterruptor(nombre, marcado, texto, atributos = '') {
+  return `<label class="interruptor"><input type="checkbox" role="switch" name="${nombre}" ${marcado ? 'checked' : ''} ${atributos} /><span class="interruptor-pista" aria-hidden="true"></span><span class="interruptor-texto">${texto}</span><span class="interruptor-estado" aria-hidden="true"></span></label>`;
+}
+
 /**
  * Ejecuta `redibujar()` (que reemplaza el HTML de `contenedor`) conservando el foco: si el elemento
  * enfocado está dentro de `contenedor` y tiene `id`, después de redibujar busca ese mismo `id` y le

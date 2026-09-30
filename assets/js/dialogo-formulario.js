@@ -136,3 +136,43 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
   }
   return dialogo;
 }
+
+/** Valor de la opción "＋ Crear nueva…" de los desplegables de categoría, ubicación, meta, persona o etiqueta. */
+export const CREAR_NUEVA = '__nueva__';
+
+/**
+ * Conecta un desplegable de referencia (categoría/ubicación/meta/persona/etiqueta, o cualquier otro con el
+ * mismo patrón "＋ Crear nueva…") para que, al elegir esa opción, abra el diálogo de alta de esa entidad y,
+ * al guardarla, reconstruya las opciones con la nueva ya seleccionada. `extraerId(nueva)` saca el id de la
+ * entidad recién creada; `alCambiar(id)` (opcional) se dispara con cualquier cambio de valor real (una ya
+ * existente o la recién creada) — la usa `views/configuraciones.view.js` para guardar al toque. (v0.91.0:
+ * movida acá desde `formulario-tarea.js`, que la tenía — `formularios-entidades.js` también la necesita para
+ * el desplegable de Etiqueta en Persona, y como `formulario-tarea.js` ya importa de `formularios-entidades.js`,
+ * importar en sentido contrario crearía un ciclo. Este archivo no importa de ninguno de los dos.)
+ */
+export function conectarCrearNueva(select, htmlOpciones, abrirDialogo, extraerId, alCambiar) {
+  select.dataset.previo = select.value;
+  select.addEventListener('focus', () => {
+    if (select.value !== CREAR_NUEVA) select.dataset.previo = select.value;
+  });
+  select.addEventListener('change', () => {
+    if (select.value !== CREAR_NUEVA) {
+      select.dataset.previo = select.value;
+      if (alCambiar) alCambiar(select.value);
+      return;
+    }
+    // Se vuelve al valor anterior: así un borrador nunca guarda "Crear nueva…".
+    select.value = select.dataset.previo || '';
+    abrirDialogo({
+      alCrear: (nueva) => {
+        const id = extraerId(nueva);
+        // Se selecciona por propiedad (no por el atributo `selected`): así cuenta como un cambio del usuario y el
+        // borrador del alta lo conserva cuando la vista se redibuja al guardar la entidad.
+        select.innerHTML = htmlOpciones('');
+        select.value = id;
+        select.dataset.previo = id;
+        if (alCambiar) alCambiar(id);
+      },
+    });
+  });
+}
