@@ -2,7 +2,7 @@
 // fecha cargada pero sin hora — "proyectadas" en Semana; y sin ser de mantenimiento, que tienen su propio ritmo)
 // les asigna un día y una hora reales, respetando el tope de minutos por día, lo ocupado en Google Calendar (si
 // está conectado) y las cadenas de dependencia (por orden y duración real, no un salto fijo de un día).
-// `reprogramarFechasSugeridasVencidas` se llama una sola vez por sesión desde `app.js` (`reprogramarSiCorresponde`);
+// `reprogramarVencidas` se llama una sola vez por sesión desde `app.js` (`reprogramarSiCorresponde`);
 // `reprogramarTareaInmediataSiVencio` además se repite cada 1-2 minutos mientras la app sigue abierta, y
 // `programarTareasSinFecha`/`reubicarTareasSolapadas`/`adelantarTareasSiHayHuecoMejor` cada vez que se refresca la
 // lectura de Calendar (`refrescarCalendar`, ver `app.js`), no solo al iniciar sesión (v0.81.0).
@@ -21,6 +21,17 @@ export function superaLimite(fechaISO, limiteISO) {
   if (!limiteISO) return false;
   if (tieneHora(limiteISO)) return new Date(fechaISO).getTime() > new Date(limiteISO).getTime();
   return diaLocal(fechaISO) > limiteISO;
+}
+
+/** Los huecos que ya ocupan otras tareas activas con hora real en `tarea_fecha_sugerida`, como eventos
+ * `{ inicio, fin }` — para que `buscarHuecoLibre` no haga chocar dos tareas de STDL entre sí (mismo criterio
+ * que ya usan `programarTareasSinFecha`/`adelantarTareasSiHayHuecoMejor`, extraído acá para reusarlo también en
+ * `programarParaHoy`, `reprogramarTareaInmediataSiVencio`, `reubicarTareasSolapadas` y `reprogramarVencidas`,
+ * v0.92.0 — antes solo miraban Calendar y podían asignarle a dos tareas el mismo horario). */
+function otrasTareasComoEventos(todas, excluirId) {
+  return todas
+    .filter((t) => t.tarea_id !== excluirId && t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida))
+    .map((t) => ({ inicio: t.tarea_fecha_sugerida, fin: new Date(new Date(t.tarea_fecha_sugerida).getTime() + (t.tarea_duracion_min || 30) * 60000).toISOString() }));
 }
 
 /**
@@ -211,24 +222,92 @@ function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
 }
 
 /**
- * Revalida contra Calendar la cadena de cada tarea recién reprogramada por `reprogramarFechasSugeridasVencidas`
- * (`tareas-logica.js`) — esa función no puede llamar a Calendar sin crear un ciclo de imports, así que queda
- * afuera de la revalidación que ya corre después de las otras 4 reprogramaciones automáticas (v0.84.0). Mismo
- * mecanismo (`resolverColisionesEnCadena`), aplicado acá desde `app.js` (`reprogramarSiCorresponde`). Sin
- * conexión a Calendar no hace nada.
+ * Tarea activa cuya `tarea_fecha_sugerida` (con hora) ya venció (el día quedó en el pasado): le busca el primer
+ * hueco real desde **hoy**, con el mismo criterio de capacidad diaria que `programarTareasSinFecha`
+ * (`crearCalculadoraCapacidad`, `tarea_dias_habiles`, sin superar `tarea_fecha_limite`) y sin chocar con
+ * Calendar ni con otras tareas ya asignadas (`otrasTareasComoEventos`) — v0.92.0, reemplaza a
+ * `calcularProximaFechaSugerida`/`reprogramarFechasSugeridasVencidas` (`tareas-logica.js`), que solo saltaba al
+ * próximo día hábil conservando la misma hora, sin mirar Calendar ni si ese día ya estaba lleno (backlog:
+ * "revisar reprogramar a hueco libre anterior..." / "Adoptar la capacidad... en la reprogramación de fechas
+ * vencidas"). A diferencia de `programarTareasSinFecha` (pensada para tareas sin cadena previa agendada), acá
+ * sí hace falta arrastrar a los dependientes ya agendados: usa `reprogramarTareaConCascada` +
+ * `resolverColisionesEnCadena`, igual que `reubicarTareasSolapadas`. Se llama una sola vez por sesión desde
+ * `app.js` (`reprogramarSiCorresponde`). Devuelve `{ reprogramadas, sinHueco, inconsistentes }` — `sinHueco`
+ * son las que no encontraron ningún hueco real antes de su fecha límite (quedan como estaban, para que el
+ * usuario las revise a mano, igual que el resto de las funciones de este archivo).
  */
-export async function resolverColisionesDeVencidas(vencidas, estado) {
-  if (!hayConexionGoogleCalendar() || vencidas.length === 0) return;
-
-  let eventos = [];
-  try {
-    eventos = await obtenerEventosDelHorizonte();
-  } catch {
-    return; // Falla momentánea de red: se reintenta en el próximo refresco.
-  }
+export async function reprogramarVencidas(estado) {
+  const todas = estado.tareas || [];
+  const hoy = hoyISO();
+  const candidatas = todas.filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida) && diaLocal(t.tarea_fecha_sugerida) < hoy);
+  if (candidatas.length === 0) return { reprogramadas: [], sinHueco: [], inconsistentes: [] };
 
   const preferencias = obtenerPreferencias();
-  vencidas.forEach((tarea) => resolverColisionesEnCadena(tarea, estado.tareas, eventos, preferencias));
+  const ahora = new Date();
+  const conCalendar = hayConexionGoogleCalendar();
+  const horizonteDias = diasHorizonteCalendar();
+  let eventosCalendar = [];
+  if (conCalendar) {
+    try {
+      eventosCalendar = await obtenerEventosDelHorizonte();
+    } catch {
+      eventosCalendar = []; // Falla momentánea de red: se programa igual, solo con el tope de minutos.
+    }
+  }
+
+  const calcularCapacidad = crearCalculadoraCapacidad({ preferencias, eventos: eventosCalendar, tareas: todas, hoy, ahora });
+  // Mismo motivo que en `programarTareasSinFecha`: la calculadora no se entera de lo que esta misma función va
+  // reprogramando, así que la carga por día se acumula acá aparte.
+  const cargaAcumulada = new Map();
+  const restanteDelDia = (dia) => {
+    const cap = calcularCapacidad(dia);
+    const usados = cargaAcumulada.has(dia) ? cargaAcumulada.get(dia) : cap.carga;
+    return Math.max(0, cap.capacidad - usados);
+  };
+  const marcarUso = (dia, minutos) => {
+    cargaAcumulada.set(dia, (cargaAcumulada.has(dia) ? cargaAcumulada.get(dia) : calcularCapacidad(dia).carga) + minutos);
+  };
+
+  const reprogramadas = [];
+  const sinHueco = [];
+  const inconsistentes = [];
+
+  candidatas.forEach((tarea) => {
+    const duracion = tarea.tarea_duracion_min || 30;
+    const diasHabiles = tarea.tarea_dias_habiles || [];
+    const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
+
+    let diaElegido = null;
+    for (let i = 0; i < horizonteDias; i += 1) {
+      const candidato = fechaISOMasDias(i, hoy);
+      if (diaLimite && candidato > diaLimite) break; // La sugerida nunca supera la fecha límite.
+      if (diasHabiles.length > 0 && !diasHabiles.includes(new Date(`${candidato}T00:00:00`).getDay())) continue;
+      if (restanteDelDia(candidato) >= duracion) {
+        diaElegido = candidato;
+        break;
+      }
+    }
+    if (!diaElegido) {
+      sinHueco.push(tarea); // Ningún día antes de su horizonte/límite tiene capacidad real: queda como estaba.
+      return;
+    }
+
+    const eventosDelDia = conCalendar ? eventosCalendar.filter((e) => diaLocal(e.inicio) === diaElegido) : [];
+    const otras = otrasTareasComoEventos(todas, tarea.tarea_id);
+    const desde = diaElegido === hoy ? ahora : new Date(`${diaElegido}T00:00:00`);
+    const hueco = buscarHuecoLibre([...eventosDelDia, ...otras], duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
+    if (!hueco) {
+      sinHueco.push(tarea); // El día tenía minutos libres pero no un hueco contiguo: queda como estaba.
+      return;
+    }
+
+    marcarUso(diaElegido, duracion);
+    inconsistentes.push(...reprogramarTareaConCascada(tarea, hueco, todas));
+    resolverColisionesEnCadena(tarea, todas, eventosCalendar, preferencias);
+    reprogramadas.push(tarea);
+  });
+
+  return { reprogramadas, sinHueco, inconsistentes };
 }
 
 /**
@@ -270,7 +349,8 @@ export async function reubicarTareasSolapadas(estado) {
     const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
     const dias = diaLimite ? Math.max(1, diasEntreFechas(diaLocal(tarea.tarea_fecha_sugerida), diaLimite) + 1) : diasHorizonteCalendar();
 
-    const hueco = buscarHuecoLibre(eventos, duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
+    const otras = otrasTareasComoEventos(estado.tareas, tarea.tarea_id);
+    const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
     if (hueco && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
       inconsistentes.push(...reprogramarTareaConCascada(tarea, hueco, estado.tareas));
       resolverColisionesEnCadena(tarea, estado.tareas, eventos, preferencias);
@@ -320,7 +400,8 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
   const desde = new Date();
   const dias = diaLimite ? Math.max(1, diasEntreFechas(hoyISO(), diaLimite) + 1) : diasHorizonteCalendar();
 
-  const hueco = buscarHuecoLibre(eventos, duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
+  const otras = otrasTareasComoEventos(estado.tareas, tarea.tarea_id);
+  const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
   if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
   const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
@@ -329,11 +410,13 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
 }
 
 /**
- * Le asigna a `tarea` un hueco real hoy (respetando Calendar y `tarea_fecha_limite`); si no entra hoy, sigue
- * buscando hacia adelante dentro del horizonte configurado en vez de dejarla sin fecha. La usa el formulario
- * de tarea, la edición masiva y "Reestructurar prioridades con IA" al marcar `tarea_urgente = true` (v0.75.0).
- * No evita chocar con otras tareas del mismo lote que se estén marcando urgentes a la vez (si dos quedan
- * pisadas entre sí, `reubicarTareasSolapadas` las reacomoda sola en el próximo chequeo). Devuelve
+ * Le asigna a `tarea` un hueco real hoy (respetando Calendar, otras tareas ya asignadas y `tarea_fecha_limite`);
+ * si no entra hoy, sigue buscando hacia adelante dentro del horizonte configurado en vez de dejarla sin fecha.
+ * La usa el formulario de tarea, la edición masiva y "Reestructurar prioridades con IA" al marcar
+ * `tarea_urgente = true` (v0.75.0), y `reasignarUrgentesAHoy` en loop para varias tareas seguidas — como lee
+ * `estado.tareas` en cada llamada, cada una ve ya ocupado el hueco que le tocó a la anterior del mismo lote
+ * (v0.92.0 — antes solo miraba Calendar, así que dos urgentes del mismo lote podían terminar con el mismo
+ * horario; `reubicarTareasSolapadas` tampoco lo resolvía después, porque igual solo mira Calendar). Devuelve
  * `{ tarea, sinHueco, inconsistentes }` — `sinHueco` true si no hay hueco libre antes de su fecha límite
  * (queda como estaba); `inconsistentes` ver `reprogramarTareaInmediataSiVencio`.
  */
@@ -354,7 +437,8 @@ export async function programarParaHoy(tarea, estado) {
   const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
   const dias = diaLimite ? Math.max(1, diasEntreFechas(hoyISO(), diaLimite) + 1) : diasHorizonteCalendar();
 
-  const hueco = buscarHuecoLibre(eventos, duracion, { desde: new Date(), dias, franja: preferencias.pref_franja, diasHabiles });
+  const otras = otrasTareasComoEventos(estado.tareas || [], tarea.tarea_id);
+  const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde: new Date(), dias, franja: preferencias.pref_franja, diasHabiles });
   if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
   const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);

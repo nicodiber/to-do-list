@@ -2,6 +2,15 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.92.0] - 2026-09-30
+
+Dos bugs de reprogramación automática reportados por el usuario, ambos ya anotados en el backlog.
+
+### Corregido
+
+- **Dos tareas ya no pueden quedar con la misma `tarea_fecha_sugerida`**: `programarParaHoy`, `reprogramarTareaInmediataSiVencio` y `reubicarTareasSolapadas` solo miraban Google Calendar al buscar un hueco, nunca las tareas de STDL ya agendadas — el caso más visible era `reasignarUrgentesAHoy` (v0.90.0) asignando el mismo horario a varias tareas urgentes seguidas, de las cuales Semana solo mostraba una.
+- **Las tareas vencidas ahora se reprograman a un hueco real** (Calendar + capacidad diaria) en vez de saltar directo al próximo día hábil conservando la misma hora sin mirar si ese día (u otro anterior) tenía lugar de verdad: nueva `reprogramarVencidas` (`assets/js/programador.js`), que reemplaza a `reprogramarFechasSugeridasVencidas`/`calcularProximaFechaSugerida` (`tareas-logica.js`, sin acceso a Calendar).
+
 ## [v0.91.0] - 2026-09-30
 
 Seis ajustes chicos de Personas, elegidos tras repasar el backlog.

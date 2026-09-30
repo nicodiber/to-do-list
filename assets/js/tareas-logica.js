@@ -1,6 +1,5 @@
 import { crearTarea, crearMejora, crearCumplimiento } from './modelos.js';
-import { ahoraISO, hoyISO, fechaLocalISO, diaLocal, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz, combinarFechaYHora } from './utilidades.js';
-import { siguienteDiaHabil } from './reprogramar.js';
+import { ahoraISO, hoyISO, fechaLocalISO, diaLocal, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz } from './utilidades.js';
 import { recalcularBloqueo, puedeAgregarDependencia, proximasActivas, reconectarAlEliminar } from './dependencias.js';
 
 // Las dependencias viven en `dependencias.js`; se reexportan para no cambiar los imports de las vistas.
@@ -298,26 +297,6 @@ export function avisoInconsistentes(inconsistentes) {
 }
 
 /**
- * Próxima `tarea_fecha_sugerida` para una tarea cuya fecha sugerida venció
- * sin completarse: hoy (o el próximo día hábil según `tarea_dias_habiles`),
- * preservando la hora si tenía, y sin superar `tarea_fecha_limite` si existe.
- */
-function calcularProximaFechaSugerida(tarea) {
-  let dia = siguienteDiaHabil(hoyISO(), tarea.tarea_dias_habiles);
-  if (tarea.tarea_fecha_limite && dia > diaLocal(tarea.tarea_fecha_limite)) {
-    dia = diaLocal(tarea.tarea_fecha_limite);
-  }
-  if (!tieneHora(tarea.tarea_fecha_sugerida)) return dia;
-
-  // La hora se extrae en horario local (igual que `partesFechaHora` en
-  // tareas.view.js), no recortando el string ISO crudo (que está en UTC) —
-  // `combinarFechaYHora` espera una hora local para volver a armar el ISO.
-  const fechaVieja = new Date(tarea.tarea_fecha_sugerida);
-  const hora = `${String(fechaVieja.getHours()).padStart(2, '0')}:${String(fechaVieja.getMinutes()).padStart(2, '0')}`;
-  return combinarFechaYHora(dia, hora);
-}
-
-/**
  * `tarea_fecha_sugerida` nunca puede superar `tarea_fecha_limite` (la fecha límite la decide el usuario;
  * la sugerida la puede reprogramar la app sin preguntar). Si las dos están cargadas y la sugerida queda
  * después del día límite, se descarta en silencio (queda vacía) en vez de bloquear el guardado — la
@@ -329,15 +308,6 @@ export function limitarFechaSugeridaALimite(fechaSugeridaISO, fechaLimiteISO) {
   return diaLocal(fechaSugeridaISO) > diaLocal(fechaLimiteISO) ? '' : fechaSugeridaISO;
 }
 
-/**
- * Reprograma automáticamente (sin intervención del usuario, a diferencia de
- * `tarea_fecha_limite`) la `tarea_fecha_sugerida` de toda tarea activa (no
- * completada) que quedó vencida, a la próxima fecha disponible
- * (`calcularProximaFechaSugerida`), en cascada sobre sus dependientes vía
- * `reprogramarTareaConCascada`. Se llama una vez al iniciar la app. Devuelve
- * `{ afectadas, inconsistentes }`: las tareas afectadas (para avisarle al usuario) y las dependientes que,
- * tras desplazar en cascada, quedaron con la sugerida después de su propia fecha límite (ver `avisoInconsistentes`).
- */
 /**
  * Cuando `tarea_fecha_inicio_habilitada` ya quedó en el pasado (el día ya terminó), la actualiza a hoy — para
  * que el dato en sí sea coherente (el formulario de edición y el Gantt ya no muestran una fecha vieja) en vez
@@ -354,18 +324,6 @@ export function actualizarFechasInicioVencidas(listaTareas) {
       afectadas.push(tarea);
     });
   return afectadas;
-}
-
-export function reprogramarFechasSugeridasVencidas(listaTareas) {
-  const afectadas = [];
-  const inconsistentes = [];
-  listaTareas
-    .filter((t) => t.tarea_estado !== 'completada' && t.tarea_fecha_sugerida && diaLocal(t.tarea_fecha_sugerida) < hoyISO())
-    .forEach((tarea) => {
-      inconsistentes.push(...reprogramarTareaConCascada(tarea, calcularProximaFechaSugerida(tarea), listaTareas));
-      afectadas.push(tarea);
-    });
-  return { afectadas, inconsistentes };
 }
 
 /**
