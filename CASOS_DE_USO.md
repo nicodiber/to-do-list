@@ -136,7 +136,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   2. Sistema muestra el mismo panel de atajos de día/hora.
   3. Usuario elige la nueva fecha y confirma.
   4. Sistema escribe `tarea_fecha_limite` de esa tarea únicamente (sin cascada), guarda y redibuja.
-- **Vistas/funciones**: `assets/js/reprogramar.js` (`crearPanelReprogramar`, `siguienteDiaHabil`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`, `reprogramarFechasSugeridasVencidas`), `views/hoy.view.js`, `views/tareas.view.js`, `assets/js/vista-agenda.js`, `assets/js/revision-dia.js`.
+- **Vistas/funciones**: `assets/js/reprogramar.js` (`crearPanelReprogramar`, `siguienteDiaHabil`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`), `assets/js/programador.js` (`reprogramarVencidas`), `views/hoy.view.js`, `views/tareas.view.js`, `assets/js/vista-agenda.js`, `assets/js/revision-dia.js`.
 - **Resultado**: `tarea_fecha_sugerida` y/o `tarea_fecha_limite` actualizada; posible cascada a dependientes.
 - **Fricciones**: 4 puntos de entrada distintos al mismo panel (consistente, pero repartido). La cascada no siempre es evidente para el usuario — no hay un resumen visual de "esto además corrió a estas otras N tareas".
 
