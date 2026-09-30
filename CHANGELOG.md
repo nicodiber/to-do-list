@@ -2,6 +2,41 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.91.0] - 2026-09-30
+
+Seis ajustes chicos de Personas, elegidos tras repasar el backlog.
+
+### Agregado
+
+- **Etiqueta compartida para Personas**: nueva entidad "Etiqueta" (nombre + color), reusable entre varias personas — se crea y edita desde un desplegable "＋ Crear nueva etiqueta…" en el formulario de Persona, sin necesitar una pestaña nueva.
+- **Personas: "☑️ Seleccionar"** para cargar "último contacto" en bloque — selector de fecha (precargado en hoy) con atajos "Hoy"/"Ayer" y "Aplicar a N".
+- **Personas: booleano "💀 Fallecida"** — la tarjeta se atenúa y la persona cae siempre al final de la lista, sin importar hace cuánto no hay contacto.
+- **Personas: validación de "Último contacto"** — ya no se puede cargar una fecha futura.
+
+### Cambiado
+
+- **Personas: "Hace X tiempo"** pasa a meses de calendario reales cuando corresponde ("Hace 1 mes y 14 días", antes siempre en días sueltos).
+- Confirmado que "Personas" ya ordenaba con los contactos más antiguos arriba (backlog); no hizo falta ningún cambio ahí.
+
+## [v0.90.0] - 2026-09-30
+
+Se repensó de fondo la lógica de prioridad, discutida a fondo con el usuario: la fecha límite más próxima gana siempre (no una banda ancha de días), la categoría solo desempata cuando no hay fecha límite o hay un empate exacto, y una tarea que todavía no se puede empezar nunca le gana a una que sí.
+
+### Cambiado
+
+- **Prioridad de tareas, rediseñada**: se sacaron las bandas anchas de holgura (0-3 días, 4-7, etc.) del criterio de orden — la holgura queda como texto informativo ("Quedan N días"), sin influir en el orden. Nuevo criterio: **accionable** (¿ya se puede empezar?) primero, después la **fecha efectiva de orden** (`tarea_fecha_limite` si existe; si no, el día de `tarea_fecha_sugerida` cuando la tarea es `tarea_urgente`, siempre "hoy"; si no, sin apuro), después categoría raíz y directa. Ver `REGLAS_DE_PRIORIDAD.md` para el flujograma completo.
+- **Prioridad manual (Versus/▲▼)** pasa a ser el desempate final para **cualquier** empate (antes solo aplicaba a tareas sin fecha límite) — ya no hay FIFO (`tarea_creada_en` ya no desempata).
+- **Avisos y carteles con categoría antes del nombre** (`«Categoría Nombre»`, antes `«Nombre» (Categoría)`): el aviso de reprogramación al iniciar sesión, y los carteles "¿Tarea de seguimiento?" y "¿Guardar en Calendar?" de Resumen (antes no mostraban categoría).
+
+### Agregado
+
+- **Una tarea `tarea_urgente` recupera `tarea_fecha_sugerida = hoy` todos los días** mientras siga pendiente y sin completar (antes solo se agendaba una vez, al marcarla urgente).
+- **`tarea_fecha_inicio_habilitada` vencida se actualiza sola a hoy** al iniciar sesión (antes solo se tenía en cuenta para el cálculo, la fecha vieja seguía mostrándose en el formulario y en Gantt).
+
+### Corregido
+
+- **Crear una tarea nueva sin fecha sugerida** (y sin marcarla urgente) quedaba sin `tarea_fecha_sugerida` hasta el próximo refresco de sesión o de Calendar — ahora se agenda de una al guardarla.
+
 ## [v0.89.0] - 2026-09-29
 
 La fecha sugerida de una tarea ya nunca queda después de su fecha límite por un corrimiento automático.

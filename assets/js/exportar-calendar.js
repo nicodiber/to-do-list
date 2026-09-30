@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
-import { escaparHtml } from './utilidades.js';
+import { escaparHtml, nombrarConCategoria } from './utilidades.js';
 
 function formatoUTCGoogleCalendar(fecha) {
   return fecha.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -54,7 +54,7 @@ export function ofrecerExportarACalendar(tarea) {
   abrirDialogoFormulario({
     titulo: '📅 Guardar en Google Calendar',
     textoGuardar: '📅 Abrir en Calendar',
-    cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Abrir «${escaparHtml(tarea.tarea_nombre)}» en Google Calendar para guardarla como registro histórico? Se abre una pestaña con el evento ya cargado y lo guardás vos.</p>`,
+    cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Abrir ${escaparHtml(nombrarConCategoria(tarea, estado.categorias))} en Google Calendar para guardarla como registro histórico? Se abre una pestaña con el evento ya cargado y lo guardás vos.</p>`,
     alGuardar: () => {
       const ventana = window.open(construirUrlExportarGoogleCalendar(tarea), '_blank');
       if (!ventana) {

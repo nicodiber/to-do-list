@@ -267,6 +267,27 @@ export function caminoCategoria(categoria, todasLasCategorias) {
 }
 
 /**
+ * Nombre de una tarea para avisos/carteles, con su categoría **antes** del nombre (v0.90.0 — antes
+ * `«nombre» (categoría)`; el orden nuevo hace más fácil distinguir de un vistazo tareas del mismo nombre en
+ * categorías distintas): `«Facultad Álgebra 2»`, o `«Álgebra 2»` sin categoría. Devuelve texto plano, sin
+ * escapar — quien arma HTML con esto (`modal-tarea.js`, `exportar-calendar.js`) lo escapa por su cuenta.
+ */
+export function nombrarConCategoria(tarea, categorias) {
+  const categoria = categorias.find((c) => c.categoria_id === tarea.categoria_id) ?? null;
+  const camino = caminoCategoria(categoria, categorias);
+  return `«${camino ? `${camino} ` : ''}${tarea.tarea_nombre}»`;
+}
+
+/** Interruptor Sí/No genérico (checkbox estilizado), para campos booleanos de cualquier formulario — categoría,
+ * tarea, persona, etc. (v0.91.0: movida acá desde `formulario-tarea.js`, que la tenía — `formularios-entidades.js`
+ * también la necesita, y como `formulario-tarea.js` ya importa de `formularios-entidades.js`, importar en
+ * sentido contrario crearía un ciclo). `atributos` son atributos HTML crudos adicionales para el `<input>`
+ * (ej. `title="..."`, `disabled`). */
+export function htmlInterruptor(nombre, marcado, texto, atributos = '') {
+  return `<label class="interruptor"><input type="checkbox" role="switch" name="${nombre}" ${marcado ? 'checked' : ''} ${atributos} /><span class="interruptor-pista" aria-hidden="true"></span><span class="interruptor-texto">${texto}</span><span class="interruptor-estado" aria-hidden="true"></span></label>`;
+}
+
+/**
  * Ejecuta `redibujar()` (que reemplaza el HTML de `contenedor`) conservando el foco: si el elemento
  * enfocado está dentro de `contenedor` y tiene `id`, después de redibujar busca ese mismo `id` y le
  * devuelve el foco y la posición del cursor (útil para buscadores que se redibujan en cada tecla).

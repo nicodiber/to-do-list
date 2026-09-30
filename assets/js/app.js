@@ -14,19 +14,20 @@ import {
   descartarDatosViejos,
   hayTextoEnEdicion,
 } from './almacenamiento.js';
-import { reprogramarFechasSugeridasVencidas, pasarProximoContactoVencido, tareasSoloConNombre } from './tareas-logica.js';
+import { reprogramarFechasSugeridasVencidas, pasarProximoContactoVencido, actualizarFechasInicioVencidas, tareasSoloConNombre } from './tareas-logica.js';
 import {
   programarTareasSinFecha,
   reubicarTareasSolapadas,
   reprogramarTareaInmediataSiVencio,
   adelantarTareasSiHayHuecoMejor,
   resolverColisionesDeVencidas,
+  reasignarUrgentesAHoy,
 } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
-import { caminoCategoria } from './utilidades.js';
+import { nombrarConCategoria } from './utilidades.js';
 import { renderVistaResumen } from '../../views/resumen.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
@@ -44,7 +45,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.89.0';
+const VERSION = 'v0.91.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -377,26 +378,21 @@ suscribirSync((s) => {
 
 let reprogramado = false;
 
-/** «Tarea» (Camino / de / Categoría) — para no confundir tareas con el mismo nombre en los avisos. */
-function nombrarConCategoria(tarea) {
-  const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
-  const camino = categoria ? caminoCategoria(categoria, estado.categorias) : '';
-  return `«${tarea.tarea_nombre}»${camino ? ` (${camino})` : ''}`;
-}
-
 function nombrarLista(tareas) {
-  return tareas.map(nombrarConCategoria).join(', ');
+  return tareas.map((t) => nombrarConCategoria(t, estado.categorias)).join(', ');
 }
 
 /** Reprograma fechas vencidas y programa las tareas sin fecha, una sola vez por sesión, apenas hay datos cargados. */
 async function reprogramarSiCorresponde() {
   if (reprogramado || !obtenerEstadoSync().datosListos) return;
   reprogramado = true;
+  const inicioActualizadas = actualizarFechasInicioVencidas(estado.tareas);
   const { afectadas: vencidas, inconsistentes: inconsistentesVencidas } = reprogramarFechasSugeridasVencidas(estado.tareas);
   await resolverColisionesDeVencidas(vencidas, estado);
   const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas } = await reubicarTareasSolapadas(estado);
   const { asignadas: nuevas, sinHueco: sinHuecoNuevas } = await programarTareasSinFecha(estado);
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
+  const urgentesReasignadas = await reasignarUrgentesAHoy(estado);
   const personasAfectadas = pasarProximoContactoVencido(estado.personas);
 
   const sinHueco = [...sinHuecoReubicadas, ...sinHuecoNuevas];
@@ -413,7 +409,9 @@ async function reprogramarSiCorresponde() {
     reubicadas.length === 0 &&
     sinHueco.length === 0 &&
     inconsistentes.length === 0 &&
-    personasAfectadas.length === 0
+    personasAfectadas.length === 0 &&
+    inicioActualizadas.length === 0 &&
+    urgentesReasignadas.length === 0
   )
     return;
   await persistirYNotificar();

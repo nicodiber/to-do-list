@@ -2,7 +2,7 @@
 // Tabla): aplicar el mismo cambio a varias tareas elegidas de una vez.
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { combinarFechaYHora } from './utilidades.js';
+import { combinarFechaYHora, htmlInterruptor } from './utilidades.js';
 import { limitarFechaSugeridaALimite, avisoInconsistentes } from './tareas-logica.js';
 import { programarParaHoy } from './programador.js';
 import {
@@ -12,7 +12,6 @@ import {
   htmlOpcionesPersona,
   htmlOpcionesUbicacion,
   htmlDiasHabiles,
-  htmlInterruptor,
   aplicarCamposATarea,
 } from './formulario-tarea.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';

@@ -90,12 +90,26 @@ Se administra desde el ABM en la vista "Metas". El progreso (tareas completadas 
 |---|---|---|---|
 | `persona_id` | string (UUID) | MVP | Identificador único |
 | `persona_nombre` | string | MVP | Nombre de la persona (ej. "Mamá", "Juan") |
-| `persona_ultimo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha del último encuentro/contacto registrado. Vacío = nunca registrado |
+| `persona_ultimo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | MVP | Fecha del último encuentro/contacto registrado. Vacío = nunca registrado. No puede ser una fecha futura (validado al guardar, v0.91.0) |
 | `persona_proximo_contacto` | string (`YYYY-MM-DD`) \| "", opcional | v0.66.0 | Próximo encuentro planeado. Al guardarla con un valor nuevo, reprograma la `tarea_fecha_sugerida` de todas las tareas pendientes asociadas (`persona_id`) a esa fecha |
+| `persona_etiqueta_id` | string (UUID) \| `null`, default `null` | v0.91.0 | Referencia a `Etiqueta.etiqueta_id`, para agrupar/distinguir personas visualmente (una sola etiqueta por persona). Al eliminar la etiqueta, queda en `null` |
+| `persona_fallecida` | boolean, default `false` | v0.91.0 | Marca a la persona como fallecida: la tarjeta se atenúa, muestra 💀 y la lista la manda siempre al final, sin importar hace cuánto no hay contacto |
 | `persona_creada_en` | string (ISO datetime) | MVP | Timestamp de creación |
 | `persona_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
-Se administra desde el ABM en la vista "Personas". La lista se ordena de mayor a menor tiempo sin contacto; el botón "Marcar contacto hoy" actualiza `persona_ultimo_contacto` a la fecha actual. Desde la v0.66.0, editar una persona (`abrirDialogoPersona`) muestra sus tareas pendientes (`Tarea.persona_id`) y permite reprogramarlas de una vez con "Próximo contacto".
+Se administra desde el ABM en la vista "Personas". La lista se ordena de mayor a menor tiempo sin contacto, con las fallecidas siempre al final (v0.91.0); el botón "Marcar contacto hoy" actualiza `persona_ultimo_contacto` a la fecha actual, y "☑️ Seleccionar" (v0.91.0) permite aplicar una fecha elegida a varias personas de una vez. Desde la v0.66.0, editar una persona (`abrirDialogoPersona`) muestra sus tareas pendientes (`Tarea.persona_id`) y permite reprogramarlas de una vez con "Próximo contacto".
+
+## Etiqueta
+
+| Campo | Tipo | Fase | Descripción |
+|---|---|---|---|
+| `etiqueta_id` | string (UUID) | v0.91.0 | Identificador único |
+| `etiqueta_nombre` | string | v0.91.0 | Nombre de la etiqueta (ej. "Familia", "Trabajo") |
+| `etiqueta_color` | string (hex) | v0.91.0 | Color para distinguirla visualmente, elegido con el mismo selector que `Categoria.categoria_color` |
+| `etiqueta_creada_en` | string (ISO datetime) | v0.91.0 | Timestamp de creación |
+| `etiqueta_modificado_en` | string (ISO datetime) | v0.91.0 | Cuándo se modificó por última vez (lo sella el sistema al guardar) |
+
+Compartida entre personas (`Persona.persona_etiqueta_id`), sin vista propia: se gestiona desde el desplegable "＋ Crear nueva etiqueta…" del formulario de Persona (`abrirDialogoEtiqueta`, `assets/js/formularios-entidades.js`), mismo patrón que Categoría/Ubicación/Meta en el formulario de tarea. El botón "✏️" junto al desplegable edita la etiqueta ya elegida (nombre, color, o eliminarla — al eliminarla, las personas que la usaban quedan con `persona_etiqueta_id: null`).
 
 ## Mejora
 

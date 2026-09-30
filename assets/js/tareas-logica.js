@@ -338,6 +338,24 @@ export function limitarFechaSugeridaALimite(fechaSugeridaISO, fechaLimiteISO) {
  * `{ afectadas, inconsistentes }`: las tareas afectadas (para avisarle al usuario) y las dependientes que,
  * tras desplazar en cascada, quedaron con la sugerida después de su propia fecha límite (ver `avisoInconsistentes`).
  */
+/**
+ * Cuando `tarea_fecha_inicio_habilitada` ya quedó en el pasado (el día ya terminó), la actualiza a hoy — para
+ * que el dato en sí sea coherente (el formulario de edición y el Gantt ya no muestran una fecha vieja) en vez
+ * de solo ajustar la visualización. Se llama una sola vez al iniciar sesión (v0.90.0), en silencio. Devuelve
+ * las tareas afectadas.
+ */
+export function actualizarFechasInicioVencidas(listaTareas) {
+  const hoy = hoyISO();
+  const afectadas = [];
+  listaTareas
+    .filter((t) => t.tarea_estado !== 'completada' && t.tarea_fecha_inicio_habilitada && diaLocal(t.tarea_fecha_inicio_habilitada) < hoy)
+    .forEach((tarea) => {
+      tarea.tarea_fecha_inicio_habilitada = hoy;
+      afectadas.push(tarea);
+    });
+  return afectadas;
+}
+
 export function reprogramarFechasSugeridasVencidas(listaTareas) {
   const afectadas = [];
   const inconsistentes = [];
@@ -411,36 +429,46 @@ export function calcularHolguraHoras(tarea) {
   return ms === null ? Infinity : Math.floor(ms / MS_POR_HORA);
 }
 
-/**
- * Agrupa la holgura (ver `calcularHolguraDias`) en bandas, de más a menos
- * urgente. Definidas junto al usuario en la Ronda 2 para que una diferencia
- * de días chica no tape la prioridad real de categorías (ver
- * REGLAS_DE_PRIORIDAD.md).
- */
-function bandaHolgura(dias) {
-  if (dias < 0) return 0;
-  if (dias <= 3) return 1;
-  if (dias <= 7) return 2;
-  if (dias <= 15) return 3;
-  if (dias <= 30) return 4;
-  return 5;
+/** Instante comparable de una fecha (con hora: exacto; sin hora: fin de ese día, 23:59:59) — mismo
+ * criterio que ya usa `margenMsHastaLimite` para no considerar "vencida" una fecha límite de hoy sin hora. */
+function instanteFinDeDia(fechaISO) {
+  return tieneHora(fechaISO) ? new Date(fechaISO).getTime() : new Date(`${fechaISO}T23:59:59`).getTime();
 }
 
 /**
- * Compara dos tareas por los niveles 1-4 de prioridad (ver
- * REGLAS_DE_PRIORIDAD.md para el detalle y los ejemplos): 1) banda de
- * holgura (`calcularHolguraDias`) — el criterio dominante; 2)
- * `categoria_prioridad` de la categoría raíz de cada tarea (`categoriaRaiz`);
- * 3) `categoria_prioridad` de la categoría directa, como desempate entre
- * categorías con la misma raíz; 4) `tarea_urgente` (booleano, v0.75.0: antes
- * `tarea_importancia` de 3 valores — `true` gana). Sin categoría, o categoría inexistente, queda siempre al
- * final en los niveles 2 y 3. Devuelve 0 si empatan en los 4 niveles —
- * usado tanto por `compararPorPrioridad` como por `tareasEmpatadas`.
+ * "Fecha efectiva de orden" de una tarea (v0.90.0, reemplaza la banda de holgura como criterio de orden):
+ * `tarea_fecha_limite` si existe (tipo 0, REAL); si no hay límite pero la tarea es `tarea_urgente`, el día de
+ * `tarea_fecha_sugerida` — que el proceso automático diario mantiene siempre en "hoy" (`reasignarUrgentesAHoy`,
+ * `programador.js`) — tratado como fin de ese día (tipo 1, PRESTADA: así dos urgentes con horas de hueco
+ * distintas siguen empatando entre sí, y el desempate real es la categoría); sin límite y sin ser urgente,
+ * `Infinity` (tipo 2, sin apuro). El `tipo` desempata cuando dos fechas efectivas caen en el mismo instante:
+ * una fecha límite real siempre le gana a una prestada por estar marcada urgente.
+ */
+function fechaEfectiva(tarea) {
+  if (tarea.tarea_fecha_limite) return { instante: instanteFinDeDia(tarea.tarea_fecha_limite), tipo: 0 };
+  if (tarea.tarea_urgente) return { instante: instanteFinDeDia(diaLocal(tarea.tarea_fecha_sugerida || hoyISO())), tipo: 1 };
+  return { instante: Infinity, tipo: 2 };
+}
+
+/**
+ * Compara dos tareas por los niveles estructurales de prioridad (ver REGLAS_DE_PRIORIDAD.md para el detalle y
+ * los ejemplos, v0.90.0): 1) si una es accionable (`esTareaAccionable`) y la otra no, gana la accionable —
+ * una tarea que todavía no se puede empezar nunca le gana a una que sí, sea cual sea su fecha; 2) "fecha
+ * efectiva de orden" (`fechaEfectiva`) ascendente — unifica `tarea_fecha_limite` y `tarea_urgente` en la misma
+ * línea de tiempo; 3) `categoria_prioridad` de la categoría raíz de cada tarea (`categoriaRaiz`); 4)
+ * `categoria_prioridad` de la categoría directa, como desempate entre categorías con la misma raíz. Sin
+ * categoría, o categoría inexistente, queda siempre al final en los niveles 3 y 4. Devuelve 0 si empatan en
+ * todo — usado tanto por `compararPorPrioridad` como por `tareasEmpatadas`.
  */
 function compararEstructural(a, b, categorias) {
-  const bandaA = bandaHolgura(calcularHolguraDias(a));
-  const bandaB = bandaHolgura(calcularHolguraDias(b));
-  if (bandaA !== bandaB) return bandaA - bandaB;
+  const accionableA = esTareaAccionable(a);
+  const accionableB = esTareaAccionable(b);
+  if (accionableA !== accionableB) return accionableA ? -1 : 1;
+
+  const efectivaA = fechaEfectiva(a);
+  const efectivaB = fechaEfectiva(b);
+  if (efectivaA.instante !== efectivaB.instante) return efectivaA.instante - efectivaB.instante;
+  if (efectivaA.tipo !== efectivaB.tipo) return efectivaA.tipo - efectivaB.tipo;
 
   const categoriaA = categorias.find((c) => c.categoria_id === a.categoria_id) ?? null;
   const categoriaB = categorias.find((c) => c.categoria_id === b.categoria_id) ?? null;
@@ -451,9 +479,7 @@ function compararEstructural(a, b, categorias) {
 
   const prioridadDirectaA = categoriaA?.categoria_prioridad ?? Infinity;
   const prioridadDirectaB = categoriaB?.categoria_prioridad ?? Infinity;
-  if (prioridadDirectaA !== prioridadDirectaB) return prioridadDirectaA - prioridadDirectaB;
-
-  return (a.tarea_urgente ? 0 : 1) - (b.tarea_urgente ? 0 : 1);
+  return prioridadDirectaA - prioridadDirectaB;
 }
 
 /**
@@ -534,7 +560,7 @@ export function intercambiarCadena(nuevoPrimero, nuevoSegundo, listaTareas) {
 }
 
 /**
- * Por qué `actual` no puede cambiar de orden con `vecina` (▲▼ a mano): `''` si sí puede (están empatadas en los 4
+ * Por qué `actual` no puede cambiar de orden con `vecina` (▲▼ a mano): `''` si sí puede (están empatadas en los
  * niveles estructurales de `compararEstructural` y no son cadena previa/próxima — mover `tarea_prioridad_manual`
  * entre ellas sí va a cambiar el orden mostrado); si no, un texto que nombra a `vecina` y qué la hace ganar, para
  * que el usuario sepa qué campo tocar si de verdad quiere reordenarlas. Mismo orden de niveles que
@@ -548,10 +574,20 @@ export function motivoBloqueoOrdenManual(actual, vecina, categorias) {
     return '';
   }
 
-  const bandaActual = bandaHolgura(calcularHolguraDias(actual));
-  const bandaVecina = bandaHolgura(calcularHolguraDias(vecina));
-  if (bandaActual !== bandaVecina) {
-    return `«${vecina.tarea_nombre}» ${bandaVecina < bandaActual ? 'tiene menos margen hasta su fecha límite (vence antes)' : 'tiene más margen hasta su fecha límite (vence después)'}.`;
+  const accionableActual = esTareaAccionable(actual);
+  const accionableVecina = esTareaAccionable(vecina);
+  if (accionableActual !== accionableVecina) {
+    return `«${vecina.tarea_nombre}» ${accionableVecina ? 'ya se puede empezar' : 'todavía no se puede empezar'}.`;
+  }
+
+  const efectivaActual = fechaEfectiva(actual);
+  const efectivaVecina = fechaEfectiva(vecina);
+  if (efectivaActual.instante !== efectivaVecina.instante) {
+    return `«${vecina.tarea_nombre}» ${efectivaVecina.instante < efectivaActual.instante ? 'vence (o se hace) antes' : 'vence (o se hace) después'}.`;
+  }
+  if (efectivaActual.tipo !== efectivaVecina.tipo) {
+    const cual = (t) => (t.tipo === 0 ? 'tiene fecha límite' : 'está marcada urgente, sin fecha límite');
+    return `«${vecina.tarea_nombre}» ${cual(efectivaVecina)}, a diferencia de «${actual.tarea_nombre}».`;
   }
 
   const categoriaActual = categorias.find((c) => c.categoria_id === actual.categoria_id) ?? null;
@@ -570,19 +606,16 @@ export function motivoBloqueoOrdenManual(actual, vecina, categorias) {
     return `«${vecina.tarea_nombre}» está en la subcategoría «${categoriaVecina?.categoria_nombre || 'sin categoría'}», con ${directaVecina < directaActual ? 'mayor' : 'menor'} prioridad.`;
   }
 
-  if (!!actual.tarea_urgente !== !!vecina.tarea_urgente) {
-    return `«${vecina.tarea_nombre}» ${vecina.tarea_urgente ? 'es urgente' : 'no es urgente'}.`;
-  }
-
   return '';
 }
 
 /**
- * Compara dos tareas por prioridad, en 6 niveles (ver REGLAS_DE_PRIORIDAD.md):
- * los 4 de `compararEstructural`, después 5) `tarea_prioridad_manual`
- * (`?? Infinity`, menor = más prioritaria — resultado de la herramienta
- * "Versus" o de reordenar a mano con ▲▼), y por último 6) `tarea_creada_en`
- * ascendente (FIFO), para que el orden sea siempre determinístico.
+ * Compara dos tareas por prioridad (ver REGLAS_DE_PRIORIDAD.md): los niveles de `compararEstructural`,
+ * después `tarea_prioridad_manual` (`?? Infinity`, menor = más prioritaria — resultado de la herramienta
+ * "Versus" o de reordenar a mano con ▲▼) como desempate final, general para cualquier empate que llegue hasta
+ * acá (v0.90.0 — antes solo se ofrecía para tareas sin fecha límite; ahora también cubre, por ejemplo, dos
+ * fechas límite reales idénticas). Sin FIFO (v0.90.0, `tarea_creada_en` ya no desempata): un empate genuino
+ * más allá de esto se resuelve a mano, o si no, queda con el orden estable que ya traía el array.
  */
 export function compararPorPrioridad(a, b, categorias) {
   const estructural = compararEstructural(a, b, categorias);
@@ -590,17 +623,16 @@ export function compararPorPrioridad(a, b, categorias) {
 
   const manualA = a.tarea_prioridad_manual ?? Infinity;
   const manualB = b.tarea_prioridad_manual ?? Infinity;
-  if (manualA !== manualB) return manualA - manualB;
-
-  return (a.tarea_creada_en || '').localeCompare(b.tarea_creada_en || '');
+  return manualA - manualB;
 }
 
 /**
- * `true` si dos tareas están empatadas en los 4 niveles estructurales de
- * prioridad (`compararEstructural`) y **ninguna** tiene todavía
- * `tarea_prioridad_manual` asignado — es decir, siguen siendo una
- * ambigüedad real que la herramienta "Versus" puede ofrecer para resolver.
- * Si alguna ya fue resuelta en una ronda anterior, no se vuelve a ofrecer.
+ * `true` si dos tareas están empatadas en los niveles estructurales de
+ * prioridad (`compararEstructural`: accionable, fecha efectiva, categoría raíz y directa) y **ninguna** tiene
+ * todavía `tarea_prioridad_manual` asignado — es decir, siguen siendo una ambigüedad real que la herramienta
+ * "Versus" puede ofrecer para resolver. Desde v0.90.0 esto también puede darse entre dos tareas con la misma
+ * `tarea_fecha_limite` exacta (antes las bandas anchas de holgura solo agrupaban tareas sin fecha límite en la
+ * práctica). Si alguna ya fue resuelta en una ronda anterior, no se vuelve a ofrecer.
  */
 export function tareasEmpatadas(a, b, categorias) {
   if (a.tarea_prioridad_manual != null || b.tarea_prioridad_manual != null) return false;

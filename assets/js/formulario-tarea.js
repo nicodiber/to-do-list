@@ -4,52 +4,15 @@
 
 import { estado } from './almacenamiento.js';
 import { UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
-import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora } from './utilidades.js';
+import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora, htmlInterruptor } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
 import { limitarFechaSugeridaALimite } from './tareas-logica.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDialogoPersona } from './formularios-entidades.js';
 
-import { activarMayusculaInicial } from './dialogo-formulario.js';
+import { activarMayusculaInicial, conectarCrearNueva, CREAR_NUEVA } from './dialogo-formulario.js';
 
 export { firmaFormulario } from './dialogo-formulario.js';
-
-/** Valor de la opción "＋ Crear nueva…" de los desplegables de categoría, ubicación y meta. */
-const CREAR_NUEVA = '__nueva__';
-
-/**
- * Conecta un desplegable de referencia (categoría/ubicación/meta/persona, o cualquier otro con el mismo
- * patrón "＋ Crear nueva…") para que, al elegir esa opción, abra el diálogo de alta de esa entidad y,
- * al guardarla, reconstruya las opciones con la nueva ya seleccionada. `extraerId(nueva)` saca el id de la
- * entidad recién creada; `alCambiar(id)` (opcional) se dispara con cualquier cambio de valor real (una ya
- * existente o la recién creada) — la usa `views/configuraciones.view.js` para guardar al toque.
- */
-export function conectarCrearNueva(select, htmlOpciones, abrirDialogo, extraerId, alCambiar) {
-  select.dataset.previo = select.value;
-  select.addEventListener('focus', () => {
-    if (select.value !== CREAR_NUEVA) select.dataset.previo = select.value;
-  });
-  select.addEventListener('change', () => {
-    if (select.value !== CREAR_NUEVA) {
-      select.dataset.previo = select.value;
-      if (alCambiar) alCambiar(select.value);
-      return;
-    }
-    // Se vuelve al valor anterior: así un borrador nunca guarda "Crear nueva…".
-    select.value = select.dataset.previo || '';
-    abrirDialogo({
-      alCrear: (nueva) => {
-        const id = extraerId(nueva);
-        // Se selecciona por propiedad (no por el atributo `selected`): así cuenta como un cambio del usuario y el
-        // borrador del alta lo conserva cuando la vista se redibuja al guardar la entidad.
-        select.innerHTML = htmlOpciones('');
-        select.value = id;
-        select.dataset.previo = id;
-        if (alCambiar) alCambiar(id);
-      },
-    });
-  });
-}
 
 export function htmlOpcionesDisfrute(seleccionado = null) {
   const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Sin definir</option>`];
@@ -109,14 +72,6 @@ export function htmlDiasHabiles(seleccionados = []) {
       </label>`
     )
     .join('')}</span>`;
-}
-
-/**
- * Interruptor Sí/No para lo que activa algo (en lugar de una casilla). Sigue siendo un
- * `<input type="checkbox">` con el `name` dado, así que se lee y se restaura igual que antes.
- */
-export function htmlInterruptor(nombre, marcado, texto, atributos = '') {
-  return `<label class="interruptor"><input type="checkbox" role="switch" name="${nombre}" ${marcado ? 'checked' : ''} ${atributos} /><span class="interruptor-pista" aria-hidden="true"></span><span class="interruptor-texto">${texto}</span><span class="interruptor-estado" aria-hidden="true"></span></label>`;
 }
 
 export function partesFechaHora(valorISO) {

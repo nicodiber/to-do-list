@@ -48,8 +48,21 @@
         "persona_nombre": { "type": "string", "minLength": 1 },
         "persona_ultimo_contacto": { "type": "string" },
         "persona_proximo_contacto": { "type": "string" },
+        "persona_etiqueta_id": { "type": ["string", "null"] },
+        "persona_fallecida": { "type": "boolean" },
         "persona_creada_en": { "type": "string" },
         "persona_modificado_en": { "type": "string" }
+      }
+    },
+    "etiqueta": {
+      "type": "object",
+      "required": ["etiqueta_id", "etiqueta_nombre", "etiqueta_color", "etiqueta_creada_en"],
+      "properties": {
+        "etiqueta_id": { "type": "string" },
+        "etiqueta_nombre": { "type": "string", "minLength": 1 },
+        "etiqueta_color": { "type": "string" },
+        "etiqueta_creada_en": { "type": "string" },
+        "etiqueta_modificado_en": { "type": "string" }
       }
     },
     "tarea": {
@@ -198,6 +211,10 @@
       "type": "array",
       "items": { "$ref": "#/definitions/persona" }
     },
+    "etiquetas": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/etiqueta" }
+    },
     "tareas": {
       "type": "array",
       "items": { "$ref": "#/definitions/tarea" }
@@ -221,7 +238,7 @@
         "type": "object",
         "required": ["coleccion", "id", "eliminado_en"],
         "properties": {
-          "coleccion": { "type": "string", "enum": ["categorias", "ubicaciones", "metas", "personas", "tareas", "mejoras", "cumplimientos"] },
+          "coleccion": { "type": "string", "enum": ["categorias", "ubicaciones", "metas", "personas", "etiquetas", "tareas", "mejoras", "cumplimientos"] },
           "id": { "type": "string" },
           "eliminado_en": { "type": "string" }
         }

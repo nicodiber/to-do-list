@@ -363,6 +363,24 @@ export async function programarParaHoy(tarea, estado) {
 }
 
 /**
+ * Una tarea `tarea_urgente` recupera `tarea_fecha_sugerida = hoy` todos los días mientras siga pendiente y sin
+ * completar (v0.90.0 — antes solo se agendaba una vez, al marcarla urgente): candidatas, toda `pendiente` con
+ * `tarea_urgente` cuya sugerida no sea ya hoy (o no tenga ninguna). Reusa `programarParaHoy` (arriba) por cada
+ * una — mismo respeto por Calendar, capacidad y `tarea_fecha_limite` si la tiene. Silenciosa: el cambio se ve
+ * solo en la tarjeta, sin `alert()` (mismo criterio que el resto de las correcciones automáticas de rutina).
+ */
+export async function reasignarUrgentesAHoy(estado) {
+  const hoy = hoyISO();
+  const candidatas = (estado.tareas || []).filter(
+    (t) => t.tarea_estado === 'pendiente' && t.tarea_urgente && (!t.tarea_fecha_sugerida || diaLocal(t.tarea_fecha_sugerida) !== hoy)
+  );
+  for (const tarea of candidatas) {
+    await programarParaHoy(tarea, estado);
+  }
+  return candidatas;
+}
+
+/**
  * Tareas activas con `tarea_fecha_sugerida` (con hora) que podrían adelantarse a un hueco mejor que quedó libre
  * en Calendar (por ejemplo, se movió o se borró un evento) — a diferencia de `reubicarTareasSolapadas`, que solo
  * reacciona cuando el horario actual choca, esta es oportunista: adelanta aunque no haya conflicto, si aparece
