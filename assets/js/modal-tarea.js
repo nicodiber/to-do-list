@@ -4,7 +4,7 @@
 // encima de cualquier vista.
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { escaparHtml } from './utilidades.js';
+import { escaparHtml, nombrarConCategoria } from './utilidades.js';
 import { crearTarea } from './modelos.js';
 import {
   htmlFormularioTarea,
@@ -19,7 +19,7 @@ import {
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
 import { renombrarHistorial, cumplirTarea, reabrirTarea, avisoInconsistentes, eliminarTarea } from './tareas-logica.js';
-import { programarParaHoy } from './programador.js';
+import { programarParaHoy, programarTareasSinFecha } from './programador.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 
 let edicionAbierta = false;
@@ -157,7 +157,7 @@ export function ofrecerCrearTareaSeguimiento(tarea) {
   abrirDialogoFormulario({
     titulo: '➕ Tarea de seguimiento',
     textoGuardar: '➕ Crear',
-    cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Crear una tarea de seguimiento a partir de «${escaparHtml(tarea.tarea_nombre)}»? Se abre el alta con los mismos datos (categoría, meta, persona, etc.), nombre y fechas vacíos.</p>`,
+    cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Crear una tarea de seguimiento a partir de ${escaparHtml(nombrarConCategoria(tarea, estado.categorias))}? Se abre el alta con los mismos datos (categoría, meta, persona, etc.), nombre y fechas vacíos.</p>`,
     alGuardar: () => {
       const copia = copiaDeTarea(tarea, { vaciarNombre: true });
       copia.tarea_fecha_sugerida = '';
@@ -241,6 +241,9 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       }
       ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
       if (nueva.tarea_urgente) await programarParaHoy(nueva, estado);
+      // Sin esto, una tarea recién creada sin fecha (y no urgente) quedaba sin `tarea_fecha_sugerida` hasta el
+      // próximo refresco de sesión/Calendar (v0.90.0) — no-op para cualquier tarea que ya tenga fecha con hora.
+      await programarTareasSinFecha(estado);
       await persistirYNotificar();
 
       if (valor === 'siguiente') {

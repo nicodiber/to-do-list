@@ -267,6 +267,18 @@ export function caminoCategoria(categoria, todasLasCategorias) {
 }
 
 /**
+ * Nombre de una tarea para avisos/carteles, con su categoría **antes** del nombre (v0.90.0 — antes
+ * `«nombre» (categoría)`; el orden nuevo hace más fácil distinguir de un vistazo tareas del mismo nombre en
+ * categorías distintas): `«Facultad Álgebra 2»`, o `«Álgebra 2»` sin categoría. Devuelve texto plano, sin
+ * escapar — quien arma HTML con esto (`modal-tarea.js`, `exportar-calendar.js`) lo escapa por su cuenta.
+ */
+export function nombrarConCategoria(tarea, categorias) {
+  const categoria = categorias.find((c) => c.categoria_id === tarea.categoria_id) ?? null;
+  const camino = caminoCategoria(categoria, categorias);
+  return `«${camino ? `${camino} ` : ''}${tarea.tarea_nombre}»`;
+}
+
+/**
  * Ejecuta `redibujar()` (que reemplaza el HTML de `contenedor`) conservando el foco: si el elemento
  * enfocado está dentro de `contenedor` y tiene `id`, después de redibujar busca ese mismo `id` y le
  * devuelve el foco y la posición del cursor (útil para buscadores que se redibujan en cada tecla).

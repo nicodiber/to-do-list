@@ -187,3 +187,15 @@ Documentación viva (se actualiza junto con el código) de todo lo que el sistem
 - **Condición** (v0.88.0): al iniciar sesión (junto al resto de las correcciones de `reprogramarSiCorresponde`, `assets/js/app.js`), una persona tiene `persona_proximo_contacto` en una fecha anterior a hoy — el día ya terminó sin que se haya actualizado a mano.
 - **Proceso**: `pasarProximoContactoVencido` (`assets/js/tareas-logica.js`) copia ese valor a `persona_ultimo_contacto` y vacía `persona_proximo_contacto` — se asume que el contacto ya sucedió (o ya no aplica) y no tiene sentido seguir mostrándolo como pendiente.
 - **Resultado**: la tarjeta de esa persona deja de mostrar "Próximo" y pasa a mostrar el "Último contacto" actualizado, sin ningún `alert()` (es un ajuste de bookkeeping silencioso, mismo criterio que el resto de las correcciones automáticas de bajo impacto) — el cambio se ve solo al redibujarse la vista.
+
+## 33. Actualización de `tarea_fecha_inicio_habilitada` vencida
+
+- **Condición** (v0.90.0): al iniciar sesión, una tarea no completada tiene `tarea_fecha_inicio_habilitada` cargada y en una fecha anterior a hoy — el día ya pasó.
+- **Proceso**: `actualizarFechasInicioVencidas` (`assets/js/tareas-logica.js`) actualiza ese campo a `hoyISO()` directamente en el dato, no solo en algún cálculo derivado — para que el formulario de edición y el Gantt muestren algo coherente ("puede empezar hoy") en vez de una fecha vieja.
+- **Resultado**: sin `alert()` — el cambio se nota si se abre la tarea a editar, y en que la tarea ya cuenta como accionable (`esTareaAccionable`) desde ese momento, si no lo era por otro motivo.
+
+## 34. Reasignación diaria de `tarea_fecha_sugerida` para tareas urgentes
+
+- **Condición** (v0.90.0): al iniciar sesión, una tarea `pendiente` con `tarea_urgente = true` tiene `tarea_fecha_sugerida` de un día distinto de hoy (o no tiene ninguna) — antes esto solo se agendaba una vez, al marcar la tarea como urgente por primera vez (ver `assets/js/modal-tarea.js`).
+- **Proceso**: `reasignarUrgentesAHoy` (`assets/js/programador.js`) llama `programarParaHoy` (ya existente) para cada una — mismo respeto por Calendar, capacidad y `tarea_fecha_limite` si la tiene.
+- **Resultado**: la tarea queda con un hueco real hoy, sin `alert()` — el cambio se ve en la tarjeta. Es lo que mantiene su "fecha efectiva de orden" (`REGLAS_DE_PRIORIDAD.md`) siempre en "hoy" mientras siga urgente y sin completar, para que el comparador de prioridad la trate como corresponde día a día.
