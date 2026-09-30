@@ -108,7 +108,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
   8. **(v0.76.0)** Justo después, sistema pregunta "¿Crear una tarea de seguimiento a partir de «tarea»?"; si el usuario acepta, abre el alta con los mismos datos (categoría, meta, persona, etc.) pero nombre, descripción y las 3 fechas vacías, sin enlazarla con la recién completada.
-- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); `assets/js/modal-tarea.js` (`ofrecerCrearTareaSeguimiento`, v0.76.0); la sección "Completadas hoy" de `views/hoy.view.js`.
+- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); `assets/js/modal-tarea.js` (`ofrecerCrearTareaSeguimiento`, v0.76.0; `abrirDetalleTarea`, v0.93.0); la sección "Completadas hoy" de `views/hoy.view.js`. Desde Agenda (v0.93.0) el camino es distinto: no hay un botón directo en la tarjeta, se llega por el detalle (doble clic → "✅ Cumplida" dentro del modal) — mismo `cumplirTarea` y mismo encadenado de exportar/seguimiento al final.
 - **Resultado**: `tarea_estado='completada'`, `tarea_fecha_fin` seteada; se registra un cumplimiento; posible Mejora (si hay nota) y posible clon nuevo, enlazado a la cadena o al desencadenante (ver `PROCESOS_AUTOMATICOS.md`, procesos 1 y 15); posibles dependientes desbloqueadas; si se acepta abrir Calendar, `tarea_exportada_calendar` queda en `true`. **Reabrir** una completada (desplegable "Cambiar estado" → Pendiente en Tareas) deshace el cumplimiento y la marca de exportada, y borra la copia de mantenimiento si sigue sin tocar (si se modificó, se conserva y se avisa).
 - **Fricciones**: las 3 vistas comparten ahora `cumplirTarea` (la lógica ya no está duplicada; el panel de confirmación sí sigue repetido en cada vista). (La sugerencia de tarea de alto disfrute — Premack — se eliminó; el `confirm()` de exportar a Calendar no resulta invasivo según el usuario.)
 
@@ -163,16 +163,16 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: ver qué se viene en los próximos días, para anticipar cuellos de botella sin esperar a que sea "hoy".
 - **Disparador**: planificación de la semana, o repaso rápido de lo cargado.
-- **Pasos**: navegar a "Agenda" (con el selector de 3, 8 o 15 días) → tareas agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`) → dentro de cada día, ordenadas por hora/prioridad → posponer directo desde cada tarjeta. "Semana" ofrece una grilla horaria (07-23h; en compu se ven los 7 días ajustados al ancho y en celular 3 o 4 por vez, con flechas) con las tareas de horario fijo ubicadas en su hora exacta y las proyectadas apiladas por prioridad, con arrastre para reprogramar.
+- **Pasos**: navegar a "Agenda" (con el selector de 3, 8 o 15 días) → tareas agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`) → dentro de cada día, ordenadas por hora/prioridad respetando las cadenas (v0.93.0) → posponer directo desde cada tarjeta, o doble clic para ver el detalle y marcarla cumplida. "Semana" ofrece una grilla horaria (07-23h; en compu se ven los 7 días ajustados al ancho y en celular 3 o 4 por vez, con flechas) con las tareas de horario fijo ubicadas en su hora exacta y las proyectadas apiladas por prioridad, con arrastre para reprogramar.
 - **Flujo usuario/sistema**:
   1. Usuario navega a "Agenda" y, si quiere, cambia el rango (3, 8 o 15 días; se recuerda la última elección).
-  2. Sistema agrupa las tareas con fecha de referencia por día y, dentro de cada día, las ordena por hora y prioridad.
+  2. Sistema agrupa las tareas con fecha de referencia por día y, dentro de cada día, las ordena por hora y prioridad — una tarea bloqueada queda pegada justo después de su previa, no salteada por prioridad pura (`ordenarConCadenas`, v0.93.0).
   3. Usuario revisa los días y detecta cuellos de botella.
-  4. Usuario (opcional) hace clic en "Posponer" de una tarjeta.
-  5. Sistema muestra el panel de reprogramar (A5) y, al confirmar, mueve la fecha y redibuja.
+  4. Usuario (opcional) hace clic en "Posponer" de una tarjeta, o doble clic (fuera de un control) para abrir el detalle.
+  5. Sistema muestra el panel de reprogramar (A5) y, al confirmar, mueve la fecha y redibuja; o el modal de detalle (v0.93.0, mismo que Resumen) con "✅ Cumplida" (si la tarea sigue pendiente), "✏️ Editar" y "✖️ Cerrar" — confirmar "Cumplida" sigue el mismo flujo que A4 (mejora opcional, exportar a Calendar, tarea de seguimiento).
   6. (Semana) Usuario arrastra el borde de un bloque; sistema actualiza `tarea_fecha_sugerida`/`tarea_duracion_min` en pasos de 15 minutos y guarda.
-- **Vistas/funciones**: `assets/js/vista-agenda.js` (`fechaDeReferencia`, `renderVistaAgenda`), `views/agenda.view.js`, `views/semana.view.js`.
-- **Resultado**: no cambia datos (salvo que se reprograme algo desde ahí).
+- **Vistas/funciones**: `assets/js/vista-agenda.js` (`fechaDeReferencia`, `renderVistaAgenda`, `renderTarjetaTarea`), `assets/js/modal-tarea.js` (`abrirDetalleTarea`, v0.93.0), `views/agenda.view.js`, `views/semana.view.js`.
+- **Resultado**: no cambia datos (salvo que se reprograme o se complete algo desde ahí).
 - **Fricciones**: Agenda y Semana muestran lo mismo con formatos distintos (lista por día vs. grilla por horas); por ahora se mantienen las dos.
 
 ### A8. Auditar y corregir el orden de prioridad

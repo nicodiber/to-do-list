@@ -2,6 +2,15 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.93.0] - 2026-09-30
+
+Agenda: detalle de tarea con "Cumplida" y orden de cadenas.
+
+### Agregado
+
+- **Agenda: detalle de tarea al doble clic**, igual que Resumen: modal de solo lectura con "✏️ Editar" y, novedad de esta ronda, "✅ Cumplida" (Agenda no tenía antes ninguna forma de marcar una tarea cumplida, solo "⏭️ Posponer"). `abrirDetalleTarea` se generalizó de `views/resumen.view.js` a `assets/js/modal-tarea.js` para poder reusarla en ambas vistas.
+- **Agenda: las tareas encadenadas dentro de un mismo día respetan el orden de la cadena** (`ordenarConCadenas`, ya usada en Tareas/Tabla) en vez de aparecer salteadas por prioridad pura.
+
 ## [v0.92.0] - 2026-09-30
 
 Dos bugs de reprogramación automática reportados por el usuario, ambos ya anotados en el backlog.

@@ -2,8 +2,9 @@ import { estado, persistirYNotificar } from './almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { reprogramarTareaConCascada, avisoInconsistentes, compararPorPrioridad } from './tareas-logica.js';
+import { reprogramarTareaConCascada, avisoInconsistentes, compararPorPrioridad, ordenarConCadenas } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
+import { abrirDetalleTarea } from './modal-tarea.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -71,19 +72,22 @@ function renderColumnaDia(fechaDia, hoy, tareasDelDia) {
   if (tareasDelDia.length === 0) {
     lista.innerHTML = '<p class="mensaje-vacio">Sin tareas para este día.</p>';
   } else {
-    tareasDelDia
-      .sort(
+    ordenarConCadenas(
+      tareasDelDia.sort(
         (a, b) =>
           (a.tarea_fecha_sugerida || '').localeCompare(b.tarea_fecha_sugerida || '') ||
           compararPorPrioridad(a, b, estado.categorias)
       )
-      .forEach((tarea) => lista.appendChild(renderTarjetaTarea(tarea)));
+    ).forEach((tarea) => lista.appendChild(renderTarjetaTarea(tarea)));
   }
 
   return seccion;
 }
 
-function renderTarjetaTarea(tarea) {
+/** `soloInfo` (v0.93.0): sin "⏭️ Posponer" ni panel de reprogramar — la usa el modal de detalle (doble clic),
+ * que arma su contenido con esta misma tarjeta en modo solo-info (mismo patrón que `renderItem` en
+ * `views/resumen.view.js`). */
+function renderTarjetaTarea(tarea, { soloInfo = false } = {}) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
   const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
@@ -110,11 +114,9 @@ function renderTarjetaTarea(tarea) {
         <span class="etiqueta-fecha etiqueta-clima" hidden></span>
       </span>
       ${bloqueada && dependeDe ? `<p class="aviso-bloqueada">Bloqueada por: ${escaparHtml(dependeDe.tarea_nombre)}</p>` : ''}
-      <div class="contenedor-panel-reprogramar" hidden></div>
+      ${soloInfo ? '' : '<div class="contenedor-panel-reprogramar" hidden></div>'}
     </div>
-    <div class="item-tarea-acciones">
-      <button title="Posponer: elegir otra fecha para la tarea" type="button" data-accion="posponer">⏭️ Posponer</button>
-    </div>
+    ${soloInfo ? '' : '<div class="item-tarea-acciones"><button title="Posponer: elegir otra fecha para la tarea" type="button" data-accion="posponer">⏭️ Posponer</button></div>'}
   `;
 
   const etiquetaClima = li.querySelector('.etiqueta-clima');
@@ -123,6 +125,8 @@ function renderTarjetaTarea(tarea) {
     etiquetaClima.textContent = `🌧️ Lluvia probable (${resultado.probabilidadLluvia}%) — considerá posponer`;
     etiquetaClima.hidden = false;
   });
+
+  if (soloInfo) return li;
 
   const contenedorPanel = li.querySelector('.contenedor-panel-reprogramar');
   li.querySelector('[data-accion="posponer"]').addEventListener('click', () => {
@@ -148,6 +152,12 @@ function renderTarjetaTarea(tarea) {
     });
     contenedorPanel.appendChild(panel);
     contenedorPanel.hidden = false;
+  });
+
+  li.addEventListener('dblclick', (evento) => {
+    if (evento.target.closest('button, a, input, select')) return;
+    const contenido = renderTarjetaTarea(tarea, { soloInfo: true }).querySelector('.item-tarea-info');
+    abrirDetalleTarea(tarea, contenido, { mostrarCumplida: true });
   });
 
   return li;
