@@ -176,7 +176,7 @@ Asistente "Revisar mi día": lee los eventos reales de Google Calendar del día 
 
 - **`iniciarRevisionDia({ diaCalendario = hoyISO() } = {})`**: muestra el diálogo directo en la sección de Calendar (ya no recibe ninguna lista de tareas). `diaCalendario` (`YYYY-MM-DD`, v0.78.0) es el día de Google Calendar que se lee. Lo llama `views/resumen.view.js` tras elegir el día en `crearSelectorDiaRevision`.
 - **`renderRevision(dlg)`** (privada, antes `renderPasoFinal`): título fijo "📅 Revisión del día" + `renderSeccionCalendario` + "✖️ Cerrar".
-- **`renderSeccionCalendario(contenedor)`**: si hay conexión con Google Calendar muestra los eventos de `diaCalendario` (`obtenerEventos(diaCalendario, diaCalendario)`, `google-calendar.js` — antes `obtenerEventosDeHoy()`, fijo en hoy), cada uno con un botón "➕ Crear tarea" (v0.78.0: crea una tarea suelta con `evento.resumen` como nombre, sin fecha ni enlace); si no hay conexión, ofrece un alta rápida de "tareas de continuidad" (`wirePreguntaContinuidad`) — sin cambios de comportamiento en esta función, solo deja de estar detrás del repaso de tareas.
+- **`renderSeccionCalendario(contenedor)`**: si hay conexión con Google Calendar muestra los eventos de `diaCalendario` (`obtenerEventos(diaCalendario, diaCalendario)`, `google-calendar.js` — antes `obtenerEventosDeHoy()`, fijo en hoy), cada uno con un botón "➕ Crear tarea" (v0.78.0: crea una tarea suelta con `evento.resumen` como nombre, sin fecha ni enlace); si no hay conexión, ofrece un alta rápida de "tareas de continuidad" (`wirePreguntaContinuidad`) — sin cambios de comportamiento en esta función, solo deja de estar detrás del repaso de tareas. Ambos caminos de alta (este botón y `wirePreguntaContinuidad`) llaman `programarTareasSinFecha` (`programador.js`) antes de persistir (v0.95.0 — antes la tarea quedaba sin `tarea_fecha_sugerida` hasta el próximo refresco automático, mismo bug que `abrirAltaTarea` ya tenía corregido desde la v0.90.0).
 
 ## `assets/js/exportar-calendar.js`
 
@@ -416,7 +416,7 @@ Ventana modal de edición (`<dialog>` en `document.body`, sobrevive a los redibu
 
 "Completar carga de tareas": ventana con las tareas que quedaron solo con nombre.
 
-- **`abrirCargaTareas()`**: lista, cada una con el formulario compartido, las tareas de `tareasSoloConNombre`, con "Actualizar" (mismas validaciones que la edición) y "Dejar así" (`tarea_carga_completa = true`). Tras cada acción redibuja la lista conservando lo escrito en las demás tarjetas (`borradores.js`, con un `id` por formulario).
+- **`abrirCargaTareas()`**: lista, cada una con el formulario compartido, las tareas de `tareasSoloConNombre`, con "Actualizar" (mismas validaciones que la edición) y "Dejar así" (`tarea_carga_completa = true`). Tras cada acción redibuja la lista conservando lo escrito en las demás tarjetas (`borradores.js`, con un `id` por formulario). "Actualizar" (`actualizar`) sigue el mismo patrón que `abrirEdicionTarea` (`modal-tarea.js`) para la fecha: si la tarea pasó a `tarea_urgente` ahora, `programarParaHoy`; siempre, `programarTareasSinFecha` antes de persistir (v0.95.0 — antes, completar una tarea de solo-nombre acá no agendaba nada hasta el próximo refresco automático).
 
 ## `views/tabla.view.js`
 
@@ -447,7 +447,7 @@ ABM de metas, con progreso calculado al vuelo y los flujos de IA conectable.
 
 - **`renderVistaMetas(contenedor)` / `renderMeta(meta)`**: botón "＋ Nueva meta" y tarjeta (con "Editar") con progreso (tareas con `meta_id` igual a esta meta, completadas vs. total). La ayuda de arriba de la pestaña explica el flujo de copiar/pegar con una IA externa (v0.68.0).
 - **`copiarConConfirmacion(boton, texto)`** (v0.68.0): copia `texto` al portapapeles y confirma cambiando el propio texto del botón a "✅ ¡Copiado!" un momento (en vez de un `alert()` que solo se veía si fallaba); usada por los 3 botones "📋 Copiar prompt" de esta vista.
-- **`crearPanelIA(meta)`**: flujo de copiar/pegar para sugerir subtareas, con preview antes de confirmarlas.
+- **`crearPanelIA(meta)`**: flujo de copiar/pegar para sugerir subtareas, con preview antes de confirmarlas; "➕ Agregar seleccionadas" llama `programarTareasSinFecha` (`programador.js`) antes de persistir (v0.95.0 — antes las subtareas creadas quedaban con el día sin hora que sugirió la IA hasta el próximo refresco automático).
 - **`crearPanelChatMeta(contenedorPanel)`**: flujo conversacional para definir una meta desde cero.
 
 ## `assets/js/gantt-modelo.js`

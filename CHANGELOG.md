@@ -2,6 +2,15 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.95.0] - 2026-10-01
+
+Corrige el mismo bug de la v0.90.0 ("una tarea nueva no se agenda hasta el próximo refresco"), que se había pasado en otros 4 caminos de creación/completado de tareas.
+
+### Corregido
+
+- **"Revisar mi día" (altas de continuidad), "Completar carga de tareas" y "Sugerir tareas con IA" de Metas** ahora llaman a `programarTareasSinFecha` antes de persistir, igual que el alta normal desde la v0.90.0 — antes, una tarea creada o completada por estos caminos quedaba sin `tarea_fecha_sugerida` real hasta el próximo refresco automático (inicio de sesión, sync o refresco de Calendar).
+- **"Completar carga de tareas"**: si la tarea se marca `tarea_urgente` ahí mismo, ahora se agenda para hoy (antes solo lo hacía `abrirEdicionTarea`).
+
 ## [v0.94.0] - 2026-10-01
 
 Resumen: ajustes finales de Urgentes/Vencidas y "Revisar mi día".

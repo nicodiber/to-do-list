@@ -3,6 +3,7 @@ import { crearMeta, crearTarea, ETIQUETAS_PLAZO, ETIQUETAS_ESTADO } from '../ass
 import { escaparHtml, formatearFecha, hoyISO, fechaISOMasDias } from '../assets/js/utilidades.js';
 import { abrirDialogoMeta } from '../assets/js/formularios-entidades.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
+import { programarTareasSinFecha } from '../assets/js/programador.js';
 import {
   construirPromptSubtareas,
   parsearRespuestaSubtareas,
@@ -183,6 +184,7 @@ function crearPanelIA(meta) {
           })
         );
       });
+      await programarTareasSinFecha(estado);
       await persistirYNotificar();
     });
   });

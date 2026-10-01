@@ -6,6 +6,7 @@ import { tareasSoloConNombre } from './tareas-logica.js';
 import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, aplicarCamposATarea, validarFormularioTarea, ofrecerMarcarCadenaMantenimiento } from './formulario-tarea.js';
 import { aplicarEnlace } from './dependencias.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
+import { programarParaHoy, programarTareasSinFecha } from './programador.js';
 
 let dialogo = null;
 
@@ -83,9 +84,15 @@ async function actualizar(evento, id) {
     alert(validacion.motivo);
     return;
   }
+  const eraUrgente = !!tarea.tarea_urgente;
   aplicarCamposATarea(tarea, leido.campos);
   aplicarEnlace(tarea.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
   ofrecerMarcarCadenaMantenimiento(tarea, estado.tareas);
+  // Mismo criterio que abrirEdicionTarea (modal-tarea.js): si pasó a urgente ahora, se agenda para hoy; si
+  // no, programarTareasSinFecha es quien le asigna un hueco real (v0.95.0 — antes, completar una tarea de
+  // solo-nombre acá no agendaba nada, había que esperar al próximo refresco automático).
+  if (tarea.tarea_urgente && !eraUrgente) await programarParaHoy(tarea, estado);
+  await programarTareasSinFecha(estado);
   await persistirYNotificar();
   renderLista();
 }

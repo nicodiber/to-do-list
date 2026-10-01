@@ -3,6 +3,7 @@ import { formatearFecha, escaparHtml, formatearHora, hoyISO } from './utilidades
 import { crearTarea } from './modelos.js';
 import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventos } from './google-calendar.js';
 import { conectar } from './google-auth.js';
+import { programarTareasSinFecha } from './programador.js';
 
 // El <dialog> vive en document.body (no en el contenedor de la vista) para
 // sobrevivir a los re-renders que dispara persistirYNotificar() al agregar una tarea de continuidad.
@@ -66,6 +67,7 @@ function wirePreguntaContinuidad(contenedor) {
     const nombre = String(new FormData(formulario).get('tarea_nombre') || '').trim();
     if (!nombre) return;
     estado.tareas.push(crearTarea({ tarea_nombre: nombre }));
+    await programarTareasSinFecha(estado);
     await persistirYNotificar();
     const item = document.createElement('li');
     item.textContent = `✓ ${nombre}`;
@@ -142,6 +144,7 @@ async function renderSeccionCalendario(contenedor) {
       const evento = eventos[Number(li.dataset.indiceEvento)];
       boton.disabled = true;
       estado.tareas.push(crearTarea({ tarea_nombre: evento.resumen }));
+      await programarTareasSinFecha(estado);
       await persistirYNotificar();
       boton.replaceWith(Object.assign(document.createElement('span'), { className: 'etiqueta-fecha etiqueta-exportada', textContent: '✓ Tarea creada' }));
     });
