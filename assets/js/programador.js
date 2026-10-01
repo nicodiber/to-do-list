@@ -10,7 +10,7 @@
 import { diaLocal, hoyISO, fechaLocalISO, fechaISOMasDias, tieneHora, diasEntreFechas } from './utilidades.js';
 import { obtenerPreferencias } from './preferencias.js';
 import { crearCalculadoraCapacidad } from './capacidad.js';
-import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento } from './google-calendar.js';
+import { leerEventosParaAgendar, eventosQueTocanElDia, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento } from './google-calendar.js';
 import { habilitadaReal } from './gantt-modelo.js';
 import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
 
@@ -50,20 +50,15 @@ async function asignarTareasSinFecha(estado) {
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // v0.96.0 — si dos compiten por el mismo hueco, gana la de más prioridad (ej. fecha límite más próxima), no la que aparece primero en la lista
   if (candidatas.length === 0) return { asignadas: [], sinHueco: [] };
 
+  // Sin lectura confiable de Calendar no se asigna nada (v0.98.0 — antes se programaba igual "solo con el tope de
+  // minutos" y las tareas quedaban encima de eventos "Ocupado"); se reintenta al reconectar o en el próximo refresco.
+  const { listo, conCalendar, eventos: eventosCalendar } = await leerEventosParaAgendar();
+  if (!listo) return { asignadas: [], sinHueco: [], omitido: true };
+
   const preferencias = obtenerPreferencias();
   const hoy = hoyISO();
   const ahora = new Date();
-  const conCalendar = hayConexionGoogleCalendar();
   const horizonteDias = diasHorizonteCalendar();
-  let eventosCalendar = [];
-  if (conCalendar) {
-    try {
-      eventosCalendar = await obtenerEventosDelHorizonte();
-    } catch {
-      // Sin eventos (por ejemplo, falla momentánea de red): se programa igual, solo con el tope de minutos.
-      eventosCalendar = [];
-    }
-  }
 
   const porId = new Map(todas.map((t) => [t.tarea_id, t]));
   const calcularCapacidad = crearCalculadoraCapacidad({ preferencias, eventos: eventosCalendar, tareas: todas, hoy, ahora });
@@ -142,7 +137,7 @@ async function asignarTareasSinFecha(estado) {
       return;
     }
 
-    const eventosDelDia = [...(conCalendar ? eventosCalendar.filter((e) => diaLocal(e.inicio) === diaElegido) : []), ...(horariosPorDia.get(diaElegido) || [])];
+    const eventosDelDia = [...(conCalendar ? eventosQueTocanElDia(eventosCalendar, diaElegido) : []), ...(horariosPorDia.get(diaElegido) || [])];
     const desde = diaElegido === diaMinimo ? piso : new Date(`${diaElegido}T00:00:00`);
     const hueco = buscarHuecoLibre(eventosDelDia, duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
     if (!hueco) {
@@ -167,7 +162,8 @@ async function asignarTareasSinFecha(estado) {
  * Devuelve `{ asignadas, sinHueco, reordenadas }`.
  */
 export async function programarTareasSinFecha(estado) {
-  const { asignadas, sinHueco } = await asignarTareasSinFecha(estado);
+  const { asignadas, sinHueco, omitido } = await asignarTareasSinFecha(estado);
+  if (omitido) return { asignadas: [], sinHueco: [], reordenadas: [], omitido: true };
   const reordenadas = await reordenarSugeridasPorPrioridad(estado);
   return { asignadas, sinHueco, reordenadas };
 }
@@ -178,8 +174,13 @@ export async function programarTareasSinFecha(estado) {
  * porque el agendado decide solo al asignar el hueco — una tarea nueva entra después de las ya agendadas, y
  * nada volvía a mirar el orden. Si hay alguna inversión entre tareas que todavía no empezaron, vacía su
  * `tarea_fecha_sugerida` y las vuelve a asignar con `asignarTareasSinFecha` (que ya procesa por prioridad y
- * respeta Calendar, tope diario, días hábiles, fecha límite, habilitada y cadenas). Transaccional: si alguna no
- * encuentra hueco, restaura todos los horarios como estaban. Idempotente. Devuelve las tareas cuyo horario cambió.
+ * respeta Calendar, tope diario, días hábiles, fecha límite, habilitada y cadenas). Idempotente. Devuelve las
+ * tareas cuyo horario cambió.
+ *
+ * v0.98.0: (1) no hace nada si no hay una lectura confiable de Calendar (en la v0.97.0 se re-planificaba a ciegas y
+ * dejaba tareas encima de eventos "Ocupado"); (2) una tarea que no encuentra hueco al re-planificar (por ejemplo,
+ * una cuya fecha sugerida ya pasaba su límite) queda **fija** con su horario de antes, como obstáculo, y se repite
+ * el reparto con el resto — antes una sola así revertía todo y la corrección nunca se aplicaba.
  */
 export async function reordenarSugeridasPorPrioridad(estado) {
   const todas = estado.tareas || [];
@@ -193,19 +194,34 @@ export async function reordenarSugeridasPorPrioridad(estado) {
   const hayInversion = movibles.some((a) => movibles.some((b) => a !== b && compararPorPrioridad(a, b, estado.categorias) < 0 && inicio(a) > inicio(b)));
   if (!hayInversion) return [];
 
-  const foto = new Map(todas.map((t) => [t.tarea_id, t.tarea_fecha_sugerida]));
-  movibles.forEach((t) => {
-    t.tarea_fecha_sugerida = '';
-  });
-  await asignarTareasSinFecha(estado);
+  const { listo } = await leerEventosParaAgendar();
+  if (!listo) return [];
 
-  if (movibles.some((t) => !tieneHora(t.tarea_fecha_sugerida))) {
+  const foto = new Map(todas.map((t) => [t.tarea_id, t.tarea_fecha_sugerida]));
+  const restaurarTodo = () =>
     todas.forEach((t) => {
       t.tarea_fecha_sugerida = foto.get(t.tarea_id);
     });
-    return [];
+
+  const fijas = new Set();
+  for (let intento = 0; intento <= movibles.length; intento += 1) {
+    const activas = movibles.filter((t) => !fijas.has(t.tarea_id));
+    if (activas.length < 2) break;
+    restaurarTodo();
+    activas.forEach((t) => {
+      t.tarea_fecha_sugerida = '';
+    });
+    const { omitido } = await asignarTareasSinFecha(estado);
+    if (omitido) {
+      restaurarTodo();
+      return [];
+    }
+    const sinHueco = activas.filter((t) => !tieneHora(t.tarea_fecha_sugerida));
+    if (sinHueco.length === 0) return activas.filter((t) => t.tarea_fecha_sugerida !== foto.get(t.tarea_id));
+    sinHueco.forEach((t) => fijas.add(t.tarea_id));
   }
-  return movibles.filter((t) => t.tarea_fecha_sugerida !== foto.get(t.tarea_id));
+  restaurarTodo();
+  return [];
 }
 
 /**
@@ -294,18 +310,13 @@ export async function reprogramarVencidas(estado) {
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // v0.96.0 — mismo criterio que programarTareasSinFecha
   if (candidatas.length === 0) return { reprogramadas: [], sinHueco: [], inconsistentes: [] };
 
+  // v0.98.0 — sin lectura confiable de Calendar no se reprograma nada (ver `leerEventosParaAgendar`).
+  const { listo, conCalendar, eventos: eventosCalendar } = await leerEventosParaAgendar();
+  if (!listo) return { reprogramadas: [], sinHueco: [], inconsistentes: [] };
+
   const preferencias = obtenerPreferencias();
   const ahora = new Date();
-  const conCalendar = hayConexionGoogleCalendar();
   const horizonteDias = diasHorizonteCalendar();
-  let eventosCalendar = [];
-  if (conCalendar) {
-    try {
-      eventosCalendar = await obtenerEventosDelHorizonte();
-    } catch {
-      eventosCalendar = []; // Falla momentánea de red: se programa igual, solo con el tope de minutos.
-    }
-  }
 
   const calcularCapacidad = crearCalculadoraCapacidad({ preferencias, eventos: eventosCalendar, tareas: todas, hoy, ahora });
   // Mismo motivo que en `programarTareasSinFecha`: la calculadora no se entera de lo que esta misma función va
@@ -344,7 +355,7 @@ export async function reprogramarVencidas(estado) {
       return;
     }
 
-    const eventosDelDia = conCalendar ? eventosCalendar.filter((e) => diaLocal(e.inicio) === diaElegido) : [];
+    const eventosDelDia = conCalendar ? eventosQueTocanElDia(eventosCalendar, diaElegido) : [];
     const otras = otrasTareasComoEventos(todas, tarea.tarea_id);
     const desde = diaElegido === hoy ? ahora : new Date(`${diaElegido}T00:00:00`);
     const hueco = buscarHuecoLibre([...eventosDelDia, ...otras], duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
@@ -374,17 +385,12 @@ export async function reprogramarVencidas(estado) {
  * de su propia fecha límite tras el corrimiento (ver `avisoInconsistentes` en `tareas-logica.js`).
  */
 export async function reubicarTareasSolapadas(estado) {
-  if (!hayConexionGoogleCalendar()) return { movidas: [], sinHueco: [], inconsistentes: [] };
-
   const candidatas = (estado.tareas || []).filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida));
   if (candidatas.length === 0) return { movidas: [], sinHueco: [], inconsistentes: [] };
 
-  let eventos = [];
-  try {
-    eventos = await obtenerEventosDelHorizonte();
-  } catch {
-    return { movidas: [], sinHueco: [], inconsistentes: [] }; // Falla momentánea de red: se reintenta en la próxima sesión.
-  }
+  // Sin lectura confiable de Calendar no hay nada que comparar; se reintenta en el próximo refresco.
+  const { listo, conCalendar, eventos } = await leerEventosParaAgendar();
+  if (!listo || !conCalendar) return { movidas: [], sinHueco: [], inconsistentes: [] };
 
   const preferencias = obtenerPreferencias();
   const movidas = [];
@@ -437,14 +443,9 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
   const finEstimado = new Date(tarea.tarea_fecha_sugerida).getTime() + duracion * 60000;
   if (Date.now() < finEstimado) return null; // todavía no le tocaba, o el usuario la está haciendo: no se toca.
 
-  let eventos = [];
-  if (hayConexionGoogleCalendar()) {
-    try {
-      eventos = await obtenerEventosDelHorizonte();
-    } catch {
-      eventos = []; // Falla momentánea de red: se reintenta en el próximo chequeo.
-    }
-  }
+  // v0.98.0 — sin lectura confiable de Calendar no se mueve nada; se reintenta en el próximo chequeo.
+  const { listo, eventos } = await leerEventosParaAgendar();
+  if (!listo) return null;
 
   const preferencias = obtenerPreferencias();
   const diasHabiles = tarea.tarea_dias_habiles || [];
@@ -476,14 +477,9 @@ export async function programarParaHoy(tarea, estado) {
   const duracion = tarea.tarea_duracion_min || 30;
   const diasHabiles = tarea.tarea_dias_habiles || [];
 
-  let eventos = [];
-  if (hayConexionGoogleCalendar()) {
-    try {
-      eventos = await obtenerEventosDelHorizonte();
-    } catch {
-      eventos = [];
-    }
-  }
+  // v0.98.0 — sin lectura confiable de Calendar no se asigna nada: la tarea queda como estaba y se agenda al reconectar.
+  const { listo, eventos } = await leerEventosParaAgendar();
+  if (!listo) return { tarea, sinHueco: false, inconsistentes: [], pendiente: true };
 
   const preferencias = obtenerPreferencias();
   const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
@@ -528,8 +524,6 @@ export async function reasignarUrgentesAHoy(estado) {
  * de `reprogramarTareaInmediataSiVencio`). Devuelve `{ movidas }`.
  */
 export async function adelantarTareasSiHayHuecoMejor(estado) {
-  if (!hayConexionGoogleCalendar()) return { movidas: [] };
-
   const todas = estado.tareas || [];
   const porId = new Map(todas.map((t) => [t.tarea_id, t]));
   const candidatas = todas
@@ -538,16 +532,11 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
 
   if (candidatas.length === 0) return { movidas: [] };
 
-  let eventos = [];
-  try {
-    eventos = await obtenerEventosDelHorizonte();
-  } catch {
-    return { movidas: [] }; // falla momentánea de red: se reintenta en el próximo refresco
-  }
+  const { listo, conCalendar, eventos } = await leerEventosParaAgendar();
+  if (!listo || !conCalendar) return { movidas: [] }; // se reintenta en el próximo refresco
 
   const preferencias = obtenerPreferencias();
   const movidas = [];
-  const ocupados = []; // lo que ya se resolvió en esta pasada, para que dos tareas no se peleen el mismo hueco
 
   candidatas.forEach((tarea) => {
     const duracion = tarea.tarea_duracion_min || 30;
@@ -566,16 +555,15 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
       if (finPrevia > desde.getTime()) desde = new Date(finPrevia);
     }
 
-    const hueco = buscarHuecoLibre([...eventos, ...ocupados], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
+    // v0.98.0 — "otras" son TODAS las demás tareas con hora (las ya revisadas en esta pasada, en su horario final, y
+    // las que todavía no): antes solo contaban las ya revisadas, y una tarea podía adelantarse encima de otra.
+    const otras = otrasTareasComoEventos(todas, tarea.tarea_id);
+    const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
     if (hueco && new Date(hueco).getTime() < new Date(tarea.tarea_fecha_sugerida).getTime() && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
       reprogramarTareaConCascada(tarea, hueco, todas);
       resolverColisionesEnCadena(tarea, todas, eventos, preferencias);
       movidas.push(tarea);
     }
-
-    // Reserva el horario final (nuevo o el que ya tenía) para la próxima tarea de esta misma pasada.
-    const inicio = new Date(tarea.tarea_fecha_sugerida).getTime();
-    ocupados.push({ inicio: tarea.tarea_fecha_sugerida, fin: new Date(inicio + duracion * 60000).toISOString() });
   });
 
   return { movidas };

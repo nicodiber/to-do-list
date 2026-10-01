@@ -2,6 +2,22 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.98.0] - 2026-10-01
+
+El agendado automático asignaba horarios encima de eventos "Ocupado" de Google Calendar.
+
+### Corregido
+
+- **Se asignaba sin mirar Calendar cuando no había sesión de Google** (el permiso vive solo en memoria y vence con cada recarga o a la hora, así que al abrir la app casi siempre faltaba): el código agendaba igual "solo con el tope de minutos". La v0.97.0 lo empeoró: el reordenado re-planificaba todas las tareas a ciegas. Ahora **ningún proceso que asigna o mueve horarios corre sin una lectura confiable de Calendar** (`leerEventosParaAgendar`): ni el agendado de tareas sin hora, ni el de vencidas, urgentes, "inmediata", reubicar, adelantar ni el reordenado. La tarea queda sin hora hasta reconectar y se agenda sola al reconectar (o en el próximo refresco de 5 minutos).
+- **Un evento solo bloqueaba el día en que empezaba**: uno que cruza la medianoche o dura varios días no bloqueaba los días siguientes. Ahora cuenta en todos los días que ocupa (`eventosQueTocanElDia`).
+- **Si fallaba la lectura de un calendario (o de la red) se agendaba igual, sin esos eventos**: ahora no se agenda y la cabecera avisa qué calendario no se pudo leer.
+- **`adelantarTareasSiHayHuecoMejor` podía adelantar una tarea encima de otra** que todavía no había revisado en esa pasada.
+- **El reordenado por prioridad (v0.97.0) se revertía entero si una sola tarea no encontraba hueco** (por ejemplo, una cuya sugerida ya superaba su límite) y la corrección nunca se aplicaba: ahora esa tarea queda fija como obstáculo y se reordena el resto.
+
+### Agregado
+
+- Aviso en la cabecera: sin sesión de Google (hasta reconectar no se asignan horarios nuevos) y cuando no se puede leer un calendario.
+
 ## [v0.97.0] - 2026-10-01
 
 Las fechas sugeridas ya asignadas ahora se reordenan según la prioridad.

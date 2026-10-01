@@ -26,9 +26,9 @@ import {
 } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
-import { hayConexionGoogleCalendar, invalidarCacheEventos } from './google-calendar.js';
+import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
-import { nombrarConCategoria } from './utilidades.js';
+import { nombrarConCategoria, escaparHtml } from './utilidades.js';
 import { renderVistaResumen } from '../../views/resumen.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
@@ -46,7 +46,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.97.0';
+const VERSION = 'v0.98.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -160,14 +160,20 @@ function actualizarCabeceraSync() {
   const banners = [];
   if (s.estado === 'sin-conexion' || s.estado === 'sesion-vencida') {
     const copia = s.copiaDel ? ` Estás viendo tu copia local de la última sincronización (${formatoCorto(s.copiaDel)}).` : '';
+    const sinAgendar = ' Hasta reconectar no se asignan horarios sugeridos nuevos, para no pisar tus eventos de Calendar.';
     banners.push(
       s.estado === 'sin-conexion'
-        ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.</p>`
+        ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.${sinAgendar}</p>`
         : s.reconectaConClic
-          ? `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${copia} Mientras tanto podés seguir usando la app: los cambios quedan pendientes.
+          ? `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${copia} Mientras tanto podés seguir usando la app: los cambios quedan pendientes.${sinAgendar}
              <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
-          : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.
+          : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.${sinAgendar}
              <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
+    );
+  }
+  if (hayConexionGoogleCalendar() && errorLecturaCalendar().length > 0) {
+    banners.push(
+      `<p>⚠️ No pude leer ${errorLecturaCalendar().map((n) => `«${escaparHtml(n)}»`).join(', ')} de Google Calendar. Hasta lograrlo no se asignan ni mueven horarios sugeridos (para no pisar tus eventos): se reintenta solo cada 5 minutos, o con el botón de sincronizar. Si es un calendario que no querés leer, sacalo de «Calendarios que se leen» en Configuraciones.</p>`
     );
   }
   if (s.recienConectado && s.estado === 'sincronizado') {
@@ -293,6 +299,8 @@ async function refrescarCalendar() {
   // Tampoco si hay un panel a medio usar en la tarjeta (cerrar la tarea o elegir otra fecha).
   if (CONTENEDOR.querySelector('.panel-cierre, .panel-reprogramar')) return;
 
+  await reprogramarSiCorresponde().catch(() => {}); // por si el agendado inicial quedó pendiente por falta de Calendar
+
   let cambio = false;
   try {
     const { movidas: reubicadas } = await reubicarTareasSolapadas(estado);
@@ -305,6 +313,7 @@ async function refrescarCalendar() {
 
   if (cambio) await persistirYNotificar(); // ya redibuja
   else render(); // solo para reflejar los eventos nuevos de Calendar
+  actualizarCabeceraSync(); // por si cambió el aviso de "no pude leer Calendar"
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -375,18 +384,38 @@ function render({ conservarBorradores = false } = {}) {
 suscribirSync((s) => {
   if (claveDeRender(s) !== claveUltimoRender) render();
   else actualizarCabeceraSync();
+  // Al reconectar con Google (token nuevo) se puede leer Calendar: reintenta el agendado inicial si quedó pendiente.
+  reprogramarSiCorresponde().catch(() => {});
 });
 
 let reprogramado = false;
+let reprogramando = false;
 
 function nombrarLista(tareas) {
   return tareas.map((t) => nombrarConCategoria(t, estado.categorias)).join(', ');
 }
 
-/** Reprograma fechas vencidas y programa las tareas sin fecha, una sola vez por sesión, apenas hay datos cargados. */
+/**
+ * Reprograma fechas vencidas y programa las tareas sin fecha, una sola vez por sesión, apenas hay datos cargados
+ * **y una lectura confiable de Google Calendar** (v0.98.0): el permiso de Calendar vive solo en memoria, así que
+ * al abrir la app suele no estar todavía — antes se agendaba igual, sin mirar ningún evento, y las tareas quedaban
+ * encima de eventos "Ocupado". Ahora, si no se puede leer Calendar, no hace nada y se reintenta al reconectar (cambio
+ * del estado de sincronización) o en el próximo refresco de Calendar.
+ */
 async function reprogramarSiCorresponde() {
-  if (reprogramado || !obtenerEstadoSync().datosListos) return;
-  reprogramado = true;
+  if (reprogramado || reprogramando || !obtenerEstadoSync().datosListos) return;
+  reprogramando = true;
+  try {
+    const { listo } = await leerEventosParaAgendar();
+    if (!listo) return;
+    reprogramado = true;
+    await ejecutarReprogramacionInicial();
+  } finally {
+    reprogramando = false;
+  }
+}
+
+async function ejecutarReprogramacionInicial() {
   const inicioActualizadas = actualizarFechasInicioVencidas(estado.tareas);
   const { reprogramadas: vencidas, sinHueco: sinHuecoVencidas, inconsistentes: inconsistentesVencidas } = await reprogramarVencidas(estado);
   const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas } = await reubicarTareasSolapadas(estado);
