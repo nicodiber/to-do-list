@@ -17,6 +17,14 @@ export function diasHorizonteCalendar() {
 // aplican al leer, así que cambiarlos no obliga a volver a consultar.
 const cacheEventos = new Map();
 let cacheCalendarios = null;
+// Nombres de los calendarios que no se pudieron leer en la última consulta (vacío = se leyó todo). El agendado
+// automático no asigna horarios mientras haya alguno, para no pisar eventos que no vio (v0.98.0).
+let erroresLectura = [];
+
+/** Calendarios que fallaron en la última lectura de eventos (`[]` si se leyeron todos). */
+export function errorLecturaCalendar() {
+  return erroresLectura;
+}
 
 export function soportaGoogleCalendar() {
   return soportaGoogle();
@@ -150,6 +158,9 @@ async function pedirEventos(desdeISODate, hastaISODate) {
   const [calendarios, coloresEvento] = await Promise.all([calendariosALeer(), listarColoresEvento()]);
   const resultados = await Promise.allSettled(calendarios.map((c) => pedirEventosDeCalendario(c, inicio, fin, accessToken, coloresEvento)));
   // Si falla la lectura de un calendario (por ejemplo uno compartido sin permiso), los demás siguen; si fallan todos, es un error.
+  // Lo que falló se recuerda (`errorLecturaCalendar`) para que el agendado no asigne horarios a ciegas (v0.98.0).
+  const fallidos = calendarios.filter((_, i) => resultados[i].status === 'rejected').map((c) => c.nombre);
+  erroresLectura = fallidos;
   if (resultados.length > 0 && resultados.every((r) => r.status === 'rejected')) throw new Error('No se pudieron obtener los eventos de Google Calendar.');
   return resultados
     .filter((r) => r.status === 'fulfilled')
@@ -168,6 +179,7 @@ function eventosCompletos(desdeISODate, hastaISODate) {
   cacheEventos.set(clave, { promesa, timestamp: Date.now() });
   // Un error no se cachea: el próximo dibujo vuelve a intentar.
   promesa.catch(() => {
+    if (erroresLectura.length === 0) erroresLectura = ['Google Calendar'];
     if (cacheEventos.get(clave)?.promesa === promesa) cacheEventos.delete(clave);
   });
   return promesa;
@@ -215,10 +227,45 @@ export function obtenerEventosDelHorizonte() {
   return obtenerEventos(fechaLocalISO(hoy), fechaLocalISO(ultimo));
 }
 
+/**
+ * Los eventos con los que el agendado automático puede asignar horarios sin pisar nada (v0.98.0). Devuelve
+ * `{ listo, conCalendar, eventos }`:
+ * - `listo: false` — no se puede agendar ahora, hay que esperar y reintentar: no hay sesión de Google (el permiso
+ *   vive solo en memoria y vence), falló la lectura de Calendar o de alguno de los calendarios elegidos. Antes
+ *   se agendaba igual "solo con el tope de minutos", sin mirar ningún evento, y quedaban tareas encima de
+ *   eventos "Ocupado".
+ * - `listo: true, conCalendar: false` — hay sesión pero el usuario no concedió el permiso de Calendar: se agenda
+ *   sin eventos, a propósito.
+ * - `listo: true, conCalendar: true` — `eventos` son los que ocupan tiempo, desde hoy hasta el horizonte.
+ */
+export async function leerEventosParaAgendar() {
+  if (!hayToken()) return { listo: false, conCalendar: false, eventos: [] };
+  if (!tieneScope('calendar')) return { listo: true, conCalendar: false, eventos: [] };
+  try {
+    const eventos = await obtenerEventosDelHorizonte();
+    if (erroresLectura.length > 0) return { listo: false, conCalendar: true, eventos: [] };
+    return { listo: true, conCalendar: true, eventos };
+  } catch {
+    return { listo: false, conCalendar: true, eventos: [] };
+  }
+}
+
 /** Olvida los eventos guardados: la próxima lectura vuelve a consultar Calendar (al sincronizar o volver a la pestaña). */
 export function invalidarCacheEventos() {
   cacheEventos.clear();
   cacheCalendarios = null;
+}
+
+/**
+ * Los eventos que ocupan algún momento del día local `diaISO` (`YYYY-MM-DD`): empiezan ese día, o empezaron antes
+ * y siguen (cruzan la medianoche, duran varios días). Filtrar por el día de inicio, como se hacía antes, dejaba
+ * sin bloquear los días siguientes de un evento largo (v0.98.0). Función pura.
+ */
+export function eventosQueTocanElDia(eventos, diaISO) {
+  const dia = inicioDelDia(diaISO);
+  const inicioDia = dia.getTime();
+  const finDia = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate() + 1).getTime();
+  return eventos.filter((e) => new Date(e.inicio).getTime() < finDia && new Date(e.fin).getTime() > inicioDia);
 }
 
 /**
