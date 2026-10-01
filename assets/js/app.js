@@ -28,7 +28,7 @@ import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
-import { nombrarConCategoria, escaparHtml } from './utilidades.js';
+import { nombrarConCategoria, escaparHtml, tieneHora } from './utilidades.js';
 import { renderVistaResumen } from '../../views/resumen.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
@@ -46,7 +46,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.98.0';
+const VERSION = 'v0.99.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -479,7 +479,41 @@ setInterval(async () => {
 document.getElementById('version-app').textContent = VERSION;
 
 window.addEventListener('hashchange', () => render());
-suscribir((_estado, opciones) => render(opciones));
+/**
+ * Red de seguridad (v0.99.0): ninguna tarea activa debe quedar sin hora sugerida. Tras cada cambio de datos, con un
+ * pequeño debounce, si hay tareas sin hora y se puede leer Calendar, las agenda (sin reordenar las ya agendadas, para
+ * no deshacerle al usuario lo que acaba de mover) y guarda. Cubre los caminos que no llaman al agendado (el clon de
+ * una tarea de mantenimiento al completarla, datos de otro dispositivo, etc.). Sin Calendar no hace nada (queda
+ * pendiente, ver `leerEventosParaAgendar`); sin tareas por agendar no guarda, así que no hay bucle.
+ */
+let temporizadorAgendado = null;
+let agendandoPendientes = false;
+
+function agendarPendientesPronto() {
+  clearTimeout(temporizadorAgendado);
+  temporizadorAgendado = setTimeout(agendarPendientes, 600);
+}
+
+async function agendarPendientes() {
+  const s = obtenerEstadoSync();
+  if (agendandoPendientes || reprogramando || !s.datosListos || s.soloLectura) return;
+  if (!estado.tareas.some((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida))) return;
+  if (document.querySelector('dialog[open]') || hayTextoEnEdicion()) return;
+  agendandoPendientes = true;
+  try {
+    const { asignadas } = await programarTareasSinFecha(estado, { reordenar: false });
+    if (asignadas.length > 0) await persistirYNotificar({ deshacer: false });
+  } catch {
+    // Falla momentánea: se reintenta en el próximo cambio o refresco.
+  } finally {
+    agendandoPendientes = false;
+  }
+}
+
+suscribir((_estado, opciones) => {
+  render(opciones);
+  agendarPendientesPronto();
+});
 
 /** Abre la ventana de nueva tarea encima de la vista actual: la usan el botón "＋" y el atajo "N". */
 function abrirNuevaTarea() {

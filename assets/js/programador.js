@@ -1,6 +1,6 @@
 // Programación automática: a las tareas activas sin hora real en `tarea_fecha_sugerida` (sin ninguna fecha, o con
-// fecha cargada pero sin hora — "proyectadas" en Semana; y sin ser de mantenimiento, que tienen su propio ritmo)
-// les asigna un día y una hora reales, respetando el tope de minutos por día, lo ocupado en Google Calendar (si
+// fecha cargada pero sin hora — "proyectadas" en Semana; desde la v0.99.0 también las de mantenimiento, para que
+// ninguna quede sin hora) les asigna un día y una hora reales, respetando el tope de minutos por día, lo ocupado en Google Calendar (si
 // está conectado) y las cadenas de dependencia (por orden y duración real, no un salto fijo de un día).
 // `reprogramarVencidas` se llama una sola vez por sesión desde `app.js` (`reprogramarSiCorresponde`);
 // `reprogramarTareaInmediataSiVencio` además se repite cada 1-2 minutos mientras la app sigue abierta, y
@@ -12,7 +12,7 @@ import { obtenerPreferencias } from './preferencias.js';
 import { crearCalculadoraCapacidad } from './capacidad.js';
 import { leerEventosParaAgendar, eventosQueTocanElDia, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento } from './google-calendar.js';
 import { habilitadaReal } from './gantt-modelo.js';
-import { reprogramarTareaConCascada, compararPorPrioridad } from './tareas-logica.js';
+import { reprogramarTareaConCascada, compararParaAgendar } from './tareas-logica.js';
 
 /** ¿`fechaISO` pasa (o iguala) `limiteISO`? Con hora, compara el instante exacto; sin hora, el día calendario
  * (mismo criterio que ya usaba la app). `false` sin límite cargado. Exportada (v0.89.0) para que
@@ -45,9 +45,12 @@ function otrasTareasComoEventos(todas, excluirId) {
  */
 async function asignarTareasSinFecha(estado) {
   const todas = estado.tareas || [];
+  // v0.96.0 — si dos compiten por el mismo hueco, gana la de más prioridad, no la que aparece primero en la lista.
+  // v0.99.0 — con el orden de la Tabla (`compararParaAgendar`: Holgura), así una bloqueada con fecha límite se agenda
+  // antes que las tareas sin límite; y entran también las de mantenimiento (antes quedaban siempre sin hora).
   const candidatas = todas
-    .filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida) && !t.tarea_mantenimiento)
-    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // v0.96.0 — si dos compiten por el mismo hueco, gana la de más prioridad (ej. fecha límite más próxima), no la que aparece primero en la lista
+    .filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida))
+    .sort((a, b) => compararParaAgendar(a, b, estado.categorias));
   if (candidatas.length === 0) return { asignadas: [], sinHueco: [] };
 
   // Sin lectura confiable de Calendar no se asigna nada (v0.98.0 — antes se programaba igual "solo con el tope de
@@ -103,7 +106,7 @@ async function asignarTareasSinFecha(estado) {
     }
     const previa = tarea.tarea_dependiente ? porId.get(tarea.tarea_dependiente) : null;
     if (!previa) return piso;
-    if (previa.tarea_estado !== 'completada' && !tieneHora(previa.tarea_fecha_sugerida) && !previa.tarea_mantenimiento) programarUna(previa);
+    if (previa.tarea_estado !== 'completada' && !tieneHora(previa.tarea_fecha_sugerida)) programarUna(previa);
     if (tieneHora(previa.tarea_fecha_sugerida)) {
       const finPrevia = new Date(previa.tarea_fecha_sugerida).getTime() + (previa.tarea_duracion_min || 30) * 60000;
       if (finPrevia > piso.getTime()) piso = new Date(finPrevia);
@@ -119,35 +122,43 @@ async function asignarTareasSinFecha(estado) {
     const diaMinimo = fechaLocalISO(piso);
     const diasHabiles = tarea.tarea_dias_habiles || [];
     const duracion = tarea.tarea_duracion_min || 30;
-
     const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
 
-    let diaElegido = null;
-    for (let i = 0; i < horizonteDias; i += 1) {
-      const candidato = fechaISOMasDias(i, diaMinimo);
-      if (diaLimite && candidato > diaLimite) break; // La sugerida nunca supera la fecha límite.
-      if (diasHabiles.length > 0 && !diasHabiles.includes(new Date(`${candidato}T00:00:00`).getDay())) continue;
-      if (restanteDelDia(candidato) >= duracion) {
-        diaElegido = candidato;
-        break;
+    // Primer día (desde el piso) con capacidad **y** un hueco horario real. Antes se elegía el día por capacidad y, si
+    // ese día no tenía un hueco contiguo (eventos en el medio), la tarea quedaba sin hora aunque el día siguiente
+    // sirviera (v0.99.0: se sigue con el próximo día).
+    const buscar = (respetarLimite) => {
+      for (let i = 0; i < horizonteDias; i += 1) {
+        const candidato = fechaISOMasDias(i, diaMinimo);
+        if (respetarLimite && diaLimite && candidato > diaLimite) return null;
+        if (diasHabiles.length > 0 && !diasHabiles.includes(new Date(`${candidato}T00:00:00`).getDay())) continue;
+        if (restanteDelDia(candidato) < duracion) continue;
+        const eventosDelDia = [...(conCalendar ? eventosQueTocanElDia(eventosCalendar, candidato) : []), ...(horariosPorDia.get(candidato) || [])];
+        const desde = candidato === diaMinimo ? piso : new Date(`${candidato}T00:00:00`);
+        const hueco = buscarHuecoLibre(eventosDelDia, duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
+        if (!hueco) continue;
+        if (respetarLimite && superaLimite(hueco, tarea.tarea_fecha_limite)) return null; // La sugerida no supera el límite (con hora incluida).
+        return { dia: candidato, hueco };
       }
+      return null;
+    };
+
+    let elegido = buscar(true);
+    if (!elegido && diaLimite) {
+      // Sin hueco antes de la fecha límite: igual se agenda (v0.99.0 — nunca una tarea sin hora), en el primer hueco
+      // posterior. Queda con sugerida > límite, o sea visible en "⚠️ Sin hueco antes del límite" de Resumen, y se
+      // avisa (`sinHueco`).
+      elegido = buscar(false);
+      if (elegido) sinHueco.push(tarea);
     }
-    if (!diaElegido) {
-      sinHueco.push(tarea); // No entra en el horizonte configurado (o antes de su límite): queda sin programar por ahora.
+    if (!elegido) {
+      sinHueco.push(tarea); // Ni siquiera hay un hueco dentro del horizonte configurado: queda sin programar por ahora.
       return;
     }
 
-    const eventosDelDia = [...(conCalendar ? eventosQueTocanElDia(eventosCalendar, diaElegido) : []), ...(horariosPorDia.get(diaElegido) || [])];
-    const desde = diaElegido === diaMinimo ? piso : new Date(`${diaElegido}T00:00:00`);
-    const hueco = buscarHuecoLibre(eventosDelDia, duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
-    if (!hueco) {
-      sinHueco.push(tarea); // El día tenía minutos libres pero no un hueco contiguo: queda sin programar por ahora.
-      return;
-    }
-
-    tarea.tarea_fecha_sugerida = hueco;
-    marcarUso(diaElegido, duracion);
-    agregarHorario(diaElegido, hueco, duracion);
+    tarea.tarea_fecha_sugerida = elegido.hueco;
+    marcarUso(elegido.dia, duracion);
+    agregarHorario(elegido.dia, elegido.hueco, duracion);
     asignadas.push(tarea);
   }
 
@@ -161,10 +172,11 @@ async function asignarTareasSinFecha(estado) {
  * llaman todos los puntos que agendan: inicio de sesión, refresco de Calendar, alta/edición de tareas, etc.
  * Devuelve `{ asignadas, sinHueco, reordenadas }`.
  */
-export async function programarTareasSinFecha(estado) {
+export async function programarTareasSinFecha(estado, { reordenar = true } = {}) {
   const { asignadas, sinHueco, omitido } = await asignarTareasSinFecha(estado);
   if (omitido) return { asignadas: [], sinHueco: [], reordenadas: [], omitido: true };
-  const reordenadas = await reordenarSugeridasPorPrioridad(estado);
+  // `reordenar: false` (v0.99.0): solo rellena las tareas sin hora, sin mover las ya agendadas (red de seguridad de `app.js`).
+  const reordenadas = reordenar ? await reordenarSugeridasPorPrioridad(estado) : [];
   return { asignadas, sinHueco, reordenadas };
 }
 
@@ -185,13 +197,21 @@ export async function programarTareasSinFecha(estado) {
 export async function reordenarSugeridasPorPrioridad(estado) {
   const todas = estado.tareas || [];
   const ahora = Date.now();
-  const movibles = todas.filter(
-    (t) => t.tarea_estado !== 'completada' && !t.tarea_mantenimiento && tieneHora(t.tarea_fecha_sugerida) && new Date(t.tarea_fecha_sugerida).getTime() > ahora
-  );
+  const movibles = todas.filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida) && new Date(t.tarea_fecha_sugerida).getTime() > ahora);
   if (movibles.length < 2) return [];
 
+  // Dos tareas de una misma cadena no cuentan: la previa va antes aunque tenga menos prioridad (v0.99.0).
+  const porId = new Map(todas.map((t) => [t.tarea_id, t]));
+  const mismaCadena = (a, b) => {
+    const ascendientes = (t) => {
+      const ids = new Set();
+      for (let p = t.tarea_dependiente && porId.get(t.tarea_dependiente); p && !ids.has(p.tarea_id); p = p.tarea_dependiente && porId.get(p.tarea_dependiente)) ids.add(p.tarea_id);
+      return ids;
+    };
+    return ascendientes(a).has(b.tarea_id) || ascendientes(b).has(a.tarea_id);
+  };
   const inicio = (t) => new Date(t.tarea_fecha_sugerida).getTime();
-  const hayInversion = movibles.some((a) => movibles.some((b) => a !== b && compararPorPrioridad(a, b, estado.categorias) < 0 && inicio(a) > inicio(b)));
+  const hayInversion = movibles.some((a) => movibles.some((b) => a !== b && compararParaAgendar(a, b, estado.categorias) < 0 && inicio(a) > inicio(b) && !mismaCadena(a, b)));
   if (!hayInversion) return [];
 
   const { listo } = await leerEventosParaAgendar();
@@ -307,7 +327,7 @@ export async function reprogramarVencidas(estado) {
   const hoy = hoyISO();
   const candidatas = todas
     .filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida) && diaLocal(t.tarea_fecha_sugerida) < hoy)
-    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // v0.96.0 — mismo criterio que programarTareasSinFecha
+    .sort((a, b) => compararParaAgendar(a, b, estado.categorias)); // v0.96.0 — mismo criterio que programarTareasSinFecha (v0.99.0: el orden de la Tabla)
   if (candidatas.length === 0) return { reprogramadas: [], sinHueco: [], inconsistentes: [] };
 
   // v0.98.0 — sin lectura confiable de Calendar no se reprograma nada (ver `leerEventosParaAgendar`).
@@ -340,31 +360,38 @@ export async function reprogramarVencidas(estado) {
     const diasHabiles = tarea.tarea_dias_habiles || [];
     const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
 
-    let diaElegido = null;
-    for (let i = 0; i < horizonteDias; i += 1) {
-      const candidato = fechaISOMasDias(i, hoy);
-      if (diaLimite && candidato > diaLimite) break; // La sugerida nunca supera la fecha límite.
-      if (diasHabiles.length > 0 && !diasHabiles.includes(new Date(`${candidato}T00:00:00`).getDay())) continue;
-      if (restanteDelDia(candidato) >= duracion) {
-        diaElegido = candidato;
-        break;
-      }
-    }
-    if (!diaElegido) {
-      sinHueco.push(tarea); // Ningún día antes de su horizonte/límite tiene capacidad real: queda como estaba.
-      return;
-    }
-
-    const eventosDelDia = conCalendar ? eventosQueTocanElDia(eventosCalendar, diaElegido) : [];
     const otras = otrasTareasComoEventos(todas, tarea.tarea_id);
-    const desde = diaElegido === hoy ? ahora : new Date(`${diaElegido}T00:00:00`);
-    const hueco = buscarHuecoLibre([...eventosDelDia, ...otras], duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
-    if (!hueco) {
-      sinHueco.push(tarea); // El día tenía minutos libres pero no un hueco contiguo: queda como estaba.
+    // Primer día con capacidad y un hueco real; si el día tiene minutos pero no un hueco contiguo, sigue con el próximo (v0.99.0).
+    const buscar = (respetarLimite) => {
+      for (let i = 0; i < horizonteDias; i += 1) {
+        const candidato = fechaISOMasDias(i, hoy);
+        if (respetarLimite && diaLimite && candidato > diaLimite) return null; // La sugerida no supera la fecha límite.
+        if (diasHabiles.length > 0 && !diasHabiles.includes(new Date(`${candidato}T00:00:00`).getDay())) continue;
+        if (restanteDelDia(candidato) < duracion) continue;
+        const eventosDelDia = conCalendar ? eventosQueTocanElDia(eventosCalendar, candidato) : [];
+        const desde = candidato === hoy ? ahora : new Date(`${candidato}T00:00:00`);
+        const hueco = buscarHuecoLibre([...eventosDelDia, ...otras], duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
+        if (!hueco) continue;
+        if (respetarLimite && superaLimite(hueco, tarea.tarea_fecha_limite)) return null;
+        return { dia: candidato, hueco };
+      }
+      return null;
+    };
+
+    let elegido = buscar(true);
+    if (!elegido && diaLimite) {
+      // Sin hueco antes del límite (p. ej. el límite ya pasó): igual se reprograma, en el primer hueco posterior
+      // (v0.99.0 — nunca una tarea con un horario viejo o sin horario). Queda visible en "⚠️ Sin hueco antes del límite".
+      elegido = buscar(false);
+      if (elegido) sinHueco.push(tarea);
+    }
+    if (!elegido) {
+      sinHueco.push(tarea); // Ni siquiera hay un hueco en el horizonte: queda como estaba.
       return;
     }
 
-    marcarUso(diaElegido, duracion);
+    const hueco = elegido.hueco;
+    marcarUso(elegido.dia, duracion);
     inconsistentes.push(...reprogramarTareaConCascada(tarea, hueco, todas));
     resolverColisionesEnCadena(tarea, todas, eventosCalendar, preferencias);
     reprogramadas.push(tarea);
@@ -528,7 +555,7 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
   const porId = new Map(todas.map((t) => [t.tarea_id, t]));
   const candidatas = todas
     .filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida))
-    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // la de más prioridad se queda con el hueco si dos compiten por el mismo (v0.96.0 — antes le faltaba el 3er parámetro, tiraba excepción apenas dos tareas empataban en fecha efectiva, ej. ambas sin límite)
+    .sort((a, b) => compararParaAgendar(a, b, estado.categorias)); // la de más prioridad se queda con el hueco si dos compiten por el mismo (v0.96.0 — antes le faltaba el 3er parámetro; v0.99.0: el orden de la Tabla)
 
   if (candidatas.length === 0) return { movidas: [] };
 

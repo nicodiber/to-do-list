@@ -121,6 +121,8 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = 'üí
     if (await alGuardar(formulario, { valor, reiniciarFirma: () => { firmaInicial = firmaFormulario(formulario); } })) cerrar();
   });
 
+  // Para que quien lo abri√≥ pueda cerrarlo y limpiarlo ya (sin esperar el evento `close`, que puede demorar).
+  dialogo.cerrarYLimpiar = cerrar;
   dialogo.showModal();
   firmaInicial = firmaFormulario(formulario);
   const primerCampo = formulario.querySelector('input:not([type="hidden"]), select, textarea');

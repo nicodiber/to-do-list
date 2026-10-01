@@ -65,6 +65,35 @@
         "etiqueta_modificado_en": { "type": "string" }
       }
     },
+    "plantilla": {
+      "type": "object",
+      "required": ["plantilla_id", "plantilla_nombre", "plantilla_pasos", "plantilla_creada_en"],
+      "properties": {
+        "plantilla_id": { "type": "string" },
+        "plantilla_nombre": { "type": "string", "minLength": 1 },
+        "plantilla_descripcion": { "type": "string" },
+        "plantilla_pasos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["paso_nombre"],
+            "properties": {
+              "paso_nombre": { "type": "string", "minLength": 1 },
+              "paso_duracion_min": { "type": "integer" },
+              "paso_descripcion": { "type": "string" },
+              "paso_dias_antes": { "type": "integer", "minimum": 0 },
+              "paso_dias_habiles": { "type": "array", "items": { "type": "integer" } },
+              "paso_costo_estimado": { "type": "number" },
+              "paso_disfrute": { "type": ["integer", "null"] },
+              "paso_requiere_clima_bueno": { "type": "boolean" },
+              "paso_urgente": { "type": "boolean" }
+            }
+          }
+        },
+        "plantilla_creada_en": { "type": "string" },
+        "plantilla_modificado_en": { "type": "string" }
+      }
+    },
     "tarea": {
       "type": "object",
       "required": ["tarea_id", "tarea_nombre", "tarea_estado", "tarea_creada_en"],
@@ -215,6 +244,10 @@
       "type": "array",
       "items": { "$ref": "#/definitions/etiqueta" }
     },
+    "plantillas": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/plantilla" }
+    },
     "tareas": {
       "type": "array",
       "items": { "$ref": "#/definitions/tarea" }
@@ -238,7 +271,7 @@
         "type": "object",
         "required": ["coleccion", "id", "eliminado_en"],
         "properties": {
-          "coleccion": { "type": "string", "enum": ["categorias", "ubicaciones", "metas", "personas", "etiquetas", "tareas", "mejoras", "cumplimientos"] },
+          "coleccion": { "type": "string", "enum": ["categorias", "ubicaciones", "metas", "personas", "etiquetas", "plantillas", "tareas", "mejoras", "cumplimientos"] },
           "id": { "type": "string" },
           "eliminado_en": { "type": "string" }
         }

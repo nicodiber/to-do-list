@@ -2,6 +2,23 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.99.0] - 2026-10-01
+
+Ninguna tarea activa queda sin fecha y hora sugerida, el agendado respeta el orden de la Tabla, y plantillas de cadenas.
+
+### Corregido
+
+- **Tareas sin fecha y hora sugerida en la Tabla**. Causas encontradas: (1) las tareas de **mantenimiento nunca se agendaban** (el agendado y el reordenado las excluían, y el clon que crea `completarTarea` nace sin sugerida) — ahora entran como cualquier otra; (2) si **no había hueco antes de la fecha límite** la tarea quedaba sin hora — ahora se agenda igual, **después** del límite (queda visible en "⚠️ Sin hueco antes del límite" de Resumen y sigue avisando al iniciar); solo queda sin hora si no hay ningún hueco en todo el horizonte (90 días por defecto); (3) el día elegido por capacidad podía no tener un hueco contiguo y la tarea quedaba sin hora — ahora sigue con el día siguiente; (4) tareas creadas por caminos sin disparador de agendado esperaban hasta 5 minutos — nueva **red de seguridad** (`app.js`): tras cada cambio, si hay tareas activas sin hora y Calendar está listo, las agenda (solo rellena huecos, sin reordenar lo que el usuario movió).
+- **Tabla, columna Sugerida**: una tarea activa sin hora muestra "⏳ Sin agendar" (con el motivo) en vez de quedar vacía.
+
+### Cambiado
+
+- **El agendado sigue el orden de la Tabla (Holgura)**: nueva `compararParaAgendar` (`assets/js/tareas-logica.js`): primero la holgura en horas (urgente sin límite = hoy; sin límite = al final), y ante empate `compararPorPrioridad`. Antes el primer nivel era "accionable", que mandaba toda bloqueada detrás de toda tarea libre, incluso las libres sin fecha límite. Ahora una **bloqueada con fecha límite** se agenda entre su tarea previa y las tareas sin fecha límite (previa → bloqueada → libres). La usan `asignarTareasSinFecha`, `reprogramarVencidas`, `adelantarTareasSiHayHuecoMejor` y `reordenarSugeridasPorPrioridad` (que además ya no considera "invertidos" a los pares de una misma cadena). `compararPorPrioridad` no cambia (Resumen, Tareas y "↺ Prioridad" siguen igual).
+
+### Agregado
+
+- **Plantillas de cadenas** (`assets/js/plantillas.js`, colección nueva `plantillas`, botón "📋 Plantillas" en Tareas): un procedimiento típico guardado como grupo de tareas encadenadas. Se crea desde la tarjeta de cualquier tarea encadenada ("📋 Guardar cadena como plantilla", copia los atributos de toda la cadena) o desde cero con el editor de pasos (nombre, duración, descripción, "días antes" de la fecha límite final, orden). **Usar** una plantilla pide solo la categoría, la fecha límite final y (opcional) "habilitada desde": crea todas las tareas ya enlazadas, con la fecha límite de cada una escalonada, las agenda y deja un único paso de deshacer. Se sincroniza con Drive como el resto.
+
 ## [v0.98.0] - 2026-10-01
 
 El agendado automático asignaba horarios encima de eventos "Ocupado" de Google Calendar.

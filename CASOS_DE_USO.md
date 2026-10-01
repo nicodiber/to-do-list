@@ -233,6 +233,22 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Resultado**: los campos tildados quedan iguales en todas las tareas elegidas; el resto de cada tarea no se toca.
 - **Fricciones**: a propósito no incluye nombre/descripción, los enlaces depende-de/bloquea-a (regla 1 a 1) ni marcar como completada (esa sigue siendo una acción por tarea, ver A4).
 
+### A12. Cargar un grupo de tareas encadenadas con una plantilla (v0.99.0)
+
+- **Objetivo**: cargar en pocos pasos un procedimiento que se repite (por ejemplo "Tramitar el pasaporte": sacar turno → juntar documentación → ir a la oficina), sin armar la cadena tarea por tarea cada vez.
+- **Disparador**: el usuario tiene que hacer un procedimiento típico que ya hizo antes (o que va a hacer varias veces).
+- **Pasos**: (una vez) armar la cadena con el alta de tareas, entrar a la tarjeta de cualquiera de sus tareas y elegir "📋 Guardar cadena como plantilla", ponerle nombre; o crearla desde cero con "📋 Plantillas" → "＋ Nueva plantilla" y cargar los pasos. (Cada vez que se use) "📋 Plantillas" → "▶️ Usar" → elegir categoría y fecha límite final (y, si hace falta, "habilitada desde") → "✅ Crear tareas".
+- **Flujo usuario/sistema**:
+  1. Usuario abre "📋 Plantillas" en la vista Tareas y elige "▶️ Usar" en la plantilla.
+  2. Sistema muestra la ventana "Usar" con la categoría, la fecha límite final, "habilitada desde" y una vista previa con el límite de cada paso (fecha final menos los "días antes" de cada paso).
+  3. Usuario completa los datos y confirma. Si no puso fecha límite final, o algún paso quedaría con límite en el pasado, el sistema pregunta antes de seguir.
+  4. Sistema crea todas las tareas encadenadas (la primera pendiente, las demás bloqueadas), con los atributos de cada paso, las agenda leyendo Calendar y guarda todo junto.
+- **Vistas/funciones**: `assets/js/plantillas.js` (`abrirListaPlantillas`, `abrirEditorPlantilla`, `abrirGuardarCadenaComoPlantilla`, `abrirUsoPlantilla`), `assets/js/modelos.js` (`crearPlantilla`, `crearPasoPlantilla`), `assets/js/dependencias.js` (`recalcularBloqueo`), `assets/js/programador.js` (`programarTareasSinFecha`), botón "📋 Plantillas" y "📋 Guardar cadena como plantilla" en `views/tareas.view.js`.
+- **Resultado**: N tareas nuevas en `estado.tareas`, enlazadas y con hora sugerida, y un único paso de deshacer (Ctrl+Z las quita juntas). La plantilla no cambia.
+- **Fricciones**: la plantilla no guarda categoría, ni fechas, ni checklist, ni enlaces a metas/personas (esos se piden o se completan después editando las tareas); no se puede aplicar sobre una tarea objetivo ya cargada (crea toda la cadena de cero); los pasos no pueden repetirse en ciclos.
+
+---
+
 ## Bloque B — Planificación de objetivos
 
 ### B1. Crear y seguir una Meta
