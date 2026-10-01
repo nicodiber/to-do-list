@@ -43,7 +43,7 @@ function otrasTareasComoEventos(todas, excluirId) {
  * `{ asignadas, sinHueco }` — `sinHueco` son las que no encontraron día antes de su horizonte o de su fecha límite
  * (quedan sin programar por ahora, para que el usuario las revise a mano; se reintenta en el próximo refresco).
  */
-export async function programarTareasSinFecha(estado) {
+async function asignarTareasSinFecha(estado) {
   const todas = estado.tareas || [];
   const candidatas = todas
     .filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida) && !t.tarea_mantenimiento)
@@ -158,6 +158,54 @@ export async function programarTareasSinFecha(estado) {
 
   candidatas.forEach(programarUna);
   return { asignadas, sinHueco };
+}
+
+/**
+ * Asigna hueco a las tareas sin hora (`asignarTareasSinFecha`, ver arriba) y después reordena las ya agendadas
+ * si quedó alguna inversión de prioridad (`reordenarSugeridasPorPrioridad`, v0.97.0). Es la función que
+ * llaman todos los puntos que agendan: inicio de sesión, refresco de Calendar, alta/edición de tareas, etc.
+ * Devuelve `{ asignadas, sinHueco, reordenadas }`.
+ */
+export async function programarTareasSinFecha(estado) {
+  const { asignadas, sinHueco } = await asignarTareasSinFecha(estado);
+  const reordenadas = await reordenarSugeridasPorPrioridad(estado);
+  return { asignadas, sinHueco, reordenadas };
+}
+
+/**
+ * Corrige las inversiones de prioridad entre tareas ya agendadas (v0.97.0): una tarea con fecha límite cercana
+ * (o urgente, o de mayor categoría) no puede quedar con horario posterior al de otra de menor prioridad. Pasaba
+ * porque el agendado decide solo al asignar el hueco — una tarea nueva entra después de las ya agendadas, y
+ * nada volvía a mirar el orden. Si hay alguna inversión entre tareas que todavía no empezaron, vacía su
+ * `tarea_fecha_sugerida` y las vuelve a asignar con `asignarTareasSinFecha` (que ya procesa por prioridad y
+ * respeta Calendar, tope diario, días hábiles, fecha límite, habilitada y cadenas). Transaccional: si alguna no
+ * encuentra hueco, restaura todos los horarios como estaban. Idempotente. Devuelve las tareas cuyo horario cambió.
+ */
+export async function reordenarSugeridasPorPrioridad(estado) {
+  const todas = estado.tareas || [];
+  const ahora = Date.now();
+  const movibles = todas.filter(
+    (t) => t.tarea_estado !== 'completada' && !t.tarea_mantenimiento && tieneHora(t.tarea_fecha_sugerida) && new Date(t.tarea_fecha_sugerida).getTime() > ahora
+  );
+  if (movibles.length < 2) return [];
+
+  const inicio = (t) => new Date(t.tarea_fecha_sugerida).getTime();
+  const hayInversion = movibles.some((a) => movibles.some((b) => a !== b && compararPorPrioridad(a, b, estado.categorias) < 0 && inicio(a) > inicio(b)));
+  if (!hayInversion) return [];
+
+  const foto = new Map(todas.map((t) => [t.tarea_id, t.tarea_fecha_sugerida]));
+  movibles.forEach((t) => {
+    t.tarea_fecha_sugerida = '';
+  });
+  await asignarTareasSinFecha(estado);
+
+  if (movibles.some((t) => !tieneHora(t.tarea_fecha_sugerida))) {
+    todas.forEach((t) => {
+      t.tarea_fecha_sugerida = foto.get(t.tarea_id);
+    });
+    return [];
+  }
+  return movibles.filter((t) => t.tarea_fecha_sugerida !== foto.get(t.tarea_id));
 }
 
 /**

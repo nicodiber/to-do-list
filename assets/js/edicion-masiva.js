@@ -4,7 +4,7 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { combinarFechaYHora, htmlInterruptor } from './utilidades.js';
 import { limitarFechaSugeridaALimite, avisoInconsistentes } from './tareas-logica.js';
-import { programarParaHoy } from './programador.js';
+import { programarParaHoy, programarTareasSinFecha } from './programador.js';
 import {
   htmlOpcionesCategoria,
   htmlOpcionesDisfrute,
@@ -133,6 +133,7 @@ export function abrirEdicionMasiva(tareas, alTerminar) {
           inconsistentes = inconsistentes.concat(resultado.inconsistentes);
         }
       }
+      await programarTareasSinFecha(estado); // v0.97.0 — cambiar fecha límite/urgencia/categoría puede cambiar la prioridad: reordena los horarios
       await persistirYNotificar();
       if (recortadas > 0) {
         alert(`${recortadas} tarea${recortadas === 1 ? '' : 's'} no recibió la fecha sugerida por superar su fecha límite.`);

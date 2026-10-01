@@ -100,6 +100,9 @@ export function abrirEdicionTarea(id) {
       }
       // El hábito se identifica por el nombre: al renombrar una tarea de mantenimiento, su historial la sigue.
       const registrosActualizados = eraMantenimiento ? renombrarHistorial(estado, nombreAnterior, actual.tarea_nombre) : 0;
+      // Cambiar la fecha límite, la urgencia o la categoría puede cambiar la prioridad: se reordenan los horarios
+      // (y se agenda lo que siga sin hora) antes de guardar (v0.97.0).
+      await programarTareasSinFecha(estado);
       await persistirYNotificar();
       if (registrosActualizados > 0) {
         alert(`Se actualizaron ${registrosActualizados} registro${registrosActualizados === 1 ? '' : 's'} del historial (cumplimientos y mejoras) al nuevo nombre.`);

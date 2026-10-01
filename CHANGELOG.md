@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.97.0] - 2026-10-01
+
+Las fechas sugeridas ya asignadas ahora se reordenan según la prioridad.
+
+### Corregido
+
+- **Tareas con fecha límite cercana agendadas después de otras con límite lejano o sin límite** (visible al ordenar la Tabla por "Sugerida"): el agendado automático solo decidía al asignar el hueco — una tarea nueva entraba detrás de las ya agendadas, y los datos guardados antes de la v0.96.0 conservaban el orden viejo, sin que nada volviera a mirarlo. Nueva `reordenarSugeridasPorPrioridad` (`assets/js/programador.js`): si una tarea de mayor prioridad (aún no empezada) tiene horario posterior al de otra de menor prioridad, re-planifica esas tareas con el algoritmo de siempre (Calendar, tope diario, días hábiles, fecha límite, fecha habilitada, cadenas). Transaccional (si alguna no encuentra hueco, deja todo como estaba) e idempotente. Corre dentro de `programarTareasSinFecha` (inicio de sesión, refresco de Calendar, alta, "Revisar mi día", "Completar carga", Metas IA) y ahora también al guardar la edición individual o masiva de tareas, para que cambiarle la fecha límite o la urgencia a una tarea ya agendada la reordene al toque.
+
 ## [v0.96.0] - 2026-10-01
 
 La reprogramación automática no respetaba la prioridad real al repartir huecos; de paso, eliminar varias tareas de una.

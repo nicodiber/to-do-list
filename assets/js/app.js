@@ -22,6 +22,7 @@ import {
   adelantarTareasSiHayHuecoMejor,
   reprogramarVencidas,
   reasignarUrgentesAHoy,
+  reordenarSugeridasPorPrioridad,
 } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
@@ -45,7 +46,7 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.96.0';
+const VERSION = 'v0.97.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -295,9 +296,9 @@ async function refrescarCalendar() {
   let cambio = false;
   try {
     const { movidas: reubicadas } = await reubicarTareasSolapadas(estado);
-    const { asignadas } = await programarTareasSinFecha(estado);
+    const { asignadas, reordenadas } = await programarTareasSinFecha(estado);
     const { movidas: adelantadas } = await adelantarTareasSiHayHuecoMejor(estado);
-    cambio = reubicadas.length > 0 || asignadas.length > 0 || adelantadas.length > 0;
+    cambio = reubicadas.length > 0 || asignadas.length > 0 || reordenadas.length > 0 || adelantadas.length > 0;
   } catch {
     // Falla momentánea de red al pedir eventos: se reintenta en el próximo refresco.
   }
@@ -389,9 +390,12 @@ async function reprogramarSiCorresponde() {
   const inicioActualizadas = actualizarFechasInicioVencidas(estado.tareas);
   const { reprogramadas: vencidas, sinHueco: sinHuecoVencidas, inconsistentes: inconsistentesVencidas } = await reprogramarVencidas(estado);
   const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas } = await reubicarTareasSolapadas(estado);
-  const { asignadas: nuevas, sinHueco: sinHuecoNuevas } = await programarTareasSinFecha(estado);
+  const { asignadas: nuevas, sinHueco: sinHuecoNuevas, reordenadas: reordenadasAntes } = await programarTareasSinFecha(estado);
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
   const urgentesReasignadas = await reasignarUrgentesAHoy(estado);
+  // Las urgentes se agendan para hoy en el primer hueco libre: un último pase por si quedaron detrás de otra menos prioritaria.
+  const reordenadasDespues = await reordenarSugeridasPorPrioridad(estado);
+  const reordenadas = [...reordenadasAntes, ...reordenadasDespues];
   const personasAfectadas = pasarProximoContactoVencido(estado.personas);
 
   const sinHueco = [...sinHuecoVencidas, ...sinHuecoReubicadas, ...sinHuecoNuevas];
@@ -410,7 +414,8 @@ async function reprogramarSiCorresponde() {
     inconsistentes.length === 0 &&
     personasAfectadas.length === 0 &&
     inicioActualizadas.length === 0 &&
-    urgentesReasignadas.length === 0
+    urgentesReasignadas.length === 0 &&
+    reordenadas.length === 0
   )
     return;
   await persistirYNotificar();
