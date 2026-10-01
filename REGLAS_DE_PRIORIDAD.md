@@ -119,6 +119,10 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 
 **Eliminada en v0.53.2** (a pedido del usuario): la etiqueta "🎯 Foco 80/20" de Hoy y de Tareas y la sección "Enfoque 80/20" de Informes se sacaron, junto con la función `calcularEnfoque8020` (que devolvía el 20% superior, redondeado hacia arriba, de las tareas accionables ordenadas por `compararPorPrioridad`). Queda en `BACKLOG.md` para analizar si conviene incorporarla en una versión futura.
 
+## El agendado automático sigue la misma prioridad (v0.96.0 y v0.97.0)
+
+El mismo orden (`compararPorPrioridad`) decide **quién se queda con el hueco más temprano**: `programarTareasSinFecha` y `reprogramarVencidas` (v0.96.0) procesan sus candidatas ordenadas por prioridad, y `reordenarSugeridasPorPrioridad` (v0.97.0, `assets/js/programador.js`, ver `PROCESOS_AUTOMATICOS.md` proceso 35) vuelve a repartir los horarios de las tareas ya agendadas cuando alguna de mayor prioridad quedó con horario posterior al de otra de menor prioridad (por ejemplo, una tarea con fecha límite cercana creada después de otra sin límite). Así, ordenar la Tabla por "Sugerida" coincide con el orden de prioridad, salvo restricciones legítimas (fecha habilitada futura, cadena, días hábiles, tope diario).
+
 ## Reprogramado de fechas vencidas
 
 `tarea_fecha_sugerida` es una sugerencia sin compromiso real, así que se reprograma **sola**: al iniciar la app, `reprogramarVencidas` (`assets/js/programador.js`, v0.92.0 — antes `reprogramarFechasSugeridasVencidas` en `tareas-logica.js`) busca tareas activas (no completadas) con `tarea_fecha_sugerida` vencida y la mueve al primer hueco real desde hoy (respetando la capacidad diaria, `tarea_dias_habiles`, Calendar y otras tareas ya asignadas, sin superar `tarea_fecha_limite` si existe — antes solo saltaba al próximo día hábil sin mirar si ese día ya estaba lleno), en cascada a sus dependientes (`reprogramarTareaConCascada`). Si hubo cambios, se avisa con un `alert()` que nombra las tareas.
