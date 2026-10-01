@@ -97,6 +97,7 @@ export function renderVistaTareas(contenedor) {
       <span id="conteo-seleccion">0 seleccionadas</span>
       <button title="Elegir todas las tareas visibles" type="button" id="boton-seleccionar-todas">☑️ Seleccionar todas</button>
       <button title="Editar los campos en común de las tareas elegidas" type="button" id="boton-editar-seleccion" class="boton-primario" disabled>✏️ Editar tareas seleccionadas</button>
+      <button title="Eliminar las tareas elegidas" type="button" id="boton-eliminar-seleccion" disabled>🗑️ Eliminar ${seleccionadas.size}</button>
       <button title="Salir del modo selección" type="button" id="boton-cancelar-seleccion">Cancelar</button>
     </div>
 
@@ -138,6 +139,7 @@ export function renderVistaTareas(contenedor) {
   const barraSeleccion = contenedor.querySelector('#barra-seleccion');
   const conteoSeleccion = contenedor.querySelector('#conteo-seleccion');
   const botonEditarSeleccion = contenedor.querySelector('#boton-editar-seleccion');
+  const botonEliminarSeleccion = contenedor.querySelector('#boton-eliminar-seleccion');
   contenedor.querySelector('#boton-cancelar-seleccion').addEventListener('click', () => {
     modoSeleccion = false;
     seleccionadas.clear();
@@ -146,6 +148,8 @@ export function renderVistaTareas(contenedor) {
   const actualizarBarraSeleccion = () => {
     conteoSeleccion.textContent = `${seleccionadas.size} seleccionada${seleccionadas.size === 1 ? '' : 's'}`;
     botonEditarSeleccion.disabled = seleccionadas.size === 0;
+    botonEliminarSeleccion.disabled = seleccionadas.size === 0;
+    botonEliminarSeleccion.textContent = `🗑️ Eliminar ${seleccionadas.size}`;
   };
   botonEditarSeleccion.addEventListener('click', () => {
     const tareasElegidas = estado.tareas.filter((t) => seleccionadas.has(t.tarea_id));
@@ -154,6 +158,13 @@ export function renderVistaTareas(contenedor) {
       seleccionadas.clear();
       renderVistaTareas(contenedor);
     });
+  });
+  botonEliminarSeleccion.addEventListener('click', async () => {
+    if (!confirm(`¿Eliminar las ${seleccionadas.size} tareas seleccionadas?`)) return;
+    estado.tareas.filter((t) => seleccionadas.has(t.tarea_id)).forEach((tarea) => eliminarTarea(tarea, estado));
+    modoSeleccion = false;
+    seleccionadas.clear();
+    await persistirYNotificar();
   });
 
   const contenedorPanelIA = contenedor.querySelector('#contenedor-panel-ia-prioridades');

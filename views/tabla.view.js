@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, textoHolguraConHoras, escaparHtml, conservarFoco } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
+import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
@@ -347,6 +347,7 @@ export function renderVistaTabla(contenedor) {
       <span id="conteo-seleccion-tabla">0 seleccionadas</span>
       <button title="Elegir todas las tareas visibles" type="button" id="boton-seleccionar-todas-tabla">☑️ Seleccionar todas</button>
       <button title="Editar los campos en común de las tareas elegidas" type="button" id="boton-editar-seleccion-tabla" class="boton-primario" disabled>✏️ Editar tareas seleccionadas</button>
+      <button title="Eliminar las tareas elegidas" type="button" id="boton-eliminar-seleccion-tabla" disabled>🗑️ Eliminar ${seleccionadasTabla.size}</button>
       <button title="Salir del modo selección" type="button" id="boton-cancelar-seleccion-tabla">Cancelar</button>
     </div>
     <div class="tabla-tareas-contenedor">
@@ -424,9 +425,12 @@ export function renderVistaTabla(contenedor) {
   });
   const conteoSeleccionTabla = contenedor.querySelector('#conteo-seleccion-tabla');
   const botonEditarSeleccionTabla = contenedor.querySelector('#boton-editar-seleccion-tabla');
+  const botonEliminarSeleccionTabla = contenedor.querySelector('#boton-eliminar-seleccion-tabla');
   const actualizarBarraSeleccionTabla = () => {
     conteoSeleccionTabla.textContent = `${seleccionadasTabla.size} seleccionada${seleccionadasTabla.size === 1 ? '' : 's'}`;
     botonEditarSeleccionTabla.disabled = seleccionadasTabla.size === 0;
+    botonEliminarSeleccionTabla.disabled = seleccionadasTabla.size === 0;
+    botonEliminarSeleccionTabla.textContent = `🗑️ Eliminar ${seleccionadasTabla.size}`;
   };
   contenedor.querySelector('#boton-cancelar-seleccion-tabla').addEventListener('click', () => {
     modoSeleccionTabla = false;
@@ -444,6 +448,13 @@ export function renderVistaTabla(contenedor) {
       seleccionadasTabla.clear();
       renderVistaTabla(contenedor);
     });
+  });
+  botonEliminarSeleccionTabla.addEventListener('click', async () => {
+    if (!confirm(`¿Eliminar las ${seleccionadasTabla.size} tareas seleccionadas?`)) return;
+    estado.tareas.filter((t) => seleccionadasTabla.has(t.tarea_id)).forEach((tarea) => eliminarTarea(tarea, estado));
+    modoSeleccionTabla = false;
+    seleccionadasTabla.clear();
+    await persistirYNotificar();
   });
   actualizarBarraSeleccionTabla();
 

@@ -37,7 +37,8 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 - [ ] Reparto de las tareas sin fecha por **minutos disponibles por día** (más realista que una por día), planificar en bloque guardando fechas, fondos de fin de semana y zoom por día.
 - [ ] En el modal de crear nueva tarea, destacar en color los campos ya completados por el usuario.
 - [x] Al cargar nuevas tareas sin agregarle manualmente una tarea_fecha_sugerida veo que luego de crearla no se le asigna automáticamente dependiendo del resto de tareas y la disponibilidad del calendario. Analizar por qué y corregir. **Hecho en la v0.90.0**: `abrirAltaTarea` (`assets/js/modal-tarea.js`) no llamaba a `programarTareasSinFecha` al crear (solo si nacía urgente); ahora se llama siempre (no-op si ya tiene hora).
-- [ ] Permitir tras seleccionar varias tareas, elimiarlas con un único paso. 
+- [x] Permitir tras seleccionar varias tareas, elimiarlas con un único paso. **Hecho en la v0.96.0**: botón "🗑️ Eliminar N" junto a "✏️ Editar tareas seleccionadas" en Tareas/Tabla/Gantt.
+- [ ] El valor por default del tiempo estimado de una tarea cambiarlo a 15 minutos.
 
 #### RESUMEN
 - [ ] **Cadena sin horario: mostrar orden respetando el encadenamiento** (idea del usuario): se intentó en la v0.78.0 con `ordenarConCadenas` sobre las listas de Resumen (Vencidas/Urgentes/Hoy/Mañana/Resto), pero **no logra el efecto pedido**: esas listas son siempre `pendiente` (las `bloqueada` viven aparte, en sus propias listas de solo lectura), y un pendiente nunca tiene a otro pendiente inmediatamente detrás en la misma cadena directa — así que no hay nada que reordenar ahí. Para que una cadena se vea junta de verdad haría falta mezclar cada previa con su sucesora bloqueada antes de ordenar (como hacen Tareas/Tabla/Semana con una lista mixta), lo que iría en contra del diseño de Resumen de separar a propósito lo accionable de lo bloqueado. **Decisión del usuario (ronda v0.85.0): no vale la pena el cambio más grande por ahora** — una bloqueada con fecha hoy/mañana ya aparece igual, de solo lectura, en la sección correspondiente. Queda así, retomar si en el futuro se decide lo contrario.
@@ -72,6 +73,7 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, reubicarlo a "Reali
 
 #### TABLA
 - [x] Ordenar por default por holgura de menor a mayor (en holgura además de los días indicar las horas restantes). **Hecho en la v0.88.0**.
+- [ ] Si el valor "habilitada desde" de una tarea es menor a la fecha actual, debe actualizarse a la fecha actual. En la columna "Habilitada desde" de la vista "Tabla", si una tarea tiene tiene el valor de la fecha actual, no mostrar la fecha actual sino mostrar "Ahora".
 
 #### ATAJOS DE TECLADO
 - [x] Intercambiar atajos de "Enter" y "Ctrl + Enter". **Hecho en la v0.88.0**.

@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, hoyISO, tieneHora, combinarFechaYHora, formatearHora, arbolCategorias, conservarFoco } from '../assets/js/utilidades.js';
-import { reprogramarTareaConCascada, avisoInconsistentes, asignarOrdenManual, motivoBloqueoOrdenManual } from '../assets/js/tareas-logica.js';
+import { reprogramarTareaConCascada, avisoInconsistentes, asignarOrdenManual, motivoBloqueoOrdenManual, eliminarTarea } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } from '../assets/js/gantt-modelo.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
@@ -98,6 +98,7 @@ export function renderVistaGantt(contenedor) {
       <span id="conteo-seleccion-gantt">0 seleccionadas</span>
       <button title="Elegir todas las tareas visibles" type="button" id="boton-seleccionar-todas-gantt">☑️ Seleccionar todas</button>
       <button title="Editar los campos en común de las tareas elegidas" type="button" id="boton-editar-seleccion-gantt" class="boton-primario" disabled>✏️ Editar tareas seleccionadas</button>
+      <button title="Eliminar las tareas elegidas" type="button" id="boton-eliminar-seleccion-gantt" disabled>🗑️ Eliminar ${seleccionadasGantt.size}</button>
       <button title="Salir del modo selección" type="button" id="boton-cancelar-seleccion-gantt">Cancelar</button>
     </div>
     <p class="ayuda leyenda-gantt">${
@@ -114,9 +115,12 @@ export function renderVistaGantt(contenedor) {
   });
   const conteoSeleccionGantt = contenedor.querySelector('#conteo-seleccion-gantt');
   const botonEditarSeleccionGantt = contenedor.querySelector('#boton-editar-seleccion-gantt');
+  const botonEliminarSeleccionGantt = contenedor.querySelector('#boton-eliminar-seleccion-gantt');
   const actualizarBarraSeleccionGantt = () => {
     conteoSeleccionGantt.textContent = `${seleccionadasGantt.size} seleccionada${seleccionadasGantt.size === 1 ? '' : 's'}`;
     botonEditarSeleccionGantt.disabled = seleccionadasGantt.size === 0;
+    botonEliminarSeleccionGantt.disabled = seleccionadasGantt.size === 0;
+    botonEliminarSeleccionGantt.textContent = `🗑️ Eliminar ${seleccionadasGantt.size}`;
   };
   const redibujar = () => dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarraSeleccionGantt });
 
@@ -177,6 +181,13 @@ export function renderVistaGantt(contenedor) {
       seleccionadasGantt.clear();
       renderVistaGantt(contenedor);
     });
+  });
+  botonEliminarSeleccionGantt.addEventListener('click', async () => {
+    if (!confirm(`¿Eliminar las ${seleccionadasGantt.size} tareas seleccionadas?`)) return;
+    estado.tareas.filter((t) => seleccionadasGantt.has(t.tarea_id)).forEach((tarea) => eliminarTarea(tarea, estado));
+    modoSeleccionGantt = false;
+    seleccionadasGantt.clear();
+    await persistirYNotificar();
   });
   actualizarBarraSeleccionGantt();
 

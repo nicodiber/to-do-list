@@ -2,6 +2,19 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.96.0] - 2026-10-01
+
+La reprogramación automática no respetaba la prioridad real al repartir huecos; de paso, eliminar varias tareas de una.
+
+### Corregido
+
+- **`programarTareasSinFecha` y `reprogramarVencidas`** (`assets/js/programador.js`) ahora ordenan las tareas por prioridad (`compararPorPrioridad`) antes de repartirles huecos — antes, si dos competían por el mismo hueco, ganaba la que apareciera primero en la lista interna, no la de fecha límite más urgente. Reproducido y confirmado: una tarea sin fecha límite se quedaba con un hueco más temprano que otra con fecha límite ese mismo día.
+- **`adelantarTareasSiHayHuecoMejor`**: su `.sort(compararPorPrioridad)` le faltaba el parámetro `categorias`, así que tiraba una excepción apenas dos tareas empataban en fecha efectiva (ej. ambas sin fecha límite, un caso muy común) — la atrapaba el `catch` genérico de `refrescarCalendar` (`app.js`), lo que además podía impedir que se persistieran cambios reales de `reubicarTareasSolapadas`/`programarTareasSinFecha` hechos en la misma pasada.
+
+### Agregado
+
+- **Eliminar tareas en bloque** (Tareas, Tabla, Gantt): tras "☑️ Seleccionar", nuevo botón "🗑️ Eliminar N" junto a "✏️ Editar tareas seleccionadas".
+
 ## [v0.95.0] - 2026-10-01
 
 Corrige el mismo bug de la v0.90.0 ("una tarea nueva no se agenda hasta el próximo refresco"), que se había pasado en otros 4 caminos de creación/completado de tareas.
