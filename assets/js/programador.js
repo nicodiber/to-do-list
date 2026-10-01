@@ -45,7 +45,9 @@ function otrasTareasComoEventos(todas, excluirId) {
  */
 export async function programarTareasSinFecha(estado) {
   const todas = estado.tareas || [];
-  const candidatas = todas.filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida) && !t.tarea_mantenimiento);
+  const candidatas = todas
+    .filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida) && !t.tarea_mantenimiento)
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // v0.96.0 — si dos compiten por el mismo hueco, gana la de más prioridad (ej. fecha límite más próxima), no la que aparece primero en la lista
   if (candidatas.length === 0) return { asignadas: [], sinHueco: [] };
 
   const preferencias = obtenerPreferencias();
@@ -239,7 +241,9 @@ function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
 export async function reprogramarVencidas(estado) {
   const todas = estado.tareas || [];
   const hoy = hoyISO();
-  const candidatas = todas.filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida) && diaLocal(t.tarea_fecha_sugerida) < hoy);
+  const candidatas = todas
+    .filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida) && diaLocal(t.tarea_fecha_sugerida) < hoy)
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // v0.96.0 — mismo criterio que programarTareasSinFecha
   if (candidatas.length === 0) return { reprogramadas: [], sinHueco: [], inconsistentes: [] };
 
   const preferencias = obtenerPreferencias();
@@ -482,7 +486,7 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
   const porId = new Map(todas.map((t) => [t.tarea_id, t]));
   const candidatas = todas
     .filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida))
-    .sort(compararPorPrioridad); // la de más prioridad se queda con el hueco si dos compiten por el mismo
+    .sort((a, b) => compararPorPrioridad(a, b, estado.categorias)); // la de más prioridad se queda con el hueco si dos compiten por el mismo (v0.96.0 — antes le faltaba el 3er parámetro, tiraba excepción apenas dos tareas empataban en fecha efectiva, ej. ambas sin límite)
 
   if (candidatas.length === 0) return { movidas: [] };
 
