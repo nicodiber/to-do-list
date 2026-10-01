@@ -108,7 +108,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
   8. **(v0.76.0)** Justo después, sistema pregunta "¿Crear una tarea de seguimiento a partir de «tarea»?"; si el usuario acepta, abre el alta con los mismos datos (categoría, meta, persona, etc.) pero nombre, descripción y las 3 fechas vacías, sin enlazarla con la recién completada.
-- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); `assets/js/modal-tarea.js` (`ofrecerCrearTareaSeguimiento`, v0.76.0); la sección "Completadas hoy" de `views/hoy.view.js`.
+- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); `assets/js/modal-tarea.js` (`ofrecerCrearTareaSeguimiento`, v0.76.0; `abrirDetalleTarea`, v0.93.0); la sección "Completadas hoy" de `views/hoy.view.js`. Desde Agenda (v0.93.0) el camino es distinto: no hay un botón directo en la tarjeta, se llega por el detalle (doble clic → "✅ Cumplida" dentro del modal) — mismo `cumplirTarea` y mismo encadenado de exportar/seguimiento al final.
 - **Resultado**: `tarea_estado='completada'`, `tarea_fecha_fin` seteada; se registra un cumplimiento; posible Mejora (si hay nota) y posible clon nuevo, enlazado a la cadena o al desencadenante (ver `PROCESOS_AUTOMATICOS.md`, procesos 1 y 15); posibles dependientes desbloqueadas; si se acepta abrir Calendar, `tarea_exportada_calendar` queda en `true`. **Reabrir** una completada (desplegable "Cambiar estado" → Pendiente en Tareas) deshace el cumplimiento y la marca de exportada, y borra la copia de mantenimiento si sigue sin tocar (si se modificó, se conserva y se avisa).
 - **Fricciones**: las 3 vistas comparten ahora `cumplirTarea` (la lógica ya no está duplicada; el panel de confirmación sí sigue repetido en cada vista). (La sugerencia de tarea de alto disfrute — Premack — se eliminó; el `confirm()` de exportar a Calendar no resulta invasivo según el usuario.)
 
@@ -142,37 +142,34 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ### A6. "Revisar mi día"
 
-- **Objetivo**: cerrar el día repasando una por una las tareas de hoy, sin tener que ir abriendo tarjeta por tarjeta.
+- **Objetivo**: cerrar el día mirando lo que de verdad pasó (el calendario real) para no perder ninguna tarea de continuidad.
 - **Disparador**: ritual de cierre de día (o, con el selector de día, ponerse al día si anoche no se pudo).
-- **Pasos**: botón "Revisar mi día" (Resumen) → panel con atajos Hoy/Ayer/Anteayer/fecha (**v0.78.0**: elige qué día de Google Calendar se va a leer al final; el repaso de tareas en sí no cambia con esta elección) → "Empezar repaso" → recibe la lista combinada de Vencidas + Urgentes + Hoy + Resto → abre un `<dialog>` modal → por cada tarea: Cumplida / No cumplida / Saltar → al llegar al final, si hay conexión con Google Calendar muestra los eventos reales del día elegido, cada uno con un botón "➕ Crear tarea" (v0.78.0: crea al toque una tarea suelta con el nombre del evento, sin fecha ni enlace) además de la pregunta general "¿alguno generó una tarea nueva?"; si no hay conexión, indica que no hay conexión y ofrece botón para intentar conectar → Cerrar.
+- **Pasos**: botón "Revisar mi día" (Resumen) → panel con atajos Hoy/Ayer/Anteayer/fecha → "Empezar repaso" → abre un `<dialog>` modal directo en la sección de Calendar: si hay conexión con Google Calendar muestra los eventos reales del día elegido, cada uno con un botón "➕ Crear tarea" (v0.78.0: crea al toque una tarea suelta con el nombre del evento, sin fecha ni enlace) además de la pregunta general "¿alguno generó una tarea nueva?"; si no hay conexión, indica que no hay conexión y ofrece botón para intentar conectar → Cerrar. **v0.94.0 — antes repasaba primero, tarea por tarea con Cumplida/No cumplida/Saltar, la lista combinada de Vencidas+Urgentes+Hoy+Resto**: decisión del usuario, ese repaso ya lo cubren de sobra Resumen (botones directos en cada tarjeta) y Agenda (modal de detalle, A7); acá quedaba solo la parte que de verdad hacía falta — el calendario real.
 - **Flujo usuario/sistema**:
   1. Usuario hace clic en "Revisar mi día" (en Resumen).
   2. Sistema muestra el selector de día (Hoy/Ayer/Anteayer/fecha, tope hoy).
   3. Usuario elige un día (o deja "Hoy") y toca "Empezar repaso".
-  4. Sistema abre un diálogo modal con la primera tarea de la lista de pendientes (sin completadas) y el progreso "Tarea 1 de N".
-  5. Usuario elige Cumplida, No cumplida o Saltar.
-  6. Si Cumplida: sistema pide confirmar (con la nota de mejora si es de mantenimiento); usuario confirma; sistema completa la tarea (todo lo de A4) y avanza. Si No cumplida: sistema ofrece "Reprogramar"; usuario elige fecha en el panel; sistema mueve la fecha y avanza. Si Saltar: sistema avanza sin cambios.
-  7. Al terminar la lista, sistema muestra "¡Repasaste todas tus tareas de hoy!" y la sección de Calendar: sin conexión con Calendar (sesión vencida o permiso no concedido), un botón para reconectar con Google; con conexión, los eventos del día elegido en el paso 2, cada uno con "➕ Crear tarea".
-  8. Usuario (opcional) toca "➕ Crear tarea" en algún evento, o escribe el nombre de una tarea de continuidad en el alta rápida inline.
-  9. Sistema crea esa tarea con valores por defecto, la guarda y confirma en el lugar (el botón del evento pasa a "✓ Tarea creada", o se agrega a la lista de confirmación del alta inline).
-  10. Usuario presiona "Cerrar" (o "Cerrar repaso" en cualquier momento).
-- **Vistas/funciones**: `assets/js/revision-dia.js` (`iniciarRevisionDia`, `renderPaso`, `renderPasoFinal`, `renderSeccionCalendario`), `views/resumen.view.js` (`crearSelectorDiaRevision`), `assets/js/reprogramar.js`, `assets/js/tareas-logica.js`, `assets/js/google-calendar.js` (`obtenerEventos`).
-- **Resultado**: igual que completar/reprogramar cada tarea una por una, más posibles tareas nuevas (de continuidad o por evento de Calendar).
+  4. Sistema abre un diálogo modal con la sección de Calendar: sin conexión con Calendar (sesión vencida o permiso no concedido), un botón para reconectar con Google; con conexión, los eventos del día elegido en el paso 2, cada uno con "➕ Crear tarea".
+  5. Usuario (opcional) toca "➕ Crear tarea" en algún evento, o escribe el nombre de una tarea de continuidad en el alta rápida inline.
+  6. Sistema crea esa tarea con valores por defecto, la guarda y confirma en el lugar (el botón del evento pasa a "✓ Tarea creada", o se agrega a la lista de confirmación del alta inline).
+  7. Usuario presiona "Cerrar".
+- **Vistas/funciones**: `assets/js/revision-dia.js` (`iniciarRevisionDia`, `renderRevision`, `renderSeccionCalendario`), `views/resumen.view.js` (`crearSelectorDiaRevision`), `assets/js/google-calendar.js` (`obtenerEventos`).
+- **Resultado**: posibles tareas nuevas (de continuidad o por evento de Calendar). Completar/reprogramar tareas del día se hace directo en Resumen o Agenda (A4, A7), no desde este asistente.
 
 ### A7. Anticipar los próximos días
 
 - **Objetivo**: ver qué se viene en los próximos días, para anticipar cuellos de botella sin esperar a que sea "hoy".
 - **Disparador**: planificación de la semana, o repaso rápido de lo cargado.
-- **Pasos**: navegar a "Agenda" (con el selector de 3, 8 o 15 días) → tareas agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`) → dentro de cada día, ordenadas por hora/prioridad → posponer directo desde cada tarjeta. "Semana" ofrece una grilla horaria (07-23h; en compu se ven los 7 días ajustados al ancho y en celular 3 o 4 por vez, con flechas) con las tareas de horario fijo ubicadas en su hora exacta y las proyectadas apiladas por prioridad, con arrastre para reprogramar.
+- **Pasos**: navegar a "Agenda" (con el selector de 3, 8 o 15 días) → tareas agrupadas por día según `fechaDeReferencia` (`tarea_fecha_sugerida` > `tarea_fecha_limite`) → dentro de cada día, ordenadas por hora/prioridad respetando las cadenas (v0.93.0) → posponer directo desde cada tarjeta, o doble clic para ver el detalle y marcarla cumplida. "Semana" ofrece una grilla horaria (07-23h; en compu se ven los 7 días ajustados al ancho y en celular 3 o 4 por vez, con flechas) con las tareas de horario fijo ubicadas en su hora exacta y las proyectadas apiladas por prioridad, con arrastre para reprogramar.
 - **Flujo usuario/sistema**:
   1. Usuario navega a "Agenda" y, si quiere, cambia el rango (3, 8 o 15 días; se recuerda la última elección).
-  2. Sistema agrupa las tareas con fecha de referencia por día y, dentro de cada día, las ordena por hora y prioridad.
+  2. Sistema agrupa las tareas con fecha de referencia por día y, dentro de cada día, las ordena por hora y prioridad — una tarea bloqueada queda pegada justo después de su previa, no salteada por prioridad pura (`ordenarConCadenas`, v0.93.0).
   3. Usuario revisa los días y detecta cuellos de botella.
-  4. Usuario (opcional) hace clic en "Posponer" de una tarjeta.
-  5. Sistema muestra el panel de reprogramar (A5) y, al confirmar, mueve la fecha y redibuja.
+  4. Usuario (opcional) hace clic en "Posponer" de una tarjeta, o doble clic (fuera de un control) para abrir el detalle.
+  5. Sistema muestra el panel de reprogramar (A5) y, al confirmar, mueve la fecha y redibuja; o el modal de detalle (v0.93.0, mismo que Resumen) con "✅ Cumplida" (si la tarea sigue pendiente), "✏️ Editar" y "✖️ Cerrar" — confirmar "Cumplida" sigue el mismo flujo que A4 (mejora opcional, exportar a Calendar, tarea de seguimiento).
   6. (Semana) Usuario arrastra el borde de un bloque; sistema actualiza `tarea_fecha_sugerida`/`tarea_duracion_min` en pasos de 15 minutos y guarda.
-- **Vistas/funciones**: `assets/js/vista-agenda.js` (`fechaDeReferencia`, `renderVistaAgenda`), `views/agenda.view.js`, `views/semana.view.js`.
-- **Resultado**: no cambia datos (salvo que se reprograme algo desde ahí).
+- **Vistas/funciones**: `assets/js/vista-agenda.js` (`fechaDeReferencia`, `renderVistaAgenda`, `renderTarjetaTarea`), `assets/js/modal-tarea.js` (`abrirDetalleTarea`, v0.93.0), `views/agenda.view.js`, `views/semana.view.js`.
+- **Resultado**: no cambia datos (salvo que se reprograme o se complete algo desde ahí).
 - **Fricciones**: Agenda y Semana muestran lo mismo con formatos distintos (lista por día vs. grilla por horas); por ahora se mantienen las dos.
 
 ### A8. Auditar y corregir el orden de prioridad

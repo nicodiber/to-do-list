@@ -30,7 +30,7 @@ import {
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { ofrecerCrearTareaSeguimiento, abrirEdicionTarea } from '../assets/js/modal-tarea.js';
+import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
@@ -125,7 +125,7 @@ export function renderVistaResumen(contenedor) {
   contenedor.innerHTML = `
     <h2 title="Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.">📌 Resumen</h2>
     <div class="controles-hoy">
-      <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">👀 Revisar mi día</button>
+      <button title="Ver los eventos reales de tu Calendar y agregar las tareas de continuidad que hayan surgido" type="button" id="boton-revisar-dia" class="boton-primario">👀 Revisar mi día</button>
       <div class="contenedor-selector-dia-revision" hidden></div>
     </div>
     <details class="completadas-plegadas">
@@ -212,7 +212,7 @@ export function renderVistaResumen(contenedor) {
       crearSelectorDiaRevision((diaCalendario) => {
         contenedorSelectorDia.hidden = true;
         contenedorSelectorDia.innerHTML = '';
-        iniciarRevisionDia([...vencidas, ...urgentes, ...hoyNueva, ...resto], { diaCalendario });
+        iniciarRevisionDia({ diaCalendario });
       })
     );
     contenedorSelectorDia.hidden = false;
@@ -232,7 +232,7 @@ export function renderVistaResumen(contenedor) {
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0 && bloqueadasHoy.length === 0) {
-    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy.</p>';
+    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy 🎉</p>';
   } else {
     urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
     bloqueadasHoy.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { soloInfo: true })));
@@ -460,7 +460,8 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
 
   li.addEventListener('dblclick', (evento) => {
     if (evento.target.closest('button, a, input, select')) return;
-    abrirDetalleTarea(tarea);
+    const contenidoTarjeta = renderItem(tarea, { soloInfo: true, caminoCompleto: true }).querySelector('.item-tarea-info');
+    abrirDetalleTarea(tarea, contenidoTarjeta);
   });
 
   // Clima: aviso de lluvia si el pronóstico no acompaña, o "☀️" si acompaña (solo en tareas que piden buen clima).
@@ -629,31 +630,3 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
   return li;
 }
 
-/** Modal de solo lectura al hacer doble clic en una tarjeta: mismo contenido que la tarjeta (sin acciones), más "Editar". */
-function abrirDetalleTarea(tarea) {
-  const dialogo = document.createElement('dialog');
-  dialogo.className = 'dialogo-tarea dialogo-detalle-tarea';
-  const contenidoTarjeta = renderItem(tarea, { soloInfo: true, caminoCompleto: true }).querySelector('.item-tarea-info');
-  dialogo.innerHTML = `
-    <h3>👁️ Detalle de la tarea</h3>
-    <div class="contenedor-detalle-tarea"></div>
-    <div class="acciones-modal">
-      <button title="Cerrar sin editar (Esc)" type="button" data-accion="cerrar">✖️ Cerrar</button>
-      <button title="Abrir esta tarea para editarla" type="button" data-accion="editar" class="boton-primario">✏️ Editar</button>
-    </div>
-  `;
-  dialogo.querySelector('.contenedor-detalle-tarea').appendChild(contenidoTarjeta);
-  document.body.appendChild(dialogo);
-
-  const cerrar = () => {
-    if (dialogo.open) dialogo.close();
-    dialogo.remove();
-  };
-  dialogo.addEventListener('close', cerrar);
-  dialogo.querySelector('[data-accion="cerrar"]').addEventListener('click', cerrar);
-  dialogo.querySelector('[data-accion="editar"]').addEventListener('click', () => {
-    cerrar();
-    abrirEdicionTarea(tarea.tarea_id);
-  });
-  dialogo.showModal();
-}

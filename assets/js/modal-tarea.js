@@ -170,6 +170,83 @@ export function ofrecerCrearTareaSeguimiento(tarea) {
 }
 
 /**
+ * Modal de solo lectura al hacer doble clic en una tarjeta (Resumen, Agenda): muestra `contenidoElemento`
+ * (la propia vista arma su tarjeta en modo solo-info — así este módulo no depende de ninguna vista), con
+ * "✖️ Cerrar" y "✏️ Editar" siempre, y "✅ Cumplida" si `mostrarCumplida` es true y la tarea sigue `pendiente`
+ * (nunca para bloqueadas). Confirmar "Cumplida" abre el mismo panel que ya usan las tarjetas con la acción
+ * directa (mejora opcional si es de mantenimiento) y sigue el mismo flujo: `cumplirTarea`, cerrar, persistir
+ * (dispara el `render()` global que redibuja la vista de atrás) y ofrecer exportar a Calendar / tarea de
+ * seguimiento. Generalizada desde `views/resumen.view.js` (v0.93.0) para reusarla también en Agenda, que no
+ * tenía ninguna forma de marcar una tarea cumplida.
+ */
+export function abrirDetalleTarea(tarea, contenidoElemento, { mostrarCumplida = false } = {}) {
+  const puedeCumplir = mostrarCumplida && tarea.tarea_estado === 'pendiente';
+  const dialogo = document.createElement('dialog');
+  dialogo.className = 'dialogo-tarea dialogo-detalle-tarea';
+  dialogo.innerHTML = `
+    <h3>👁️ Detalle de la tarea</h3>
+    <div class="contenedor-detalle-tarea"></div>
+    <div class="contenedor-cierre-detalle" hidden></div>
+    <div class="acciones-modal">
+      <button title="Cerrar sin editar (Esc)" type="button" data-accion="cerrar">✖️ Cerrar</button>
+      ${puedeCumplir ? '<button title="Marcar la tarea como cumplida" type="button" data-accion="cumplida" class="boton-primario">✅ Cumplida</button>' : ''}
+      <button title="Abrir esta tarea para editarla" type="button" data-accion="editar" class="boton-primario">✏️ Editar</button>
+    </div>
+  `;
+  dialogo.querySelector('.contenedor-detalle-tarea').appendChild(contenidoElemento);
+  document.body.appendChild(dialogo);
+
+  const cerrar = () => {
+    if (dialogo.open) dialogo.close();
+    dialogo.remove();
+  };
+  dialogo.addEventListener('close', cerrar);
+  dialogo.querySelector('[data-accion="cerrar"]').addEventListener('click', cerrar);
+  dialogo.querySelector('[data-accion="editar"]').addEventListener('click', () => {
+    cerrar();
+    abrirEdicionTarea(tarea.tarea_id);
+  });
+
+  const botonCumplida = dialogo.querySelector('[data-accion="cumplida"]');
+  if (botonCumplida) {
+    const contenedorCierre = dialogo.querySelector('.contenedor-cierre-detalle');
+    botonCumplida.addEventListener('click', () => {
+      botonCumplida.hidden = true;
+      contenedorCierre.hidden = false;
+      contenedorCierre.innerHTML = `
+        <div class="panel-cierre">
+          ${
+            tarea.tarea_mantenimiento
+              ? `<label>💡 ¿Qué podrías mejorar la próxima vez? (opcional)
+                  <input type="text" data-campo="mejora" />
+                </label>`
+              : ''
+          }
+          <button title="Confirmar que la tarea se cumplió" type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
+          <button title="Cancelar y volver al detalle" type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
+        </div>
+      `;
+      contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
+        const campoMejora = contenedorCierre.querySelector('[data-campo="mejora"]');
+        const notaMejora = campoMejora ? campoMejora.value.trim() : '';
+        cumplirTarea(tarea, estado, { notaMejora });
+        cerrar();
+        await persistirYNotificar();
+        ofrecerExportarACalendar(tarea);
+        ofrecerCrearTareaSeguimiento(tarea);
+      });
+      contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
+        contenedorCierre.hidden = true;
+        contenedorCierre.innerHTML = '';
+        botonCumplida.hidden = false;
+      });
+    });
+  }
+
+  dialogo.showModal();
+}
+
+/**
  * Ventana para cargar una tarea nueva, con el mismo formulario que la edición. Enter
  * (o "Agregar y cargar otra") agrega la tarea y deja la ventana abierta, vacía y con el
  * cursor en el nombre, para cargar varias seguidas; "Agregar" agrega y cierra. Si el
