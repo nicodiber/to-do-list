@@ -125,7 +125,7 @@ export function renderVistaResumen(contenedor) {
   contenedor.innerHTML = `
     <h2 title="Lo urgente primero: tareas vencidas o con fecha límite hoy. Así no hace falta reprogramar nada para saber por dónde arrancar.">📌 Resumen</h2>
     <div class="controles-hoy">
-      <button title="Repasar una por una las tareas de hoy" type="button" id="boton-revisar-dia" class="boton-primario">👀 Revisar mi día</button>
+      <button title="Ver los eventos reales de tu Calendar y agregar las tareas de continuidad que hayan surgido" type="button" id="boton-revisar-dia" class="boton-primario">👀 Revisar mi día</button>
       <div class="contenedor-selector-dia-revision" hidden></div>
     </div>
     <details class="completadas-plegadas">
@@ -212,7 +212,7 @@ export function renderVistaResumen(contenedor) {
       crearSelectorDiaRevision((diaCalendario) => {
         contenedorSelectorDia.hidden = true;
         contenedorSelectorDia.innerHTML = '';
-        iniciarRevisionDia([...vencidas, ...urgentes, ...hoyNueva, ...resto], { diaCalendario });
+        iniciarRevisionDia({ diaCalendario });
       })
     );
     contenedorSelectorDia.hidden = false;
@@ -232,7 +232,7 @@ export function renderVistaResumen(contenedor) {
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0 && bloqueadasHoy.length === 0) {
-    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy.</p>';
+    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy 🎉</p>';
   } else {
     urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
     bloqueadasHoy.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { soloInfo: true })));

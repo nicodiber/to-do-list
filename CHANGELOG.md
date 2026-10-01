@@ -2,6 +2,19 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.94.0] - 2026-10-01
+
+Resumen: ajustes finales de Urgentes/Vencidas y "Revisar mi día".
+
+### Cambiado
+
+- **"Revisar mi día" deja de repasar tareas una por una** (Cumplida/No cumplida/Saltar) y pasa directo a la parte de Google Calendar: lee los eventos reales del día elegido para detectar tareas de continuidad. El repaso tarea por tarea ya lo cubren de sobra Resumen (botones directos en cada tarjeta) y Agenda (modal de detalle, v0.93.0); acá generaba confusión con lo que de verdad hace falta mirar al cerrar el día.
+- **Resumen: "Urgentes" sin tareas** muestra el mismo mensaje festivo que ya usaba "Vencidas" ("No tenés tareas con fecha límite hoy 🎉", antes sin el emoji).
+
+### Confirmado sin cambios
+
+- El destacado del atajo elegido en el panel de reprogramar de "Revisar mi día" ya funcionaba igual que en Agenda → Posponer (comparten el mismo componente desde la v0.76.0).
+
 ## [v0.93.0] - 2026-09-30
 
 Agenda: detalle de tarea con "Cumplida" y orden de cadenas.

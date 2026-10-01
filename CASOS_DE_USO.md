@@ -142,22 +142,19 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ### A6. "Revisar mi día"
 
-- **Objetivo**: cerrar el día repasando una por una las tareas de hoy, sin tener que ir abriendo tarjeta por tarjeta.
+- **Objetivo**: cerrar el día mirando lo que de verdad pasó (el calendario real) para no perder ninguna tarea de continuidad.
 - **Disparador**: ritual de cierre de día (o, con el selector de día, ponerse al día si anoche no se pudo).
-- **Pasos**: botón "Revisar mi día" (Resumen) → panel con atajos Hoy/Ayer/Anteayer/fecha (**v0.78.0**: elige qué día de Google Calendar se va a leer al final; el repaso de tareas en sí no cambia con esta elección) → "Empezar repaso" → recibe la lista combinada de Vencidas + Urgentes + Hoy + Resto → abre un `<dialog>` modal → por cada tarea: Cumplida / No cumplida / Saltar → al llegar al final, si hay conexión con Google Calendar muestra los eventos reales del día elegido, cada uno con un botón "➕ Crear tarea" (v0.78.0: crea al toque una tarea suelta con el nombre del evento, sin fecha ni enlace) además de la pregunta general "¿alguno generó una tarea nueva?"; si no hay conexión, indica que no hay conexión y ofrece botón para intentar conectar → Cerrar.
+- **Pasos**: botón "Revisar mi día" (Resumen) → panel con atajos Hoy/Ayer/Anteayer/fecha → "Empezar repaso" → abre un `<dialog>` modal directo en la sección de Calendar: si hay conexión con Google Calendar muestra los eventos reales del día elegido, cada uno con un botón "➕ Crear tarea" (v0.78.0: crea al toque una tarea suelta con el nombre del evento, sin fecha ni enlace) además de la pregunta general "¿alguno generó una tarea nueva?"; si no hay conexión, indica que no hay conexión y ofrece botón para intentar conectar → Cerrar. **v0.94.0 — antes repasaba primero, tarea por tarea con Cumplida/No cumplida/Saltar, la lista combinada de Vencidas+Urgentes+Hoy+Resto**: decisión del usuario, ese repaso ya lo cubren de sobra Resumen (botones directos en cada tarjeta) y Agenda (modal de detalle, A7); acá quedaba solo la parte que de verdad hacía falta — el calendario real.
 - **Flujo usuario/sistema**:
   1. Usuario hace clic en "Revisar mi día" (en Resumen).
   2. Sistema muestra el selector de día (Hoy/Ayer/Anteayer/fecha, tope hoy).
   3. Usuario elige un día (o deja "Hoy") y toca "Empezar repaso".
-  4. Sistema abre un diálogo modal con la primera tarea de la lista de pendientes (sin completadas) y el progreso "Tarea 1 de N".
-  5. Usuario elige Cumplida, No cumplida o Saltar.
-  6. Si Cumplida: sistema pide confirmar (con la nota de mejora si es de mantenimiento); usuario confirma; sistema completa la tarea (todo lo de A4) y avanza. Si No cumplida: sistema ofrece "Reprogramar"; usuario elige fecha en el panel; sistema mueve la fecha y avanza. Si Saltar: sistema avanza sin cambios.
-  7. Al terminar la lista, sistema muestra "¡Repasaste todas tus tareas de hoy!" y la sección de Calendar: sin conexión con Calendar (sesión vencida o permiso no concedido), un botón para reconectar con Google; con conexión, los eventos del día elegido en el paso 2, cada uno con "➕ Crear tarea".
-  8. Usuario (opcional) toca "➕ Crear tarea" en algún evento, o escribe el nombre de una tarea de continuidad en el alta rápida inline.
-  9. Sistema crea esa tarea con valores por defecto, la guarda y confirma en el lugar (el botón del evento pasa a "✓ Tarea creada", o se agrega a la lista de confirmación del alta inline).
-  10. Usuario presiona "Cerrar" (o "Cerrar repaso" en cualquier momento).
-- **Vistas/funciones**: `assets/js/revision-dia.js` (`iniciarRevisionDia`, `renderPaso`, `renderPasoFinal`, `renderSeccionCalendario`), `views/resumen.view.js` (`crearSelectorDiaRevision`), `assets/js/reprogramar.js`, `assets/js/tareas-logica.js`, `assets/js/google-calendar.js` (`obtenerEventos`).
-- **Resultado**: igual que completar/reprogramar cada tarea una por una, más posibles tareas nuevas (de continuidad o por evento de Calendar).
+  4. Sistema abre un diálogo modal con la sección de Calendar: sin conexión con Calendar (sesión vencida o permiso no concedido), un botón para reconectar con Google; con conexión, los eventos del día elegido en el paso 2, cada uno con "➕ Crear tarea".
+  5. Usuario (opcional) toca "➕ Crear tarea" en algún evento, o escribe el nombre de una tarea de continuidad en el alta rápida inline.
+  6. Sistema crea esa tarea con valores por defecto, la guarda y confirma en el lugar (el botón del evento pasa a "✓ Tarea creada", o se agrega a la lista de confirmación del alta inline).
+  7. Usuario presiona "Cerrar".
+- **Vistas/funciones**: `assets/js/revision-dia.js` (`iniciarRevisionDia`, `renderRevision`, `renderSeccionCalendario`), `views/resumen.view.js` (`crearSelectorDiaRevision`), `assets/js/google-calendar.js` (`obtenerEventos`).
+- **Resultado**: posibles tareas nuevas (de continuidad o por evento de Calendar). Completar/reprogramar tareas del día se hace directo en Resumen o Agenda (A4, A7), no desde este asistente.
 
 ### A7. Anticipar los próximos días
 
