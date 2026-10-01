@@ -584,6 +584,32 @@ export function compararPorPrioridad(a, b, categorias) {
   return manualA - manualB;
 }
 
+/** Holgura en horas para ordenar el agendado: la que muestra la Tabla; una urgente sin límite cuenta como "hoy" (0). */
+function holguraParaAgendar(tarea) {
+  const horas = calcularHolguraHoras(tarea);
+  if (horas !== Infinity) return horas;
+  return tarea.tarea_urgente ? 0 : Infinity;
+}
+
+/**
+ * Orden con el que el agendado automático reparte huecos (v0.99.0): el mismo de la vista Tabla (Holgura, de menor
+ * a mayor, las sin fecha límite al final — las urgentes sin límite cuentan como "hoy"). A diferencia de
+ * `compararPorPrioridad`, **no** pone primero a toda tarea accionable: una bloqueada con fecha límite se agenda
+ * antes que las tareas sin fecha límite (justo después de la que la bloquea — la restricción real la modelan
+ * `pisoDe` y la recursión sobre la previa en `programador.js`). Ante empate de holgura, desempata con
+ * `compararPorPrioridad` completo.
+ */
+export function compararParaAgendar(a, b, categorias) {
+  const holguraA = holguraParaAgendar(a);
+  const holguraB = holguraParaAgendar(b);
+  if (holguraA !== holguraB) {
+    if (holguraA === Infinity) return 1;
+    if (holguraB === Infinity) return -1;
+    return holguraA - holguraB;
+  }
+  return compararPorPrioridad(a, b, categorias);
+}
+
 /**
  * `true` si dos tareas están empatadas en los niveles estructurales de
  * prioridad (`compararEstructural`: accionable, fecha efectiva, categoría raíz y directa) y **ninguna** tiene

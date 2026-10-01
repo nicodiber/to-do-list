@@ -123,6 +123,15 @@ Para cada categoría **raíz**, devuelve su tarea accionable de mayor prioridad 
 
 El mismo orden (`compararPorPrioridad`) decide **quién se queda con el hueco más temprano**: `programarTareasSinFecha` y `reprogramarVencidas` (v0.96.0) procesan sus candidatas ordenadas por prioridad, y `reordenarSugeridasPorPrioridad` (v0.97.0, `assets/js/programador.js`, ver `PROCESOS_AUTOMATICOS.md` proceso 35) vuelve a repartir los horarios de las tareas ya agendadas cuando alguna de mayor prioridad quedó con horario posterior al de otra de menor prioridad (por ejemplo, una tarea con fecha límite cercana creada después de otra sin límite). Así, ordenar la Tabla por "Sugerida" coincide con el orden de prioridad, salvo restricciones legítimas (fecha habilitada futura, cadena, días hábiles, tope diario).
 
+## El agendado sigue la Holgura (v0.99.0)
+
+`compararPorPrioridad` no es el orden que usa el agendado desde la v0.99.0: su primer nivel ("accionable") mandaba toda tarea bloqueada detrás de toda accionable, incluso de las que **no tienen** fecha límite, y una bloqueada con límite cercano quedaba agendada después. `programarTareasSinFecha`, `reprogramarVencidas`, `adelantarTareasSiHayHuecoMejor` y `reordenarSugeridasPorPrioridad` usan `compararParaAgendar` (`assets/js/tareas-logica.js`), que es el orden con que abre la Tabla:
+
+1. **Holgura en horas** (`calcularHolguraHoras`, la misma de la columna Holgura): menor primero. Una urgente sin fecha límite cuenta como 0 ("hoy"); una tarea sin fecha límite tiene holgura infinita y va al final.
+2. Ante empate de holgura, `compararPorPrioridad` completo (accionable → fecha efectiva → categoría → orden manual).
+
+La restricción real de una bloqueada (no empezar antes de que termine su previa) no depende de este orden: la modelan `pisoDe` y la recursión sobre la previa, que se agenda primero. Resultado: previa → bloqueada con límite → tareas sin límite, en el orden en que aparecen en la Tabla. `compararPorPrioridad` sigue gobernando Resumen, Tareas y "↺ Prioridad".
+
 ## Reprogramado de fechas vencidas
 
 `tarea_fecha_sugerida` es una sugerencia sin compromiso real, así que se reprograma **sola**: al iniciar la app, `reprogramarVencidas` (`assets/js/programador.js`, v0.92.0 — antes `reprogramarFechasSugeridasVencidas` en `tareas-logica.js`) busca tareas activas (no completadas) con `tarea_fecha_sugerida` vencida y la mueve al primer hueco real desde hoy (respetando la capacidad diaria, `tarea_dias_habiles`, Calendar y otras tareas ya asignadas, sin superar `tarea_fecha_limite` si existe — antes solo saltaba al próximo día hábil sin mirar si ese día ya estaba lleno), en cascada a sus dependientes (`reprogramarTareaConCascada`). Si hubo cambios, se avisa con un `alert()` que nombra las tareas.

@@ -49,6 +49,45 @@ export function crearPersona({
   };
 }
 
+/**
+ * Plantilla de cadena (v0.99.0): un procedimiento típico como grupo de tareas encadenadas. `plantilla_pasos` va en el
+ * orden de la cadena (el primero se hace primero; el último es la tarea objetivo). Cada paso guarda los atributos que
+ * se copian a cada tarea al usar la plantilla — la categoría y las fechas se piden al usarla.
+ */
+export function crearPasoPlantilla({
+  paso_nombre,
+  paso_duracion_min = 30,
+  paso_descripcion = '',
+  paso_dias_antes = 0,
+  paso_dias_habiles = [],
+  paso_costo_estimado = 0,
+  paso_disfrute = null,
+  paso_requiere_clima_bueno = false,
+  paso_urgente = false,
+}) {
+  return {
+    paso_nombre: capitalizarPrimera(paso_nombre),
+    paso_duracion_min,
+    paso_descripcion,
+    paso_dias_antes,
+    paso_dias_habiles,
+    paso_costo_estimado,
+    paso_disfrute,
+    paso_requiere_clima_bueno,
+    paso_urgente,
+  };
+}
+
+export function crearPlantilla({ plantilla_nombre, plantilla_descripcion = '', plantilla_pasos = [] }) {
+  return {
+    plantilla_id: generarId(),
+    plantilla_nombre: capitalizarPrimera(plantilla_nombre),
+    plantilla_descripcion,
+    plantilla_pasos,
+    plantilla_creada_en: ahoraISO(),
+  };
+}
+
 /** Etiqueta compartida (v0.91.0): nombre + color, para agrupar/distinguir visualmente personas. */
 export function crearEtiqueta({ etiqueta_nombre, etiqueta_color = '#4f7cff' }) {
   return {

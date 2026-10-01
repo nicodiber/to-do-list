@@ -112,7 +112,15 @@ const COLUMNAS = [
   { clave: 'holgura', etiqueta: 'Holgura', defecto: true, valor: (t) => (calcularHolguraDias(t) === Infinity ? '—' : textoHolguraConHoras(calcularHolguraHoras(t))), comparar: compararHolguraAsc },
   { clave: 'disfrute', etiqueta: 'Disfrute', valor: (t) => (t.tarea_disfrute ? '⭐'.repeat(t.tarea_disfrute) : ''), comparar: (a, b) => porNumero(a.tarea_disfrute, b.tarea_disfrute) },
   { clave: 'inicio', etiqueta: 'Habilitada desde', valor: (t) => fechaOVacia(t.tarea_fecha_inicio_habilitada), comparar: (a, b) => porFecha(a.tarea_fecha_inicio_habilitada, b.tarea_fecha_inicio_habilitada) },
-  { clave: 'sugerida', etiqueta: 'Sugerida', valor: (t) => fechaOVacia(t.tarea_fecha_sugerida), comparar: (a, b) => porFecha(a.tarea_fecha_sugerida, b.tarea_fecha_sugerida) },
+  {
+    clave: 'sugerida',
+    etiqueta: 'Sugerida',
+    // v0.99.0: una tarea activa sin hora no debería existir; si pasa (sin sesión de Calendar o sin hueco en el horizonte) se ve el motivo.
+    valor: (t) =>
+      t.tarea_fecha_sugerida || t.tarea_estado === 'completada'
+        ? fechaOVacia(t.tarea_fecha_sugerida)
+        : '<span title="Todavía sin hora: se agenda sola apenas se pueda leer tu Google Calendar (sin sesión de Google, o sin ningún hueco libre en el horizonte configurado)">⏳ Sin agendar</span>',
+    comparar: (a, b) => porFecha(a.tarea_fecha_sugerida, b.tarea_fecha_sugerida) },
   { clave: 'limite', etiqueta: 'Límite', valor: (t) => fechaOVacia(t.tarea_fecha_limite), comparar: (a, b) => porFecha(a.tarea_fecha_limite, b.tarea_fecha_limite) },
   { clave: 'duracion', etiqueta: 'Duración (min)', valor: (t) => texto(t.tarea_duracion_min), comparar: (a, b) => porNumero(a.tarea_duracion_min, b.tarea_duracion_min) },
   { clave: 'costo', etiqueta: 'Costo', valor: (t) => (t.tarea_costo_estimado ? `$${texto(t.tarea_costo_estimado)}` : ''), comparar: (a, b) => porNumero(a.tarea_costo_estimado, b.tarea_costo_estimado) },

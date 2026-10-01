@@ -28,6 +28,7 @@ export const estado = {
   metas: [],
   personas: [],
   etiquetas: [],
+  plantillas: [],
   tareas: [],
   mejoras: [],
   cumplimientos: [],
@@ -336,12 +337,14 @@ function normalizarDatosCrudos(datosOriginal) {
   const personas = (datos.personas || []).map(migrarPersona);
   // `etiquetas` nació en la v0.91.0: no hay formato anterior que migrar.
   const etiquetas = datos.etiquetas || [];
+  // `plantillas` nació en la v0.99.0: tampoco hay formato anterior.
+  const plantillas = datos.plantillas || [];
   const tareas = (datos.tareas || []).map(migrarTarea);
   tareas.forEach((t) => recalcularBloqueo(t, tareas));
   const mejoras = (datos.mejoras || []).map(migrarMejora);
   const cumplimientos = (datos.cumplimientos || []).map(migrarCumplimiento);
   const preferencias = (datos.preferencias || []).slice(0, 1).map(migrarPreferencias);
-  return { categorias, ubicaciones, metas, personas, etiquetas, tareas, mejoras, cumplimientos, preferencias };
+  return { categorias, ubicaciones, metas, personas, etiquetas, plantillas, tareas, mejoras, cumplimientos, preferencias };
 }
 
 // ---------------------------------------------------------------------------

@@ -111,6 +111,23 @@ Se administra desde el ABM en la vista "Personas". La lista se ordena de mayor a
 
 Compartida entre personas (`Persona.persona_etiqueta_id`), sin vista propia: se gestiona desde el desplegable "＋ Crear nueva etiqueta…" del formulario de Persona (`abrirDialogoEtiqueta`, `assets/js/formularios-entidades.js`), mismo patrón que Categoría/Ubicación/Meta en el formulario de tarea. El botón "✏️" junto al desplegable edita la etiqueta ya elegida (nombre, color, o eliminarla — al eliminarla, las personas que la usaban quedan con `persona_etiqueta_id: null`).
 
+## Plantilla
+
+Un procedimiento típico guardado como grupo de tareas encadenadas (v0.99.0). No es una tarea: es el molde con el que se crean varias a la vez.
+
+| Campo | Tipo | Fase | Descripción |
+|---|---|---|---|
+| `plantilla_id` | string (UUID) | v0.99.0 | Identificador único |
+| `plantilla_nombre` | string | v0.99.0 | Nombre del procedimiento (ej. "Tramitar el pasaporte") |
+| `plantilla_descripcion` | string, default `''` | v0.99.0 | Nota opcional |
+| `plantilla_pasos` | array de Paso | v0.99.0 | Los pasos **en el orden de la cadena**: el primero se hace primero, el último es la tarea objetivo (la que lleva la fecha límite final). Mínimo 2 |
+| `plantilla_creada_en` | string (ISO datetime) | v0.99.0 | Timestamp de creación |
+| `plantilla_modificado_en` | string (ISO datetime) | v0.99.0 | Cuándo se modificó por última vez (lo sella el sistema al guardar) |
+
+**Paso** (objeto dentro de `plantilla_pasos`, sin id propio): `paso_nombre`, `paso_duracion_min` (default 30), `paso_descripcion`, `paso_dias_antes` (días antes de la fecha límite final en que tiene que estar listo ese paso; 0 = el mismo día), `paso_dias_habiles`, `paso_costo_estimado`, `paso_disfrute`, `paso_requiere_clima_bueno`, `paso_urgente` — se copian a `tarea_*` de la tarea que crea cada paso. La categoría, la fecha límite final y "habilitada desde" **no** se guardan: se piden al usar la plantilla.
+
+Se gestiona desde el botón "📋 Plantillas" de la vista Tareas (`assets/js/plantillas.js`) y se sincroniza con Drive como el resto de las colecciones. Eliminar una plantilla no toca las tareas ya creadas con ella.
+
 ## Mejora
 
 | Campo | Tipo | Fase | Descripción |

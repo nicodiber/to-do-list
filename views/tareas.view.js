@@ -18,6 +18,7 @@ import {
 } from '../assets/js/tareas-logica.js';
 import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
+import { abrirListaPlantillas, abrirGuardarCadenaComoPlantilla } from '../assets/js/plantillas.js';
 import { programarParaHoy } from '../assets/js/programador.js';
 import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea, ofrecerCrearTareaSeguimiento } from '../assets/js/modal-tarea.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
@@ -88,6 +89,7 @@ export function renderVistaTareas(contenedor) {
         <input type="search" id="tareas-texto" title="Buscar por nombre (tecla F)" placeholder="Nombre de la tarea" value="${escaparHtml(filtroTexto)}" />
       </label>
       <button title="Reordenar las prioridades con ayuda de tu IA" type="button" id="boton-ia-prioridades">🤖 Reestructurar prioridades con IA</button>
+      <button title="Crear un grupo de tareas encadenadas a partir de un procedimiento típico guardado" type="button" id="boton-plantillas">📋 Plantillas</button>
       <button title="Elegir varias tareas para editarlas juntas" type="button" id="boton-modo-seleccion" class="${modoSeleccion ? 'activo' : ''}">☑️ Seleccionar</button>
     </div>
 
@@ -131,6 +133,7 @@ export function renderVistaTareas(contenedor) {
     conservarFoco(contenedor, () => renderVistaTareas(contenedor));
   });
 
+  contenedor.querySelector('#boton-plantillas').addEventListener('click', abrirListaPlantillas);
   contenedor.querySelector('#boton-modo-seleccion').addEventListener('click', () => {
     modoSeleccion = !modoSeleccion;
     if (!modoSeleccion) seleccionadas.clear();
@@ -320,6 +323,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
       <button title="Crear una tarea nueva con los mismos datos (sin enlaces), para editar y guardar aparte" type="button" data-accion="duplicar">📄 Duplicar</button>
       <button title="Crear una tarea que bloquea a esta (mismos datos, nombre y descripción vacíos)" type="button" data-accion="crear-previa">⬅️ Crearle tarea previa</button>
       <button title="Crear una tarea que depende de esta (mismos datos, nombre y descripción vacíos)" type="button" data-accion="crear-posterior">➡️ Crearle tarea posterior</button>
+      ${dependeDe || proxima ? '<button title="Guardar toda la cadena de esta tarea como plantilla, para cargar un procedimiento igual en pocos pasos" type="button" data-accion="guardar-plantilla">📋 Guardar cadena como plantilla</button>' : ''}
       <button title="Eliminar (pide confirmación)" type="button" data-accion="eliminar">🗑️ Eliminar</button>
     </div>
   `;
@@ -447,6 +451,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
 
   conectarChecklistTarjeta(li, tarea);
 
+  li.querySelector('[data-accion="guardar-plantilla"]')?.addEventListener('click', () => abrirGuardarCadenaComoPlantilla(tarea));
   li.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
     if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;
     eliminarTarea(tarea, estado);

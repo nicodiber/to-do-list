@@ -12,6 +12,7 @@ export const COLECCIONES = [
   { clave: 'metas', id: 'meta_id', modificado: 'meta_modificado_en', nombre: 'meta_nombre', etiqueta: 'meta' },
   { clave: 'personas', id: 'persona_id', modificado: 'persona_modificado_en', nombre: 'persona_nombre', etiqueta: 'persona' },
   { clave: 'etiquetas', id: 'etiqueta_id', modificado: 'etiqueta_modificado_en', nombre: 'etiqueta_nombre', etiqueta: 'etiqueta' },
+  { clave: 'plantillas', id: 'plantilla_id', modificado: 'plantilla_modificado_en', nombre: 'plantilla_nombre', etiqueta: 'plantilla' },
   { clave: 'tareas', id: 'tarea_id', modificado: 'tarea_modificado_en', nombre: 'tarea_nombre', etiqueta: 'tarea' },
   { clave: 'mejoras', id: 'mejora_id', modificado: 'mejora_modificado_en', nombre: 'mejora_tarea_nombre', etiqueta: 'nota de mejora' },
   { clave: 'cumplimientos', id: 'cumplimiento_id', modificado: 'cumplimiento_modificado_en', nombre: 'cumplimiento_tarea_nombre', etiqueta: 'marca de cumplimiento' },
