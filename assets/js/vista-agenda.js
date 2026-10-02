@@ -24,8 +24,25 @@ export function fechaDeReferencia(tarea) {
  * fechaDeReferencia) para los próximos `cantidadDias`, empezando hoy. La
  * usa la vista Agenda (con su selector de 3, 8 o 15 días).
  */
+let diaPorEnfocar = null;
+
+/** Pide que la próxima vez que se dibuje la Agenda se desplace hasta ese día (v0.100.0: lo usa Semana al tocar el nombre de un día). */
+export function pedirEnfocarDiaAgenda(fechaISO) {
+  diaPorEnfocar = fechaISO;
+}
+
+const OPCIONES_DIAS_AGENDA = [3, 8, 15];
+
 export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = null) {
   const hoy = hoyISO();
+  // Si el día pedido queda fuera del rango, se usa el más chico que lo incluya (hasta 15).
+  if (diaPorEnfocar) {
+    const necesarios = Math.max(1, Math.round((new Date(`${diaPorEnfocar}T00:00:00`) - new Date(`${hoy}T00:00:00`)) / 86400000) + 1);
+    if (necesarios > cantidadDias) {
+      cantidadDias = OPCIONES_DIAS_AGENDA.find((n) => n >= necesarios) || OPCIONES_DIAS_AGENDA[OPCIONES_DIAS_AGENDA.length - 1];
+      if (alCambiarRango) alCambiarRango(cantidadDias);
+    }
+  }
   const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(i, hoy));
 
   const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
@@ -56,11 +73,22 @@ export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = nul
   dias.forEach((fechaDia) => {
     contenedorAgenda.appendChild(renderColumnaDia(fechaDia, hoy, porDia.get(fechaDia)));
   });
+
+  if (diaPorEnfocar) {
+    const columna = contenedorAgenda.querySelector(`[data-dia="${diaPorEnfocar}"]`);
+    diaPorEnfocar = null;
+    if (columna) {
+      columna.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      columna.classList.add('dia-enfocado');
+      setTimeout(() => columna.classList.remove('dia-enfocado'), 2000);
+    }
+  }
 }
 
 function renderColumnaDia(fechaDia, hoy, tareasDelDia) {
   const seccion = document.createElement('section');
   seccion.className = 'columna-dia' + (fechaDia === hoy ? ' es-hoy' : '');
+  seccion.dataset.dia = fechaDia;
   const fechaObj = new Date(fechaDia + 'T00:00:00');
   const nombreDia = fechaDia === hoy ? 'Hoy' : NOMBRES_DIA[fechaObj.getDay()];
 

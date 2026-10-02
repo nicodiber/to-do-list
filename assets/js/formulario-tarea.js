@@ -16,7 +16,7 @@ import { confirmar } from './avisos.js';
 export { firmaFormulario } from './dialogo-formulario.js';
 
 export function htmlOpcionesDisfrute(seleccionado = null) {
-  const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Sin definir</option>`];
+  const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Sin definir (usa el de la categoría)</option>`];
   for (let nivel = 1; nivel <= 5; nivel += 1) {
     opciones.push(`<option value="${nivel}" ${nivel === seleccionado ? 'selected' : ''}>${'⭐'.repeat(nivel)} (${nivel})</option>`);
   }
@@ -218,7 +218,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       ${htmlParFechaHora('tarea_fecha_inicio_habilitada', enAlta ? '' : t.tarea_fecha_inicio_habilitada, '🚦 Habilitada desde', 'Desde cuándo se puede empezar: antes de esa fecha la tarea figura como todavía no disponible')}
       ${htmlParFechaHora('tarea_fecha_sugerida', t.tarea_fecha_sugerida, '📅 Sugerida', 'Cuándo conviene hacerla; con hora es un horario concreto')}
       ${htmlParFechaHora('tarea_fecha_limite', t.tarea_fecha_limite, '⏳ Límite', 'Fecha en la que tiene que estar hecha sí o sí')}
-      <label class="campo" title="Cuánto tarda, en minutos (por defecto 30)"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 30}" min="0" step="15" /></label>
+      <label class="campo" title="Cuánto tarda, en minutos (por defecto 15)"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 15}" min="0" step="15" /></label>
       <div class="campo ancho-completo" title="Los días de la semana en que se puede hacer; sin marcar, cualquier día"><span class="campo-titulo">🗓️ Días hábiles (sin marcar = cualquier día)</span>${htmlDiasHabiles(t.tarea_dias_habiles || [])}</div>
     </fieldset>
 
@@ -292,7 +292,26 @@ function htmlEstadoCompletada(tarea) {
  * agregar/quitar pasos del checklist y (solo en el alta) precargar los demás
  * campos cuando el nombre coincide exacto con una tarea ya cargada.
  */
+/**
+ * Alta de tarea (v0.100.0): resalta (clase `campo-completado`) cada campo que el usuario ya completó o cambió respecto de
+ * como abrió el formulario — lo precargado (Duplicar, Crearle previa/posterior) o el valor por defecto no cuentan.
+ */
+function resaltarCamposCompletados(formulario) {
+  const controles = [...formulario.querySelectorAll('.campo input:not([type="hidden"]), .campo select, .campo textarea')];
+  const inicial = new Map(controles.map((c) => [c, c.type === 'checkbox' ? c.checked : c.value]));
+  const actualizar = () => {
+    formulario.querySelectorAll('.campo').forEach((campo) => {
+      const cambiado = controles.some((c) => campo.contains(c) && (c.type === 'checkbox' ? c.checked : c.value) !== inicial.get(c));
+      campo.classList.toggle('campo-completado', cambiado);
+    });
+  };
+  formulario.addEventListener('input', actualizar);
+  formulario.addEventListener('change', actualizar);
+  formulario.addEventListener('reset', () => setTimeout(actualizar, 0));
+}
+
 export function conectarFormularioTarea(formulario, { modo = 'edicion', precargaPorNombre = true } = {}) {
+  if (modo === 'alta') resaltarCamposCompletados(formulario);
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;
   checkbox.addEventListener('change', () => campos.forEach((c) => (c.hidden = !checkbox.checked)));
@@ -369,7 +388,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
     );
     if (!coincidencia) return;
     precargar(formulario.categoria_id, coincidencia.categoria_id || '');
-    precargar(formulario.tarea_duracion_min, coincidencia.tarea_duracion_min || 30);
+    precargar(formulario.tarea_duracion_min, coincidencia.tarea_duracion_min || 15);
     precargar(formulario.tarea_costo_estimado, coincidencia.tarea_costo_estimado || '');
     precargar(formulario.tarea_descripcion, coincidencia.tarea_descripcion || '');
     if (precargar(checkbox, !!coincidencia.tarea_mantenimiento)) campos.forEach((c) => (c.hidden = !coincidencia.tarea_mantenimiento));
@@ -417,7 +436,7 @@ export function leerFormularioTarea(formulario) {
       tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
       tarea_fecha_sugerida: limitarFechaSugeridaALimite(combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'), combinarCampoFechaHora(datos, 'tarea_fecha_limite')),
       tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
-      tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 30,
+      tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 15,
       tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,
       tarea_descripcion: String(datos.get('tarea_descripcion') || '').trim(),
       ubicacion_id: valorSeleccion(datos.get('ubicacion_id')),

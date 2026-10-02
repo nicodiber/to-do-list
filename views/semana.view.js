@@ -8,6 +8,7 @@ import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { crearCalculadoraCapacidad } from '../assets/js/capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventos, obtenerEventosParaMostrar } from '../assets/js/google-calendar.js';
 import { obtenerPronosticoDiario, iconoClima } from '../assets/js/clima.js';
+import { pedirEnfocarDiaAgenda } from '../assets/js/vista-agenda.js';
 import {
   OPCIONES_DIAS_SEMANA,
   leerDiasSemana,
@@ -76,6 +77,25 @@ function colorLluvia(porcentaje) {
   if (porcentaje == null) return 'transparent';
   const alpha = Math.min(0.6, (porcentaje / 100) * 0.6);
   return `rgba(56, 132, 255, ${alpha.toFixed(2)})`;
+}
+
+/**
+ * Leyenda de los colores del fondo (v0.100.0): una barra con el mismo degradé y los valores de referencia. La
+ * temperatura va en °C; para la lluvia el dato que da el pronóstico es la **probabilidad** (%), no los milímetros.
+ */
+function htmlLeyendaClima(filtroClima) {
+  if (filtroClima === 'temperatura') {
+    const minimo = ESCALA_TEMPERATURA[0][0];
+    const maximo = ESCALA_TEMPERATURA[ESCALA_TEMPERATURA.length - 1][0];
+    const paradas = ESCALA_TEMPERATURA.map(([c, rgb]) => `rgb(${rgb.join(',')}) ${((c - minimo) / (maximo - minimo)) * 100}%`).join(', ');
+    const marcas = ESCALA_TEMPERATURA.map(([c]) => `<span style="left:${((c - minimo) / (maximo - minimo)) * 100}%">${c} °C</span>`).join('');
+    return `<div class="leyenda-clima" title="Color de fondo según la temperatura prevista"><div class="leyenda-clima-barra" style="background:linear-gradient(to right, ${paradas})"></div><div class="leyenda-clima-marcas">${marcas}</div></div>`;
+  }
+  if (filtroClima === 'lluvia') {
+    const marcas = [0, 25, 50, 75, 100].map((p) => `<span style="left:${p}%">${p} %</span>`).join('');
+    return `<div class="leyenda-clima" title="Color de fondo según la probabilidad de lluvia prevista (el pronóstico no informa milímetros)"><div class="leyenda-clima-barra" style="background:linear-gradient(to right, rgba(56,132,255,0), rgba(56,132,255,0.6))"></div><div class="leyenda-clima-marcas">${marcas}</div><p class="ayuda">Probabilidad de lluvia (%), no milímetros: es el dato que informa el pronóstico.</p></div>`;
+  }
+  return '';
 }
 
 /** El dato horario de `pronostico` para un día y una hora en punto (`YYYY-MM-DDTHH:00`). */
@@ -181,6 +201,7 @@ export function renderVistaSemana(contenedor) {
         ${FILTROS_CLIMA.map((f) => `<button type="button" data-filtro-clima="${f}" title="Fondo por hora según ${ETIQUETAS_FILTRO_CLIMA[f].replace(/^\S+\s/, '').toLowerCase()}" class="${f === filtroClima ? 'activo' : ''}">${ETIQUETAS_FILTRO_CLIMA[f]}</button>`).join('')}
       </div>
     </div>
+    ${htmlLeyendaClima(filtroClima)}
     <div class="grilla-semana-contenedor">
       <div class="grilla-semana"></div>
     </div>
@@ -378,7 +399,7 @@ function renderColumnaDia(fechaDia, hoy) {
 
   columna.innerHTML = `
     <div class="dia-semana-encabezado">
-      <div>${nombreDia}<br /><span class="fecha-columna">${formatearFecha(fechaDia)}</span></div>
+      <div class="nombre-dia-clic" role="link" tabindex="0" title="Ver este día en la Agenda">${nombreDia}<br /><span class="fecha-columna">${formatearFecha(fechaDia)}</span></div>
       <button type="button" class="carga-dia" aria-label="Carga del día"></button>
       <div class="franja-todo-el-dia" hidden></div>
     </div>
@@ -388,6 +409,20 @@ function renderColumnaDia(fechaDia, hoy) {
   `;
 
   const cuerpo = columna.querySelector('.dia-semana-cuerpo');
+
+  // v0.100.0: tocar el nombre del día lleva a la Agenda, desplazada hasta ese día.
+  const nombreClic = columna.querySelector('.nombre-dia-clic');
+  const irALaAgenda = () => {
+    pedirEnfocarDiaAgenda(fechaDia);
+    location.hash = '#/agenda';
+  };
+  nombreClic.addEventListener('click', irALaAgenda);
+  nombreClic.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Enter' || evento.key === ' ') {
+      evento.preventDefault();
+      irALaAgenda();
+    }
+  });
 
   const pendientesActivas = estado.tareas.filter((t) => t.tarea_estado !== 'completada');
 

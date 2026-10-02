@@ -2,6 +2,26 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.100.0] - 2026-10-01
+
+La sesión de Google se mantiene sola, los avisos viven dentro de la app y varios ajustes chicos de Tareas, Tabla, Resumen y Semana.
+
+### Cambiado
+
+- **Sesión de Google** (`assets/js/almacenamiento.js`, `assets/js/google-auth.js`): el token (dura ~1 hora y vive solo en memoria) se **renueva en silencio** cuando le quedan menos de 15 minutos, en cada clic o tecla (Google solo deja abrir su popup silencioso con un gesto del usuario) y al volver a la pestaña. Mientras se usa la app la sesión se mantiene sola. El aviso grande «Falta reconectar con Google» ahora solo aparece si hay algo esperando (cambios sin subir a Drive o tareas sin horario, con la cantidad); si no, alcanza con el indicador de la cabecera, que dice que se reconecta con el próximo clic.
+- **Avisos y preguntas propios** (`assets/js/avisos.js`: `avisar`, `confirmar`, `pedirTexto`): se reemplazaron los ~80 `alert()`, `confirm()` y `prompt()` del navegador («nicodiber.github.io dice…») por ventanas dentro de la app, apilables sobre otra ventana abierta, con Enter para aceptar y Esc para cancelar; eliminar y descartar llevan el botón principal en rojo. Incluye el aviso «Al iniciar: se reprogramó…».
+- **Duración por defecto de una tarea nueva: 15 minutos** (antes 30; las tareas existentes no cambian). Lo mismo en los pasos de plantilla.
+- **Disfrute heredado**: una tarea sin disfrute propio usa el de su categoría (`disfruteEfectivo`, `tareas-logica.js`), calculado al leer y sin guardarlo; la Tabla lo muestra atenuado como «heredado de la categoría».
+- **Resumen, «Urgentes»** incluye las tareas con fecha límite hoy **o mañana** (ya no aparecen de nuevo en «Mañana»).
+
+### Agregado
+
+- **Registro de la sesión de Google** (Configuraciones → «🔑 Sesión de Google»): las últimas 30 conexiones, renovaciones y fallos con su motivo, guardadas solo en este navegador. Sirve para investigar por qué una cuenta o navegador pierde la sesión más seguido.
+- **Tabla**: «Habilitada desde» muestra «Ahora» cuando la tarea activa ya se puede empezar.
+- **Mejoras**: sin pendientes ya no muestra «(0)»; con pendientes muestra la cantidad y el botón se resalta.
+- **Semana**: tocar el nombre de un día lleva a la Agenda, desplazada hasta ese día (amplía el rango de la Agenda si hace falta); con el fondo de clima activo aparece una leyenda de colores (temperatura en °C; para la lluvia el pronóstico da la **probabilidad** en %, no milímetros).
+- **Alta de tarea**: los campos que el usuario ya completó o cambió se resaltan.
+
 ## [v0.99.0] - 2026-10-01
 
 Ninguna tarea activa queda sin fecha y hora sugerida, el agendado respeta el orden de la Tabla, y plantillas de cadenas.

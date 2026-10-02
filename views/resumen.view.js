@@ -80,7 +80,7 @@ export function renderVistaResumen(contenedor) {
   // Una bloqueada con límite vencido/hoy también es urgente: se muestra ahí (de solo lectura, no se puede
   // completar todavía) en vez de perderse en "Bloqueadas por otras tareas". Mismo criterio para "Hoy"/"Mañana".
   const bloqueadasHoy = bloqueadasTodas
-    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite))
+    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite) || diaLocal(t.tarea_fecha_limite) === manana)
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
   const idsBloqueadasHoy = new Set(bloqueadasHoy.map((t) => t.tarea_id));
   const bloqueadasHoyNueva = bloqueadasTodas
@@ -99,7 +99,7 @@ export function renderVistaResumen(contenedor) {
   const vencidas = ordenarConCadenas(disponibles.filter((t) => esVencida(t.tarea_fecha_limite)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias)));
   const idsVencidas = new Set(vencidas.map((t) => t.tarea_id));
   const urgentes = ordenarConCadenas(
-    disponibles.filter((t) => !idsVencidas.has(t.tarea_id) && esHoy(t.tarea_fecha_limite)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
+    disponibles.filter((t) => !idsVencidas.has(t.tarea_id) && (esHoy(t.tarea_fecha_limite) || diaLocal(t.tarea_fecha_limite) === manana)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
   );
   const idsUrgentes = new Set([...idsVencidas, ...urgentes.map((t) => t.tarea_id)]);
   const hoyNueva = ordenarConCadenas(
@@ -142,7 +142,7 @@ export function renderVistaResumen(contenedor) {
         : ''
     }
     <section>
-      <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy">🚨 Urgentes (${urgentes.length + bloqueadasHoy.length})</h3>
+      <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy o mañana">🚨 Urgentes (${urgentes.length + bloqueadasHoy.length})</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
     </section>
     ${
@@ -233,7 +233,7 @@ export function renderVistaResumen(contenedor) {
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0 && bloqueadasHoy.length === 0) {
-    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy 🎉</p>';
+    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy ni mañana 🎉</p>';
   } else {
     urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
     bloqueadasHoy.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { soloInfo: true })));

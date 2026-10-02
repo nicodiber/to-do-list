@@ -1,8 +1,8 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
-import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, textoHolguraConHoras, escaparHtml, conservarFoco } from '../assets/js/utilidades.js';
+import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, textoHolguraConHoras, escaparHtml, conservarFoco, tieneHora, hoyISO } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea } from '../assets/js/tareas-logica.js';
+import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea, disfruteEfectivo } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
@@ -74,6 +74,14 @@ const nombreProxima = (t) => {
 };
 const fechaOVacia = (valor) => (valor ? formatearFechaOFechaHora(valor) : '');
 
+/** "Habilitada desde" (v0.100.0): una tarea activa que ya se puede empezar muestra "Ahora" en vez de una fecha vieja. */
+const habilitadaTexto = (t) => {
+  const valor = t.tarea_fecha_inicio_habilitada;
+  if (!valor || t.tarea_estado === 'completada') return fechaOVacia(valor);
+  const yaHabilitada = tieneHora(valor) ? new Date(valor) <= new Date() : valor <= hoyISO();
+  return yaHabilitada ? 'Ahora' : fechaOVacia(valor);
+};
+
 /**
  * Todas las columnas posibles de la tabla. `defecto` marca las que se ven al empezar; el botón
  * "Columnas" deja elegir cuáles mostrar. `valor` devuelve el HTML de la celda y `comparar` el orden.
@@ -111,8 +119,17 @@ const COLUMNAS = [
     comparar: (a, b) => porFecha(fechaDeReferencia(a), fechaDeReferencia(b)),
   },
   { clave: 'holgura', etiqueta: 'Holgura', defecto: true, valor: (t) => (calcularHolguraDias(t) === Infinity ? '—' : textoHolguraConHoras(calcularHolguraHoras(t))), comparar: compararHolguraAsc },
-  { clave: 'disfrute', etiqueta: 'Disfrute', valor: (t) => (t.tarea_disfrute ? '⭐'.repeat(t.tarea_disfrute) : ''), comparar: (a, b) => porNumero(a.tarea_disfrute, b.tarea_disfrute) },
-  { clave: 'inicio', etiqueta: 'Habilitada desde', valor: (t) => fechaOVacia(t.tarea_fecha_inicio_habilitada), comparar: (a, b) => porFecha(a.tarea_fecha_inicio_habilitada, b.tarea_fecha_inicio_habilitada) },
+  {
+    clave: 'disfrute',
+    etiqueta: 'Disfrute',
+    // v0.100.0: sin disfrute propio cuenta el de la categoría (se marca como "heredado").
+    valor: (t) => {
+      const { nivel, heredado } = disfruteEfectivo(t, estado.categorias);
+      return nivel ? `<span ${heredado ? 'title="Heredado de la categoría" style="opacity:.6"' : ''}>${'⭐'.repeat(nivel)}</span>` : '';
+    },
+    comparar: (a, b) => porNumero(disfruteEfectivo(a, estado.categorias).nivel, disfruteEfectivo(b, estado.categorias).nivel),
+  },
+  { clave: 'inicio', etiqueta: 'Habilitada desde', valor: habilitadaTexto, comparar: (a, b) => porFecha(a.tarea_fecha_inicio_habilitada, b.tarea_fecha_inicio_habilitada) },
   {
     clave: 'sugerida',
     etiqueta: 'Sugerida',

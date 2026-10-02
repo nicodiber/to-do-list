@@ -585,6 +585,17 @@ export function compararPorPrioridad(a, b, categorias) {
 }
 
 /** Holgura en horas para ordenar el agendado: la que muestra la Tabla; una urgente sin límite cuenta como "hoy" (0). */
+/**
+ * Disfrute que cuenta para una tarea (v0.100.0): el suyo si lo cargó; si no, el de su categoría. Se calcula al leer
+ * (no se guarda en la tarea), así que si cambia el de la categoría las tareas sin disfrute propio lo siguen.
+ * Devuelve `{ nivel, heredado }` (`nivel` es `null` si la tarea no tiene ni categoría).
+ */
+export function disfruteEfectivo(tarea, categorias) {
+  if (tarea.tarea_disfrute != null) return { nivel: tarea.tarea_disfrute, heredado: false };
+  const categoria = tarea.categoria_id ? categorias.find((c) => c.categoria_id === tarea.categoria_id) : null;
+  return categoria && categoria.categoria_disfrute ? { nivel: categoria.categoria_disfrute, heredado: true } : { nivel: null, heredado: false };
+}
+
 function holguraParaAgendar(tarea) {
   const horas = calcularHolguraHoras(tarea);
   if (horas !== Infinity) return horas;

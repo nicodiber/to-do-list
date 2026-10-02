@@ -233,7 +233,7 @@ export function abrirEditorPlantilla({ plantilla = null, borrador = null, alVolv
           crearPasoPlantilla({
             ...fila._paso,
             paso_nombre,
-            paso_duracion_min: Math.max(5, Number(fila.querySelector('[name="paso_duracion_min"]').value) || 30),
+            paso_duracion_min: Math.max(5, Number(fila.querySelector('[name="paso_duracion_min"]').value) || 15),
             paso_dias_antes: Math.max(0, Math.round(Number(fila.querySelector('[name="paso_dias_antes"]').value) || 0)),
             paso_descripcion: fila.querySelector('[name="paso_descripcion"]').value.trim(),
           })

@@ -97,12 +97,11 @@ function renderNav() {
   Object.entries(VISTAS).forEach(([clave, vista]) => {
     const enlace = document.createElement('a');
     enlace.href = `#/${clave}`;
-    enlace.textContent =
-      clave === 'mejoras'
-        ? `${vista.etiqueta} (${estado.mejoras.filter((m) => !m.mejora_aplicada).length})`
-        : vista.etiqueta;
+    // Mejoras (v0.100.0): sin pendientes no muestra "(0)"; con pendientes muestra la cantidad y se resalta.
+    const mejorasPendientes = clave === 'mejoras' ? estado.mejoras.filter((m) => !m.mejora_aplicada).length : 0;
+    enlace.textContent = mejorasPendientes > 0 ? `${vista.etiqueta} (${mejorasPendientes})` : vista.etiqueta;
     enlace.title = tituloConTecla(vista.etiqueta.replace(/^\S+\s/, ''), teclaDeVista(clave, Object.keys(VISTAS)));
-    enlace.className = clave === actual ? 'enlace-nav activo' : 'enlace-nav';
+    enlace.className = `enlace-nav${clave === actual ? ' activo' : ''}${mejorasPendientes > 0 ? ' con-pendientes' : ''}`;
     NAV.appendChild(enlace);
   });
 }

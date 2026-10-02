@@ -56,7 +56,7 @@ export function crearPersona({
  */
 export function crearPasoPlantilla({
   paso_nombre,
-  paso_duracion_min = 30,
+  paso_duracion_min = 15,
   paso_descripcion = '',
   paso_dias_antes = 0,
   paso_dias_habiles = [],
@@ -136,7 +136,7 @@ export function crearTarea({
   tarea_mantenimiento = false,
   tarea_mantenimiento_intervalo = null,
   tarea_dias_habiles = [],
-  tarea_duracion_min = 30,
+  tarea_duracion_min = 15,
   tarea_descripcion = '',
   tarea_dependiente = null,
   ubicacion_id = null,
