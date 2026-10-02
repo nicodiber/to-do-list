@@ -194,7 +194,18 @@ function pedirToken({ silencioso }) {
     // acá y, si no, esa promesa quedaría colgada para siempre.
     if (rechazarPendiente) rechazarPendiente(new Error('Se pidió una nueva conexión mientras había otra en curso.'));
     rechazarPendiente = reject;
+    // Un intento silencioso que Google nunca contesta (ventana bloqueada o cerrada) no puede quedar colgado para siempre:
+    // sin esto la renovación y la reconexión automáticas quedaban trabadas hasta recargar la página.
+    const espera = silencioso
+      ? setTimeout(() => {
+          if (rechazarPendiente !== reject) return;
+          rechazarPendiente = null;
+          registrarSesion('fallo', 'Silencioso: Google no respondió');
+          reject(new Error('Hace falta volver a autorizar el acceso a Google.'));
+        }, 20000)
+      : null;
     const terminar = () => {
+      if (espera) clearTimeout(espera);
       if (rechazarPendiente === reject) rechazarPendiente = null;
     };
 

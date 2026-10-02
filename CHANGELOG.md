@@ -2,6 +2,16 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.101.1] - 2026-10-01
+
+Corrección: la sesión de Google quedaba en «vencida» y no había forma de reconectar.
+
+### Corregido
+
+- **Sin botón para reconectar**: en la v0.100.0 el aviso con el botón «Reconectar Drive» pasó a mostrarse solo si había cambios sin subir o tareas sin horario, y el texto del indicador decía que «se reconecta sola con tu próximo clic». Cuando Google exige interacción (el intento silencioso falla), nada conectaba y la única salida estaba oculta. Ahora, con la sesión vencida, la cabecera **siempre** muestra «🔑 Reconectar» (abre la ventana de Google), y «Sincronizar ahora» sin sesión hace lo mismo en vez de fallar en silencio. Si el intento silencioso del primer clic no alcanza, el texto pasa a «Hace falta reconectar con Google».
+- **Intentos silenciosos en cada clic**: la renovación de la v0.100.0 también reintentaba, con cada clic o tecla, una ventana silenciosa cuando ya no había sesión; si Google necesita interacción eso nunca conecta y además competía con el botón. Ahora la renovación solo actúa sobre un token que todavía sirve (y, si falla, espera 5 minutos antes de insistir); recuperar una sesión perdida queda en el primer intento silencioso y el botón «Reconectar».
+- **Intento silencioso colgado**: si Google nunca contestaba (ventana bloqueada o cerrada), la reconexión automática quedaba trabada hasta recargar. Ahora se da por fallida a los 20 segundos.
+
 ## [v0.101.0] - 2026-10-01
 
 Rediseño de las tareas con repetición, enlaces entre tareas más cómodos, colores de Calendar, última lectura de Calendar y documentos para abrir la app a otros usuarios.
