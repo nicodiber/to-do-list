@@ -29,6 +29,7 @@ import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar, ultimaLecturaCalendar } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { nombrarConCategoria, escaparHtml, tieneHora } from './utilidades.js';
+import { hayToken, conectadoAlgunaVez } from './google-auth.js';
 import { renderVistaResumen } from '../../views/resumen.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
 import { renderVistaSemana } from '../../views/semana.view.js';
@@ -47,7 +48,7 @@ import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js'
 import { avisar, confirmar } from './avisos.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.101.0';
+const VERSION = 'v0.101.1';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -151,7 +152,12 @@ function actualizarCabeceraSync() {
     <strong>${ETIQUETAS_ESTADO_SYNC[s.estado] || s.estado}</strong>
     <span class="indicador-sync-detalle">Último guardado en Drive: ${formatoCorto(s.modificadoEnDrive)} · Verificado: ${formatoCorto(s.verificadoEn)}</span>
     ${s.hayPendiente ? '<span class="indicador-sync-detalle">Hay cambios que Drive todavía no confirmó.</span>' : ''}
-    ${s.estado === 'sesion-vencida' ? '<span class="indicador-sync-detalle">Se reconecta sola con tu próximo clic.</span>' : ''}
+    ${
+      s.estado === 'sesion-vencida'
+        ? `<span class="indicador-sync-detalle">${s.reconexionManual || !s.reconectaConClic ? 'Hace falta reconectar con Google.' : 'Se intenta reconectar con tu próximo clic.'}</span>
+           <button type="button" class="boton-reconectar-cabecera" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">🔑 Reconectar</button>`
+        : ''
+    }
     ${ultimaLecturaCalendar() ? `<span class="indicador-sync-detalle" title="Cuándo se leyeron por última vez tus eventos de Google Calendar (se refresca cada 5 minutos)">Calendar leído: ${formatoCorto(ultimaLecturaCalendar())}</span>` : ''}
   `;
   BOTON_SYNC.hidden = s.estado === 'sin-destino' || s.soloLectura;
@@ -171,7 +177,7 @@ function actualizarCabeceraSync() {
     banners.push(
       s.estado === 'sin-conexion'
         ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.${sinAgendar}</p>`
-        : `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${s.hayPendiente ? ' Tus cambios quedan pendientes hasta entonces.' : ''}${sinAgendar}
+        : `<p>🔑 Falta reconectar con Google: ${s.reconexionManual || !s.reconectaConClic ? 'tocá «Reconectar» y elegí tu cuenta' : 'hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo'}.${s.hayPendiente ? ' Tus cambios quedan pendientes hasta entonces.' : ''}${sinAgendar}
              <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
     );
   }
@@ -274,7 +280,13 @@ document.addEventListener('click', async (evento) => {
   }
 });
 
-BOTON_SYNC.addEventListener('click', () => {
+BOTON_SYNC.addEventListener('click', async () => {
+  // Sin sesión de Google no hay nada que sincronizar: el clic abre la ventana de Google (un gesto del usuario, que sí
+  // permite el popup) en vez de fallar en silencio.
+  if (!hayToken() && conectadoAlgunaVez()) {
+    await conectarConAviso();
+    return;
+  }
   refrescarCalendar();
   sincronizarAhora({ forzar: true });
 });

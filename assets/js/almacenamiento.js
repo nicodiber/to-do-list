@@ -79,6 +79,8 @@ const sync = {
   recienConectado: false,
   // Hay un reintento de reconexión armado para el próximo clic o tecla del usuario.
   reconectaConClic: false,
+  // La reconexión silenciosa (sin ventana) ya se intentó con un clic y no alcanzó: hace falta el botón «Reconectar».
+  reconexionManual: false,
 };
 
 export function suscribir(fn) {
@@ -548,6 +550,8 @@ async function reconexionSilenciosa({ ignorarEspera = false } = {}) {
 /** Renovar el token cuando le quedan menos de 15 minutos (v0.100.0), para que no venza mientras se usa la app. */
 const MARGEN_RENOVACION_MS = 15 * 60 * 1000;
 const ESPERA_RENOVACION_MS = 30 * 1000;
+const ESPERA_RENOVACION_TRAS_FALLO_MS = 5 * 60 * 1000;
+let esperaRenovacion = ESPERA_RENOVACION_MS;
 let ultimaRenovacion = 0;
 
 /**
@@ -557,19 +561,22 @@ let ultimaRenovacion = 0;
  * venza. Así, mientras el usuario usa la app la sesión se mantiene sola y el aviso de "sesión vencida" casi no aparece.
  */
 async function renovarSiHaceFalta() {
-  if (sync.soloLectura || !sync.datosListos || reconectando || !conectadoAlgunaVez()) return;
-  if (hayToken() && msHastaVencer() > MARGEN_RENOVACION_MS) return;
-  if (navigator.onLine === false || Date.now() - ultimaRenovacion < ESPERA_RENOVACION_MS) return;
+  // Solo renueva un token que todavía sirve. Si ya no hay sesión, la recuperación es la de `reconectarEnPrimerGesto`
+  // (un intento silencioso) y, si no alcanza, el botón «Reconectar»: reintentar una ventana silenciosa en cada clic
+  // no conecta nunca si Google necesita interacción, y se pisaría con el botón.
+  if (sync.soloLectura || !sync.datosListos || reconectando || !hayToken()) return;
+  if (msHastaVencer() > MARGEN_RENOVACION_MS) return;
+  if (navigator.onLine === false || Date.now() - ultimaRenovacion < esperaRenovacion) return;
   ultimaRenovacion = Date.now();
-  if (!hayToken()) {
-    if (await reconexionSilenciosa({ ignorarEspera: true })) await sincronizarAhora();
-    return;
-  }
   reconectando = true;
   try {
-    if (await esperarGoogle()) await conectar({ silencioso: true });
+    if (await esperarGoogle()) {
+      await conectar({ silencioso: true });
+      esperaRenovacion = ESPERA_RENOVACION_MS;
+    }
   } catch {
-    // El token actual sigue valiendo hasta que venza: se reintenta en el próximo gesto.
+    // El token actual sigue valiendo hasta que venza; si Google pide interacción, no se insiste en cada clic.
+    esperaRenovacion = ESPERA_RENOVACION_TRAS_FALLO_MS;
   } finally {
     reconectando = false;
   }
@@ -614,6 +621,7 @@ export async function sincronizarAhora({ forzar = false } = {}) {
 async function sincronizarUnaVez(forzar) {
   if (!hayToken()) throw new ErrorDrive('sin-sesion', 'No hay una sesión de Google activa.');
   const estadoAntes = sync.estado;
+  if (sync.reconexionManual) setSync({ reconexionManual: false });
   setSync({ estado: sync.hayPendiente ? 'guardando' : sync.datosListos ? 'verificando' : 'conectando' });
 
   const versionInicial = versionLocal;
@@ -811,12 +819,17 @@ function reconectarEnPrimerGesto() {
   reconexionPorClicArmada = true;
   setSync({ reconectaConClic: true });
   const intentar = async (evento) => {
-    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial')) return;
+    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial, #boton-sync')) return;
     document.removeEventListener('pointerdown', intentar, true);
     document.removeEventListener('keydown', intentar, true);
     reconexionPorClicArmada = false;
     setSync({ reconectaConClic: false });
-    if (hayToken() || sync.soloLectura || !(await reconexionSilenciosa({ ignorarEspera: true }))) return;
+    if (hayToken() || sync.soloLectura) return;
+    if (!(await reconexionSilenciosa({ ignorarEspera: true }))) {
+      // La reconexión sin ventana no alcanzó (Google pide interacción): se muestra el botón «Reconectar».
+      setSync({ reconexionManual: true });
+      return;
+    }
     await sincronizarAhora();
   };
   document.addEventListener('pointerdown', intentar, true);
@@ -831,7 +844,7 @@ function configurarEventos() {
   reconectarEnPrimerGesto();
   // Cada clic o tecla es una oportunidad para renovar la sesión (ver `renovarSiHaceFalta`).
   const alGesto = (evento) => {
-    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial')) return;
+    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial, #boton-sync')) return;
     renovarSiHaceFalta();
   };
   document.addEventListener('pointerdown', alGesto, true);

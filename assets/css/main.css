@@ -3276,3 +3276,5 @@ kbd {
 .dialogo-aviso .aviso-acciones button { text-align: left; }
 /* Filtro de los desplegables de enlaces (v0.101.0) */
 .formulario-tarea .filtro-enlace { font-size: 0.85rem; }
+
+.boton-reconectar-cabecera { margin-top: 0.2rem; font-size: 0.8rem; }

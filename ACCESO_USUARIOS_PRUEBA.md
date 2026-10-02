@@ -37,5 +37,4 @@ STDL inicia sesión con Google (Drive y Calendar). Con la pantalla de consentimi
 
 ## Lo que hay que completar a mano (pendiente)
 
-- En `privacidad.html` y `terminos.html` está marcado **«[completar: correo de contacto del desarrollador]»**: es una decisión tuya qué correo queda público (el repositorio es público).
 - En la pantalla de consentimiento de Google Cloud, cambiar las URL de política de privacidad y de condiciones (hoy apuntan a la página principal) por las páginas anteriores.
