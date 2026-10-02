@@ -53,6 +53,17 @@ export function tareaProxima(tareaId, listaTareas) {
   return proximasActivas(tareaId, listaTareas)[0] || null;
 }
 
+/** Ids de las tareas que forman el recorrido hacia atrás desde `desdeId` hasta repetirse (para explicar un ciclo). */
+function idsDelCiclo(mapa, desdeId) {
+  const visitados = [];
+  let actual = desdeId;
+  while (actual && !visitados.includes(actual)) {
+    visitados.push(actual);
+    actual = mapa.get(actual) || null;
+  }
+  return visitados;
+}
+
 /** ¿Hay un ciclo de dependencias siguiendo la cadena hacia atrás desde `desdeId`? */
 function hayCiclo(mapa, desdeId) {
   const visitados = new Set();
@@ -89,10 +100,10 @@ export function evaluarEnlace(tareaId, { previaId, proximaId }, listaTareas) {
   const proximaDeseadaId = proximaId === undefined ? (proximaActual ? proximaActual.tarea_id : null) : proximaId;
 
   if (previaDeseada === tareaId || proximaDeseadaId === tareaId) {
-    return { ok: false, motivo: 'Una tarea no puede depender de sí misma.' };
+    return { ok: false, motivo: 'Una tarea no puede depender de sí misma.', tareas: [tareaId] };
   }
   if (previaDeseada && proximaDeseadaId && previaDeseada === proximaDeseadaId) {
-    return { ok: false, motivo: 'La tarea previa y la próxima no pueden ser la misma: crearía un ciclo.' };
+    return { ok: false, motivo: 'La tarea previa y la próxima no pueden ser la misma: crearía un ciclo.', tareas: [tareaId, previaDeseada] };
   }
 
   const previa = porId(listaTareas, previaDeseada);
@@ -101,18 +112,18 @@ export function evaluarEnlace(tareaId, { previaId, proximaId }, listaTareas) {
   if (proximaDeseadaId && !proxima) return { ok: false, motivo: 'La tarea próxima elegida ya no existe.' };
 
   if (previaDeseada !== previaActual && previa && previa.tarea_estado === 'completada') {
-    return { ok: false, motivo: `${nombre(previa)} ya está completada: no puede ser la tarea previa.` };
+    return { ok: false, motivo: `${nombre(previa)} ya está completada: no puede ser la tarea previa.`, tareas: [previa.tarea_id] };
   }
   if (proxima && proxima.tarea_estado === 'completada') {
-    return { ok: false, motivo: `${nombre(proxima)} ya está completada: no se la puede bloquear.` };
+    return { ok: false, motivo: `${nombre(proxima)} ya está completada: no se la puede bloquear.`, tareas: [proxima.tarea_id] };
   }
   // La copia de una tarea con desencadenante nace bloqueada por él (ver `enlazarCopia`): ese enlace
   // existente no cuenta como conflicto, solo un enlace nuevo con otra tarea previa.
   if (previaDeseada && previaDeseada !== previaActual && tarea.tarea_desencadenante) {
-    return { ok: false, motivo: `${nombre(tarea)} tiene un desencadenante: no puede tener también una tarea previa. Quitá el desencadenante primero.` };
+    return { ok: false, motivo: `${nombre(tarea)} tiene un desencadenante: no puede tener también una tarea previa. Quitá el desencadenante primero.`, tareas: [tarea.tarea_id] };
   }
   if (proxima && proxima.tarea_desencadenante && proxima.tarea_dependiente !== tareaId) {
-    return { ok: false, motivo: `${nombre(proxima)} tiene un desencadenante: no puede tener también una tarea previa.` };
+    return { ok: false, motivo: `${nombre(proxima)} tiene un desencadenante: no puede tener también una tarea previa.`, tareas: [proxima.tarea_id, proxima.tarea_desencadenante] };
   }
 
   // Quién ocupa hoy los lugares que se piden.
@@ -134,6 +145,7 @@ export function evaluarEnlace(tareaId, { previaId, proximaId }, listaTareas) {
       return {
         ok: false,
         motivo: `No se puede poner ${nombre(tarea)} entre ${nombre(previa)} y ${nombre(proxima)}: ${detalles.join(' y ')}, y no son consecutivas. Reajustá las dependencias existentes y volvé a intentarlo.`,
+        tareas: [previa.tarea_id, proxima.tarea_id, siguienteDePrevia && siguienteDePrevia.tarea_id, previaOcupante && previaOcupante.tarea_id].filter(Boolean),
       };
     }
     if (consecutivas) insertaEnMedio = { previa, proxima };
@@ -150,7 +162,7 @@ export function evaluarEnlace(tareaId, { previaId, proximaId }, listaTareas) {
   }
 
   if (previaFinal && previaFinal !== previaActual && tarea.tarea_desencadenante) {
-    return { ok: false, motivo: `${nombre(tarea)} tiene un desencadenante: no puede tener también una tarea previa.` };
+    return { ok: false, motivo: `${nombre(tarea)} tiene un desencadenante: no puede tener también una tarea previa.`, tareas: [tarea.tarea_id, tarea.tarea_desencadenante].filter(Boolean) };
   }
 
   cambios.set(tareaId, previaFinal || null);
@@ -165,7 +177,7 @@ export function evaluarEnlace(tareaId, { previaId, proximaId }, listaTareas) {
   cambios.forEach((dep, id) => mapa.set(id, dep));
   for (const id of cambios.keys()) {
     if (hayCiclo(mapa, id)) {
-      return { ok: false, motivo: 'No se puede agregar esa dependencia: crearía un ciclo (directo o indirecto) entre tareas.' };
+      return { ok: false, motivo: 'No se puede agregar esa dependencia: crearía un ciclo (directo o indirecto) entre las tareas de esta cadena.', tareas: idsDelCiclo(mapa, id) };
     }
   }
 
@@ -195,8 +207,13 @@ export function aplicarEnlace(tareaId, enlaces, listaTareas) {
  */
 export function opcionesPrevia(tarea, listaTareas) {
   return listaTareas
-    .filter((c) => c.tarea_id !== tarea.tarea_id && c.tarea_estado !== 'completada' && puedeAgregarDependencia(tarea.tarea_id, c.tarea_id, listaTareas))
-    .map((c) => ({ tarea: c, ocupadaPor: proximasActivas(c.tarea_id, listaTareas).find((t) => t.tarea_id !== tarea.tarea_id) || null }));
+    .filter((c) => c.tarea_id !== tarea.tarea_id && c.tarea_estado !== 'completada')
+    .map((c) => ({
+      tarea: c,
+      ocupadaPor: proximasActivas(c.tarea_id, listaTareas).find((t) => t.tarea_id !== tarea.tarea_id) || null,
+      // v0.101.0: en vez de ocultarla, la opción que crearía un ciclo se muestra deshabilitada con el motivo.
+      deshabilitada: puedeAgregarDependencia(tarea.tarea_id, c.tarea_id, listaTareas) ? '' : 'depende de esta tarea (directa o indirectamente): crearía un ciclo',
+    }));
 }
 
 /**
@@ -206,10 +223,14 @@ export function opcionesPrevia(tarea, listaTareas) {
  */
 export function opcionesProxima(tarea, listaTareas) {
   return listaTareas
-    .filter((c) => c.tarea_id !== tarea.tarea_id && c.tarea_estado !== 'completada' && puedeAgregarDependencia(c.tarea_id, tarea.tarea_id, listaTareas))
+    .filter((c) => c.tarea_id !== tarea.tarea_id && c.tarea_estado !== 'completada')
     .map((c) => {
       const previa = c.tarea_dependiente && c.tarea_dependiente !== tarea.tarea_id ? porId(listaTareas, c.tarea_dependiente) : null;
-      return { tarea: c, ocupadaPor: previa && previa.tarea_estado !== 'completada' ? previa : null };
+      return {
+        tarea: c,
+        ocupadaPor: previa && previa.tarea_estado !== 'completada' ? previa : null,
+        deshabilitada: puedeAgregarDependencia(c.tarea_id, tarea.tarea_id, listaTareas) ? '' : 'esta tarea depende de ella (directa o indirectamente): crearía un ciclo',
+      };
     });
 }
 

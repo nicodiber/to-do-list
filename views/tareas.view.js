@@ -15,6 +15,7 @@ import {
   intercambiarAdyacentes,
   intercambiarCadena,
   motivoBloqueoOrdenManual,
+  textoRepeticion,
 } from '../assets/js/tareas-logica.js';
 import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
@@ -285,8 +286,8 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
         ${tarea.tarea_duracion_min ? `<span class="etiqueta-fecha">${tarea.tarea_duracion_min} min</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
         ${
-          tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_intervalo
-            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento_intervalo.unidad]}</span>`
+          tarea.tarea_mantenimiento && textoRepeticion(tarea)
+            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 ${textoRepeticion(tarea)}${tarea.tarea_dia_obligatorio ? ' 📌' : ''}</span>`
             : ''
         }
         ${

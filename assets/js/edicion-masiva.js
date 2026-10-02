@@ -16,6 +16,7 @@ import {
 } from './formulario-tarea.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { avisar } from './avisos.js';
+import { avisarSiSinHueco } from './aviso-sin-hueco.js';
 
 /** Saca la opción "＋ Crear nueva…" de un HTML de `<option>`: acá no se dan de alta entidades nuevas. */
 function sinOpcionNueva(html) {
@@ -134,8 +135,9 @@ export function abrirEdicionMasiva(tareas, alTerminar) {
           inconsistentes = inconsistentes.concat(resultado.inconsistentes);
         }
       }
-      await programarTareasSinFecha(estado); // v0.97.0 — cambiar fecha límite/urgencia/categoría puede cambiar la prioridad: reordena los horarios
+      const resultadoAgendado = await programarTareasSinFecha(estado); // v0.97.0 — cambiar fecha límite/urgencia/categoría puede cambiar la prioridad: reordena los horarios
       await persistirYNotificar();
+      await avisarSiSinHueco(resultadoAgendado);
       if (recortadas > 0) {
         await avisar(`${recortadas} tarea${recortadas === 1 ? '' : 's'} no recibió la fecha sugerida por superar su fecha límite.`);
       }

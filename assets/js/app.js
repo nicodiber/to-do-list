@@ -26,7 +26,7 @@ import {
 } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
-import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar } from './google-calendar.js';
+import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar, ultimaLecturaCalendar } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { nombrarConCategoria, escaparHtml, tieneHora } from './utilidades.js';
 import { renderVistaResumen } from '../../views/resumen.view.js';
@@ -47,7 +47,7 @@ import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js'
 import { avisar, confirmar } from './avisos.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.100.0';
+const VERSION = 'v0.101.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -152,6 +152,7 @@ function actualizarCabeceraSync() {
     <span class="indicador-sync-detalle">Último guardado en Drive: ${formatoCorto(s.modificadoEnDrive)} · Verificado: ${formatoCorto(s.verificadoEn)}</span>
     ${s.hayPendiente ? '<span class="indicador-sync-detalle">Hay cambios que Drive todavía no confirmó.</span>' : ''}
     ${s.estado === 'sesion-vencida' ? '<span class="indicador-sync-detalle">Se reconecta sola con tu próximo clic.</span>' : ''}
+    ${ultimaLecturaCalendar() ? `<span class="indicador-sync-detalle" title="Cuándo se leyeron por última vez tus eventos de Google Calendar (se refresca cada 5 minutos)">Calendar leído: ${formatoCorto(ultimaLecturaCalendar())}</span>` : ''}
   `;
   BOTON_SYNC.hidden = s.estado === 'sin-destino' || s.soloLectura;
   BOTON_SYNC.disabled = ['conectando', 'verificando', 'guardando'].includes(s.estado);

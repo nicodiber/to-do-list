@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, textoHolguraConHoras, escaparHtml, conservarFoco, tieneHora, hoyISO } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea, disfruteEfectivo } from '../assets/js/tareas-logica.js';
+import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea, disfruteEfectivo, textoRepeticion } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
@@ -163,7 +163,7 @@ const COLUMNAS = [
   {
     clave: 'mantenimiento',
     etiqueta: 'Repetición',
-    valor: (t) => (t.tarea_mantenimiento && t.tarea_mantenimiento_intervalo ? `🔁 cada ${t.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[t.tarea_mantenimiento_intervalo.unidad]}` : ''),
+    valor: (t) => (t.tarea_mantenimiento && textoRepeticion(t) ? `🔁 ${textoRepeticion(t)}${t.tarea_dia_obligatorio ? ' 📌' : ''}` : ''),
     comparar: (a, b) => Number(!!b.tarea_mantenimiento) - Number(!!a.tarea_mantenimiento),
   },
   {

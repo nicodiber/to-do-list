@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Política de privacidad · Super To-Do List</title>
+    <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg" />
+    <style>
+      :root { --fondo: #f5f6fa; --superficie: #ffffff; --texto: #1f2430; --suave: #5b6472; --borde: #d9dde5; --enlace: #3557d9; }
+      @media (prefers-color-scheme: dark) {
+        :root { --fondo: #14161c; --superficie: #1c1f27; --texto: #e7e9ee; --suave: #9aa1af; --borde: #2e323d; --enlace: #7b9bff; }
+      }
+      body { margin: 0; background: var(--fondo); color: var(--texto); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      main { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+      article { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 1.25rem 1.5rem; }
+      h1 { margin-top: 0; font-size: 1.6rem; }
+      h2 { font-size: 1.15rem; margin-top: 1.6rem; }
+      a { color: var(--enlace); }
+      .suave { color: var(--suave); font-size: 0.9rem; }
+      ul { padding-left: 1.2rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p><a href="./">← Volver a Super To-Do List</a></p>
+      <article>
+        <h1>Política de privacidad</h1>
+        <p class="suave">Super To-Do List (STDL) · Última actualización: 1 de octubre de 2026</p>
+
+        <p>
+          Super To-Do List es una aplicación web que corre <strong>por completo en tu navegador</strong>. No tiene servidores propios ni base
+          de datos propia: yo, como desarrollador, <strong>no recibo, no almaceno ni puedo ver tus tareas, tus eventos ni ningún otro dato
+          tuyo</strong>. Esta página explica con qué servicios se comunica la app en tu nombre y para qué.
+        </p>
+
+        <h2>Qué datos usa la app</h2>
+        <ul>
+          <li>
+            <strong>Tus tareas y datos de la app</strong> (tareas, categorías, ubicaciones, metas, personas, plantillas, notas de mejora,
+            registros de cumplimiento y preferencias). Se guardan en <strong>un único archivo</strong> (<code>super-todo-list-datos.json</code>)
+            en <strong>tu propio Google Drive</strong>. La app pide el permiso <code>drive.file</code>, que solo le permite ver y modificar
+            los archivos que ella misma creó: no puede leer el resto de tu Drive.
+          </li>
+          <li>
+            <strong>Tus eventos de Google Calendar</strong>, en <strong>solo lectura</strong> (permiso <code>calendar.readonly</code>), para
+            mostrarlos junto a tus tareas y, sobre todo, para <strong>no agendar tareas encima de eventos en los que ya estás ocupado</strong>.
+            La app nunca crea, modifica ni borra eventos. Los eventos se leen en tu navegador, se usan mientras la app está abierta y no se
+            guardan en el archivo de Drive.
+          </li>
+          <li>
+            <strong>Datos guardados en tu navegador</strong>: una copia local de tus datos (para seguir usando la app sin conexión y no perder
+            cambios antes de que Drive los confirme) y preferencias de pantalla (tema, última ubicación elegida, etc.).
+          </li>
+        </ul>
+
+        <h2>Servicios con los que se comunica la app</h2>
+        <ul>
+          <li><strong>Google</strong> (inicio de sesión con Google Identity Services, Google Drive y Google Calendar), con los permisos que vos autorizás.</li>
+          <li>
+            <strong>Open-Meteo</strong> (<code>api.open-meteo.com</code>): si configurás una ubicación para el clima, se le envían sus coordenadas
+            para obtener el pronóstico. No se envía nada más.
+          </li>
+          <li>
+            <strong>OpenStreetMap Nominatim</strong> (<code>nominatim.openstreetmap.org</code>): al buscar el nombre de un lugar para una ubicación,
+            se le envía el texto que escribís.
+          </li>
+          <li><strong>GitHub Pages</strong>: sirve los archivos de la app. Como cualquier sitio web, GitHub puede registrar datos técnicos de la visita (por ejemplo la dirección IP).</li>
+        </ul>
+        <p>La app no usa cookies de publicidad, no incluye herramientas de analítica ni de seguimiento y no vende ni comparte tus datos con terceros.</p>
+
+        <h2>Uso de la información recibida de las APIs de Google</h2>
+        <p>
+          El uso y la transferencia a cualquier otra app de la información recibida de las APIs de Google cumplirá la
+          <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de datos de usuario de los servicios de las API de Google</a>,
+          incluidos los requisitos de uso limitado. Los datos de Drive y de Calendar se usan únicamente para dar las funciones de la app a vos, y
+          no se usan para publicidad ni para entrenar modelos de inteligencia artificial.
+        </p>
+
+        <h2>Capa de IA opcional</h2>
+        <p>
+          Algunas funciones te dejan <em>copiar</em> un texto (prompt) para pegarlo vos mismo en un asistente de IA y volver a pegar la respuesta. La app
+          no envía nada a ningún asistente por su cuenta: lo que pegues en uno queda sujeto a las condiciones de ese servicio.
+        </p>
+
+        <h2>Tus controles</h2>
+        <ul>
+          <li><strong>Exportar</strong> una copia de tus datos (Configuraciones → Copia de seguridad).</li>
+          <li><strong>Borrar</strong> todos tus datos de la app y de Drive (Configuraciones → Borrar todos los datos), o eliminar el archivo <code>super-todo-list-datos.json</code> desde tu Drive.</li>
+          <li><strong>Revocar el acceso</strong> de la app a tu cuenta en <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+        </ul>
+
+        <h2>Seguridad</h2>
+        <p>
+          La sesión de Google vive solo en la memoria de tu navegador mientras usás la app (dura aproximadamente una hora y se renueva sola). Tus datos
+          viajan por conexiones seguras (HTTPS) directamente entre tu navegador y los servicios de Google.
+        </p>
+
+        <h2>Cambios y contacto</h2>
+        <p>
+          Si esta política cambia, se actualizará esta página con la nueva fecha. Para consultas sobre privacidad o para pedir ayuda, escribí a
+          <strong>[completar: correo de contacto del desarrollador]</strong>.
+        </p>
+      </article>
+      <p class="suave"><a href="terminos.html">Condiciones del servicio</a></p>
+    </main>
+  </body>
+</html>

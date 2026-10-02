@@ -99,6 +99,10 @@ async function asignarTareasSinFecha(estado) {
   // sin hora, o el fin real de su previa — orden de la cadena por duración, no un salto fijo de un día).
   function pisoDe(tarea) {
     let piso = ahora;
+    // v0.101.0: una repetición no se agenda antes del día que le toca (aunque el agendado le haya vaciado la hora).
+    if (tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_objetivo) {
+      piso = new Date(Math.max(piso.getTime(), new Date(`${tarea.tarea_mantenimiento_objetivo}T00:00:00`).getTime()));
+    }
     const habilitada = habilitadaReal(tarea);
     if (habilitada) piso = new Date(Math.max(piso.getTime(), new Date(`${habilitada}T00:00:00`).getTime()));
     if (tarea.tarea_fecha_sugerida && !tieneHora(tarea.tarea_fecha_sugerida)) {
@@ -197,7 +201,7 @@ export async function programarTareasSinFecha(estado, { reordenar = true } = {})
 export async function reordenarSugeridasPorPrioridad(estado) {
   const todas = estado.tareas || [];
   const ahora = Date.now();
-  const movibles = todas.filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida) && new Date(t.tarea_fecha_sugerida).getTime() > ahora);
+  const movibles = todas.filter((t) => t.tarea_estado !== 'completada' && !t.tarea_dia_obligatorio && tieneHora(t.tarea_fecha_sugerida) && new Date(t.tarea_fecha_sugerida).getTime() > ahora);
   if (movibles.length < 2) return [];
 
   // Dos tareas de una misma cadena no cuentan: la previa va antes aunque tenga menos prioridad (v0.99.0).
@@ -576,6 +580,12 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
     let desde = new Date();
     const habilitada = habilitadaReal(tarea);
     if (habilitada && habilitada > hoyISO()) desde = new Date(`${habilitada}T00:00:00`);
+    // v0.101.0: un «día obligatorio» no se mueve de día, y una repetición no se adelanta antes del día que le toca.
+    if (tarea.tarea_dia_obligatorio) return;
+    if (tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_objetivo) {
+      const objetivo = new Date(`${tarea.tarea_mantenimiento_objetivo}T00:00:00`);
+      if (objetivo > desde) desde = objetivo;
+    }
     const previa = tarea.tarea_dependiente ? porId.get(tarea.tarea_dependiente) : null;
     if (previa && previa.tarea_fecha_sugerida) {
       const finPrevia = new Date(previa.tarea_fecha_sugerida).getTime() + (previa.tarea_duracion_min || 30) * 60000;

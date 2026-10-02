@@ -244,6 +244,10 @@ function migrarTarea(t) {
       tarea_origen: resto.tarea_origen || null,
       // Campo de la v0.66.0: ausente en datos anteriores.
       persona_id: resto.persona_id || null,
+      // Campos de la v0.101.0 (rediseño de las tareas con repetición): ausentes en datos anteriores.
+      tarea_mantenimiento_dia_fijo: resto.tarea_mantenimiento_dia_fijo || null,
+      tarea_mantenimiento_objetivo: resto.tarea_mantenimiento_objetivo || '',
+      tarea_dia_obligatorio: !!resto.tarea_dia_obligatorio,
     };
   }
 
@@ -296,6 +300,9 @@ function migrarTarea(t) {
     tarea_repetir_hasta_tarea: null,
     tarea_origen: null,
     persona_id: null,
+    tarea_mantenimiento_dia_fijo: null,
+    tarea_mantenimiento_objetivo: '',
+    tarea_dia_obligatorio: false,
   };
 }
 

@@ -249,6 +249,21 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ---
 
+### A13. Crear una tarea con repetición (v0.101.0)
+
+- **Objetivo**: que una tarea que se repite (un hábito, un pago mensual, una limpieza semanal) se renueve sola con la regla correcta.
+- **Disparador**: el usuario crea o edita una tarea que se repite.
+- **Pasos**: en el formulario, sección «🔁 Repetición» → «Es tarea con repetición» → elegir una de tres formas: «cada N días/semanas/meses desde que la cumplo», «el día N de cada mes» o «todos los [días de la semana]»; opcionalmente «📌 Día obligatorio», «Repetir hasta» y días hábiles.
+- **Flujo usuario/sistema**:
+  1. Usuario activa la repetición y elige la regla. Si elige días de la semana sin marcar ninguno, el sistema pide marcar al menos uno.
+  2. Al cumplir la tarea, sistema calcula el próximo día (si no es un día hábil de la tarea, pasa al próximo hábil) y crea la copia con esa fecha como **fecha sugerida**, sin fecha límite.
+  3. Con «Día obligatorio» la copia además tiene ese día como fecha límite, el agendado no la mueve de día y, si ese día no hay hueco, aparece en «Sin hueco antes del límite».
+- **Vistas/funciones**: `assets/js/formulario-tarea.js`, `assets/js/tareas-logica.js` (`calcularProximaRepeticion`, `completarTarea`, `textoRepeticion`), `assets/js/programador.js`.
+- **Resultado**: una copia pendiente con el día que le toca, agendada ese día (o después, nunca antes).
+- **Fricciones**: las copias creadas antes de la v0.101.0 conservan su fecha límite; el cambio vale para las nuevas.
+
+---
+
 ## Bloque B — Planificación de objetivos
 
 ### B1. Crear y seguir una Meta

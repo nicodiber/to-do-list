@@ -22,14 +22,17 @@ import { renombrarHistorial, cumplirTarea, reabrirTarea, avisoInconsistentes, el
 import { programarParaHoy, programarTareasSinFecha } from './programador.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { avisar, confirmar } from './avisos.js';
+import { avisarConflictoEnlace } from './conflicto-enlace.js';
+import { avisarSiSinHueco } from './aviso-sin-hueco.js';
 
-let edicionAbierta = false;
+let edicionesAbiertas = 0;
 
 /** Abre la ventana de edición de la tarea `id` encima de la vista actual. */
-export function abrirEdicionTarea(id) {
+/** Con `apilar: true` (v0.101.0, desde el aviso de un conflicto de enlaces) se abre aunque ya haya otra edición abierta. */
+export function abrirEdicionTarea(id, { apilar = false } = {}) {
   const tarea = estado.tareas.find((t) => t.tarea_id === id);
-  if (!tarea || edicionAbierta) return;
-  edicionAbierta = true;
+  if (!tarea || (edicionesAbiertas > 0 && !apilar)) return;
+  edicionesAbiertas += 1;
   // Sello de la tarea al abrir: si cambia mientras se edita (otro dispositivo), se avisa antes de pisarla.
   const sello = tarea.tarea_modificado_en || '';
 
@@ -42,7 +45,7 @@ export function abrirEdicionTarea(id) {
     ],
     conectar: (formulario) => conectarFormularioTarea(formulario, { modo: 'edicion' }),
     alCerrar: () => {
-      edicionAbierta = false;
+      edicionesAbiertas = Math.max(0, edicionesAbiertas - 1);
     },
     alGuardar: async (formulario, { valor }) => {
       if (valor === 'eliminar') {
@@ -75,7 +78,7 @@ export function abrirEdicionTarea(id) {
 
       const validacion = validarFormularioTarea(leido, actual.tarea_id);
       if (!validacion.ok) {
-        await avisar(validacion.motivo);
+        await avisarConflictoEnlace(validacion);
         return false;
       }
 
@@ -103,8 +106,9 @@ export function abrirEdicionTarea(id) {
       const registrosActualizados = eraMantenimiento ? renombrarHistorial(estado, nombreAnterior, actual.tarea_nombre) : 0;
       // Cambiar la fecha límite, la urgencia o la categoría puede cambiar la prioridad: se reordenan los horarios
       // (y se agenda lo que siga sin hora) antes de guardar (v0.97.0).
-      await programarTareasSinFecha(estado);
+      const resultadoAgendado = await programarTareasSinFecha(estado);
       await persistirYNotificar();
+      await avisarSiSinHueco(resultadoAgendado);
       if (registrosActualizados > 0) {
         await avisar(`Se actualizaron ${registrosActualizados} registro${registrosActualizados === 1 ? '' : 's'} del historial (cumplimientos y mejoras) al nuevo nombre.`);
       }
@@ -300,7 +304,7 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       }
       const validacion = validarFormularioTarea(leido);
       if (!validacion.ok) {
-        await avisar(validacion.motivo);
+        await avisarConflictoEnlace(validacion);
         return false;
       }
 
@@ -311,7 +315,7 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       if (!enlace.ok) {
         // Enlace contradictorio: no se crea la tarea ni se limpia el formulario, para que el usuario reajuste.
         estado.tareas = estado.tareas.filter((t) => t.tarea_id !== nueva.tarea_id);
-        await avisar(enlace.motivo);
+        await avisarConflictoEnlace(enlace);
         return false;
       }
       // Si queda bloqueada y no se cargó una "fecha desde" propia, hereda la de su tarea previa (por lo menos no
@@ -324,8 +328,9 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       if (nueva.tarea_urgente) await programarParaHoy(nueva, estado);
       // Sin esto, una tarea recién creada sin fecha (y no urgente) quedaba sin `tarea_fecha_sugerida` hasta el
       // próximo refresco de sesión/Calendar (v0.90.0) — no-op para cualquier tarea que ya tenga fecha con hora.
-      await programarTareasSinFecha(estado);
+      const resultadoAgendado = await programarTareasSinFecha(estado);
       await persistirYNotificar();
+      await avisarSiSinHueco(resultadoAgendado);
 
       if (valor === 'siguiente') {
         // Cierra esta ventana y abre una en blanco para la tarea siguiente, ya enlazada como dependiente de esta.

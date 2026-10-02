@@ -8,6 +8,8 @@ import { aplicarEnlace } from './dependencias.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { programarParaHoy, programarTareasSinFecha } from './programador.js';
 import { avisar } from './avisos.js';
+import { avisarConflictoEnlace } from './conflicto-enlace.js';
+import { avisarSiSinHueco } from './aviso-sin-hueco.js';
 
 let dialogo = null;
 
@@ -82,7 +84,7 @@ async function actualizar(evento, id) {
   }
   const validacion = validarFormularioTarea(leido, tarea.tarea_id);
   if (!validacion.ok) {
-    await avisar(validacion.motivo);
+    await avisarConflictoEnlace(validacion);
     return;
   }
   const eraUrgente = !!tarea.tarea_urgente;
@@ -93,8 +95,9 @@ async function actualizar(evento, id) {
   // no, programarTareasSinFecha es quien le asigna un hueco real (v0.95.0 — antes, completar una tarea de
   // solo-nombre acá no agendaba nada, había que esperar al próximo refresco automático).
   if (tarea.tarea_urgente && !eraUrgente) await programarParaHoy(tarea, estado);
-  await programarTareasSinFecha(estado);
+  const resultadoAgendado = await programarTareasSinFecha(estado);
   await persistirYNotificar();
+  await avisarSiSinHueco(resultadoAgendado);
   renderLista();
 }
 

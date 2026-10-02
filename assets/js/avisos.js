@@ -110,3 +110,31 @@ export async function pedirTexto(mensaje, { titulo = 'Escribí un texto', textoA
   });
   return valor === true ? extra : null;
 }
+
+/**
+ * Un aviso con botones de acción extra (v0.101.0), por ejemplo «✏️ Editar esta tarea». `acciones` es
+ * `[{ texto, alClic }]`: al tocar una se cierra el aviso y se ejecuta su `alClic`.
+ */
+export async function avisarConAcciones(mensaje, { titulo = 'Aviso', textoAceptar = 'Entendido', acciones = [] } = {}) {
+  const contenedor = document.createElement('div');
+  contenedor.className = 'aviso-acciones';
+  let elegida = null;
+  acciones.forEach((accion) => {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.textContent = accion.texto;
+    boton.addEventListener('click', () => {
+      elegida = accion;
+      contenedor.closest('dialog').querySelector('.acciones-modal .boton-primario').click();
+    });
+    contenedor.appendChild(boton);
+  });
+  await abrirDialogoAviso({
+    titulo,
+    mensaje,
+    cuerpoExtra: contenedor,
+    botones: [{ texto: textoAceptar, valor: true, clase: 'boton-primario' }],
+    valorAlCancelar: true,
+  });
+  if (elegida) await elegida.alClic();
+}

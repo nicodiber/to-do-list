@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from './almacenamiento.js';
 import { ETIQUETAS_ESTADO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearFechaOFechaHora, escaparHtml } from './utilidades.js';
 import { crearPanelReprogramar } from './reprogramar.js';
-import { reprogramarTareaConCascada, avisoInconsistentes, compararPorPrioridad, ordenarConCadenas } from './tareas-logica.js';
+import { reprogramarTareaConCascada, avisoInconsistentes, compararPorPrioridad, ordenarConCadenas, textoRepeticion } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
 import { abrirDetalleTarea } from './modal-tarea.js';
 import { avisar } from './avisos.js';
@@ -134,8 +134,8 @@ function renderTarjetaTarea(tarea, { soloInfo = false } = {}) {
         ${tarea.tarea_fecha_limite ? `<span class="etiqueta-fecha">Límite: ${formatearFechaOFechaHora(tarea.tarea_fecha_limite)}</span>` : ''}
         <span class="etiqueta-fecha">${ETIQUETAS_ESTADO[tarea.tarea_estado]}</span>
         ${
-          tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_intervalo
-            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento_intervalo.unidad]}</span>`
+          tarea.tarea_mantenimiento && textoRepeticion(tarea)
+            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 ${textoRepeticion(tarea)}${tarea.tarea_dia_obligatorio ? ' 📌' : ''}</span>`
             : ''
         }
         ${ubicacion ? `<span class="etiqueta-fecha">📍 ${escaparHtml(ubicacion.ubicacion_nombre)}</span>` : ''}

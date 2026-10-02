@@ -3264,3 +3264,15 @@ kbd {
   border-color: var(--color-primario);
   background: var(--color-fondo-info);
 }
+
+/* Repetición: cada N desde que se cumple / día del mes / días de la semana (v0.101.0) */
+.formulario-tarea .modo-repeticion { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+.formulario-tarea .opcion-repeticion { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+.formulario-tarea .opcion-repeticion input[type="radio"] { width: 1rem; height: 1rem; margin: 0; flex: none; }
+.formulario-tarea .opcion-repeticion .chips-dias { display: inline-flex; }
+
+/* Aviso con acciones (v0.101.0) */
+.dialogo-aviso .aviso-acciones { display: flex; flex-direction: column; align-items: stretch; gap: 0.4rem; margin-bottom: 1rem; }
+.dialogo-aviso .aviso-acciones button { text-align: left; }
+/* Filtro de los desplegables de enlaces (v0.101.0) */
+.formulario-tarea .filtro-enlace { font-size: 0.85rem; }

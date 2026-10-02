@@ -1,4 +1,4 @@
-import { crearTarea, crearMejora, crearCumplimiento } from './modelos.js';
+import { crearTarea, crearMejora, crearCumplimiento, fechaObjetivoMantenimiento, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { ahoraISO, hoyISO, fechaLocalISO, diaLocal, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz } from './utilidades.js';
 import { recalcularBloqueo, puedeAgregarDependencia, proximasActivas, reconectarAlEliminar } from './dependencias.js';
 
@@ -20,6 +20,74 @@ export function calcularProximaFechaMantenimiento(desdeISODatetime, intervalo) {
     fecha.setDate(fecha.getDate() + cantidad);
   }
   return fechaLocalISO(fecha);
+}
+
+const NOMBRES_DIAS_SEMANA = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
+
+/** Cantidad de días de un mes (`mes` de 0 a 11). */
+function diasDelMes(anio, mes) {
+  return new Date(anio, mes + 1, 0).getDate();
+}
+
+/**
+ * Próximo día (`YYYY-MM-DD`) de una repetición en **día fijo**, estrictamente después del día de `desdeISO`
+ * (v0.101.0): `{ tipo: 'mes', dia }` = ese día de cada mes (en un mes más corto, el último día) y
+ * `{ tipo: 'semana', dias: [0-6] }` = esos días de la semana.
+ */
+export function proximoDiaFijo(desdeISO, diaFijo) {
+  const base = new Date(desdeISO);
+  const inicio = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  if (diaFijo.tipo === 'semana') {
+    const dias = diaFijo.dias && diaFijo.dias.length > 0 ? diaFijo.dias : [inicio.getDay()];
+    for (let paso = 1; paso <= 7; paso += 1) {
+      const candidato = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + paso);
+      if (dias.includes(candidato.getDay())) return fechaLocalISO(candidato);
+    }
+  }
+  const dia = Math.min(Math.max(1, Number(diaFijo.dia) || 1), 31);
+  let anio = inicio.getFullYear();
+  let mes = inicio.getMonth();
+  let candidato = new Date(anio, mes, Math.min(dia, diasDelMes(anio, mes)));
+  if (candidato <= inicio) {
+    mes += 1;
+    anio += Math.floor(mes / 12);
+    mes %= 12;
+    candidato = new Date(anio, mes, Math.min(dia, diasDelMes(anio, mes)));
+  }
+  return fechaLocalISO(candidato);
+}
+
+/** Avanza `fechaISO` hasta el primer día de la semana permitido por `diasHabiles` (vacío = cualquiera). */
+export function proximoDiaHabil(fechaISO, diasHabiles) {
+  if (!diasHabiles || diasHabiles.length === 0) return fechaISO;
+  const [a, m, d] = fechaISO.split('-').map(Number);
+  for (let paso = 0; paso < 7; paso += 1) {
+    const candidato = new Date(a, m - 1, d + paso);
+    if (diasHabiles.includes(candidato.getDay())) return fechaLocalISO(candidato);
+  }
+  return fechaISO;
+}
+
+/**
+ * Día (`YYYY-MM-DD`) de la próxima repetición de una tarea con repetición, a partir de la fecha real en que se cumplió
+ * (v0.101.0): o "cada N días/semanas/meses desde que se cumple" (`tarea_mantenimiento_intervalo`) o en un día fijo
+ * (`tarea_mantenimiento_dia_fijo`). Los **días hábiles mandan**: si el día calculado no es hábil, pasa al próximo que sí
+ * lo es (así «cada 1 día» con martes y jueves significa «cada día hábil»).
+ */
+export function calcularProximaRepeticion(desdeISODatetime, tarea) {
+  const crudo = tarea.tarea_mantenimiento_dia_fijo
+    ? proximoDiaFijo(desdeISODatetime, tarea.tarea_mantenimiento_dia_fijo)
+    : calcularProximaFechaMantenimiento(desdeISODatetime, tarea.tarea_mantenimiento_intervalo || { cantidad: 1, unidad: 'dias' });
+  return proximoDiaHabil(crudo, tarea.tarea_dias_habiles);
+}
+
+/** Texto corto de cómo se repite una tarea (para etiquetas y tarjetas): «cada 2 semanas», «el día 1 de cada mes»… */
+export function textoRepeticion(tarea) {
+  const fijo = tarea.tarea_mantenimiento_dia_fijo;
+  if (fijo && fijo.tipo === 'mes') return `el día ${fijo.dia} de cada mes`;
+  if (fijo && fijo.tipo === 'semana') return `todos los ${(fijo.dias || []).slice().sort((x, y) => ((x + 6) % 7) - ((y + 6) % 7)).map((d) => NOMBRES_DIAS_SEMANA[d]).join(', ')}`;
+  const intervalo = tarea.tarea_mantenimiento_intervalo;
+  return intervalo ? `cada ${intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[intervalo.unidad] || intervalo.unidad}` : '';
 }
 
 /**
@@ -54,9 +122,9 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
   if (!tarea.tarea_mantenimiento) return null;
 
   // Hábito temporal: si el próximo vencimiento cae después del día en que termina, no hay otra repetición.
-  const proximoLimite = calcularProximaFechaMantenimiento(ahora, tarea.tarea_mantenimiento_intervalo);
+  const proximoDia = calcularProximaRepeticion(ahora, tarea);
   const finRepeticion = fechaFinDeRepeticion(tarea, listaTareas);
-  if (finRepeticion && proximoLimite > finRepeticion) return null;
+  if (finRepeticion && proximoDia > finRepeticion) return null;
 
   const descripcion = notaMejora
     ? `${tarea.tarea_descripcion ? tarea.tarea_descripcion + '\n\n' : ''}Mejora sugerida la vez anterior: ${notaMejora}`
@@ -66,7 +134,13 @@ export function completarTarea(tarea, listaTareas, { notaMejora = '' } = {}) {
     tarea_nombre: tarea.tarea_nombre,
     categoria_id: tarea.categoria_id,
     tarea_estado: 'pendiente',
-    tarea_fecha_limite: proximoLimite,
+    // v0.101.0: la copia nace con fecha sugerida (el día que le toca) y sin límite duro; solo con «día obligatorio»
+    // el día es también su límite. `tarea_mantenimiento_objetivo` guarda ese día aunque el agendado le cambie la hora.
+    tarea_fecha_sugerida: proximoDia,
+    tarea_fecha_limite: tarea.tarea_dia_obligatorio ? proximoDia : '',
+    tarea_mantenimiento_objetivo: proximoDia,
+    tarea_dia_obligatorio: !!tarea.tarea_dia_obligatorio,
+    tarea_mantenimiento_dia_fijo: tarea.tarea_mantenimiento_dia_fijo ? structuredClone(tarea.tarea_mantenimiento_dia_fijo) : null,
     tarea_duracion_min: tarea.tarea_duracion_min,
     tarea_descripcion: descripcion,
     tarea_mantenimiento: tarea.tarea_mantenimiento,
@@ -597,6 +671,11 @@ export function disfruteEfectivo(tarea, categorias) {
 }
 
 function holguraParaAgendar(tarea) {
+  // v0.101.0: una tarea con repetición sin fecha límite ordena por el día que le toca (su "límite blando"), no al final.
+  if (tarea.tarea_mantenimiento && !tarea.tarea_fecha_limite) {
+    const objetivo = fechaObjetivoMantenimiento(tarea);
+    if (objetivo) return calcularHolguraHoras({ ...tarea, tarea_fecha_limite: objetivo });
+  }
   const horas = calcularHolguraHoras(tarea);
   if (horas !== Infinity) return horas;
   return tarea.tarea_urgente ? 0 : Infinity;
