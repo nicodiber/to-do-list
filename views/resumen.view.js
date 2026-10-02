@@ -36,6 +36,7 @@ import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapami
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
@@ -371,7 +372,7 @@ function renderCompletada(tarea) {
     const { copiaConservada } = reabrirTarea(tarea, estado);
     await persistirYNotificar();
     if (copiaConservada) {
-      alert(`Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
+      await avisar(`Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
     }
   });
   return li;
@@ -501,7 +502,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       const inconsistentes = reprogramarTareaConCascada(tarea, fechaISO, estado.tareas);
       await persistirYNotificar();
       const aviso = avisoInconsistentes(inconsistentes);
-      if (aviso) alert(aviso);
+      if (aviso) await avisar(aviso);
     };
     if (botonPosponer) {
       botonPosponer.addEventListener('click', () => {
@@ -528,7 +529,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
             diasHabiles: tarea.tarea_dias_habiles || [],
           });
           if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) {
-            alert(
+            await avisar(
               diaLimite
                 ? 'No hay hueco libre antes de tu fecha límite. Elegí vos la fecha.'
                 : 'No encontré un hueco libre en los próximos días con esa franja horaria. Elegí vos la fecha.'
@@ -538,7 +539,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
           }
           await reprogramar(hueco);
         } catch (error) {
-          alert(error.message);
+          await avisar(error.message);
         } finally {
           botonHueco.disabled = false;
         }
@@ -598,7 +599,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     });
 
     contenedorCierre.querySelector('[data-accion="eliminar-tarea"]').addEventListener('click', async () => {
-      if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;
+      if (!await confirmar(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`, { peligro: true, textoAceptar: 'Eliminar' })) return;
       eliminarTarea(tarea, estado);
       await persistirYNotificar();
     });
@@ -610,7 +611,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
         const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
         await persistirYNotificar();
         const aviso = avisoInconsistentes(inconsistentes);
-        if (aviso) alert(aviso);
+        if (aviso) await avisar(aviso);
       });
     });
   });

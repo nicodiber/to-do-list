@@ -1,4 +1,5 @@
 import { fechaISOMasDias, combinarFechaYHora, hoyISO, fechaLocalISO } from './utilidades.js';
+import { avisar } from './avisos.js';
 
 export const ATAJOS_HORARIO = [
   { etiqueta: 'Mañana', hora: '07:00' },
@@ -126,9 +127,9 @@ export function crearPanelReprogramar({ onConfirmar, onCancelar, diasHabiles = [
     if (campoFecha.value) fijarFecha(campoFecha.value);
   });
 
-  panel.querySelector('[data-accion="confirmar"]').addEventListener('click', () => {
+  panel.querySelector('[data-accion="confirmar"]').addEventListener('click', async () => {
     if (!campoFecha.value) {
-      alert('Elegí un día (con los atajos o a mano).');
+      await avisar('Elegí un día (con los atajos o a mano).');
       return;
     }
     onConfirmar(campoHora.value ? combinarFechaYHora(campoFecha.value, campoHora.value) : campoFecha.value);

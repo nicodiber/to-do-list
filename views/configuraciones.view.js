@@ -8,6 +8,7 @@ import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } f
 import { escaparHtml, htmlInterruptor } from '../assets/js/utilidades.js';
 import { registroSesionGoogle } from '../assets/js/google-auth.js';
 import { obtenerTema, establecerTema } from '../assets/js/app.js';
+import { avisar, confirmar, pedirTexto } from '../assets/js/avisos.js';
 
 const TOPE_MAXIMO_MIN = 1440; // minutos que tiene un día (24 h)
 
@@ -149,28 +150,28 @@ export function renderVistaConfiguraciones(contenedor) {
     try {
       await importarJSON(archivo);
     } catch (error) {
-      alert('No se pudo importar el archivo: ' + error.message);
+      await avisar('No se pudo importar el archivo: ' + error.message);
     } finally {
       evento.target.value = '';
     }
   });
 
   contenedor.querySelector('#boton-borrar-todo').addEventListener('click', async () => {
-    const seguro = confirm(
+    const seguro = await confirmar(
       'Vas a borrar TODOS tus datos (tareas, categorías, ubicaciones, metas, personas, mejoras y cumplimientos), también en Google Drive y en tus otros dispositivos. Esto no se puede deshacer. ¿Querés continuar?'
     );
     if (!seguro) return;
-    const escrito = prompt(`Para confirmar, escribí ${PALABRA_CONFIRMACION}:`);
+    const escrito = await pedirTexto(`Para confirmar, escribí ${PALABRA_CONFIRMACION}:`);
     if (escrito === null) {
-      alert('No se borró nada.');
+      await avisar('No se borró nada.');
       return;
     }
     if (escrito.trim().toUpperCase() !== PALABRA_CONFIRMACION) {
-      alert('Palabra incorrecta. No se borró nada.');
+      await avisar('Palabra incorrecta. No se borró nada.');
       return;
     }
     await borrarTodosLosDatos();
-    alert('Se borraron todos los datos.');
+    await avisar('Se borraron todos los datos.');
   });
 }
 

@@ -44,9 +44,10 @@ import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
 import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
+import { avisar, confirmar } from './avisos.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.99.0';
+const VERSION = 'v0.100.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -137,7 +138,7 @@ async function conectarConAviso() {
     await conectarDrive();
     await reprogramarSiCorresponde();
   } catch (error) {
-    alert(error.message);
+    await avisar(error.message);
   }
 }
 
@@ -259,7 +260,7 @@ document.addEventListener('click', async (evento) => {
     } else if (accion === 'mezclar-viejos') {
       await mezclarDatosViejos();
     } else if (accion === 'descartar-viejos') {
-      if (confirm('¿Descartar los datos antiguos de este navegador? No se pueden recuperar después.')) descartarDatosViejos();
+      if (await confirmar('¿Descartar los datos antiguos de este navegador? No se pueden recuperar después.', { peligro: true, textoAceptar: 'Descartar' })) descartarDatosViejos();
     } else if (accion === 'ver-avisos') {
       renderPanelAvisos(obtenerEstadoSync().avisos);
       PANEL_AVISOS.hidden = false;
@@ -269,7 +270,7 @@ document.addEventListener('click', async (evento) => {
       await descartarTodosLosAvisos();
     }
   } catch (error) {
-    alert(error.message);
+    await avisar(error.message);
   }
 });
 
@@ -463,7 +464,7 @@ async function ejecutarReprogramacionInicial() {
   // Las "inconsistentes" (sugerida después del límite tras un corrimiento en cascada) ya no se avisan acá
   // (v0.89.0): quedan siempre visibles en la sección "⚠️ Sin hueco antes del límite" de Resumen, en vez de un
   // aviso único que se puede perder. `inconsistentes.length` sigue contando para decidir si hay que persistir.
-  if (mensaje) alert(mensaje);
+  if (mensaje) await avisar(mensaje);
 }
 
 /**

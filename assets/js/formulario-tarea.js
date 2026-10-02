@@ -11,6 +11,7 @@ import { limitarFechaSugeridaALimite } from './tareas-logica.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDialogoPersona } from './formularios-entidades.js';
 
 import { activarMayusculaInicial, conectarCrearNueva, CREAR_NUEVA } from './dialogo-formulario.js';
+import { confirmar } from './avisos.js';
 
 export { firmaFormulario } from './dialogo-formulario.js';
 
@@ -478,12 +479,12 @@ export function validarFormularioTarea(leido, tareaId = null) {
  * Nada cambia sin confirmar; si se rechaza, la tarea se guarda igual. Muta las
  * tareas (quien llama persiste). Devuelve las tareas marcadas.
  */
-export function ofrecerMarcarCadenaMantenimiento(tarea, listaTareas) {
+export async function ofrecerMarcarCadenaMantenimiento(tarea, listaTareas) {
   const faltantes = tareasDeLaCadenaNoRepetibles(tarea, listaTareas);
   if (faltantes.length === 0) return [];
   const intervalo = tarea.tarea_mantenimiento_intervalo || { cantidad: 1, unidad: 'dias' };
   const texto = `cada ${intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[intervalo.unidad] || intervalo.unidad}`;
-  const quiere = confirm(
+  const quiere = await confirmar(
     `Para que la cadena de «${tarea.tarea_nombre}» se repita entera, estas tareas también deben ser con repetición: ${faltantes.map((t) => `«${t.tarea_nombre}»`).join(', ')}.\n\n¿Marcarlas como tareas con repetición (${texto})? Después podés ajustar el intervalo de cada una.`
   );
   if (!quiere) return [];

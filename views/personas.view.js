@@ -2,6 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { abrirDialogoPersona } from '../assets/js/formularios-entidades.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 import { escaparHtml, formatearFecha, hoyISO, diasEntreFechas, fechaISOMasDias } from '../assets/js/utilidades.js';
+import { confirmar } from '../assets/js/avisos.js';
 
 let modoSeleccion = false;
 let seleccionadas = new Set();
@@ -182,7 +183,7 @@ function renderPersona(persona, contenedorVista) {
   });
 
   tarjeta.querySelector('[data-accion="eliminar-persona"]').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar a "${persona.persona_nombre}"? Las tareas asociadas quedan sin persona.`)) return;
+    if (!await confirmar(`¿Eliminar a "${persona.persona_nombre}"? Las tareas asociadas quedan sin persona.`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.tareas.forEach((tarea) => {
       if (tarea.persona_id === persona.persona_id) tarea.persona_id = null;
     });

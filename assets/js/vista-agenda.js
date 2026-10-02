@@ -5,6 +5,7 @@ import { crearPanelReprogramar } from './reprogramar.js';
 import { reprogramarTareaConCascada, avisoInconsistentes, compararPorPrioridad, ordenarConCadenas } from './tareas-logica.js';
 import { evaluarClimaTarea } from './clima.js';
 import { abrirDetalleTarea } from './modal-tarea.js';
+import { avisar } from './avisos.js';
 
 const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -143,7 +144,7 @@ function renderTarjetaTarea(tarea, { soloInfo = false } = {}) {
         contenedorPanel.innerHTML = '';
         await persistirYNotificar();
         const aviso = avisoInconsistentes(inconsistentes);
-        if (aviso) alert(aviso);
+        if (aviso) await avisar(aviso);
       },
       onCancelar: () => {
         contenedorPanel.hidden = true;

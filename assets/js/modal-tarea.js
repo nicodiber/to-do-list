@@ -21,6 +21,7 @@ import { aplicarEnlace } from './dependencias.js';
 import { renombrarHistorial, cumplirTarea, reabrirTarea, avisoInconsistentes, eliminarTarea } from './tareas-logica.js';
 import { programarParaHoy, programarTareasSinFecha } from './programador.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
+import { avisar, confirmar } from './avisos.js';
 
 let edicionAbierta = false;
 
@@ -47,34 +48,34 @@ export function abrirEdicionTarea(id) {
       if (valor === 'eliminar') {
         const actual = estado.tareas.find((t) => t.tarea_id === id);
         if (!actual) {
-          alert('Esta tarea ya no existe (se eliminó mientras la editabas).');
+          await avisar('Esta tarea ya no existe (se eliminó mientras la editabas).');
           return true;
         }
-        if (!confirm(`¿Eliminar la tarea "${actual.tarea_nombre}"?`)) return false;
+        if (!await confirmar(`¿Eliminar la tarea "${actual.tarea_nombre}"?`, { peligro: true, textoAceptar: 'Eliminar' })) return false;
         eliminarTarea(actual, estado);
         await persistirYNotificar();
         return true;
       }
       const leido = leerFormularioTarea(formulario);
       if (!leido.campos.tarea_nombre) {
-        alert('La tarea necesita un nombre.');
+        await avisar('La tarea necesita un nombre.');
         return false;
       }
 
       // Se busca por id al guardar: si llegaron cambios de otro dispositivo, el objeto pudo haberse reemplazado.
       const actual = estado.tareas.find((t) => t.tarea_id === id);
       if (!actual) {
-        alert('Esta tarea ya no existe (se eliminó mientras la editabas).');
+        await avisar('Esta tarea ya no existe (se eliminó mientras la editabas).');
         return true;
       }
       if ((actual.tarea_modificado_en || '') !== sello) {
-        const seguir = confirm('Esta tarea cambió (por ejemplo desde otro dispositivo) mientras la editabas. Si guardás ahora se pisan esos cambios. ¿Guardar igual?');
+        const seguir = await confirmar('Esta tarea cambió (por ejemplo desde otro dispositivo) mientras la editabas. Si guardás ahora se pisan esos cambios. ¿Guardar igual?');
         if (!seguir) return false;
       }
 
       const validacion = validarFormularioTarea(leido, actual.tarea_id);
       if (!validacion.ok) {
-        alert(validacion.motivo);
+        await avisar(validacion.motivo);
         return false;
       }
 
@@ -84,7 +85,7 @@ export function abrirEdicionTarea(id) {
       const eraUrgente = !!actual.tarea_urgente;
       aplicarCamposATarea(actual, leido.campos);
       aplicarEnlace(actual.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
-      ofrecerMarcarCadenaMantenimiento(actual, estado.tareas);
+      await ofrecerMarcarCadenaMantenimiento(actual, estado.tareas);
       // Pasó a urgente ahora (no ya lo era): se le asigna hoy. Re-guardar una que ya era urgente sin tocar
       // ese campo no debe volver a moverla.
       let inconsistentesUrgente = [];
@@ -105,13 +106,13 @@ export function abrirEdicionTarea(id) {
       await programarTareasSinFecha(estado);
       await persistirYNotificar();
       if (registrosActualizados > 0) {
-        alert(`Se actualizaron ${registrosActualizados} registro${registrosActualizados === 1 ? '' : 's'} del historial (cumplimientos y mejoras) al nuevo nombre.`);
+        await avisar(`Se actualizaron ${registrosActualizados} registro${registrosActualizados === 1 ? '' : 's'} del historial (cumplimientos y mejoras) al nuevo nombre.`);
       }
       if (copiaConservada) {
-        alert(`Se reabrió «${actual.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
+        await avisar(`Se reabrió «${actual.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
       }
       const avisoUrgente = avisoInconsistentes(inconsistentesUrgente);
-      if (avisoUrgente) alert(avisoUrgente);
+      if (avisoUrgente) await avisar(avisoUrgente);
       if (ofrecerExportar) ofrecerExportarACalendar(actual);
       return true;
     },
@@ -281,8 +282,8 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       if (proximaId) formulario.tarea_proxima.value = proximaId;
       // El formulario vacío coincide con el estado inicial, así que después de limpiar no se pregunta si descartar.
       const limpiar = formulario.querySelector('[data-accion="limpiar-campos"]');
-      limpiar.addEventListener('click', () => {
-        if (confirm('¿Vaciar todos los campos del formulario?')) vaciarFormularioTarea(formulario);
+      limpiar.addEventListener('click', async () => {
+        if (await confirmar('¿Vaciar todos los campos del formulario?')) vaciarFormularioTarea(formulario);
       });
       // El botón va con los demás, en la fila de acciones (entre "Agregar" y "Cancelar").
       limpiar.style.order = '-50';
@@ -294,12 +295,12 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
     alGuardar: async (formulario, { valor, reiniciarFirma }) => {
       const leido = leerFormularioTarea(formulario);
       if (!leido.campos.tarea_nombre) {
-        alert('La tarea necesita un nombre.');
+        await avisar('La tarea necesita un nombre.');
         return false;
       }
       const validacion = validarFormularioTarea(leido);
       if (!validacion.ok) {
-        alert(validacion.motivo);
+        await avisar(validacion.motivo);
         return false;
       }
 
@@ -310,7 +311,7 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       if (!enlace.ok) {
         // Enlace contradictorio: no se crea la tarea ni se limpia el formulario, para que el usuario reajuste.
         estado.tareas = estado.tareas.filter((t) => t.tarea_id !== nueva.tarea_id);
-        alert(enlace.motivo);
+        await avisar(enlace.motivo);
         return false;
       }
       // Si queda bloqueada y no se cargó una "fecha desde" propia, hereda la de su tarea previa (por lo menos no
@@ -319,7 +320,7 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
         const previa = estado.tareas.find((t) => t.tarea_id === nueva.tarea_dependiente);
         if (previa && previa.tarea_fecha_inicio_habilitada) nueva.tarea_fecha_inicio_habilitada = previa.tarea_fecha_inicio_habilitada;
       }
-      ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
+      await ofrecerMarcarCadenaMantenimiento(nueva, estado.tareas);
       if (nueva.tarea_urgente) await programarParaHoy(nueva, estado);
       // Sin esto, una tarea recién creada sin fecha (y no urgente) quedaba sin `tarea_fecha_sugerida` hasta el
       // próximo refresco de sesión/Calendar (v0.90.0) — no-op para cualquier tarea que ya tenga fecha con hora.

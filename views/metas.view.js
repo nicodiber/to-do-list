@@ -12,6 +12,7 @@ import {
   construirPromptFinalizarMeta,
   parsearRespuestaFinalizarMeta,
 } from '../assets/js/ia-conectable.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 /**
  * Copia `texto` al portapapeles y confirma en el propio botón (cambia su texto un momento), en vez de un `alert()`
@@ -21,7 +22,7 @@ async function copiarConConfirmacion(boton, texto) {
   try {
     await navigator.clipboard.writeText(texto);
   } catch {
-    alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
+    await avisar('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
     return;
   }
   const textoOriginal = boton.textContent;
@@ -111,7 +112,7 @@ function renderMeta(meta) {
   tarjeta.querySelector('[data-accion="editar-meta"]').addEventListener('click', () => abrirDialogoMeta({ id: meta.meta_id }));
 
   tarjeta.querySelector('[data-accion="eliminar-meta"]').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar la meta "${meta.meta_nombre}"? Las tareas asociadas quedan sin esta meta.`)) return;
+    if (!await confirmar(`¿Eliminar la meta "${meta.meta_nombre}"? Las tareas asociadas quedan sin esta meta.`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.tareas.forEach((tarea) => {
       if (tarea.meta_id === meta.meta_id) tarea.meta_id = null;
     });

@@ -7,6 +7,7 @@ import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 let filtroCategoria = '';
 // 'activas' (Pendientes y bloqueadas, por defecto) | '' (Todas) | un estado puntual.
@@ -262,12 +263,12 @@ function abrirSelectorColumnas(alCambiar) {
       });
       actualizarLimites(lista);
     },
-    alGuardar: (formulario) => {
+    alGuardar: async (formulario) => {
       const filas = [...formulario.querySelectorAll('.fila-columna-tabla')];
       const orden = filas.map((f) => f.dataset.clave);
       const elegidas = filas.filter((f) => f.querySelector('input[name="columna"]').checked).map((f) => f.dataset.clave);
       if (elegidas.length === 0) {
-        alert('Elegí al menos una columna.');
+        await avisar('Elegí al menos una columna.');
         return false;
       }
       guardarPreferenciaColumnas({ orden, visibles: elegidas });
@@ -458,7 +459,7 @@ export function renderVistaTabla(contenedor) {
     });
   });
   botonEliminarSeleccionTabla.addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar las ${seleccionadasTabla.size} tareas seleccionadas?`)) return;
+    if (!await confirmar(`¿Eliminar las ${seleccionadasTabla.size} tareas seleccionadas?`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.tareas.filter((t) => seleccionadasTabla.has(t.tarea_id)).forEach((tarea) => eliminarTarea(tarea, estado));
     modoSeleccionTabla = false;
     seleccionadasTabla.clear();

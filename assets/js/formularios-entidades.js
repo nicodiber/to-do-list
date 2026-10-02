@@ -11,11 +11,12 @@ import { crearSelectorColor } from './selector-color.js';
 import { compararPorPrioridad, reprogramarTareaConCascada, avisoInconsistentes } from './tareas-logica.js';
 import { abrirEdicionTarea } from './modal-tarea.js';
 import { buscarLugares } from './geocoding.js';
+import { avisar, confirmar } from './avisos.js';
 
 const COLOR_POR_DEFECTO = '#4f7cff';
 
-function noExiste(nombre) {
-  alert(`${nombre} ya no existe (se eliminó mientras la editabas).`);
+async function noExiste(nombre) {
+  await avisar(`${nombre} ya no existe (se eliminó mientras la editabas).`);
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +91,7 @@ export function abrirDialogoCategoria({ id = null, alCrear = null, padreIdInicia
     alGuardar: async (formulario) => {
       const nombre = capitalizarPrimera(formulario.categoria_nombre.value.trim());
       if (!nombre) {
-        alert('La categoría necesita un nombre.');
+        await avisar('La categoría necesita un nombre.');
         return false;
       }
       const padreId = formulario.categoria_padre_id.value || null;
@@ -104,11 +105,11 @@ export function abrirDialogoCategoria({ id = null, alCrear = null, padreIdInicia
       if (id) {
         const actual = estado.categorias.find((c) => c.categoria_id === id);
         if (!actual) {
-          noExiste('Esta categoría');
+          await noExiste('Esta categoría');
           return true;
         }
         if (padreId && (padreId === actual.categoria_id || descendientesDeCategoria(actual.categoria_id, estado.categorias).has(padreId))) {
-          alert('Esa categoría no puede ser padre de sí misma ni de una de sus descendientes: crearía un ciclo.');
+          await avisar('Esa categoría no puede ser padre de sí misma ni de una de sus descendientes: crearía un ciclo.');
           return false;
         }
         Object.assign(actual, campos);
@@ -227,22 +228,22 @@ export function abrirDialogoUbicacion({ id = null, alCrear = null } = {}) {
       const latitud = Number(formulario.ubicacion_latitud.value);
       const longitud = Number(formulario.ubicacion_longitud.value);
       if (!nombre) {
-        alert('La ubicación necesita un nombre.');
+        await avisar('La ubicación necesita un nombre.');
         return false;
       }
       if (formulario.ubicacion_latitud.value === '' || formulario.ubicacion_longitud.value === '' || Number.isNaN(latitud) || Number.isNaN(longitud)) {
-        alert('Completá la latitud y la longitud con números (por ejemplo −34.6037 y −58.3816).');
+        await avisar('Completá la latitud y la longitud con números (por ejemplo −34.6037 y −58.3816).');
         return false;
       }
       if (latitud < -90 || latitud > 90 || longitud < -180 || longitud > 180) {
-        alert('Las coordenadas están fuera de rango: la latitud va de −90 a 90 y la longitud de −180 a 180.');
+        await avisar('Las coordenadas están fuera de rango: la latitud va de −90 a 90 y la longitud de −180 a 180.');
         return false;
       }
 
       if (id) {
         const actual = estado.ubicaciones.find((u) => u.ubicacion_id === id);
         if (!actual) {
-          noExiste('Esta ubicación');
+          await noExiste('Esta ubicación');
           return true;
         }
         Object.assign(actual, { ubicacion_nombre: nombre, ubicacion_latitud: latitud, ubicacion_longitud: longitud });
@@ -284,7 +285,7 @@ export function abrirDialogoMeta({ id = null, alCrear = null } = {}) {
     alGuardar: async (formulario) => {
       const nombre = capitalizarPrimera(formulario.meta_nombre.value.trim());
       if (!nombre) {
-        alert('La meta necesita un nombre.');
+        await avisar('La meta necesita un nombre.');
         return false;
       }
       const campos = {
@@ -296,7 +297,7 @@ export function abrirDialogoMeta({ id = null, alCrear = null } = {}) {
       if (id) {
         const actual = estado.metas.find((m) => m.meta_id === id);
         if (!actual) {
-          noExiste('Esta meta');
+          await noExiste('Esta meta');
           return true;
         }
         Object.assign(actual, campos);
@@ -346,7 +347,7 @@ function abrirDialogoEtiqueta({ id = null, alCrear = null } = {}) {
     `,
     alGuardar: async (formulario, { valor }) => {
       if (valor === 'eliminar') {
-        if (!confirm(`¿Eliminar la etiqueta "${etiqueta.etiqueta_nombre}"? Las personas que la tengan quedan sin etiqueta.`)) return false;
+        if (!await confirmar(`¿Eliminar la etiqueta "${etiqueta.etiqueta_nombre}"? Las personas que la tengan quedan sin etiqueta.`, { peligro: true, textoAceptar: 'Eliminar' })) return false;
         estado.personas.forEach((p) => {
           if (p.persona_etiqueta_id === etiqueta.etiqueta_id) p.persona_etiqueta_id = null;
         });
@@ -356,14 +357,14 @@ function abrirDialogoEtiqueta({ id = null, alCrear = null } = {}) {
       }
       const nombre = capitalizarPrimera(formulario.etiqueta_nombre.value.trim());
       if (!nombre) {
-        alert('La etiqueta necesita un nombre.');
+        await avisar('La etiqueta necesita un nombre.');
         return false;
       }
       const color = formulario.etiqueta_color.value;
       if (id) {
         const actual = estado.etiquetas.find((e) => e.etiqueta_id === id);
         if (!actual) {
-          noExiste('Esta etiqueta');
+          await noExiste('Esta etiqueta');
           return true;
         }
         Object.assign(actual, { etiqueta_nombre: nombre, etiqueta_color: color });
@@ -441,17 +442,17 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
     alGuardar: async (formulario) => {
       const nombre = capitalizarPrimera(formulario.persona_nombre.value.trim());
       if (!nombre) {
-        alert('La persona necesita un nombre.');
+        await avisar('La persona necesita un nombre.');
         return false;
       }
       const ultimoContacto = formulario.persona_ultimo_contacto.value;
       const proximoContacto = formulario.persona_proximo_contacto.value;
       if (proximoContacto && proximoContacto < hoyISO()) {
-        alert('El próximo contacto no puede ser una fecha pasada.');
+        await avisar('El próximo contacto no puede ser una fecha pasada.');
         return false;
       }
       if (ultimoContacto && ultimoContacto > hoyISO()) {
-        alert('El último contacto no puede ser una fecha futura.');
+        await avisar('El último contacto no puede ser una fecha futura.');
         return false;
       }
       const etiquetaId = formulario.persona_etiqueta_id.value || null;
@@ -460,7 +461,7 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
       if (id) {
         actual = estado.personas.find((p) => p.persona_id === id);
         if (!actual) {
-          noExiste('Esta persona');
+          await noExiste('Esta persona');
           return true;
         }
         Object.assign(actual, {
@@ -491,10 +492,10 @@ export function abrirDialogoPersona({ id = null, alCrear = null } = {}) {
       }
       await persistirYNotificar();
       if (reprogramadas > 0) {
-        alert(`Se reprogramó la fecha sugerida de ${reprogramadas} tarea${reprogramadas === 1 ? '' : 's'} pendiente${reprogramadas === 1 ? '' : 's'} al ${formatearFechaOFechaHora(proximoContacto)}.`);
+        await avisar(`Se reprogramó la fecha sugerida de ${reprogramadas} tarea${reprogramadas === 1 ? '' : 's'} pendiente${reprogramadas === 1 ? '' : 's'} al ${formatearFechaOFechaHora(proximoContacto)}.`);
       }
       const aviso = avisoInconsistentes(inconsistentes);
-      if (aviso) alert(aviso);
+      if (aviso) await avisar(aviso);
       return true;
     },
   });

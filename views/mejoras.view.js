@@ -1,6 +1,7 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, formatearFecha, diaLocal } from '../assets/js/utilidades.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 // Qué notas se ven: las que todavía no se aplicaron (por defecto), las aplicadas o todas.
 let filtro = 'pendientes';
@@ -79,7 +80,7 @@ function renderMejora(mejora) {
   });
   li.querySelector('[data-accion="editar"]').addEventListener('click', () => abrirEdicionMejora(mejora.mejora_id));
   li.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
-    if (!confirm('¿Eliminar esta nota de mejora?')) return;
+    if (!await confirmar('¿Eliminar esta nota de mejora?', { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.mejoras = estado.mejoras.filter((m) => m.mejora_id !== mejora.mejora_id);
     await persistirYNotificar();
   });
@@ -100,13 +101,13 @@ function abrirEdicionMejora(id) {
     alGuardar: async (formulario) => {
       const texto = formulario.mejora_texto.value.trim();
       if (!texto) {
-        alert('La nota no puede quedar vacía: si ya no sirve, eliminala.');
+        await avisar('La nota no puede quedar vacía: si ya no sirve, eliminala.');
         return false;
       }
       // Se busca por id al guardar: si llegaron cambios de otro dispositivo, el objeto pudo haberse reemplazado.
       const actual = estado.mejoras.find((m) => m.mejora_id === id);
       if (!actual) {
-        alert('Esta nota ya no existe (se eliminó mientras la editabas).');
+        await avisar('Esta nota ya no existe (se eliminó mientras la editabas).');
         return true;
       }
       actual.mejora_texto = texto;

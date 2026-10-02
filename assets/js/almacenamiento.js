@@ -13,6 +13,7 @@ import { recalcularBloqueo } from './tareas-logica.js';
 import { repararEnlaces } from './dependencias.js';
 import { fechaLocalISO } from './utilidades.js';
 import { registrarPasoDeshacer, invalidarHistorialDeshacer } from './deshacer.js';
+import { confirmar } from './avisos.js';
 
 const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
 const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
@@ -971,7 +972,7 @@ export function exportarJSON() {
 }
 
 export async function importarJSON(archivo) {
-  const confirmado = confirm(
+  const confirmado = await confirmar(
     'Importar reemplaza TODOS tus datos actuales (también en Google Drive) por el contenido del archivo. ¿Querés continuar?'
   );
   if (!confirmado) return;

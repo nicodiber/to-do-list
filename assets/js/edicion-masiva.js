@@ -15,6 +15,7 @@ import {
   aplicarCamposATarea,
 } from './formulario-tarea.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
+import { avisar } from './avisos.js';
 
 /** Saca la opción "＋ Crear nueva…" de un HTML de `<option>`: acá no se dan de alta entidades nuevas. */
 function sinOpcionNueva(html) {
@@ -110,7 +111,7 @@ export function abrirEdicionMasiva(tareas, alTerminar) {
     alGuardar: async (formulario) => {
       const cambios = leerEdicionMasiva(formulario);
       if (Object.keys(cambios).length === 0) {
-        alert('Tildá "Cambiar" en al menos un campo para aplicar algo.');
+        await avisar('Tildá "Cambiar" en al menos un campo para aplicar algo.');
         return false;
       }
       // La sugerida nunca supera la fecha límite: se recorta por tarea, contra su propia fecha límite (puede
@@ -136,10 +137,10 @@ export function abrirEdicionMasiva(tareas, alTerminar) {
       await programarTareasSinFecha(estado); // v0.97.0 — cambiar fecha límite/urgencia/categoría puede cambiar la prioridad: reordena los horarios
       await persistirYNotificar();
       if (recortadas > 0) {
-        alert(`${recortadas} tarea${recortadas === 1 ? '' : 's'} no recibió la fecha sugerida por superar su fecha límite.`);
+        await avisar(`${recortadas} tarea${recortadas === 1 ? '' : 's'} no recibió la fecha sugerida por superar su fecha límite.`);
       }
       const aviso = avisoInconsistentes(inconsistentes);
-      if (aviso) alert(aviso);
+      if (aviso) await avisar(aviso);
       alTerminar();
       return true;
     },

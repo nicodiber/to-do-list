@@ -3,6 +3,7 @@ import { escaparHtml } from '../assets/js/utilidades.js';
 import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
+import { confirmar } from '../assets/js/avisos.js';
 
 export function renderVistaUbicaciones(contenedor) {
   contenedor.innerHTML = `
@@ -38,7 +39,7 @@ function renderUbicacion(ubicacion) {
   tarjeta.querySelector('[data-accion="editar-ubicacion"]').addEventListener('click', () => abrirDialogoUbicacion({ id: ubicacion.ubicacion_id }));
 
   tarjeta.querySelector('[data-accion="eliminar-ubicacion"]').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar la ubicación "${ubicacion.ubicacion_nombre}"? Las tareas asociadas quedan sin ubicación.`)) return;
+    if (!await confirmar(`¿Eliminar la ubicación "${ubicacion.ubicacion_nombre}"? Las tareas asociadas quedan sin ubicación.`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.tareas.forEach((tarea) => {
       if (tarea.ubicacion_id === ubicacion.ubicacion_id) tarea.ubicacion_id = null;
     });

@@ -4,6 +4,7 @@ import { crearTarea } from './modelos.js';
 import { soportaGoogleCalendar, hayConexionGoogleCalendar, obtenerEventos } from './google-calendar.js';
 import { conectar } from './google-auth.js';
 import { programarTareasSinFecha } from './programador.js';
+import { avisar } from './avisos.js';
 
 // El <dialog> vive en document.body (no en el contenedor de la vista) para
 // sobrevivir a los re-renders que dispara persistirYNotificar() al agregar una tarea de continuidad.
@@ -99,7 +100,7 @@ async function renderSeccionCalendario(contenedor) {
         await conectar();
         renderSeccionCalendario(contenedor);
       } catch (error) {
-        alert(error.message);
+        await avisar(error.message);
       }
     });
     wirePreguntaContinuidad(contenedor);
