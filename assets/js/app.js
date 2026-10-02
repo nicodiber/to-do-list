@@ -151,6 +151,7 @@ function actualizarCabeceraSync() {
     <strong>${ETIQUETAS_ESTADO_SYNC[s.estado] || s.estado}</strong>
     <span class="indicador-sync-detalle">Último guardado en Drive: ${formatoCorto(s.modificadoEnDrive)} · Verificado: ${formatoCorto(s.verificadoEn)}</span>
     ${s.hayPendiente ? '<span class="indicador-sync-detalle">Hay cambios que Drive todavía no confirmó.</span>' : ''}
+    ${s.estado === 'sesion-vencida' ? '<span class="indicador-sync-detalle">Se reconecta sola con tu próximo clic.</span>' : ''}
   `;
   BOTON_SYNC.hidden = s.estado === 'sin-destino' || s.soloLectura;
   BOTON_SYNC.disabled = ['conectando', 'verificando', 'guardando'].includes(s.estado);
@@ -158,16 +159,18 @@ function actualizarCabeceraSync() {
   BOTON_REHACER.disabled = !puedeRehacer();
 
   const banners = [];
-  if (s.estado === 'sin-conexion' || s.estado === 'sesion-vencida') {
+  // v0.100.0: la sesión se renueva sola mientras se usa la app (ver `renovarSiHaceFalta`, almacenamiento.js), así que el
+  // aviso grande de "sesión vencida" solo aparece cuando de verdad hay algo esperando: cambios sin subir a Drive o tareas
+  // sin horario. Si no, alcanza con el indicador de la cabecera y el botón de sincronizar.
+  const sinHorario = estado.tareas.filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida)).length;
+  const esperaAlgo = s.hayPendiente || sinHorario > 0;
+  if (s.estado === 'sin-conexion' || (s.estado === 'sesion-vencida' && esperaAlgo)) {
     const copia = s.copiaDel ? ` Estás viendo tu copia local de la última sincronización (${formatoCorto(s.copiaDel)}).` : '';
-    const sinAgendar = ' Hasta reconectar no se asignan horarios sugeridos nuevos, para no pisar tus eventos de Calendar.';
+    const sinAgendar = sinHorario > 0 ? ` ${sinHorario === 1 ? '1 tarea espera' : `${sinHorario} tareas esperan`} su horario sugerido: hasta reconectar no se asignan horarios, para no pisar tus eventos de Calendar.` : '';
     banners.push(
       s.estado === 'sin-conexion'
         ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.${sinAgendar}</p>`
-        : s.reconectaConClic
-          ? `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${copia} Mientras tanto podés seguir usando la app: los cambios quedan pendientes.${sinAgendar}
-             <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
-          : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.${sinAgendar}
+        : `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${s.hayPendiente ? ' Tus cambios quedan pendientes hasta entonces.' : ''}${sinAgendar}
              <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
     );
   }

@@ -47,7 +47,7 @@ function inicioDelDia(fechaISODate) {
 async function pedirJSON(url, accessToken) {
   const respuesta = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!respuesta.ok) {
-    if (respuesta.status === 401) invalidarToken();
+    if (respuesta.status === 401) invalidarToken('Calendar respondió 401');
     const error = new Error('No se pudieron obtener los datos de Google Calendar.');
     error.status = respuesta.status;
     throw error;

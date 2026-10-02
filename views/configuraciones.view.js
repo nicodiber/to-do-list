@@ -6,6 +6,7 @@ import { conectarCrearNueva } from '../assets/js/dialogo-formulario.js';
 import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } from '../assets/js/google-calendar.js';
 import { escaparHtml, htmlInterruptor } from '../assets/js/utilidades.js';
+import { registroSesionGoogle } from '../assets/js/google-auth.js';
 import { obtenerTema, establecerTema } from '../assets/js/app.js';
 
 const TOPE_MAXIMO_MIN = 1440; // minutos que tiene un día (24 h)
@@ -77,6 +78,15 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
 
     <section class="seccion-config">
+      <h3>🔑 Sesión de Google</h3>
+      <p class="ayuda">La sesión de Google dura cerca de una hora y se renueva sola mientras usás la app (cada clic o tecla es una oportunidad). Si la perdés seguido, este registro (guardado solo en este navegador) muestra qué pasó y sirve para encontrar la causa.</p>
+      <details>
+        <summary>Ver las últimas conexiones y fallos</summary>
+        <ul class="registro-sesion" id="registro-sesion"></ul>
+      </details>
+    </section>
+
+    <section class="seccion-config">
       <h3>💾 Copia de seguridad</h3>
       <p class="ayuda">Tus datos viven en tu Google Drive. Exportar descarga una copia en un archivo JSON; importar reemplaza todo lo que hay por el contenido de un archivo (también en Drive).</p>
       <div class="acciones-config">
@@ -96,6 +106,16 @@ export function renderVistaConfiguraciones(contenedor) {
       </div>
     </section>
   `;
+
+  const registro = contenedor.querySelector('#registro-sesion');
+  const etiquetasRegistro = { conexion: '✅ Conexión con ventana', renovacion: '🔄 Renovación silenciosa', fallo: '⚠️ Falló' };
+  const entradas = registroSesionGoogle().slice().reverse();
+  if (entradas.length === 0) registro.innerHTML = '<li>Todavía no hay registros.</li>';
+  entradas.forEach((e) => {
+    const li = document.createElement('li');
+    li.textContent = `${new Date(e.cuando).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'medium' })} — ${etiquetasRegistro[e.tipo] || e.tipo}${e.detalle ? `: ${e.detalle}` : ''}${e.visible === 'hidden' ? ' (pestaña en segundo plano)' : ''}`;
+    registro.appendChild(li);
+  });
 
   const campoInicio = contenedor.querySelector('#franja-inicio');
   const campoFin = contenedor.querySelector('#franja-fin');

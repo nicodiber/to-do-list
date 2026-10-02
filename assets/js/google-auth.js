@@ -11,6 +11,8 @@ const SCOPES = {
 const SCOPES_TODOS = `${SCOPES.drive} ${SCOPES.calendar}`;
 const CLAVE_CONECTADO_ALGUNA_VEZ = 'super-todo-list:google-conectado';
 const MARGEN_VENCIMIENTO_MS = 60 * 1000;
+const CLAVE_REGISTRO = 'super-todo-list:google-registro';
+const MAX_REGISTRO = 30;
 
 let token = null; // { accessToken, venceEn, respuesta }
 let clienteToken = null;
@@ -87,6 +89,35 @@ export function hayToken() {
   return !!token && Date.now() < token.venceEn;
 }
 
+/** Milisegundos que le quedan al token (0 si no hay o ya venció). */
+export function msHastaVencer() {
+  return token ? Math.max(0, token.venceEn - Date.now()) : 0;
+}
+
+/**
+ * Registro de diagnóstico (v0.100.0): las últimas veces que se conectó, renovó o falló la sesión de Google y por qué
+ * (`tipo`: `conexion` | `renovacion` | `fallo`; `detalle`: el motivo que informó Google). Solo se guarda en este navegador
+ * (no en Drive) y sirve para entender por qué una cuenta o un navegador pierde la sesión más seguido que otro.
+ */
+export function registroSesionGoogle() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(CLAVE_REGISTRO));
+    return Array.isArray(guardado) ? guardado : [];
+  } catch {
+    return [];
+  }
+}
+
+function registrarSesion(tipo, detalle = '') {
+  try {
+    const lista = registroSesionGoogle();
+    lista.push({ cuando: new Date().toISOString(), tipo, detalle, visible: typeof document !== 'undefined' ? document.visibilityState : '' });
+    localStorage.setItem(CLAVE_REGISTRO, JSON.stringify(lista.slice(-MAX_REGISTRO)));
+  } catch {
+    // Es solo un diagnóstico.
+  }
+}
+
 export function obtenerTokenAcceso() {
   return hayToken() ? token.accessToken : null;
 }
@@ -128,9 +159,10 @@ export function alPerderSesion(callback) {
  * Descarta el token (ej. Google respondió 401) y avisa a quien se suscribió
  * con `alPerderSesion`.
  */
-export function invalidarToken() {
+export function invalidarToken(motivo = 'rechazado') {
   const teniaToken = !!token;
   token = null;
+  if (teniaToken) registrarSesion('fallo', `El token dejó de servir (${motivo})`);
   if (teniaToken && alPerderSesionCallback) alPerderSesionCallback();
 }
 
@@ -169,6 +201,7 @@ function pedirToken({ silencioso }) {
     manejarRespuestaToken = (respuesta) => {
       terminar();
       if (respuesta.error) {
+        registrarSesion('fallo', `${silencioso ? 'Silencioso' : 'Con ventana'}: ${respuesta.error}`);
         reject(new Error(silencioso ? 'Hace falta volver a autorizar el acceso a Google.' : 'No se pudo conectar con Google.'));
         return;
       }
@@ -178,11 +211,13 @@ function pedirToken({ silencioso }) {
         respuesta,
       };
       recordarConexion();
+      registrarSesion(silencioso ? 'renovacion' : 'conexion');
       resolve();
     };
     manejarErrorToken = (error) => {
       terminar();
       const cerrado = error && error.type === 'popup_closed';
+      registrarSesion('fallo', `${silencioso ? 'Silencioso' : 'Con ventana'}: ${(error && error.type) || 'desconocido'}`);
       reject(new Error(cerrado ? 'Cerraste la ventana de Google antes de terminar.' : 'No se pudo abrir la ventana de Google.'));
     };
 

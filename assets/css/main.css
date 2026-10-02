@@ -3233,3 +3233,9 @@ kbd {
 .paso-plantilla-acciones { display: flex; gap: 0.25rem; margin-left: auto; }
 .vista-previa-plantilla { margin: 0; padding-left: 1.4rem; font-size: 0.9rem; }
 .paso-plantilla label { display: flex; flex-direction: row; align-items: center; gap: 0.3rem; font-size: 0.85rem; }
+.registro-sesion { margin: 0.5rem 0 0; padding-left: 1.2rem; font-size: 0.85rem; max-height: 14rem; overflow-y: auto; }
+
+/* Avisos y preguntas propios (v0.100.0) */
+.dialogo-aviso { max-width: 30rem; }
+.dialogo-aviso .aviso-mensaje { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.4rem 0 1rem; line-height: 1.45; }
+.dialogo-aviso .aviso-campo { width: 100%; box-sizing: border-box; margin-bottom: 1rem; }

@@ -33,7 +33,7 @@ async function pedirDrive(url, opciones = {}) {
 
   if (!respuesta.ok) {
     if (respuesta.status === 401) {
-      invalidarToken();
+      invalidarToken('Drive respondió 401');
       throw new ErrorDrive('sesion-vencida', 'La sesión de Google venció.');
     }
     if (respuesta.status === 404) throw new ErrorDrive('no-encontrado', 'No se encontró el archivo en Drive.');

@@ -4,7 +4,7 @@
 // buffer "pendiente" (IndexedDB, ver almacenamiento-local.js) que la UI nunca
 // presenta como guardado. Las vistas siguen usando solo `estado` y
 // `persistirYNotificar()`.
-import { conectar, hayToken, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion } from './google-auth.js';
+import { conectar, hayToken, msHastaVencer, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion } from './google-auth.js';
 import { buscarArchivoRemoto, leerArchivoRemoto, guardarArchivoRemoto, ErrorDrive } from './google-drive-sync.js';
 import * as almacenamientoLocal from './almacenamiento-local.js';
 import { COLECCIONES, FORMATO_ARCHIVO, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
@@ -537,6 +537,36 @@ async function reconexionSilenciosa({ ignorarEspera = false } = {}) {
   }
 }
 
+/** Renovar el token cuando le quedan menos de 15 minutos (v0.100.0), para que no venza mientras se usa la app. */
+const MARGEN_RENOVACION_MS = 15 * 60 * 1000;
+const ESPERA_RENOVACION_MS = 30 * 1000;
+let ultimaRenovacion = 0;
+
+/**
+ * Renueva en silencio la sesión de Google antes de que venza (o la recupera si ya venció). Google solo deja abrir su
+ * popup silencioso con un gesto del usuario (clic o tecla), así que se llama en cada gesto (`configurarEventos`) y,
+ * sin gesto, al volver a la pestaña: si el navegador lo bloquea no pasa nada, el token actual sigue sirviendo hasta que
+ * venza. Así, mientras el usuario usa la app la sesión se mantiene sola y el aviso de "sesión vencida" casi no aparece.
+ */
+async function renovarSiHaceFalta() {
+  if (sync.soloLectura || !sync.datosListos || reconectando || !conectadoAlgunaVez()) return;
+  if (hayToken() && msHastaVencer() > MARGEN_RENOVACION_MS) return;
+  if (navigator.onLine === false || Date.now() - ultimaRenovacion < ESPERA_RENOVACION_MS) return;
+  ultimaRenovacion = Date.now();
+  if (!hayToken()) {
+    if (await reconexionSilenciosa({ ignorarEspera: true })) await sincronizarAhora();
+    return;
+  }
+  reconectando = true;
+  try {
+    if (await esperarGoogle()) await conectar({ silencioso: true });
+  } catch {
+    // El token actual sigue valiendo hasta que venza: se reintenta en el próximo gesto.
+  } finally {
+    reconectando = false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Sincronización con Drive
 // ---------------------------------------------------------------------------
@@ -716,7 +746,7 @@ function manejarErrorSync(error) {
 export async function conectarDrive() {
   await conectar();
   if (!tieneScope('drive')) {
-    invalidarToken();
+    invalidarToken('sin permiso de Drive');
     throw new Error('Para guardar tus datos tenés que permitir el acceso a Google Drive en la ventana de autorización.');
   }
   setSync({ estado: 'conectando' });
@@ -791,9 +821,17 @@ function configurarEventos() {
   if (eventosConfigurados) return;
   eventosConfigurados = true;
   reconectarEnPrimerGesto();
+  // Cada clic o tecla es una oportunidad para renovar la sesión (ver `renovarSiHaceFalta`).
+  const alGesto = (evento) => {
+    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial')) return;
+    renovarSiHaceFalta();
+  };
+  document.addEventListener('pointerdown', alGesto, true);
+  document.addEventListener('keydown', alGesto, true);
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      renovarSiHaceFalta();
       verificar();
     } else if (sync.hayPendiente && hayToken()) {
       sincronizarAhora();
