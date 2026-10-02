@@ -26,7 +26,7 @@ import {
 } from './programador.js';
 import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
-import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar } from './google-calendar.js';
+import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar, ultimaLecturaCalendar } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { nombrarConCategoria, escaparHtml, tieneHora } from './utilidades.js';
 import { renderVistaResumen } from '../../views/resumen.view.js';
@@ -44,9 +44,10 @@ import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { configurarAtajos, abrirAyudaAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
 import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
+import { avisar, confirmar } from './avisos.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.99.0';
+const VERSION = 'v0.101.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -96,12 +97,11 @@ function renderNav() {
   Object.entries(VISTAS).forEach(([clave, vista]) => {
     const enlace = document.createElement('a');
     enlace.href = `#/${clave}`;
-    enlace.textContent =
-      clave === 'mejoras'
-        ? `${vista.etiqueta} (${estado.mejoras.filter((m) => !m.mejora_aplicada).length})`
-        : vista.etiqueta;
+    // Mejoras (v0.100.0): sin pendientes no muestra "(0)"; con pendientes muestra la cantidad y se resalta.
+    const mejorasPendientes = clave === 'mejoras' ? estado.mejoras.filter((m) => !m.mejora_aplicada).length : 0;
+    enlace.textContent = mejorasPendientes > 0 ? `${vista.etiqueta} (${mejorasPendientes})` : vista.etiqueta;
     enlace.title = tituloConTecla(vista.etiqueta.replace(/^\S+\s/, ''), teclaDeVista(clave, Object.keys(VISTAS)));
-    enlace.className = clave === actual ? 'enlace-nav activo' : 'enlace-nav';
+    enlace.className = `enlace-nav${clave === actual ? ' activo' : ''}${mejorasPendientes > 0 ? ' con-pendientes' : ''}`;
     NAV.appendChild(enlace);
   });
 }
@@ -137,7 +137,7 @@ async function conectarConAviso() {
     await conectarDrive();
     await reprogramarSiCorresponde();
   } catch (error) {
-    alert(error.message);
+    await avisar(error.message);
   }
 }
 
@@ -151,6 +151,8 @@ function actualizarCabeceraSync() {
     <strong>${ETIQUETAS_ESTADO_SYNC[s.estado] || s.estado}</strong>
     <span class="indicador-sync-detalle">Último guardado en Drive: ${formatoCorto(s.modificadoEnDrive)} · Verificado: ${formatoCorto(s.verificadoEn)}</span>
     ${s.hayPendiente ? '<span class="indicador-sync-detalle">Hay cambios que Drive todavía no confirmó.</span>' : ''}
+    ${s.estado === 'sesion-vencida' ? '<span class="indicador-sync-detalle">Se reconecta sola con tu próximo clic.</span>' : ''}
+    ${ultimaLecturaCalendar() ? `<span class="indicador-sync-detalle" title="Cuándo se leyeron por última vez tus eventos de Google Calendar (se refresca cada 5 minutos)">Calendar leído: ${formatoCorto(ultimaLecturaCalendar())}</span>` : ''}
   `;
   BOTON_SYNC.hidden = s.estado === 'sin-destino' || s.soloLectura;
   BOTON_SYNC.disabled = ['conectando', 'verificando', 'guardando'].includes(s.estado);
@@ -158,16 +160,18 @@ function actualizarCabeceraSync() {
   BOTON_REHACER.disabled = !puedeRehacer();
 
   const banners = [];
-  if (s.estado === 'sin-conexion' || s.estado === 'sesion-vencida') {
+  // v0.100.0: la sesión se renueva sola mientras se usa la app (ver `renovarSiHaceFalta`, almacenamiento.js), así que el
+  // aviso grande de "sesión vencida" solo aparece cuando de verdad hay algo esperando: cambios sin subir a Drive o tareas
+  // sin horario. Si no, alcanza con el indicador de la cabecera y el botón de sincronizar.
+  const sinHorario = estado.tareas.filter((t) => t.tarea_estado !== 'completada' && !tieneHora(t.tarea_fecha_sugerida)).length;
+  const esperaAlgo = s.hayPendiente || sinHorario > 0;
+  if (s.estado === 'sin-conexion' || (s.estado === 'sesion-vencida' && esperaAlgo)) {
     const copia = s.copiaDel ? ` Estás viendo tu copia local de la última sincronización (${formatoCorto(s.copiaDel)}).` : '';
-    const sinAgendar = ' Hasta reconectar no se asignan horarios sugeridos nuevos, para no pisar tus eventos de Calendar.';
+    const sinAgendar = sinHorario > 0 ? ` ${sinHorario === 1 ? '1 tarea espera' : `${sinHorario} tareas esperan`} su horario sugerido: hasta reconectar no se asignan horarios, para no pisar tus eventos de Calendar.` : '';
     banners.push(
       s.estado === 'sin-conexion'
         ? `<p>📴 Sin conexión con Drive.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.${sinAgendar}</p>`
-        : s.reconectaConClic
-          ? `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${copia} Mientras tanto podés seguir usando la app: los cambios quedan pendientes.${sinAgendar}
-             <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
-          : `<p>🔑 La sesión de Google venció o todavía no se abrió.${copia} Podés seguir usando la app: los cambios quedan pendientes y se suben al reconectar.${sinAgendar}
+        : `<p>🔑 Falta reconectar con Google: hacé clic en cualquier parte de la página (o en el botón) y se sincroniza solo.${s.hayPendiente ? ' Tus cambios quedan pendientes hasta entonces.' : ''}${sinAgendar}
              <button type="button" data-accion-sync="reconectar" title="Abrir la ventana de Google para volver a conectar">Reconectar Drive</button></p>`
     );
   }
@@ -256,7 +260,7 @@ document.addEventListener('click', async (evento) => {
     } else if (accion === 'mezclar-viejos') {
       await mezclarDatosViejos();
     } else if (accion === 'descartar-viejos') {
-      if (confirm('¿Descartar los datos antiguos de este navegador? No se pueden recuperar después.')) descartarDatosViejos();
+      if (await confirmar('¿Descartar los datos antiguos de este navegador? No se pueden recuperar después.', { peligro: true, textoAceptar: 'Descartar' })) descartarDatosViejos();
     } else if (accion === 'ver-avisos') {
       renderPanelAvisos(obtenerEstadoSync().avisos);
       PANEL_AVISOS.hidden = false;
@@ -266,7 +270,7 @@ document.addEventListener('click', async (evento) => {
       await descartarTodosLosAvisos();
     }
   } catch (error) {
-    alert(error.message);
+    await avisar(error.message);
   }
 });
 
@@ -460,7 +464,7 @@ async function ejecutarReprogramacionInicial() {
   // Las "inconsistentes" (sugerida después del límite tras un corrimiento en cascada) ya no se avisan acá
   // (v0.89.0): quedan siempre visibles en la sección "⚠️ Sin hueco antes del límite" de Resumen, en vez de un
   // aviso único que se puede perder. `inconsistentes.length` sigue contando para decidir si hay que persistir.
-  if (mensaje) alert(mensaje);
+  if (mensaje) await avisar(mensaje);
 }
 
 /**

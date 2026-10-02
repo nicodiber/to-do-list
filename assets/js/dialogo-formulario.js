@@ -1,3 +1,4 @@
+import { confirmar } from './avisos.js';
 // Ventana modal genérica para un formulario (editar o crear una tarea, una
 // categoría, una ubicación...). Cada llamada crea su propio <dialog> en
 // document.body: así se puede abrir uno encima de otro (por ejemplo crear una
@@ -80,8 +81,8 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
     dialogo.remove();
     alCerrar();
   };
-  const intentarCerrar = () => {
-    if (hayCambios() && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return;
+  const intentarCerrar = async () => {
+    if (hayCambios() && !await confirmar('Hay cambios sin guardar. ¿Descartarlos?', { peligro: true, textoAceptar: 'Descartar' })) return;
     cerrar();
   };
 

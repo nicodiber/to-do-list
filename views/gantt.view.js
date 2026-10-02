@@ -4,6 +4,7 @@ import { reprogramarTareaConCascada, avisoInconsistentes, asignarOrdenManual, mo
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } from '../assets/js/gantt-modelo.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 // Preferencias de UI (no datos de la app): zoom, modo y agrupación se recuerdan en este dispositivo.
 const PREFIJO = 'super-todo-list:gantt-';
@@ -183,7 +184,7 @@ export function renderVistaGantt(contenedor) {
     });
   });
   botonEliminarSeleccionGantt.addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar las ${seleccionadasGantt.size} tareas seleccionadas?`)) return;
+    if (!await confirmar(`¿Eliminar las ${seleccionadasGantt.size} tareas seleccionadas?`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.tareas.filter((t) => seleccionadasGantt.has(t.tarea_id)).forEach((tarea) => eliminarTarea(tarea, estado));
     modoSeleccionGantt = false;
     seleccionadasGantt.clear();
@@ -416,14 +417,14 @@ function dibujarFlechas(superposicion, conexiones, geometria, anchoPista, altoFi
 }
 
 /** Aviso (y no bloqueo) cuando una tarea quedó antes de que termine su previa. */
-function avisarSiQuedoAntesDeSuPrevia(tarea, agruparPor) {
+async function avisarSiQuedoAntesDeSuPrevia(tarea, agruparPor) {
   if (!tarea.tarea_dependiente) return;
   const posiciones = calcularPosiciones(estado, { hoy: hoyISO(), agruparPor });
   const propia = posiciones.get(tarea.tarea_id);
   const previa = estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente);
   const dePrevia = previa && posiciones.get(previa.tarea_id);
   if (propia && dePrevia && propia.dia < dePrevia.dia) {
-    alert(`«${tarea.tarea_nombre}» quedó antes de que termine su tarea previa «${previa.tarea_nombre}». Se guardó igual: la flecha roja del Gantt lo marca.`);
+    await avisar(`«${tarea.tarea_nombre}» quedó antes de que termine su tarea previa «${previa.tarea_nombre}». Se guardó igual: la flecha roja del Gantt lo marca.`);
   }
 }
 
@@ -526,8 +527,8 @@ function conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor,
         const inconsistentes = reprogramarTareaConCascada(tarea, conservandoHora(tarea.tarea_fecha_sugerida, nuevoDia), estado.tareas);
         await persistirYNotificar();
         const aviso = avisoInconsistentes(inconsistentes);
-        if (aviso) alert(aviso);
-        avisarSiQuedoAntesDeSuPrevia(tarea, agruparPor);
+        if (aviso) await avisar(aviso);
+        await avisarSiQuedoAntesDeSuPrevia(tarea, agruparPor);
       };
       barra.addEventListener('pointermove', mover);
       barra.addEventListener('pointerup', soltar);

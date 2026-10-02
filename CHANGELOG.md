@@ -2,6 +2,50 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.101.0] - 2026-10-01
+
+Rediseño de las tareas con repetición, enlaces entre tareas más cómodos, colores de Calendar, última lectura de Calendar y documentos para abrir la app a otros usuarios.
+
+### Cambiado
+
+- **Tareas con repetición** (`assets/js/tareas-logica.js`, `assets/js/formulario-tarea.js`; decisiones de `REDISENO.md`):
+  - **La copia nace con fecha sugerida, sin límite duro.** Al completar una tarea con repetición, la copia nace con `tarea_fecha_sugerida` = el día que le toca (antes `tarea_fecha_limite`). Ese día también se guarda en `tarea_mantenimiento_objetivo`, que no cambia cuando el agendado le mueve la hora. Las copias que ya existían no se tocan.
+  - **Repetición en día fijo**: además de «cada N días/semanas/meses desde que la cumplo», se puede elegir «el día N de cada mes» (en un mes más corto, el último día) o «todos los lunes y jueves…» (`tarea_mantenimiento_dia_fijo`).
+  - **Interruptor «📌 Día obligatorio»** (`tarea_dia_obligatorio`): la copia nace con ese día también como fecha límite, el agendado no la mueve de día (`adelantarTareasSiHayHuecoMejor` y `reordenarSugeridasPorPrioridad` la saltean) y su holgura la prioriza.
+  - **Los días hábiles mandan**: si el día calculado no es hábil, la repetición pasa al próximo día hábil («cada 1 día» con martes y jueves = cada día hábil). Sin días hábiles todo sigue igual.
+  - **Orden del agendado**: una repetición sin límite ordena por su día objetivo (límite blando) en vez de quedar al final de la cola; nunca se agenda antes de ese día ni se adelanta antes de él.
+  - **Hábitos**: sin fecha límite, el incumplimiento se mide contra el día objetivo (`fechaObjetivoMantenimiento`, `modelos.js`).
+- **Desplegables de enlaces** (Depende de, Bloquea a, desencadenante): campo para filtrar por nombre o categoría (sin importar acentos ni mayúsculas); las opciones de «Depende de» y «Bloquea a» van agrupadas por categoría y las que crearían un ciclo ya no se ocultan: aparecen deshabilitadas con el motivo.
+- **Conflicto al enlazar tareas**: la ventana explica el motivo y lista las tareas involucradas (`assets/js/conflicto-enlace.js`), cada una con un botón «✏️» que abre su edición encima, para ajustarla ahí mismo y volver a intentar.
+- **Aviso de «sin hueco antes del límite»** en el momento: al crear o editar tareas (también en edición masiva, «Completar carga» y al usar una plantilla), si alguna quedó agendada después de su fecha límite, una ventana la nombra (`assets/js/aviso-sin-hueco.js`). Antes solo se avisaba al iniciar.
+- **Semana, colores de eventos**: la API de Google devuelve la paleta *clásica* de colores de evento (`/colors`), distinta de la que muestra hoy Google Calendar; ahora los eventos con color propio usan la paleta actual (`PALETA_EVENTOS_ACTUAL`, `google-calendar.js`). Los que usan el color de su calendario no cambian.
+
+### Agregado
+
+- **Cabecera**: «Calendar leído: hoy 14:02» muestra cuándo se leyeron por última vez tus eventos de Google Calendar completos (se recuerda en este navegador).
+- **`privacidad.html` y `terminos.html`**: política de privacidad y condiciones del servicio, para la pantalla de consentimiento de Google. Falta completar el correo de contacto (marcado en ambas).
+- **`ACCESO_USUARIOS_PRUEBA.md`**: cómo dar y quitar acceso a usuarios de prueba, qué hacer ante sesiones que se pierden seguido y cómo publicar la app.
+
+## [v0.100.0] - 2026-10-01
+
+La sesión de Google se mantiene sola, los avisos viven dentro de la app y varios ajustes chicos de Tareas, Tabla, Resumen y Semana.
+
+### Cambiado
+
+- **Sesión de Google** (`assets/js/almacenamiento.js`, `assets/js/google-auth.js`): el token (dura ~1 hora y vive solo en memoria) se **renueva en silencio** cuando le quedan menos de 15 minutos, en cada clic o tecla (Google solo deja abrir su popup silencioso con un gesto del usuario) y al volver a la pestaña. Mientras se usa la app la sesión se mantiene sola. El aviso grande «Falta reconectar con Google» ahora solo aparece si hay algo esperando (cambios sin subir a Drive o tareas sin horario, con la cantidad); si no, alcanza con el indicador de la cabecera, que dice que se reconecta con el próximo clic.
+- **Avisos y preguntas propios** (`assets/js/avisos.js`: `avisar`, `confirmar`, `pedirTexto`): se reemplazaron los ~80 `alert()`, `confirm()` y `prompt()` del navegador («nicodiber.github.io dice…») por ventanas dentro de la app, apilables sobre otra ventana abierta, con Enter para aceptar y Esc para cancelar; eliminar y descartar llevan el botón principal en rojo. Incluye el aviso «Al iniciar: se reprogramó…».
+- **Duración por defecto de una tarea nueva: 15 minutos** (antes 30; las tareas existentes no cambian). Lo mismo en los pasos de plantilla.
+- **Disfrute heredado**: una tarea sin disfrute propio usa el de su categoría (`disfruteEfectivo`, `tareas-logica.js`), calculado al leer y sin guardarlo; la Tabla lo muestra atenuado como «heredado de la categoría».
+- **Resumen, «Urgentes»** incluye las tareas con fecha límite hoy **o mañana** (ya no aparecen de nuevo en «Mañana»).
+
+### Agregado
+
+- **Registro de la sesión de Google** (Configuraciones → «🔑 Sesión de Google»): las últimas 30 conexiones, renovaciones y fallos con su motivo, guardadas solo en este navegador. Sirve para investigar por qué una cuenta o navegador pierde la sesión más seguido.
+- **Tabla**: «Habilitada desde» muestra «Ahora» cuando la tarea activa ya se puede empezar.
+- **Mejoras**: sin pendientes ya no muestra «(0)»; con pendientes muestra la cantidad y el botón se resalta.
+- **Semana**: tocar el nombre de un día lleva a la Agenda, desplazada hasta ese día (amplía el rango de la Agenda si hace falta); con el fondo de clima activo aparece una leyenda de colores (temperatura en °C; para la lluvia el pronóstico da la **probabilidad** en %, no milímetros).
+- **Alta de tarea**: los campos que el usuario ya completó o cambió se resaltan.
+
 ## [v0.99.0] - 2026-10-01
 
 Ninguna tarea activa queda sin fecha y hora sugerida, el agendado respeta el orden de la Tabla, y plantillas de cadenas.

@@ -3233,3 +3233,46 @@ kbd {
 .paso-plantilla-acciones { display: flex; gap: 0.25rem; margin-left: auto; }
 .vista-previa-plantilla { margin: 0; padding-left: 1.4rem; font-size: 0.9rem; }
 .paso-plantilla label { display: flex; flex-direction: row; align-items: center; gap: 0.3rem; font-size: 0.85rem; }
+.registro-sesion { margin: 0.5rem 0 0; padding-left: 1.2rem; font-size: 0.85rem; max-height: 14rem; overflow-y: auto; }
+
+/* Avisos y preguntas propios (v0.100.0) */
+.dialogo-aviso { max-width: 30rem; }
+.dialogo-aviso .aviso-mensaje { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.4rem 0 1rem; line-height: 1.45; }
+.dialogo-aviso .aviso-campo { width: 100%; box-sizing: border-box; margin-bottom: 1rem; }
+
+/* Mejoras con notas pendientes (v0.100.0): resaltado para que llame la atención, distinto del azul de la pestaña activa. */
+.enlace-nav.con-pendientes:not(.activo) {
+  background: var(--color-fondo-alerta);
+  color: var(--color-texto-alerta);
+}
+
+/* Semana: nombre del día clicable y leyenda de colores del clima (v0.100.0) */
+.nombre-dia-clic { cursor: pointer; }
+.nombre-dia-clic:hover { text-decoration: underline; }
+.leyenda-clima { margin: 0.4rem 0 0.8rem; max-width: 28rem; }
+.leyenda-clima-barra { height: 0.6rem; border-radius: 4px; border: 1px solid var(--color-borde); }
+.leyenda-clima-marcas { position: relative; height: 1.2rem; font-size: 0.75rem; color: var(--color-texto-suave); }
+.leyenda-clima-marcas span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.leyenda-clima-marcas span:first-child { transform: none; }
+.leyenda-clima-marcas span:last-child { transform: translateX(-100%); }
+.columna-dia.dia-enfocado { outline: 2px solid var(--color-primario); outline-offset: 2px; border-radius: var(--radio); }
+
+/* Alta de tarea: campos que el usuario ya completó (v0.100.0) */
+.formulario-tarea .campo.campo-completado input:not([type="checkbox"]),
+.formulario-tarea .campo.campo-completado select,
+.formulario-tarea .campo.campo-completado textarea {
+  border-color: var(--color-primario);
+  background: var(--color-fondo-info);
+}
+
+/* Repetición: cada N desde que se cumple / día del mes / días de la semana (v0.101.0) */
+.formulario-tarea .modo-repeticion { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+.formulario-tarea .opcion-repeticion { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+.formulario-tarea .opcion-repeticion input[type="radio"] { width: 1rem; height: 1rem; margin: 0; flex: none; }
+.formulario-tarea .opcion-repeticion .chips-dias { display: inline-flex; }
+
+/* Aviso con acciones (v0.101.0) */
+.dialogo-aviso .aviso-acciones { display: flex; flex-direction: column; align-items: stretch; gap: 0.4rem; margin-bottom: 1rem; }
+.dialogo-aviso .aviso-acciones button { text-align: left; }
+/* Filtro de los desplegables de enlaces (v0.101.0) */
+.formulario-tarea .filtro-enlace { font-size: 0.85rem; }

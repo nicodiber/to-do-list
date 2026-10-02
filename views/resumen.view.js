@@ -36,6 +36,7 @@ import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapami
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
@@ -79,7 +80,7 @@ export function renderVistaResumen(contenedor) {
   // Una bloqueada con límite vencido/hoy también es urgente: se muestra ahí (de solo lectura, no se puede
   // completar todavía) en vez de perderse en "Bloqueadas por otras tareas". Mismo criterio para "Hoy"/"Mañana".
   const bloqueadasHoy = bloqueadasTodas
-    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite))
+    .filter((t) => esVencida(t.tarea_fecha_limite) || esHoy(t.tarea_fecha_limite) || diaLocal(t.tarea_fecha_limite) === manana)
     .sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
   const idsBloqueadasHoy = new Set(bloqueadasHoy.map((t) => t.tarea_id));
   const bloqueadasHoyNueva = bloqueadasTodas
@@ -98,7 +99,7 @@ export function renderVistaResumen(contenedor) {
   const vencidas = ordenarConCadenas(disponibles.filter((t) => esVencida(t.tarea_fecha_limite)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias)));
   const idsVencidas = new Set(vencidas.map((t) => t.tarea_id));
   const urgentes = ordenarConCadenas(
-    disponibles.filter((t) => !idsVencidas.has(t.tarea_id) && esHoy(t.tarea_fecha_limite)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
+    disponibles.filter((t) => !idsVencidas.has(t.tarea_id) && (esHoy(t.tarea_fecha_limite) || diaLocal(t.tarea_fecha_limite) === manana)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
   );
   const idsUrgentes = new Set([...idsVencidas, ...urgentes.map((t) => t.tarea_id)]);
   const hoyNueva = ordenarConCadenas(
@@ -141,7 +142,7 @@ export function renderVistaResumen(contenedor) {
         : ''
     }
     <section>
-      <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy">🚨 Urgentes (${urgentes.length + bloqueadasHoy.length})</h3>
+      <h3 title="Tareas accionables (y bloqueadas de solo lectura) con fecha límite hoy o mañana">🚨 Urgentes (${urgentes.length + bloqueadasHoy.length})</h3>
       <ul id="lista-urgentes" class="lista-tareas"></ul>
     </section>
     ${
@@ -232,7 +233,7 @@ export function renderVistaResumen(contenedor) {
 
   const listaUrgentes = contenedor.querySelector('#lista-urgentes');
   if (urgentes.length === 0 && bloqueadasHoy.length === 0) {
-    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy 🎉</p>';
+    listaUrgentes.innerHTML = '<p class="mensaje-vacio">No tenés tareas con fecha límite hoy ni mañana 🎉</p>';
   } else {
     urgentes.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea)));
     bloqueadasHoy.forEach((tarea) => listaUrgentes.appendChild(renderItem(tarea, { soloInfo: true })));
@@ -371,7 +372,7 @@ function renderCompletada(tarea) {
     const { copiaConservada } = reabrirTarea(tarea, estado);
     await persistirYNotificar();
     if (copiaConservada) {
-      alert(`Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
+      await avisar(`Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
     }
   });
   return li;
@@ -501,7 +502,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       const inconsistentes = reprogramarTareaConCascada(tarea, fechaISO, estado.tareas);
       await persistirYNotificar();
       const aviso = avisoInconsistentes(inconsistentes);
-      if (aviso) alert(aviso);
+      if (aviso) await avisar(aviso);
     };
     if (botonPosponer) {
       botonPosponer.addEventListener('click', () => {
@@ -528,7 +529,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
             diasHabiles: tarea.tarea_dias_habiles || [],
           });
           if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) {
-            alert(
+            await avisar(
               diaLimite
                 ? 'No hay hueco libre antes de tu fecha límite. Elegí vos la fecha.'
                 : 'No encontré un hueco libre en los próximos días con esa franja horaria. Elegí vos la fecha.'
@@ -538,7 +539,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
           }
           await reprogramar(hueco);
         } catch (error) {
-          alert(error.message);
+          await avisar(error.message);
         } finally {
           botonHueco.disabled = false;
         }
@@ -598,7 +599,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     });
 
     contenedorCierre.querySelector('[data-accion="eliminar-tarea"]').addEventListener('click', async () => {
-      if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;
+      if (!await confirmar(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`, { peligro: true, textoAceptar: 'Eliminar' })) return;
       eliminarTarea(tarea, estado);
       await persistirYNotificar();
     });
@@ -610,7 +611,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
         const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
         await persistirYNotificar();
         const aviso = avisoInconsistentes(inconsistentes);
-        if (aviso) alert(aviso);
+        if (aviso) await avisar(aviso);
       });
     });
   });

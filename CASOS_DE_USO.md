@@ -249,6 +249,21 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ---
 
+### A13. Crear una tarea con repetición (v0.101.0)
+
+- **Objetivo**: que una tarea que se repite (un hábito, un pago mensual, una limpieza semanal) se renueve sola con la regla correcta.
+- **Disparador**: el usuario crea o edita una tarea que se repite.
+- **Pasos**: en el formulario, sección «🔁 Repetición» → «Es tarea con repetición» → elegir una de tres formas: «cada N días/semanas/meses desde que la cumplo», «el día N de cada mes» o «todos los [días de la semana]»; opcionalmente «📌 Día obligatorio», «Repetir hasta» y días hábiles.
+- **Flujo usuario/sistema**:
+  1. Usuario activa la repetición y elige la regla. Si elige días de la semana sin marcar ninguno, el sistema pide marcar al menos uno.
+  2. Al cumplir la tarea, sistema calcula el próximo día (si no es un día hábil de la tarea, pasa al próximo hábil) y crea la copia con esa fecha como **fecha sugerida**, sin fecha límite.
+  3. Con «Día obligatorio» la copia además tiene ese día como fecha límite, el agendado no la mueve de día y, si ese día no hay hueco, aparece en «Sin hueco antes del límite».
+- **Vistas/funciones**: `assets/js/formulario-tarea.js`, `assets/js/tareas-logica.js` (`calcularProximaRepeticion`, `completarTarea`, `textoRepeticion`), `assets/js/programador.js`.
+- **Resultado**: una copia pendiente con el día que le toca, agendada ese día (o después, nunca antes).
+- **Fricciones**: las copias creadas antes de la v0.101.0 conservan su fecha límite; el cambio vale para las nuevas.
+
+---
+
 ## Bloque B — Planificación de objetivos
 
 ### B1. Crear y seguir una Meta
@@ -372,7 +387,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   2. Al volver la conexión (o al reconectar), sistema mezcla y sube lo pendiente.
 - **Vistas/funciones**: `assets/js/almacenamiento.js`, `assets/js/sincronizacion.js`, `assets/js/almacenamiento-local.js`, `assets/js/google-auth.js`, `assets/js/google-drive-sync.js`, cabecera y pantalla inicial en `assets/js/app.js`.
 - **Resultado**: los datos viven en un único archivo del Drive del usuario; nada se pierde en silencio (buffer local hasta confirmar + avisos de conflicto). `localStorage` no guarda datos de tareas, solo preferencias.
-- **Fricciones**: el token de Google no se persiste (dura ~1 hora): al abrir la app el sistema intenta reconectar sin popup; como el navegador suele bloquearlo (no hay un clic todavía), la cabecera avisa "hacé clic en cualquier parte de la página" y el primer clic reconecta y sincroniza solo (también existe el botón "Reconectar Drive"). Si abrís la app en dos pestañas, la segunda queda en solo lectura. Si nunca se validó "En producción" la app de Google, el consentimiento puede caducar a los ~7 días.
+- **Fricciones**: el token de Google no se persiste (dura ~1 hora). Desde la v0.100.0 se **renueva solo** mientras se usa la app (cada clic o tecla es una oportunidad; ver proceso 37 de `PROCESOS_AUTOMATICOS.md`) y el aviso grande de reconexión solo aparece si hay cambios sin subir o tareas sin horario; Configuraciones → «Sesión de Google» guarda un registro de conexiones y fallos. Al abrir la app el sistema intenta reconectar sin popup; como el navegador suele bloquearlo (no hay un clic todavía), la cabecera avisa "hacé clic en cualquier parte de la página" y el primer clic reconecta y sincroniza solo (también existe el botón "Reconectar Drive"). Si abrís la app en dos pestañas, la segunda queda en solo lectura. Si nunca se validó "En producción" la app de Google, el consentimiento puede caducar a los ~7 días.
 
 ### D3. Conectar y usar Google Calendar
 

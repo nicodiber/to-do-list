@@ -7,6 +7,9 @@ import { htmlFormularioTarea, conectarFormularioTarea, leerFormularioTarea, apli
 import { aplicarEnlace } from './dependencias.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
 import { programarParaHoy, programarTareasSinFecha } from './programador.js';
+import { avisar } from './avisos.js';
+import { avisarConflictoEnlace } from './conflicto-enlace.js';
+import { avisarSiSinHueco } from './aviso-sin-hueco.js';
 
 let dialogo = null;
 
@@ -70,30 +73,31 @@ async function actualizar(evento, id) {
   evento.preventDefault();
   const leido = leerFormularioTarea(evento.currentTarget);
   if (!leido.campos.tarea_nombre) {
-    alert('La tarea necesita un nombre.');
+    await avisar('La tarea necesita un nombre.');
     return;
   }
   const tarea = estado.tareas.find((t) => t.tarea_id === id);
   if (!tarea) {
-    alert('Esta tarea ya no existe (se eliminó mientras la completabas).');
+    await avisar('Esta tarea ya no existe (se eliminó mientras la completabas).');
     renderLista();
     return;
   }
   const validacion = validarFormularioTarea(leido, tarea.tarea_id);
   if (!validacion.ok) {
-    alert(validacion.motivo);
+    await avisarConflictoEnlace(validacion);
     return;
   }
   const eraUrgente = !!tarea.tarea_urgente;
   aplicarCamposATarea(tarea, leido.campos);
   aplicarEnlace(tarea.tarea_id, { previaId: leido.previaId, proximaId: leido.proximaId }, estado.tareas);
-  ofrecerMarcarCadenaMantenimiento(tarea, estado.tareas);
+  await ofrecerMarcarCadenaMantenimiento(tarea, estado.tareas);
   // Mismo criterio que abrirEdicionTarea (modal-tarea.js): si pasó a urgente ahora, se agenda para hoy; si
   // no, programarTareasSinFecha es quien le asigna un hueco real (v0.95.0 — antes, completar una tarea de
   // solo-nombre acá no agendaba nada, había que esperar al próximo refresco automático).
   if (tarea.tarea_urgente && !eraUrgente) await programarParaHoy(tarea, estado);
-  await programarTareasSinFecha(estado);
+  const resultadoAgendado = await programarTareasSinFecha(estado);
   await persistirYNotificar();
+  await avisarSiSinHueco(resultadoAgendado);
   renderLista();
 }
 

@@ -15,6 +15,7 @@ import {
   intercambiarAdyacentes,
   intercambiarCadena,
   motivoBloqueoOrdenManual,
+  textoRepeticion,
 } from '../assets/js/tareas-logica.js';
 import { nombreConCategoria } from '../assets/js/formulario-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
@@ -25,6 +26,7 @@ import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { construirPromptPrioridades, parsearRespuestaPrioridades } from '../assets/js/ia-conectable.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 const ESTADOS_SELECCIONABLES = ['pendiente', 'completada'];
 const ETIQUETAS_ESTADO_SELECCIONABLE = { pendiente: 'Pendiente', completada: 'Completada' };
@@ -163,7 +165,7 @@ export function renderVistaTareas(contenedor) {
     });
   });
   botonEliminarSeleccion.addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar las ${seleccionadas.size} tareas seleccionadas?`)) return;
+    if (!await confirmar(`¿Eliminar las ${seleccionadas.size} tareas seleccionadas?`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.tareas.filter((t) => seleccionadas.has(t.tarea_id)).forEach((tarea) => eliminarTarea(tarea, estado));
     modoSeleccion = false;
     seleccionadas.clear();
@@ -284,8 +286,8 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
         ${tarea.tarea_duracion_min ? `<span class="etiqueta-fecha">${tarea.tarea_duracion_min} min</span>` : ''}
         ${tarea.tarea_costo_estimado ? `<span class="etiqueta-fecha">💰 $${tarea.tarea_costo_estimado}</span>` : ''}
         ${
-          tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_intervalo
-            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 cada ${tarea.tarea_mantenimiento_intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[tarea.tarea_mantenimiento_intervalo.unidad]}</span>`
+          tarea.tarea_mantenimiento && textoRepeticion(tarea)
+            ? `<span class="etiqueta-fecha etiqueta-mantenimiento">🔁 ${textoRepeticion(tarea)}${tarea.tarea_dia_obligatorio ? ' 📌' : ''}</span>`
             : ''
         }
         ${
@@ -407,7 +409,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
     const { copiaConservada } = reabrirTarea(tarea, estado);
     await persistirYNotificar();
     if (copiaConservada) {
-      alert(
+      await avisar(
         `Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`
       );
     }
@@ -428,7 +430,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
         contenedorPanel.innerHTML = '';
         await persistirYNotificar();
         const aviso = avisoInconsistentes(inconsistentes);
-        if (aviso) alert(aviso);
+        if (aviso) await avisar(aviso);
       },
       onCancelar: () => {
         contenedorPanel.hidden = true;
@@ -453,7 +455,7 @@ function renderTarea(tarea, indice = -1, activas = null, actualizarBarraSeleccio
 
   li.querySelector('[data-accion="guardar-plantilla"]')?.addEventListener('click', () => abrirGuardarCadenaComoPlantilla(tarea));
   li.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
-    if (!confirm(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`)) return;
+    if (!await confirmar(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     eliminarTarea(tarea, estado);
     await persistirYNotificar();
   });
@@ -487,7 +489,7 @@ function crearPanelIAPrioridades() {
     try {
       await navigator.clipboard.writeText(prompt);
     } catch {
-      alert('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
+      await avisar('No se pudo copiar automáticamente. Seleccioná el texto del prompt manualmente.');
     }
   });
 
@@ -537,7 +539,7 @@ function crearPanelIAPrioridades() {
       }
       await persistirYNotificar();
       const aviso = avisoInconsistentes(inconsistentes);
-      if (aviso) alert(aviso);
+      if (aviso) await avisar(aviso);
     });
   });
 

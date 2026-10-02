@@ -1,4 +1,4 @@
-import { generarId, ahoraISO, capitalizarPrimera } from './utilidades.js';
+import { generarId, ahoraISO, capitalizarPrimera, diaLocal } from './utilidades.js';
 
 export const ESTADOS_TAREA = ['bloqueada', 'pendiente', 'completada'];
 
@@ -56,7 +56,7 @@ export function crearPersona({
  */
 export function crearPasoPlantilla({
   paso_nombre,
-  paso_duracion_min = 30,
+  paso_duracion_min = 15,
   paso_descripcion = '',
   paso_dias_antes = 0,
   paso_dias_habiles = [],
@@ -125,6 +125,17 @@ export const ETIQUETAS_UNIDAD_MANTENIMIENTO = {
   meses: 'mes(es)',
 };
 
+/**
+ * Fecha a la que "le toca" una tarea de mantenimiento (v0.101.0): su fecha límite si tiene; si no, el objetivo de la
+ * repetición (`tarea_mantenimiento_objetivo`: el día calculado al crear la copia, que no se mueve cuando el agendado
+ * le cambia la hora) y, como último recurso, el día de su fecha sugerida. `''` si no hay ninguna.
+ */
+export function fechaObjetivoMantenimiento(tarea) {
+  if (tarea.tarea_fecha_limite) return diaLocal(tarea.tarea_fecha_limite);
+  if (tarea.tarea_mantenimiento_objetivo) return tarea.tarea_mantenimiento_objetivo;
+  return tarea.tarea_fecha_sugerida ? diaLocal(tarea.tarea_fecha_sugerida) : '';
+}
+
 export function crearTarea({
   tarea_nombre,
   categoria_id = null,
@@ -135,8 +146,11 @@ export function crearTarea({
   tarea_urgente = false,
   tarea_mantenimiento = false,
   tarea_mantenimiento_intervalo = null,
+  tarea_mantenimiento_dia_fijo = null,
+  tarea_mantenimiento_objetivo = '',
+  tarea_dia_obligatorio = false,
   tarea_dias_habiles = [],
-  tarea_duracion_min = 30,
+  tarea_duracion_min = 15,
   tarea_descripcion = '',
   tarea_dependiente = null,
   ubicacion_id = null,
@@ -168,6 +182,9 @@ export function crearTarea({
     tarea_urgente: !!tarea_urgente,
     tarea_mantenimiento,
     tarea_mantenimiento_intervalo,
+    tarea_mantenimiento_dia_fijo,
+    tarea_mantenimiento_objetivo,
+    tarea_dia_obligatorio: !!tarea_dia_obligatorio,
     tarea_dias_habiles,
     tarea_duracion_min,
     tarea_descripcion,
@@ -217,7 +234,7 @@ export function crearCumplimiento({ tarea, fecha }) {
     cumplimiento_tarea_nombre: tarea.tarea_nombre,
     categoria_id: tarea.categoria_id || null,
     cumplimiento_fecha: fecha,
-    cumplimiento_fecha_limite: tarea.tarea_fecha_limite || '',
+    cumplimiento_fecha_limite: tarea.tarea_mantenimiento ? fechaObjetivoMantenimiento(tarea) : tarea.tarea_fecha_limite || '',
     cumplimiento_mantenimiento: !!tarea.tarea_mantenimiento,
     // Cada cuánto se repetía y qué días se podía hacer al cumplirla: hacen falta para saber, más tarde,
     // si un día sin registro fue un incumplimiento (hábito diario) o simplemente no tocaba.

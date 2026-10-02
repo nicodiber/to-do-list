@@ -150,6 +150,16 @@
         "tarea_tipo": { "type": "string" },
         "tarea_repetir_hasta": { "type": "string" },
         "tarea_repetir_hasta_tarea": { "type": ["string", "null"] },
+        "tarea_mantenimiento_dia_fijo": {
+          "type": ["object", "null"],
+          "properties": {
+            "tipo": { "type": "string", "enum": ["mes", "semana"] },
+            "dia": { "type": "integer", "minimum": 1, "maximum": 31 },
+            "dias": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } }
+          }
+        },
+        "tarea_mantenimiento_objetivo": { "type": "string" },
+        "tarea_dia_obligatorio": { "type": "boolean" },
         "tarea_origen": {
           "type": ["object", "null"],
           "properties": {

@@ -1,6 +1,7 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { escaparHtml, nombrarConCategoria } from './utilidades.js';
+import { avisar } from './avisos.js';
 
 function formatoUTCGoogleCalendar(fecha) {
   return fecha.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -55,10 +56,10 @@ export function ofrecerExportarACalendar(tarea) {
     titulo: '📅 Guardar en Google Calendar',
     textoGuardar: '📅 Abrir en Calendar',
     cuerpoHtml: `<p class="ayuda ayuda-formulario">¿Abrir ${escaparHtml(nombrarConCategoria(tarea, estado.categorias))} en Google Calendar para guardarla como registro histórico? Se abre una pestaña con el evento ya cargado y lo guardás vos.</p>`,
-    alGuardar: () => {
+    alGuardar: async () => {
       const ventana = window.open(construirUrlExportarGoogleCalendar(tarea), '_blank');
       if (!ventana) {
-        alert('El navegador bloqueó la pestaña nueva. Permití las ventanas emergentes para este sitio (ícono en la barra de direcciones) y volvé a intentarlo.');
+        await avisar('El navegador bloqueó la pestaña nueva. Permití las ventanas emergentes para este sitio (ícono en la barra de direcciones) y volvé a intentarlo.');
         return false;
       }
       ventana.opener = null;

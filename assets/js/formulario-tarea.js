@@ -7,15 +7,16 @@ import { UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelo
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora, htmlInterruptor } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
-import { limitarFechaSugeridaALimite } from './tareas-logica.js';
+import { limitarFechaSugeridaALimite, textoRepeticion } from './tareas-logica.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDialogoPersona } from './formularios-entidades.js';
 
 import { activarMayusculaInicial, conectarCrearNueva, CREAR_NUEVA } from './dialogo-formulario.js';
+import { confirmar } from './avisos.js';
 
 export { firmaFormulario } from './dialogo-formulario.js';
 
 export function htmlOpcionesDisfrute(seleccionado = null) {
-  const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Sin definir</option>`];
+  const opciones = [`<option value="" ${seleccionado == null ? 'selected' : ''}>Sin definir (usa el de la categoría)</option>`];
   for (let nivel = 1; nivel <= 5; nivel += 1) {
     opciones.push(`<option value="${nivel}" ${nivel === seleccionado ? 'selected' : ''}>${'⭐'.repeat(nivel)} (${nivel})</option>`);
   }
@@ -61,13 +62,13 @@ export function htmlOpcionesPersona(seleccionada = '') {
  * Días hábiles como fichas redondas (L M X J V S D, la semana empieza el lunes). Siguen siendo casillas
  * con el mismo `name` y `value` (índice del día: 0 = domingo), pero se ven y se tocan como botones.
  */
-export function htmlDiasHabiles(seleccionados = []) {
+export function htmlDiasHabiles(seleccionados = [], nombre = 'tarea_dias_habiles') {
   const letras = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
   return `<span class="chips-dias">${[1, 2, 3, 4, 5, 6, 0]
     .map(
       (indice) => `
       <label class="chip-dia" title="${DIAS_SEMANA[indice]}">
-        <input type="checkbox" name="tarea_dias_habiles" value="${indice}" ${seleccionados.includes(indice) ? 'checked' : ''} aria-label="${DIAS_SEMANA[indice]}" />
+        <input type="checkbox" name="${nombre}" value="${indice}" ${seleccionados.includes(indice) ? 'checked' : ''} aria-label="${DIAS_SEMANA[indice]}" />
         <span aria-hidden="true">${letras[indice]}</span>
       </label>`
     )
@@ -141,24 +142,40 @@ function htmlItemChecklist(item = { texto: '', hecho: false }) {
     </li>`;
 }
 
+function htmlOpcionEnlace(o, actual, textoOcupada) {
+  const completada = o.tarea.tarea_estado === 'completada' ? ' (completada)' : '';
+  const ocupada = o.ocupadaPor ? ` (${textoOcupada} «${escaparHtml(nombreConCategoria(o.ocupadaPor))}»: se inserta en medio)` : '';
+  const motivo = o.deshabilitada ? ` — no disponible: ${escaparHtml(o.deshabilitada)}` : '';
+  return `<option value="${o.tarea.tarea_id}" ${actual && o.tarea.tarea_id === actual.tarea_id ? 'selected' : ''} ${o.deshabilitada ? 'disabled' : ''}>${escaparHtml(nombreConCategoria(o.tarea))}${ocupada}${completada}${motivo}</option>`;
+}
+
+/**
+ * Opciones de "Depende de" / "Bloquea a" (v0.101.0): agrupadas por categoría (`<optgroup>`, ordenadas por su camino) y,
+ * dentro de cada una, por nombre. Las que crearían un ciclo van deshabilitadas con el motivo en vez de ocultarse.
+ */
 function htmlOpcionesEnlace(opciones, actual, textoOcupada, sinValor) {
   // La tarea actualmente enlazada siempre debe figurar, aunque ya esté completada.
   const lista = actual && !opciones.some((o) => o.tarea.tarea_id === actual.tarea_id) ? [{ tarea: actual, ocupadaPor: null }, ...opciones] : opciones;
-  return `
-    <option value="">${sinValor}</option>
-    ${lista
-      .map(
-        (o) =>
-          `<option value="${o.tarea.tarea_id}" ${actual && o.tarea.tarea_id === actual.tarea_id ? 'selected' : ''}>${escaparHtml(nombreConCategoria(o.tarea))}${
-            o.ocupadaPor ? ` (${textoOcupada} «${escaparHtml(nombreConCategoria(o.ocupadaPor))}»: se inserta en medio)` : ''
-          }${o.tarea.tarea_estado === 'completada' ? ' (completada)' : ''}</option>`
-      )
-      .join('')}`;
+  const grupos = new Map();
+  lista.forEach((o) => {
+    const categoria = estado.categorias.find((c) => c.categoria_id === o.tarea.categoria_id);
+    const clave = categoria ? caminoCategoria(categoria, estado.categorias) : 'Sin categoría';
+    grupos.set(clave, [...(grupos.get(clave) || []), o]);
+  });
+  const html = [...grupos.entries()]
+    .sort(([a], [b]) => (a === 'Sin categoría') - (b === 'Sin categoría') || a.localeCompare(b, 'es'))
+    .map(([clave, opcionesGrupo]) => {
+      const ordenadas = opcionesGrupo.slice().sort((x, y) => x.tarea.tarea_nombre.localeCompare(y.tarea.tarea_nombre, 'es'));
+      return `<optgroup label="${escaparHtml(clave)}">${ordenadas.map((o) => htmlOpcionEnlace(o, actual, textoOcupada)).join('')}</optgroup>`;
+    })
+    .join('');
+  return `<option value="">${sinValor}</option>${html}`;
 }
 
 function htmlSelectEnlace(nombre, etiqueta, opciones, actual, textoOcupada, sinValor) {
   return `
     <label class="campo ancho-completo" title="Una tarea puede tener una sola previa y una sola próxima"><span class="campo-titulo">${etiqueta}</span>
+      <input type="search" class="filtro-enlace" data-filtro-de="${nombre}" placeholder="🔎 Filtrar por nombre o categoría" aria-label="Filtrar las tareas de la lista" autocomplete="off" />
       <select name="${nombre}">${htmlOpcionesEnlace(opciones, actual, textoOcupada, sinValor)}</select>
     </label>`;
 }
@@ -173,6 +190,39 @@ export function regenerarOpcionesEnlace(formulario, referencia = { tarea_id: '__
   const selectProxima = formulario.querySelector('[name="tarea_proxima"]');
   if (selectPrevia) selectPrevia.innerHTML = htmlOpcionesEnlace(opcionesPrevia(referencia, estado.tareas), null, 'ya bloquea a', 'Sin tarea previa');
   if (selectProxima) selectProxima.innerHTML = htmlOpcionesEnlace(opcionesProxima(referencia, estado.tareas), null, 'ya depende de', 'Sin tarea próxima');
+  [selectPrevia, selectProxima].forEach((select) => select && select.dispatchEvent(new Event('opciones-regeneradas')));
+}
+
+const sinAcentos = (texto) => String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/**
+ * Conecta el campo de búsqueda de un desplegable de tareas (v0.101.0): al escribir, deja solo las opciones que contienen
+ * todas las palabras (sin importar acentos ni mayúsculas) en el nombre o la categoría. Siempre conserva la opción vacía
+ * y la que está elegida. Guarda una copia de las opciones y la rehace si el desplegable se regenera.
+ */
+function conectarFiltroDeEnlaces(select, campo) {
+  let original = [...select.children].map((n) => n.cloneNode(true));
+  const aplicar = () => {
+    const palabras = sinAcentos(campo.value).split(/\s+/).filter(Boolean);
+    const elegida = select.value;
+    const coincide = (opcion) => !opcion.value || opcion.value === elegida || palabras.every((p) => sinAcentos(opcion.textContent).includes(p));
+    select.replaceChildren();
+    original.forEach((nodo) => {
+      if (nodo.tagName === 'OPTGROUP') {
+        const grupo = nodo.cloneNode(false);
+        [...nodo.children].filter(coincide).forEach((o) => grupo.appendChild(o.cloneNode(true)));
+        if (grupo.children.length > 0) select.appendChild(grupo);
+      } else if (coincide(nodo)) {
+        select.appendChild(nodo.cloneNode(true));
+      }
+    });
+    select.value = elegida;
+  };
+  campo.addEventListener('input', aplicar);
+  select.addEventListener('opciones-regeneradas', () => {
+    original = [...select.children].map((n) => n.cloneNode(true));
+    campo.value = '';
+  });
 }
 
 /**
@@ -191,6 +241,8 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
   const puedeTenerDesencadenante = !t.tarea_dependiente || t.tarea_dependiente === t.tarea_desencadenante;
   const checklist = t.tarea_checklist || [];
   const intervalo = t.tarea_mantenimiento_intervalo;
+  const diaFijo = t.tarea_mantenimiento_dia_fijo;
+  const modoRepeticion = diaFijo ? diaFijo.tipo : 'intervalo';
 
   return `
     <div class="fila-nombre-tarea">
@@ -217,7 +269,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       ${htmlParFechaHora('tarea_fecha_inicio_habilitada', enAlta ? '' : t.tarea_fecha_inicio_habilitada, '🚦 Habilitada desde', 'Desde cuándo se puede empezar: antes de esa fecha la tarea figura como todavía no disponible')}
       ${htmlParFechaHora('tarea_fecha_sugerida', t.tarea_fecha_sugerida, '📅 Sugerida', 'Cuándo conviene hacerla; con hora es un horario concreto')}
       ${htmlParFechaHora('tarea_fecha_limite', t.tarea_fecha_limite, '⏳ Límite', 'Fecha en la que tiene que estar hecha sí o sí')}
-      <label class="campo" title="Cuánto tarda, en minutos (por defecto 30)"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 30}" min="0" step="15" /></label>
+      <label class="campo" title="Cuánto tarda, en minutos (por defecto 15)"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 15}" min="0" step="15" /></label>
       <div class="campo ancho-completo" title="Los días de la semana en que se puede hacer; sin marcar, cualquier día"><span class="campo-titulo">🗓️ Días hábiles (sin marcar = cualquier día)</span>${htmlDiasHabiles(t.tarea_dias_habiles || [])}</div>
     </fieldset>
 
@@ -237,19 +289,33 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
     <fieldset class="seccion-form">
       <legend>🔁 Repetición</legend>
       <div class="ancho-completo">${htmlInterruptor('tarea_mantenimiento', t.tarea_mantenimiento, '🔁 Es tarea con repetición (se renueva sola)', 'title="Al cumplirla se crea sola la próxima repetición"')}</div>
-      <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
-        cada
-        <input type="number" name="mantenimiento_cantidad" value="${intervalo ? intervalo.cantidad : 1}" min="1" style="width: 4.5rem" aria-label="Cantidad" />
-        <select name="mantenimiento_unidad" aria-label="Unidad">
-          ${UNIDADES_MANTENIMIENTO.map((u) => `<option value="${u}" ${intervalo && intervalo.unidad === u ? 'selected' : ''}>${ETIQUETAS_UNIDAD_MANTENIMIENTO[u]}</option>`).join('')}
-        </select>
+      <span class="campos-mantenimiento ancho-completo modo-repeticion" ${t.tarea_mantenimiento ? '' : 'hidden'}>
+        <label class="opcion-repeticion" title="La próxima repetición cuenta desde el día en que cumplís esta"><input type="radio" name="mantenimiento_modo" value="intervalo" ${modoRepeticion === 'intervalo' ? 'checked' : ''} />
+          cada
+          <input type="number" name="mantenimiento_cantidad" value="${intervalo ? intervalo.cantidad : 1}" min="1" style="width: 4.5rem" aria-label="Cantidad" />
+          <select name="mantenimiento_unidad" aria-label="Unidad">
+            ${UNIDADES_MANTENIMIENTO.map((u) => `<option value="${u}" ${intervalo && intervalo.unidad === u ? 'selected' : ''}>${ETIQUETAS_UNIDAD_MANTENIMIENTO[u]}</option>`).join('')}
+          </select>
+          desde que la cumplo
+        </label>
+        <label class="opcion-repeticion" title="Cae siempre el mismo día del mes (si el mes es más corto, el último día)"><input type="radio" name="mantenimiento_modo" value="mes" ${modoRepeticion === 'mes' ? 'checked' : ''} />
+          el día
+          <input type="number" name="mantenimiento_dia_mes" value="${diaFijo && diaFijo.tipo === 'mes' ? diaFijo.dia : 1}" min="1" max="31" style="width: 4rem" aria-label="Día del mes" />
+          de cada mes
+        </label>
+        <label class="opcion-repeticion" title="Cae siempre en esos días de la semana"><input type="radio" name="mantenimiento_modo" value="semana" ${modoRepeticion === 'semana' ? 'checked' : ''} />
+          todos los ${htmlDiasHabiles(diaFijo && diaFijo.tipo === 'semana' ? diaFijo.dias || [] : [], 'mantenimiento_dias_semana')}
+        </label>
+        <span class="ayuda">Si el día que sale no es uno de los «días hábiles» de arriba, pasa al próximo día hábil.</span>
       </span>
+      <div class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>${htmlInterruptor('tarea_dia_obligatorio', t.tarea_dia_obligatorio, '📌 Día obligatorio', 'title="Esa repetición tiene que ser ese día: es también su fecha límite, no se pasa a otro día y se prioriza sobre las tareas sin fecha"')}</div>
       <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
         <label class="campo" title="Después de esa fecha la tarea deja de repetirse (un hábito temporal)"><span class="campo-titulo">⏳ Repetir hasta (fecha)</span><input type="date" name="tarea_repetir_hasta" value="${escaparHtml(t.tarea_repetir_hasta || '')}" /></label>
         <label class="campo" title="Deja de repetirse cuando esa tarea se cumple o llega su fecha límite (por ejemplo una fecha de entrega)"><span class="campo-titulo">🎯 …o hasta que se cumpla o venza esta tarea</span><select name="tarea_repetir_hasta_tarea">${htmlOpcionesRepetirHastaTarea(tarea, t.tarea_repetir_hasta_tarea || '')}</select></label>
       </span>
       <span class="campos-mantenimiento ancho-completo" ${t.tarea_mantenimiento ? '' : 'hidden'}>
         <label class="campo" title="Cierra un anillo: al cumplir esta tarea, su copia queda bloqueada por esa otra tarea"><span class="campo-titulo">⚡ Se activa cuando se cumple (desencadenante)</span>
+          <input type="search" class="filtro-enlace" data-filtro-de="tarea_desencadenante" placeholder="🔎 Filtrar por nombre o categoría" aria-label="Filtrar las tareas de la lista" autocomplete="off" />
           <select name="tarea_desencadenante" ${puedeTenerDesencadenante ? '' : 'disabled'}>
             <option value="">Ninguna</option>
             ${estado.tareas
@@ -291,7 +357,27 @@ function htmlEstadoCompletada(tarea) {
  * agregar/quitar pasos del checklist y (solo en el alta) precargar los demás
  * campos cuando el nombre coincide exacto con una tarea ya cargada.
  */
+/**
+ * Alta de tarea (v0.100.0): resalta (clase `campo-completado`) cada campo que el usuario ya completó o cambió respecto de
+ * como abrió el formulario — lo precargado (Duplicar, Crearle previa/posterior) o el valor por defecto no cuentan.
+ */
+function resaltarCamposCompletados(formulario) {
+  const controles = [...formulario.querySelectorAll('.campo input:not([type="hidden"]), .campo select, .campo textarea')];
+  const inicial = new Map(controles.map((c) => [c, c.type === 'checkbox' ? c.checked : c.value]));
+  const actualizar = () => {
+    formulario.querySelectorAll('.campo').forEach((campo) => {
+      const cambiado = controles.some((c) => campo.contains(c) && (c.type === 'checkbox' ? c.checked : c.value) !== inicial.get(c));
+      campo.classList.toggle('campo-completado', cambiado);
+    });
+  };
+  formulario.addEventListener('input', actualizar);
+  formulario.addEventListener('change', actualizar);
+  formulario.addEventListener('reset', () => setTimeout(actualizar, 0));
+}
+
 export function conectarFormularioTarea(formulario, { modo = 'edicion', precargaPorNombre = true } = {}) {
+  if (modo === 'alta') resaltarCamposCompletados(formulario);
+  formulario.querySelectorAll('.filtro-enlace').forEach((campo) => conectarFiltroDeEnlaces(formulario.querySelector(`[name="${campo.dataset.filtroDe}"]`), campo));
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;
   checkbox.addEventListener('change', () => campos.forEach((c) => (c.hidden = !checkbox.checked)));
@@ -346,8 +432,8 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
   // propia precarga había completado antes, por si cambia a otro nombre).
   const precargados = new WeakMap();
   const sinTocar = (campo) => {
-    if (precargados.has(campo) && precargados.get(campo) === (campo.type === 'checkbox' ? campo.checked : campo.value)) return true;
-    if (campo.type === 'checkbox') return campo.checked === campo.defaultChecked;
+    if (precargados.has(campo) && precargados.get(campo) === (campo.type === 'checkbox' || campo.type === 'radio' ? campo.checked : campo.value)) return true;
+    if (campo.type === 'checkbox' || campo.type === 'radio') return campo.checked === campo.defaultChecked;
     if (campo.tagName === 'SELECT') {
       const porDefecto = Array.from(campo.options).findIndex((o) => o.defaultSelected);
       return campo.selectedIndex === (porDefecto === -1 ? 0 : porDefecto);
@@ -356,9 +442,9 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
   };
   const precargar = (campo, valor) => {
     if (!campo || !sinTocar(campo)) return false;
-    if (campo.type === 'checkbox') campo.checked = !!valor;
+    if (campo.type === 'checkbox' || campo.type === 'radio') campo.checked = !!valor;
     else campo.value = valor;
-    precargados.set(campo, campo.type === 'checkbox' ? campo.checked : campo.value);
+    precargados.set(campo, campo.type === 'checkbox' || campo.type === 'radio' ? campo.checked : campo.value);
     return true;
   };
 
@@ -368,7 +454,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
     );
     if (!coincidencia) return;
     precargar(formulario.categoria_id, coincidencia.categoria_id || '');
-    precargar(formulario.tarea_duracion_min, coincidencia.tarea_duracion_min || 30);
+    precargar(formulario.tarea_duracion_min, coincidencia.tarea_duracion_min || 15);
     precargar(formulario.tarea_costo_estimado, coincidencia.tarea_costo_estimado || '');
     precargar(formulario.tarea_descripcion, coincidencia.tarea_descripcion || '');
     if (precargar(checkbox, !!coincidencia.tarea_mantenimiento)) campos.forEach((c) => (c.hidden = !coincidencia.tarea_mantenimiento));
@@ -376,6 +462,13 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
       precargar(formulario.mantenimiento_cantidad, coincidencia.tarea_mantenimiento_intervalo.cantidad);
       precargar(formulario.mantenimiento_unidad, coincidencia.tarea_mantenimiento_intervalo.unidad);
     }
+    const fijo = coincidencia.tarea_mantenimiento_dia_fijo;
+    if (fijo) {
+      formulario.querySelectorAll('input[name="mantenimiento_modo"]').forEach((r) => precargar(r, r.value === fijo.tipo));
+      if (fijo.tipo === 'mes') precargar(formulario.mantenimiento_dia_mes, fijo.dia);
+      formulario.querySelectorAll('input[name="mantenimiento_dias_semana"]').forEach((c) => precargar(c, (fijo.dias || []).includes(Number(c.value))));
+    }
+    precargar(formulario.tarea_dia_obligatorio, !!coincidencia.tarea_dia_obligatorio);
     precargar(formulario.tarea_urgente, !!coincidencia.tarea_urgente);
     precargar(formulario.tarea_disfrute, coincidencia.tarea_disfrute ?? '');
     const diasSeleccionados = coincidencia.tarea_dias_habiles || [];
@@ -399,6 +492,7 @@ function valorSeleccion(valor) {
 export function leerFormularioTarea(formulario) {
   const datos = new FormData(formulario);
   const esMantenimiento = datos.get('tarea_mantenimiento') === 'on';
+  const modoRepeticion = datos.get('mantenimiento_modo') || 'intervalo';
   const selectDesencadenante = formulario.tarea_desencadenante;
 
   const checklist = [];
@@ -416,7 +510,7 @@ export function leerFormularioTarea(formulario) {
       tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
       tarea_fecha_sugerida: limitarFechaSugeridaALimite(combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'), combinarCampoFechaHora(datos, 'tarea_fecha_limite')),
       tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
-      tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 30,
+      tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 15,
       tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,
       tarea_descripcion: String(datos.get('tarea_descripcion') || '').trim(),
       ubicacion_id: valorSeleccion(datos.get('ubicacion_id')),
@@ -424,9 +518,17 @@ export function leerFormularioTarea(formulario) {
       persona_id: valorSeleccion(datos.get('persona_id')),
       tarea_requiere_clima_bueno: datos.get('tarea_requiere_clima_bueno') === 'on',
       tarea_mantenimiento: esMantenimiento,
-      tarea_mantenimiento_intervalo: esMantenimiento
-        ? { cantidad: Number(datos.get('mantenimiento_cantidad')) || 1, unidad: datos.get('mantenimiento_unidad') }
-        : null,
+      tarea_mantenimiento_intervalo:
+        esMantenimiento && modoRepeticion === 'intervalo'
+          ? { cantidad: Number(datos.get('mantenimiento_cantidad')) || 1, unidad: datos.get('mantenimiento_unidad') }
+          : null,
+      tarea_mantenimiento_dia_fijo:
+        esMantenimiento && modoRepeticion === 'mes'
+          ? { tipo: 'mes', dia: Math.min(31, Math.max(1, Math.round(Number(datos.get('mantenimiento_dia_mes'))) || 1)) }
+          : esMantenimiento && modoRepeticion === 'semana'
+            ? { tipo: 'semana', dias: datos.getAll('mantenimiento_dias_semana').map(Number) }
+            : null,
+      tarea_dia_obligatorio: esMantenimiento && datos.get('tarea_dia_obligatorio') === 'on',
       tarea_dias_habiles: datos.getAll('tarea_dias_habiles').map(Number),
       tarea_checklist: esMantenimiento ? checklist : [],
       tarea_repetir_hasta: esMantenimiento ? String(datos.get('tarea_repetir_hasta') || '') : '',
@@ -467,6 +569,10 @@ export function validarFormularioTarea(leido, tareaId = null) {
   if (desencadenante && previaId && (!tareaId || previaId !== estado.tareas.find((t) => t.tarea_id === tareaId)?.tarea_dependiente)) {
     return { ok: false, motivo: 'Una tarea con desencadenante no puede tener también una tarea previa. Elegí una de las dos.' };
   }
+  const fijo = campos.tarea_mantenimiento_dia_fijo;
+  if (fijo && fijo.tipo === 'semana' && fijo.dias.length === 0) {
+    return { ok: false, motivo: 'Elegí al menos un día de la semana para la repetición (o cambiá a «cada N días»).' };
+  }
   if (tareaId) return evaluarEnlace(tareaId, { previaId, proximaId }, estado.tareas);
   return { ok: true };
 }
@@ -478,18 +584,20 @@ export function validarFormularioTarea(leido, tareaId = null) {
  * Nada cambia sin confirmar; si se rechaza, la tarea se guarda igual. Muta las
  * tareas (quien llama persiste). Devuelve las tareas marcadas.
  */
-export function ofrecerMarcarCadenaMantenimiento(tarea, listaTareas) {
+export async function ofrecerMarcarCadenaMantenimiento(tarea, listaTareas) {
   const faltantes = tareasDeLaCadenaNoRepetibles(tarea, listaTareas);
   if (faltantes.length === 0) return [];
-  const intervalo = tarea.tarea_mantenimiento_intervalo || { cantidad: 1, unidad: 'dias' };
-  const texto = `cada ${intervalo.cantidad} ${ETIQUETAS_UNIDAD_MANTENIMIENTO[intervalo.unidad] || intervalo.unidad}`;
-  const quiere = confirm(
+  const intervalo = tarea.tarea_mantenimiento_dia_fijo ? null : tarea.tarea_mantenimiento_intervalo || { cantidad: 1, unidad: 'dias' };
+  const diaFijo = tarea.tarea_mantenimiento_dia_fijo ? structuredClone(tarea.tarea_mantenimiento_dia_fijo) : null;
+  const texto = textoRepeticion({ tarea_mantenimiento_intervalo: intervalo, tarea_mantenimiento_dia_fijo: diaFijo });
+  const quiere = await confirmar(
     `Para que la cadena de «${tarea.tarea_nombre}» se repita entera, estas tareas también deben ser con repetición: ${faltantes.map((t) => `«${t.tarea_nombre}»`).join(', ')}.\n\n¿Marcarlas como tareas con repetición (${texto})? Después podés ajustar el intervalo de cada una.`
   );
   if (!quiere) return [];
   faltantes.forEach((t) => {
     t.tarea_mantenimiento = true;
-    t.tarea_mantenimiento_intervalo = { ...intervalo };
+    t.tarea_mantenimiento_intervalo = intervalo ? { ...intervalo } : null;
+    t.tarea_mantenimiento_dia_fijo = diaFijo ? structuredClone(diaFijo) : null;
   });
   return faltantes;
 }

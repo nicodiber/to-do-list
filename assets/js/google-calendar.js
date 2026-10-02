@@ -47,7 +47,7 @@ function inicioDelDia(fechaISODate) {
 async function pedirJSON(url, accessToken) {
   const respuesta = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!respuesta.ok) {
-    if (respuesta.status === 401) invalidarToken();
+    if (respuesta.status === 401) invalidarToken('Calendar respondió 401');
     const error = new Error('No se pudieron obtener los datos de Google Calendar.');
     error.status = respuesta.status;
     throw error;
@@ -79,6 +79,26 @@ export function listarCalendarios() {
   return promesa;
 }
 
+/**
+ * Colores de evento que muestra hoy la interfaz de Google Calendar, por `colorId` (v0.101.0). La API (`/colors`) sigue
+ * devolviendo la paleta clásica (ej. «Tomato» #dc2127), distinta de la actual (#d50000): un evento con color propio
+ * se veía distinto en STDL que en Calendar, mientras que los eventos sin color propio (que usan el del calendario, que
+ * sí viene bien) se veían iguales. Estos valores pisan a los de la API; los `colorId` que no estén acá usan la API.
+ */
+const PALETA_EVENTOS_ACTUAL = {
+  1: '#7986cb', // Lavanda
+  2: '#33b679', // Salvia
+  3: '#8e24aa', // Uva
+  4: '#e67c73', // Flamenco
+  5: '#f6bf26', // Banana
+  6: '#f4511e', // Mandarina
+  7: '#039be5', // Pavo real
+  8: '#616161', // Grafito
+  9: '#3f51b5', // Arándano
+  10: '#0b8043', // Albahaca
+  11: '#d50000', // Tomate
+};
+
 let cacheColoresEvento = null;
 
 /**
@@ -90,10 +110,10 @@ let cacheColoresEvento = null;
 export function listarColoresEvento() {
   if (cacheColoresEvento && Date.now() - cacheColoresEvento.timestamp < DURACION_CACHE_MS) return cacheColoresEvento.promesa;
   const accessToken = obtenerTokenAcceso();
-  if (!accessToken || !tieneScope('calendar')) return Promise.resolve({});
+  if (!accessToken || !tieneScope('calendar')) return Promise.resolve({ ...PALETA_EVENTOS_ACTUAL });
   const promesa = pedirJSON('https://www.googleapis.com/calendar/v3/colors', accessToken)
-    .then((datos) => Object.fromEntries(Object.entries(datos.event || {}).map(([id, c]) => [id, c.background])))
-    .catch(() => ({}));
+    .then((datos) => ({ ...Object.fromEntries(Object.entries(datos.event || {}).map(([id, c]) => [id, c.background])), ...PALETA_EVENTOS_ACTUAL }))
+    .catch(() => ({ ...PALETA_EVENTOS_ACTUAL }));
   cacheColoresEvento = { promesa, timestamp: Date.now() };
   return promesa;
 }
@@ -147,6 +167,25 @@ async function pedirEventosDeCalendario(calendario, inicio, fin, accessToken, co
   return eventos;
 }
 
+const CLAVE_ULTIMA_LECTURA = 'super-todo-list:calendar-ultima-lectura';
+
+/** Cuándo se leyó Google Calendar completo por última vez (ISO), o `''` (v0.101.0). Se recuerda en este navegador. */
+export function ultimaLecturaCalendar() {
+  try {
+    return localStorage.getItem(CLAVE_ULTIMA_LECTURA) || '';
+  } catch {
+    return '';
+  }
+}
+
+function registrarLecturaCalendar() {
+  try {
+    localStorage.setItem(CLAVE_ULTIMA_LECTURA, new Date().toISOString());
+  } catch {
+    // Es solo informativo.
+  }
+}
+
 async function pedirEventos(desdeISODate, hastaISODate) {
   const accessToken = obtenerTokenAcceso();
   if (!accessToken || !tieneScope('calendar')) return [];
@@ -162,6 +201,7 @@ async function pedirEventos(desdeISODate, hastaISODate) {
   const fallidos = calendarios.filter((_, i) => resultados[i].status === 'rejected').map((c) => c.nombre);
   erroresLectura = fallidos;
   if (resultados.length > 0 && resultados.every((r) => r.status === 'rejected')) throw new Error('No se pudieron obtener los eventos de Google Calendar.');
+  if (fallidos.length === 0) registrarLecturaCalendar();
   return resultados
     .filter((r) => r.status === 'fulfilled')
     .flatMap((r) => r.value)

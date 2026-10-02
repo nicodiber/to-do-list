@@ -3,6 +3,7 @@
 // El último día de la ventana (`hasta`, por defecto hoy) todavía está en curso: no cuenta como incumplido.
 
 import { diaLocal, hoyISO, fechaISOMasDias, categoriaRaiz } from './utilidades.js';
+import { fechaObjetivoMantenimiento } from './modelos.js';
 
 export const ESTADOS_CELDA = { cumplido: 'cumplido', incumplido: 'incumplido', vence: 'vence', noAplica: 'no-aplica' };
 
@@ -33,7 +34,8 @@ function repeticionAbierta(nombre, tareas) {
   const abiertas = tareas
     .filter((t) => t.tarea_mantenimiento && t.tarea_estado !== 'completada' && t.tarea_nombre === nombre)
     .map((t) => ({
-      limite: t.tarea_fecha_limite ? diaLocal(t.tarea_fecha_limite) : '',
+      // v0.101.0: una repetición sin fecha límite se mide contra el día que le toca (su objetivo).
+      limite: fechaObjetivoMantenimiento(t),
       intervalo: t.tarea_mantenimiento_intervalo || null,
       diasHabiles: t.tarea_dias_habiles || [],
     }));

@@ -3,6 +3,7 @@ import { escaparHtml, arbolCategorias } from '../assets/js/utilidades.js';
 import { abrirDialogoCategoria } from '../assets/js/formularios-entidades.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
 import { establecerFiltroCategoria } from './tareas.view.js';
+import { confirmar } from '../assets/js/avisos.js';
 
 // Categorías colapsadas (ocultan a sus hijas): preferencia de esta pestaña mientras dura la sesión, no un dato de
 // la app. Expandido por defecto.
@@ -99,9 +100,9 @@ function renderCategoria(categoria, profundidad, tieneHijas, colapsada, redibuja
 
   tarjeta.querySelector('[data-accion="eliminar-categoria"]').addEventListener('click', async () => {
     if (
-      !confirm(
+      !await confirmar(
         `¿Eliminar la categoría "${categoria.categoria_nombre}"? Sus categorías hijas quedan promovidas (sin categoría padre) y las tareas asociadas quedan sin categoría.`
-      )
+      , { peligro: true, textoAceptar: 'Eliminar' })
     ) {
       return;
     }

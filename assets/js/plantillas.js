@@ -10,6 +10,8 @@ import { abrirDialogoFormulario, conectarCrearNueva, activarMayusculaInicial } f
 import { htmlOpcionesCategoria } from './formulario-tarea.js';
 import { abrirDialogoCategoria } from './formularios-entidades.js';
 import { capitalizarPrimera, diaLocal, fechaLocalISO, hoyISO } from './utilidades.js';
+import { avisar, confirmar } from './avisos.js';
+import { avisarSiSinHueco } from './aviso-sin-hueco.js';
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
@@ -65,10 +67,10 @@ function pasosDesdeCadena(cadena) {
 }
 
 /** Ofrece guardar la cadena de `tarea` como plantilla: abre el editor con los pasos ya cargados para ponerle nombre. */
-export function abrirGuardarCadenaComoPlantilla(tarea) {
+export async function abrirGuardarCadenaComoPlantilla(tarea) {
   const cadena = cadenaDeLaTarea(tarea);
   if (cadena.length < 2) {
-    alert('Esta tarea no está encadenada con otras: una plantilla necesita al menos dos pasos.');
+    await avisar('Esta tarea no está encadenada con otras: una plantilla necesita al menos dos pasos.');
     return;
   }
   abrirEditorPlantilla({ borrador: { plantilla_nombre: '', plantilla_descripcion: '', plantilla_pasos: pasosDesdeCadena(cadena) } });
@@ -139,7 +141,7 @@ function dibujarLista(formulario, obtenerDialogo) {
           '🗑️ Eliminar',
           'Eliminar la plantilla (las tareas ya creadas con ella no se tocan)',
           async () => {
-            if (!confirm(`¿Eliminar la plantilla «${plantilla.plantilla_nombre}»? Las tareas ya creadas con ella no se tocan.`)) return;
+            if (!await confirmar(`¿Eliminar la plantilla «${plantilla.plantilla_nombre}»? Las tareas ya creadas con ella no se tocan.`, { peligro: true, textoAceptar: 'Eliminar' })) return;
             estado.plantillas = estado.plantillas.filter((p) => p.plantilla_id !== plantilla.plantilla_id);
             await persistirYNotificar();
             dibujarLista(formulario, obtenerDialogo);
@@ -213,26 +215,26 @@ export function abrirEditorPlantilla({ plantilla = null, borrador = null, alVolv
     alGuardar: async (formulario) => {
       const nombre = formulario.plantilla_nombre.value.trim();
       if (!nombre) {
-        alert('La plantilla necesita un nombre.');
+        await avisar('La plantilla necesita un nombre.');
         return false;
       }
       const filas = [...formulario.querySelectorAll('.pasos-plantilla > li')];
       if (filas.length < 2) {
-        alert('Una plantilla necesita al menos dos pasos encadenados.');
+        await avisar('Una plantilla necesita al menos dos pasos encadenados.');
         return false;
       }
       const pasos = [];
       for (const fila of filas) {
         const paso_nombre = fila.querySelector('[name="paso_nombre"]').value.trim();
         if (!paso_nombre) {
-          alert('Todos los pasos necesitan un nombre (o quitá el paso vacío).');
+          await avisar('Todos los pasos necesitan un nombre (o quitá el paso vacío).');
           return false;
         }
         pasos.push(
           crearPasoPlantilla({
             ...fila._paso,
             paso_nombre,
-            paso_duracion_min: Math.max(5, Number(fila.querySelector('[name="paso_duracion_min"]').value) || 30),
+            paso_duracion_min: Math.max(5, Number(fila.querySelector('[name="paso_duracion_min"]').value) || 15),
             paso_dias_antes: Math.max(0, Math.round(Number(fila.querySelector('[name="paso_dias_antes"]').value) || 0)),
             paso_descripcion: fila.querySelector('[name="paso_descripcion"]').value.trim(),
           })
@@ -340,9 +342,9 @@ export function abrirUsoPlantilla(plantilla, { alVolver = () => {} } = {}) {
     alGuardar: async (formulario) => {
       const final = formulario.fecha_final.value;
       const desde = formulario.fecha_desde.value;
-      if (!final && !confirm('No elegiste una fecha límite final: las tareas quedan sin fecha límite (se agendan igual, según su prioridad). ¿Crearlas así?')) return false;
+      if (!final && !await confirmar('No elegiste una fecha límite final: las tareas quedan sin fecha límite (se agendan igual, según su prioridad). ¿Crearlas así?')) return false;
       const limites = pasos.map((paso) => (final ? restarDias(final, paso.paso_dias_antes) : ''));
-      if (limites.some((limite) => limite && limite < hoyISO()) && !confirm('Algunos pasos quedarían con fecha límite en el pasado (según los «días antes» de la plantilla). ¿Crearlos igual?')) return false;
+      if (limites.some((limite) => limite && limite < hoyISO()) && !await confirmar('Algunos pasos quedarían con fecha límite en el pasado (según los «días antes» de la plantilla). ¿Crearlos igual?')) return false;
 
       const categoria_id = formulario.categoria_id.value || null;
       let previaId = null;
@@ -370,8 +372,9 @@ export function abrirUsoPlantilla(plantilla, { alVolver = () => {} } = {}) {
         // Una bloqueada hereda la fecha "desde" de su previa si no se eligió una: no puede empezar antes que ella.
         if (indice > 0 && !desde) tarea.tarea_fecha_inicio_habilitada = creadas[indice - 1].tarea_fecha_inicio_habilitada;
       });
-      await programarTareasSinFecha(estado);
+      const resultadoAgendado = await programarTareasSinFecha(estado);
       await persistirYNotificar();
+      await avisarSiSinHueco(resultadoAgendado);
       return true;
     },
   });
