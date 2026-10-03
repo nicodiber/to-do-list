@@ -2,6 +2,18 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.103.0] - 2026-10-03
+
+Rediseño de la barra de la vista Semana y dos mejoras del Gantt.
+
+### Cambiado
+
+- **Semana, una sola barra**: a la izquierda «📆 Semana» y los atajos de 1, 3, 7, 8 y 15 días; a la derecha la escala de colores (solo cuando corresponde) y los botones «🌅 Sol», «🌡️ Temperatura» y «🌧️ Lluvia». «Ninguno» ya no aparece: Temperatura y Lluvia son excluyentes (tocar el activo lo apaga; sin ninguno activo no hay fondo de clima). La navegación de fechas (‹ ›) queda debajo. En pantallas angostas la barra se parte en dos líneas.
+- **Por defecto**: 8 días, Sol y Lluvia activados (las preferencias de Sol y clima usan claves nuevas, así que el cambio también le llega a quien las había guardado apagadas).
+- **Escala de temperatura de 0 °C a 35 °C** (antes de −10 °C a 35 °C): por debajo de 0 queda el primer color y por encima de 35 el último. La leyenda de lluvia se compactó para entrar en la barra.
+- **Gantt, modo Ventana**: una tarea activa **sin fecha límite** ahora se dibuja como una barra que sigue hacia la derecha y se desvanece («∞ ▶»), en vez de caer en la barra del día plan. El rombo del día plan y las flechas de dependencia se mantienen.
+- **Gantt, líneas por día**: además de la línea fuerte de cada semana (lunes), cada día tiene una línea más tenue.
+
 ## [v0.102.0] - 2026-10-03
 
 Menú lateral de módulos, la vista Tareas pasa a la Tabla, avisos grandes en ventanas modales y dos correcciones (falsa alerta de «sin hueco» y guardado lento al agregar).

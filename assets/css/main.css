@@ -2039,9 +2039,12 @@ span.etiqueta-exportada {
 .gantt-pista {
   position: relative;
   flex: 0 0 auto;
-  background-image: linear-gradient(to right, var(--color-borde) 1px, transparent 1px);
-  background-size: var(--ancho-semana) 100%;
-  background-position: var(--desfase-semana) 0;
+  /* Línea fuerte cada lunes y, debajo, una línea más tenue por cada día (v0.103.0). */
+  background-image:
+    linear-gradient(to right, var(--color-borde) 1px, transparent 1px),
+    linear-gradient(to right, color-mix(in srgb, var(--color-borde) 40%, transparent) 1px, transparent 1px);
+  background-size: var(--ancho-semana) 100%, var(--ancho-dia, 100%) 100%;
+  background-position: var(--desfase-semana) 0, 0 0;
 }
 
 .gantt-carril {
@@ -3352,3 +3355,22 @@ body.sidebar-compacto .sidebar .indicador-sync { align-items: center; }
   .velo-sidebar[hidden] { display: none; }
   .app-layout > .vista { padding-top: 3.2rem; }
 }
+
+
+/* Semana: una sola barra con título y días a la izquierda, escala y clima a la derecha (v0.103.0) */
+.barra-semana { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem 1.5rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+.barra-semana-izquierda, .barra-semana-derecha { display: flex; align-items: center; gap: 0.5rem 1rem; flex-wrap: wrap; }
+.barra-semana h2 { margin: 0; }
+.barra-semana .selector-rango { margin: 0; flex-wrap: wrap; }
+.barra-semana-derecha { margin-left: auto; }
+.barra-semana .leyenda-clima { margin: 0; width: 12.5rem; max-width: none; }
+.barra-semana .leyenda-clima-marcas { height: 1rem; }
+
+/* Gantt, modo Ventana: tarea sin fecha límite que «tiende al infinito» hacia la derecha (v0.103.0) */
+.gantt-barra.infinita {
+  opacity: 0.55;
+  cursor: pointer;
+  -webkit-mask-image: linear-gradient(to right, #000 55%, transparent);
+  mask-image: linear-gradient(to right, #000 55%, transparent);
+}
+.gantt-infinito { margin-left: auto; padding-right: 0.4rem; font-size: 0.7rem; font-weight: 700; }
