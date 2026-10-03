@@ -2,6 +2,26 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.102.0] - 2026-10-03
+
+Menú lateral de módulos, la vista Tareas pasa a la Tabla, avisos grandes en ventanas modales y dos correcciones (falsa alerta de «sin hueco» y guardado lento al agregar).
+
+### Corregido
+
+- **Falsa alerta «No hay hueco libre antes de su fecha límite»** al iniciar: el aviso juntaba lo que informaban, en secuencia, el reprogramado de vencidas, la reubicación y el agendado, sin volver a mirar. Un paso posterior (por ejemplo el reordenado) solía acomodar lo que uno anterior no había podido, y al ir a ver la tarea estaba bien ubicada. Ahora el aviso se calcula contra el **estado final** (`filtrarSinHuecoVigente`, `aviso-sin-hueco.js`): solo nombra las tareas que siguen sin hora, con hora posterior a su límite o con hora ya pasada. Lo mismo vale para el aviso al crear o editar tareas.
+- **«Agregar» tardaba mucho sin dar señales**: el botón esperaba a leer Calendar, buscar huecos y reordenar antes de guardar. Ahora la tarea se guarda al instante y el horario sugerido se calcula **en segundo plano** (`agendado-segundo-plano.js`; las corridas se encolan y el aviso de «sin hueco», si corresponde, espera a que no haya otra ventana abierta). Además todo formulario en ventana muestra el botón en «⏳ Agregando…» / «⏳ Guardando…» mientras guarda y no se puede enviar dos veces.
+
+### Cambiado
+
+- **Menú lateral** en lugar de las pestañas de arriba (`index.html`, `app.js`): «STDL», la versión, el estado de Drive («Último guardado en Drive… · Verificado… · Calendar leído…») con «🔄 Sincronizar ahora», los módulos, deshacer y rehacer, «Completar carga» y «＋ Nueva tarea». Se **compacta a solo emojis** (««»/«»») y recuerda el estado en este navegador; en pantallas angostas se abre como un panel con el botón ☰. Orden de los módulos: Resumen, Agenda, Semana, Gantt, Tabla, Metas, Estadísticas, Mejoras, Personas, Ubicaciones, Categorías y Configuraciones; las teclas 1…9 y 0 siguen ese orden (Ubicaciones = 0; Categorías y Configuraciones, sin tecla). La tecla «?» sigue abriendo la ayuda de atajos, ya actualizada; además la lista está en una sección nueva de **Configuraciones → Atajos de teclado** (se sacó el botón ⌨️).
+- **La vista Tareas se eliminó: la Tabla ocupa su lugar** (`#/tareas` lleva a `#/tabla`). La Tabla suma el filtro **Ubicación**, el interruptor **Agrupar por categoría**, los botones **📋 Plantillas** y **🤖 Reestructurar prioridades con IA** (`panel-ia-prioridades.js`) y una columna **Acciones** por fila: cambiar el estado (con la nota de mejora al completar una tarea con repetición), **⏭️ Posponer**, **☑️ checklist** tildable (aparece como fila desplegable) y un menú **⋯** con Editar, Duplicar, Crearle tarea previa / posterior, Guardar cadena como plantilla y Eliminar. «Ver tareas» de Categorías abre la Tabla con esa categoría.
+- **Tabla, columna «Fecha» eliminada** (era la sugerida o, sin ella, el límite): queda «Sugerida», ahora visible por defecto (la preferencia de columnas guardada se migra sola).
+- **Avisos grandes como ventanas modales** (`avisos-sync.js`): sesión de Google vencida (cuando la reconexión automática no alcanzó), calendario que no se pudo leer, cambios de otro dispositivo, datos de una versión anterior, reloj desfasado, errores de sincronización y avisos de sincronización. Cada situación se muestra **una vez**, cuando no hay otra ventana abierta ni texto a medio escribir, y no se repite mientras siga igual; el estado permanente y el botón «🔑 Reconectar» quedan en el menú lateral. Desaparecieron los banners de arriba.
+
+### Agregado
+
+- **Hábitos**: segunda frase («La maldición de la disciplina es que todos los días parecen iguales…»).
+
 ## [v0.101.1] - 2026-10-01
 
 Corrección: la sesión de Google quedaba en «vencida» y no había forma de reconectar.

@@ -123,6 +123,10 @@ export async function avisarConAcciones(mensaje, { titulo = 'Aviso', textoAcepta
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.textContent = accion.texto;
+    // `datos` (opcional) pone atributos `data-*` en el botón (por ejemplo `data-reconectar`, que la reconexión silenciosa ignora).
+    Object.entries(accion.datos || {}).forEach(([clave, valor]) => {
+      boton.dataset[clave] = valor;
+    });
     boton.addEventListener('click', () => {
       elegida = accion;
       contenedor.closest('dialog').querySelector('.acciones-modal .boton-primario').click();

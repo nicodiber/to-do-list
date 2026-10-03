@@ -15,13 +15,13 @@ export const ATAJOS_FIJOS = [
   { tecla: '?', descripcion: 'Mostrar esta ayuda', grupo: 'Ayuda' },
 ];
 
-/** La tecla de una pestaña: `1`…`9` para las nueve primeras y `0` para la décima; `null` si no tiene. */
+/** La tecla de un módulo: `1`…`9` para los nueve primeros y `0` para el décimo; `null` si no tiene. */
 export function teclaDeVista(clave, vistas) {
   const indice = vistas.indexOf(clave);
   return indice >= 0 && indice < 10 ? String((indice + 1) % 10) : null;
 }
 
-/** Título con la tecla, para el `title` de la pestaña ("Hoy (tecla 1)"). */
+/** Título con la tecla, para el `title` del módulo ("Resumen (tecla 1)"). */
 export function tituloConTecla(etiqueta, tecla) {
   return tecla ? `${etiqueta} (tecla ${tecla})` : etiqueta;
 }
@@ -37,10 +37,12 @@ function enCampoEditable(objetivo) {
   );
 }
 
-/** Ventana con la lista de atajos (la abren "?" y el botón ⌨️). */
-export function abrirAyudaAtajos() {
-  if (!contexto || document.querySelector('dialog[open]')) return;
-  document.querySelectorAll('dialog.dialogo-ayuda').forEach((viejo) => viejo.remove()); // restos de una ayuda ya cerrada
+/**
+ * HTML con la lista de atajos (v0.102.0): lo usan la ventana de ayuda (tecla «?») y la sección «Atajos de teclado» de
+ * Configuraciones. Necesita que `configurarAtajos` ya haya corrido (de ahí salen los módulos y sus teclas).
+ */
+export function htmlAtajos() {
+  if (!contexto) return '';
   const { vistas, etiquetas } = contexto;
   const filasVistas = vistas
     .map((clave) => ({ clave, tecla: teclaDeVista(clave, vistas) }))
@@ -49,12 +51,9 @@ export function abrirAyudaAtajos() {
     .join('');
   const sinTecla = vistas.filter((clave) => !teclaDeVista(clave, vistas)).map((clave) => etiquetas[clave]);
   const grupos = [...new Set(ATAJOS_FIJOS.map((a) => a.grupo))];
-  const dialogo = document.createElement('dialog');
-  dialogo.className = 'dialogo-tarea dialogo-ayuda';
-  dialogo.innerHTML = `
-    <h3>⌨️ Atajos de teclado</h3>
+  return `
     <p class="ayuda">Son teclas solas: funcionan con el cursor fuera de un campo y sin ninguna ventana abierta.</p>
-    <h4>🧭 Ir a una pestaña</h4>
+    <h4>🧭 Ir a un módulo</h4>
     <table class="tabla-atajos"><tbody>${filasVistas}</tbody></table>
     ${sinTecla.length > 0 ? `<p class="ayuda">Sin tecla (solo con el mouse): ${sinTecla.join(', ')}.</p>` : ''}
     ${grupos
@@ -65,7 +64,18 @@ export function abrirAyudaAtajos() {
         .map((a) => `<tr><th scope="row"><kbd>${a.tecla}</kbd></th><td>${a.descripcion}</td></tr>`)
         .join('')}</tbody></table>`
       )
-      .join('')}
+      .join('')}`;
+}
+
+/** Ventana con la lista de atajos (la abre la tecla «?»; la misma lista está en Configuraciones). */
+export function abrirAyudaAtajos() {
+  if (!contexto || document.querySelector('dialog[open]')) return;
+  document.querySelectorAll('dialog.dialogo-ayuda').forEach((viejo) => viejo.remove()); // restos de una ayuda ya cerrada
+  const dialogo = document.createElement('dialog');
+  dialogo.className = 'dialogo-tarea dialogo-ayuda';
+  dialogo.innerHTML = `
+    <h3>⌨️ Atajos de teclado</h3>
+    ${htmlAtajos()}
     <div class="acciones-modal"><button type="button" data-accion="cerrar-ayuda" class="boton-primario" title="Cerrar (Esc)">✖️ Cerrar</button></div>
   `;
   document.body.appendChild(dialogo);

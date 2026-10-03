@@ -2,7 +2,7 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { escaparHtml, arbolCategorias } from '../assets/js/utilidades.js';
 import { abrirDialogoCategoria } from '../assets/js/formularios-entidades.js';
 import { agregarBotonFlotante } from '../assets/js/boton-flotante.js';
-import { establecerFiltroCategoria } from './tareas.view.js';
+import { establecerFiltroCategoria } from './tabla.view.js';
 import { confirmar } from '../assets/js/avisos.js';
 
 // Categorías colapsadas (ocultan a sus hijas): preferencia de esta pestaña mientras dura la sesión, no un dato de
@@ -93,7 +93,7 @@ function renderCategoria(categoria, profundidad, tieneHijas, colapsada, redibuja
 
   tarjeta.querySelector('[data-accion="ver-tareas"]').addEventListener('click', () => {
     establecerFiltroCategoria(categoria.categoria_id);
-    location.hash = '#/tareas';
+    location.hash = '#/tabla';
   });
 
   tarjeta.querySelector('[data-accion="editar-categoria"]').addEventListener('click', () => abrirDialogoCategoria({ id: categoria.categoria_id }));

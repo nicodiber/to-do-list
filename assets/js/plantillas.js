@@ -5,13 +5,12 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { crearTarea, crearPlantilla, crearPasoPlantilla } from './modelos.js';
 import { recalcularBloqueo } from './dependencias.js';
-import { programarTareasSinFecha } from './programador.js';
 import { abrirDialogoFormulario, conectarCrearNueva, activarMayusculaInicial } from './dialogo-formulario.js';
 import { htmlOpcionesCategoria } from './formulario-tarea.js';
 import { abrirDialogoCategoria } from './formularios-entidades.js';
 import { capitalizarPrimera, diaLocal, fechaLocalISO, hoyISO } from './utilidades.js';
 import { avisar, confirmar } from './avisos.js';
-import { avisarSiSinHueco } from './aviso-sin-hueco.js';
+import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
@@ -372,9 +371,8 @@ export function abrirUsoPlantilla(plantilla, { alVolver = () => {} } = {}) {
         // Una bloqueada hereda la fecha "desde" de su previa si no se eligió una: no puede empezar antes que ella.
         if (indice > 0 && !desde) tarea.tarea_fecha_inicio_habilitada = creadas[indice - 1].tarea_fecha_inicio_habilitada;
       });
-      const resultadoAgendado = await programarTareasSinFecha(estado);
       await persistirYNotificar();
-      await avisarSiSinHueco(resultadoAgendado);
+      agendarEnSegundoPlano();
       return true;
     },
   });

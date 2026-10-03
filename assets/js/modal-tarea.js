@@ -19,11 +19,11 @@ import {
 import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
 import { renombrarHistorial, cumplirTarea, reabrirTarea, avisoInconsistentes, eliminarTarea } from './tareas-logica.js';
-import { programarParaHoy, programarTareasSinFecha } from './programador.js';
+import { programarParaHoy } from './programador.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { avisar, confirmar } from './avisos.js';
 import { avisarConflictoEnlace } from './conflicto-enlace.js';
-import { avisarSiSinHueco } from './aviso-sin-hueco.js';
+import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
 
 let edicionesAbiertas = 0;
 
@@ -106,9 +106,9 @@ export function abrirEdicionTarea(id, { apilar = false } = {}) {
       const registrosActualizados = eraMantenimiento ? renombrarHistorial(estado, nombreAnterior, actual.tarea_nombre) : 0;
       // Cambiar la fecha límite, la urgencia o la categoría puede cambiar la prioridad: se reordenan los horarios
       // (y se agenda lo que siga sin hora) antes de guardar (v0.97.0).
-      const resultadoAgendado = await programarTareasSinFecha(estado);
       await persistirYNotificar();
-      await avisarSiSinHueco(resultadoAgendado);
+      // El horario sugerido se calcula después, en segundo plano: guardar es inmediato (v0.102.0).
+      agendarEnSegundoPlano();
       if (registrosActualizados > 0) {
         await avisar(`Se actualizaron ${registrosActualizados} registro${registrosActualizados === 1 ? '' : 's'} del historial (cumplimientos y mejoras) al nuevo nombre.`);
       }
@@ -274,9 +274,9 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       botonesPie: '<button title="Vaciar todos los campos del formulario (pide confirmación)" type="button" data-accion="limpiar-campos" class="btn-limpiar">🧹 Limpiar campos</button>',
     }),
     botonesGuardar: [
-      { texto: '➕ Agregar y cargar otra', valor: 'otra', orden: 0 },
-      { texto: '➡️ Agregar y crearle siguiente', valor: 'siguiente', orden: 1 },
-      { texto: '✅ Agregar', valor: 'cerrar', orden: 2 },
+      { texto: '➕ Agregar y cargar otra', valor: 'otra', orden: 0, textoEnCurso: '⏳ Agregando…' },
+      { texto: '➡️ Agregar y crearle siguiente', valor: 'siguiente', orden: 1, textoEnCurso: '⏳ Agregando…' },
+      { texto: '✅ Agregar', valor: 'cerrar', orden: 2, textoEnCurso: '⏳ Agregando…' },
     ],
     conectar: (formulario) => {
       // Si el formulario ya viene precargado (Duplicar, Crearle previa/posterior), no se activa "escribir un
@@ -328,9 +328,9 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       if (nueva.tarea_urgente) await programarParaHoy(nueva, estado);
       // Sin esto, una tarea recién creada sin fecha (y no urgente) quedaba sin `tarea_fecha_sugerida` hasta el
       // próximo refresco de sesión/Calendar (v0.90.0) — no-op para cualquier tarea que ya tenga fecha con hora.
-      const resultadoAgendado = await programarTareasSinFecha(estado);
       await persistirYNotificar();
-      await avisarSiSinHueco(resultadoAgendado);
+      // El horario sugerido se calcula después, en segundo plano: guardar es inmediato (v0.102.0).
+      agendarEnSegundoPlano();
 
       if (valor === 'siguiente') {
         // Cierra esta ventana y abre una en blanco para la tarea siguiente, ya enlazada como dependiente de esta.

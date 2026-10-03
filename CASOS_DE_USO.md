@@ -14,6 +14,8 @@ Cada caso de uso sigue este formato:
 
 **Principio transversal — atajos de teclado**: la meta es que un usuario experto pueda manejar casi todo STDL sin mouse. Hoy solo existe el atajo global "N" (alta rápida de tarea). Cada caso de uso marca en Fricciones si le falta uno.
 
+> **Cambio de la v0.102.0**: la vista **Tareas se eliminó** y la **Tabla** ocupa su lugar (con las mismas acciones por fila). Donde estos casos dicen «la tarjeta de la tarea» o «la vista Tareas», hoy es la fila de la Tabla (columna «Acciones» y menú «⋯»). La navegación es por el **menú lateral** (se compacta a emojis) y los avisos grandes (sesión vencida, Calendar sin leer, cambios de otro dispositivo…) son **ventanas modales** que aparecen una vez.
+
 ## Taxonomía de vistas
 
 Clasificación de las pantallas por tipo de funcionalidad (además del agrupamiento por objetivo de abajo), para tenerla de referencia en el rediseño de navegación:
@@ -65,7 +67,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 - **Objetivo**: no perder una idea o pendiente apenas surge, sin importar el dispositivo, y poder darle todos sus datos en el mismo momento si se quiere.
 - **Disparador**: se le ocurre algo, en cualquier momento.
-- **Pasos**: botón "＋" de la cabecera (o atajo "N", o "＋ Nueva tarea" en la vista Tareas) desde cualquier vista → se abre la ventana "Nueva tarea" con el cursor en el nombre → escribe el nombre → Enter → tarea creada y la ventana queda abierta, vacía y lista para la siguiente. Si antes de confirmar completa más campos (todos visibles debajo del nombre y opcionales: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, tarea previa y próxima, buen tiempo, mantenimiento con intervalo, desencadenante y checklist, días hábiles), se crea la tarea completa. Un solo formulario, un solo campo de nombre.
+- **Pasos**: botón "＋" de la cabecera (o atajo "N", o "＋ Nueva tarea" en la vista Tabla) desde cualquier vista → se abre la ventana "Nueva tarea" con el cursor en el nombre → escribe el nombre → Enter → tarea creada y la ventana queda abierta, vacía y lista para la siguiente. Si antes de confirmar completa más campos (todos visibles debajo del nombre y opcionales: categoría, importancia, disfrute, los 3 pares fecha+hora, duración, costo, descripción, ubicación, meta, tarea previa y próxima, buen tiempo, mantenimiento con intervalo, desencadenante y checklist, días hábiles), se crea la tarea completa. Un solo formulario, un solo campo de nombre.
 - **Flujo usuario/sistema**:
   1. Usuario hace clic en "＋" (o presiona "N", si no está escribiendo en un campo).
   2. Sistema abre la ventana "Nueva tarea" encima de la vista actual (sin cambiar de vista) y enfoca el nombre.
@@ -74,7 +76,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   5. Usuario presiona **Enter** (o "Agregar y cargar otra") o "Agregar". Si quiere empezar de cero, "🧹 Limpiar campos" vacía el formulario (con confirmación).
   6. Sistema valida: si el pedido de enlaces es contradictorio (regla 1 a 1, ver `REDISENO.md`), muestra el conflicto y **no crea la tarea ni limpia el formulario** para que el usuario reajuste. Si elige una tarea ya enlazada, la nueva se inserta en medio (P→A→N).
   7. Sistema crea la tarea y la guarda. Con Enter / "Agregar y cargar otra" vacía el formulario y vuelve el cursor al nombre para cargar la siguiente; con "Agregar" cierra la ventana. "Cancelar" (o Esc / clic afuera) pregunta antes de descartar solo si hay algo escrito.
-- **Vistas/funciones**: `assets/js/modal-tarea.js` (`abrirAltaTarea`), `assets/js/dialogo-formulario.js`, `assets/js/formulario-tarea.js` (`htmlFormularioTarea`, `leerFormularioTarea`, `validarFormularioTarea`), `assets/js/dependencias.js` (`aplicarEnlace`), `assets/js/modelos.js` (`crearTarea`), botón "＋" y atajo "N" en `assets/js/app.js`, botón "＋ Nueva tarea" en `views/tareas.view.js`.
+- **Vistas/funciones**: `assets/js/modal-tarea.js` (`abrirAltaTarea`), `assets/js/dialogo-formulario.js`, `assets/js/formulario-tarea.js` (`htmlFormularioTarea`, `leerFormularioTarea`, `validarFormularioTarea`), `assets/js/dependencias.js` (`aplicarEnlace`), `assets/js/modelos.js` (`crearTarea`), botón "＋" y atajo "N" en `assets/js/app.js`, botón "＋ Nueva tarea" en `views/tabla.view.js`.
 - **Resultado**: nueva Tarea en `estado.tareas`, persistida (y enlazada, si se pidió).
 - **Fricciones**: si se escribe en el nombre algo que coincide con una tarea ya cargada, la precarga completa los campos que no se tocaron aunque el usuario solo quisiera una alta rápida (los ve debajo y los puede corregir); nunca pisa lo ya cargado.
 
@@ -108,7 +110,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   6. Usuario acepta o cancela.
   7. Si acepta, sistema abre una pestaña nueva de Google Calendar con el evento precargado, y el usuario lo guarda a mano allí. (Desde Tareas, el punto de partida es el desplegable "Cambiar estado" → Completada; el resto es igual.)
   8. **(v0.76.0)** Justo después, sistema pregunta "¿Crear una tarea de seguimiento a partir de «tarea»?"; si el usuario acepta, abre el alta con los mismos datos (categoría, meta, persona, etc.) pero nombre, descripción y las 3 fechas vacías, sin enlazarla con la recién completada.
-- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tareas.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); `assets/js/modal-tarea.js` (`ofrecerCrearTareaSeguimiento`, v0.76.0; `abrirDetalleTarea`, v0.93.0); la sección "Completadas hoy" de `views/hoy.view.js`. Desde Agenda (v0.93.0) el camino es distinto: no hay un botón directo en la tarjeta, se llega por el detalle (doble clic → "✅ Cumplida" dentro del modal) — mismo `cumplirTarea` y mismo encadenado de exportar/seguimiento al final.
+- **Vistas/funciones**: mismo patrón repetido en `views/hoy.view.js`, `views/tabla.view.js` y `assets/js/revision-dia.js`; `assets/js/tareas-logica.js` (`cumplirTarea`, `reabrirTarea`); `assets/js/exportar-calendar.js` (`ofrecerExportarACalendar`); `assets/js/modal-tarea.js` (`ofrecerCrearTareaSeguimiento`, v0.76.0; `abrirDetalleTarea`, v0.93.0); la sección "Completadas hoy" de `views/hoy.view.js`. Desde Agenda (v0.93.0) el camino es distinto: no hay un botón directo en la tarjeta, se llega por el detalle (doble clic → "✅ Cumplida" dentro del modal) — mismo `cumplirTarea` y mismo encadenado de exportar/seguimiento al final.
 - **Resultado**: `tarea_estado='completada'`, `tarea_fecha_fin` seteada; se registra un cumplimiento; posible Mejora (si hay nota) y posible clon nuevo, enlazado a la cadena o al desencadenante (ver `PROCESOS_AUTOMATICOS.md`, procesos 1 y 15); posibles dependientes desbloqueadas; si se acepta abrir Calendar, `tarea_exportada_calendar` queda en `true`. **Reabrir** una completada (desplegable "Cambiar estado" → Pendiente en Tareas) deshace el cumplimiento y la marca de exportada, y borra la copia de mantenimiento si sigue sin tocar (si se modificó, se conserva y se avisa).
 - **Fricciones**: las 3 vistas comparten ahora `cumplirTarea` (la lógica ya no está duplicada; el panel de confirmación sí sigue repetido en cada vista). (La sugerencia de tarea de alto disfrute — Premack — se eliminó; el `confirm()` de exportar a Calendar no resulta invasivo según el usuario.)
 
@@ -136,7 +138,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   2. Sistema muestra el mismo panel de atajos de día/hora.
   3. Usuario elige la nueva fecha y confirma.
   4. Sistema escribe `tarea_fecha_limite` de esa tarea únicamente (sin cascada), guarda y redibuja.
-- **Vistas/funciones**: `assets/js/reprogramar.js` (`crearPanelReprogramar`, `siguienteDiaHabil`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`), `assets/js/programador.js` (`reprogramarVencidas`), `views/hoy.view.js`, `views/tareas.view.js`, `assets/js/vista-agenda.js`, `assets/js/revision-dia.js`.
+- **Vistas/funciones**: `assets/js/reprogramar.js` (`crearPanelReprogramar`, `siguienteDiaHabil`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`), `assets/js/programador.js` (`reprogramarVencidas`), `views/hoy.view.js`, `views/tabla.view.js`, `assets/js/vista-agenda.js`, `assets/js/revision-dia.js`.
 - **Resultado**: `tarea_fecha_sugerida` y/o `tarea_fecha_limite` actualizada; posible cascada a dependientes.
 - **Fricciones**: 4 puntos de entrada distintos al mismo panel (consistente, pero repartido). La cascada no siempre es evidente para el usuario — no hay un resumen visual de "esto además corrió a estas otras N tareas".
 
@@ -229,7 +231,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   3. Usuario abre "Editar N tareas"; sistema muestra un formulario con una fila por campo (categoría, importancia, disfrute, meta, persona, ubicación, fecha límite, duración, costo estimado, días hábiles), cada una con una casilla "Cambiar" que habilita ese campo.
   4. Usuario tilda solo los campos que quiere tocar y los completa; el resto queda gris/deshabilitado.
   5. Usuario presiona "Aplicar cambios"; sistema aplica solo los campos tildados a cada tarea elegida, persiste una vez y sale del modo selección. Sin ningún campo tildado, avisa y no hace nada.
-- **Vistas/funciones**: `views/tareas.view.js` (`abrirEdicionMasiva`, `htmlFormularioEdicionMasiva`, `leerEdicionMasiva`), `assets/js/formulario-tarea.js` (`aplicarCamposATarea`, reusado).
+- **Vistas/funciones**: `views/tabla.view.js` (`abrirEdicionMasiva`, `htmlFormularioEdicionMasiva`, `leerEdicionMasiva`), `assets/js/formulario-tarea.js` (`aplicarCamposATarea`, reusado).
 - **Resultado**: los campos tildados quedan iguales en todas las tareas elegidas; el resto de cada tarea no se toca.
 - **Fricciones**: a propósito no incluye nombre/descripción, los enlaces depende-de/bloquea-a (regla 1 a 1) ni marcar como completada (esa sigue siendo una acción por tarea, ver A4).
 
@@ -239,11 +241,11 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Disparador**: el usuario tiene que hacer un procedimiento típico que ya hizo antes (o que va a hacer varias veces).
 - **Pasos**: (una vez) armar la cadena con el alta de tareas, entrar a la tarjeta de cualquiera de sus tareas y elegir "📋 Guardar cadena como plantilla", ponerle nombre; o crearla desde cero con "📋 Plantillas" → "＋ Nueva plantilla" y cargar los pasos. (Cada vez que se use) "📋 Plantillas" → "▶️ Usar" → elegir categoría y fecha límite final (y, si hace falta, "habilitada desde") → "✅ Crear tareas".
 - **Flujo usuario/sistema**:
-  1. Usuario abre "📋 Plantillas" en la vista Tareas y elige "▶️ Usar" en la plantilla.
+  1. Usuario abre "📋 Plantillas" en la vista Tabla y elige "▶️ Usar" en la plantilla.
   2. Sistema muestra la ventana "Usar" con la categoría, la fecha límite final, "habilitada desde" y una vista previa con el límite de cada paso (fecha final menos los "días antes" de cada paso).
   3. Usuario completa los datos y confirma. Si no puso fecha límite final, o algún paso quedaría con límite en el pasado, el sistema pregunta antes de seguir.
   4. Sistema crea todas las tareas encadenadas (la primera pendiente, las demás bloqueadas), con los atributos de cada paso, las agenda leyendo Calendar y guarda todo junto.
-- **Vistas/funciones**: `assets/js/plantillas.js` (`abrirListaPlantillas`, `abrirEditorPlantilla`, `abrirGuardarCadenaComoPlantilla`, `abrirUsoPlantilla`), `assets/js/modelos.js` (`crearPlantilla`, `crearPasoPlantilla`), `assets/js/dependencias.js` (`recalcularBloqueo`), `assets/js/programador.js` (`programarTareasSinFecha`), botón "📋 Plantillas" y "📋 Guardar cadena como plantilla" en `views/tareas.view.js`.
+- **Vistas/funciones**: `assets/js/plantillas.js` (`abrirListaPlantillas`, `abrirEditorPlantilla`, `abrirGuardarCadenaComoPlantilla`, `abrirUsoPlantilla`), `assets/js/modelos.js` (`crearPlantilla`, `crearPasoPlantilla`), `assets/js/dependencias.js` (`recalcularBloqueo`), `assets/js/programador.js` (`programarTareasSinFecha`), botón "📋 Plantillas" y "📋 Guardar cadena como plantilla" en `views/tabla.view.js`.
 - **Resultado**: N tareas nuevas en `estado.tareas`, enlazadas y con hora sugerida, y un único paso de deshacer (Ctrl+Z las quita juntas). La plantilla no cambia.
 - **Fricciones**: la plantilla no guarda categoría, ni fechas, ni checklist, ni enlaces a metas/personas (esos se piden o se completan después editando las tareas); no se puede aplicar sobre una tarea objetivo ya cargada (crea toda la cadena de cero); los pasos no pueden repetirse en ciclos.
 
@@ -279,7 +281,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   5. Usuario elige la meta; sistema guarda `meta_id` en la tarea.
   6. Usuario vuelve a Metas.
   7. Sistema calcula al vuelo cuántas tareas asociadas están completadas y muestra la barra, el "X/Y" y el listado.
-- **Vistas/funciones**: `views/metas.view.js` (`renderVistaMetas`, `renderMeta`), `views/tareas.view.js` (`crearPanelMeta` — un `<select>` único), `assets/js/modelos.js` (`crearMeta`).
+- **Vistas/funciones**: `views/metas.view.js` (`renderVistaMetas`, `renderMeta`), `views/tabla.view.js` (`crearPanelMeta` — un `<select>` único), `assets/js/modelos.js` (`crearMeta`).
 - **Resultado**: nueva Meta; tareas con `meta_id` asignado.
 - **Fricciones**: la asociación es indirecta y de a una — hay que ir a Tareas y abrir el panel "Meta" de cada tarea por separado; no se puede asociar varias tareas de una desde la vista Metas.
 
@@ -341,7 +343,7 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
   4. Usuario completa "Próximo contacto" (la fecha del próximo encuentro) y guarda.
   5. Sistema reprograma la `tarea_fecha_sugerida` de cada tarea pendiente asociada a esa fecha (en cascada sobre lo que dependa de ellas) y avisa cuántas se movieron. Guardar sin cambiar "Próximo contacto" no reprograma nada.
   6. Usuario (alternativa) presiona "Marcar contacto hoy" en la tarjeta de la lista (fija `persona_ultimo_contacto` a hoy); o elimina la persona (las tareas asociadas quedan con `persona_id: null`).
-- **Vistas/funciones**: `views/personas.view.js`, `views/tareas.view.js` (etiqueta 👤), `views/tabla.view.js` (filtro y columna "Persona"), `assets/js/formulario-tarea.js` (`htmlOpcionesPersona`), `assets/js/formularios-entidades.js` (`abrirDialogoPersona`, `tareasPendientesDe`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`).
+- **Vistas/funciones**: `views/personas.view.js`, `views/tabla.view.js` (etiqueta 👤), `views/tabla.view.js` (filtro y columna "Persona"), `assets/js/formulario-tarea.js` (`htmlOpcionesPersona`), `assets/js/formularios-entidades.js` (`abrirDialogoPersona`, `tareasPendientesDe`), `assets/js/tareas-logica.js` (`reprogramarTareaConCascada`).
 - **Resultado**: Persona nueva, actualizada (posible reprogramación en cascada de sus tareas pendientes) o eliminada.
 - **Fricciones**: una tarea admite una sola persona asociada; sin un aviso previo a "cuándo es el próximo contacto" (hay que entrar a la persona a mano para verlo o cambiarlo).
 
