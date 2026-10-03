@@ -224,3 +224,9 @@ Ningún proceso de esta sección (5, 19–31, 34 y 35) asigna o mueve horarios s
 - **Proceso**: `renovarSiHaceFalta` (`assets/js/almacenamiento.js`) pide un token nuevo con `prompt: 'none'`. Corre en cada clic o tecla (el navegador solo deja abrir el popup silencioso con un gesto del usuario) y al volver a la pestaña, como máximo cada 30 segundos; si falla, espera 5 minutos antes de insistir y el token actual sigue valiendo. Un intento sin respuesta se da por fallido a los 20 segundos.
 - **Sin sesión**: no se reintenta una ventana silenciosa en cada clic. Al abrir la app se intenta una vez en silencio y otra con el primer clic (`reconectarEnPrimerGesto`); si no alcanza, la cabecera dice «Hace falta reconectar con Google» y el botón «🔑 Reconectar» (siempre visible con la sesión vencida; «Sincronizar ahora» hace lo mismo) abre la ventana de Google.
 - **Resultado**: mientras se usa la app la sesión casi nunca vence, así que el agendado (que no corre sin una lectura confiable de Calendar) casi nunca queda en pausa. Cada intento queda en el registro de Configuraciones → «Sesión de Google».
+
+## 38. Agendado en segundo plano tras crear o editar una tarea
+
+- **Condición** (v0.102.0): se acaba de guardar una tarea nueva, una edición o el uso de una plantilla.
+- **Proceso**: primero se guarda (inmediato, con su paso de deshacer) y después `agendarEnSegundoPlano` (`assets/js/agendado-segundo-plano.js`) corre `programarTareasSinFecha` (leer Calendar, asignar huecos, reordenar). Si asignó o reordenó algo, guarda otra vez sin sumar un paso de deshacer. Las corridas se encolan; el aviso «sin hueco antes del límite» solo nombra lo que sigue sin lugar según el estado final y espera a que no haya otra ventana abierta.
+- **Resultado**: «Agregar» ya no espera al agendado; el horario sugerido aparece unos segundos después.

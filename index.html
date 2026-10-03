@@ -13,24 +13,29 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <header class="cabecera">
-    <div class="cabecera-fila">
-      <h1>STDL <span id="version-app" class="version-app"></span></h1>
-      <button id="boton-nueva-tarea" class="boton-mas" type="button" title="Nueva tarea (tecla N)" aria-label="Nueva tarea" hidden>＋</button>
-      <div class="acciones-datos">
-        <button id="boton-completar-carga" type="button" title="Tareas que quedaron con solo el nombre" hidden></button>
+  <button id="boton-menu-movil" class="boton-menu-movil" type="button" aria-label="Abrir el menú" aria-controls="sidebar" title="Menú">☰</button>
+  <div id="velo-sidebar" class="velo-sidebar" hidden></div>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar" aria-label="Menú de módulos">
+      <div class="sidebar-marca">
+        <h1>STDL</h1>
+        <span id="version-app" class="version-app"></span>
+        <button id="boton-compactar-sidebar" class="boton-compactar" type="button" aria-label="Compactar el menú" title="Compactar o expandir el menú">«</button>
+      </div>
+      <div class="sidebar-estado">
         <div id="indicador-sync" class="indicador-sync" role="status" aria-live="polite"></div>
-        <button id="boton-sync" type="button" title="Verifica contra Drive y sube lo pendiente">🔄 Sincronizar ahora</button>
+        <button id="boton-sync" type="button" title="Verifica contra Drive y sube lo pendiente"><span aria-hidden="true">🔄</span><span class="texto-sidebar"> Sincronizar ahora</span></button>
+      </div>
+      <nav id="nav-vistas" class="nav-vistas" aria-label="Módulos"></nav>
+      <div class="sidebar-acciones">
         <button id="boton-deshacer" type="button" title="Deshacer el último cambio (Ctrl+Z)" aria-label="Deshacer" disabled>↩️</button>
         <button id="boton-rehacer" type="button" title="Rehacer (Ctrl+Shift+Z)" aria-label="Rehacer" disabled>↪️</button>
-        <button id="boton-atajos" type="button" title="Atajos de teclado (tecla ?)" aria-label="Atajos de teclado">⌨️</button>
       </div>
-    </div>
-    <nav id="nav-vistas" class="nav-vistas"></nav>
-    <div id="banner-sync" class="banner-sync" hidden></div>
-    <div id="panel-avisos" class="panel-avisos" hidden></div>
-  </header>
-  <main id="vista" class="vista"></main>
+      <button id="boton-completar-carga" class="boton-completar-carga" type="button" title="Tareas que quedaron con solo el nombre" hidden></button>
+      <button id="boton-nueva-tarea" class="boton-nueva-tarea" type="button" title="Nueva tarea (tecla N)" aria-label="Nueva tarea" hidden><span aria-hidden="true">＋</span><span class="texto-sidebar"> Nueva tarea</span></button>
+    </aside>
+    <main id="vista" class="vista"></main>
+  </div>
   <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>

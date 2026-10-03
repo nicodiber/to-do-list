@@ -2,10 +2,15 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, textoHolguraConHoras, escaparHtml, conservarFoco, tieneHora, hoyISO } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea, disfruteEfectivo, textoRepeticion } from '../assets/js/tareas-logica.js';
-import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
+import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea, disfruteEfectivo, textoRepeticion, cumplirTarea, reabrirTarea, reprogramarTareaConCascada, avisoInconsistentes } from '../assets/js/tareas-logica.js';
+import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea, ofrecerCrearTareaSeguimiento } from '../assets/js/modal-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
-import { DIAS_SEMANA } from '../assets/js/reprogramar.js';
+import { DIAS_SEMANA, crearPanelReprogramar } from '../assets/js/reprogramar.js';
+import { abrirListaPlantillas, abrirGuardarCadenaComoPlantilla } from '../assets/js/plantillas.js';
+import { crearPanelIAPrioridades } from '../assets/js/panel-ia-prioridades.js';
+import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
+import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
+import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
 
@@ -14,8 +19,21 @@ let filtroCategoria = '';
 let filtroEstado = 'activas';
 let filtroImportancia = '';
 let filtroPersona = '';
+// Agrupar la lista por categoría (v0.102.0, viene de la vista Tareas, que se eliminó).
+let agruparPorCategoria = false;
+// Checklists desplegados en la fila (sobreviven a los redibujados que provoca tildar una casilla).
+const checklistsAbiertos = new Set();
+
+/** Fija el filtro de categoría (lo usa «📋 Ver tareas» de Categorías, antes de navegar a esta vista). */
+export function establecerFiltroCategoria(categoriaId) {
+  filtroCategoria = categoriaId;
+  filtroEstado = '';
+}
+
+const ESTADOS_SELECCIONABLES = ['pendiente', 'completada'];
+const ETIQUETAS_ESTADO_SELECCIONABLE = { pendiente: 'Pendiente', completada: 'Completada' };
 let textoBusqueda = '';
-let columnaOrden = 'holgura'; // null = orden de prioridad real de la app; o 'nombre'|'categoria'|'importancia'|'estado'|'fecha'|'holgura' (v0.88.0: abre ordenada por holgura)
+let columnaOrden = 'holgura'; // null = orden de prioridad real de la app; o 'nombre'|'categoria'|'importancia'|'estado'|'sugerida'|'holgura' (v0.88.0: abre ordenada por holgura)
 let direccionOrden = 'asc';
 let paresOmitidos = new Set(); // claves "idA|idB" (ordenados) omitidas en esta sesión de Versus, para no re-ofrecer el mismo par
 let panelVersusAbierto = false;
@@ -107,17 +125,6 @@ const COLUMNAS = [
     comparar: (a, b) => Number(!!b.tarea_urgente) - Number(!!a.tarea_urgente),
   },
   { clave: 'estado', etiqueta: 'Estado', defecto: true, valor: (t) => ETIQUETAS_ESTADO[t.tarea_estado], comparar: (a, b) => ESTADOS_TAREA.indexOf(a.tarea_estado) - ESTADOS_TAREA.indexOf(b.tarea_estado) },
-  {
-    clave: 'fecha',
-    etiqueta: 'Fecha',
-    defecto: true,
-    valor: (t) => {
-      const fechaRef = fechaDeReferencia(t);
-      const fechaCompleta = t.tarea_fecha_sugerida || t.tarea_fecha_limite || null;
-      return fechaRef && fechaCompleta ? formatearFechaOFechaHora(fechaCompleta) : 'Sin fecha';
-    },
-    comparar: (a, b) => porFecha(fechaDeReferencia(a), fechaDeReferencia(b)),
-  },
   { clave: 'holgura', etiqueta: 'Holgura', defecto: true, valor: (t) => (calcularHolguraDias(t) === Infinity ? '—' : textoHolguraConHoras(calcularHolguraHoras(t))), comparar: compararHolguraAsc },
   {
     clave: 'disfrute',
@@ -133,6 +140,7 @@ const COLUMNAS = [
   {
     clave: 'sugerida',
     etiqueta: 'Sugerida',
+    defecto: true,
     // v0.99.0: una tarea activa sin hora no debería existir; si pasa (sin sesión de Calendar o sin hueco en el horizonte) se ve el motivo.
     valor: (t) =>
       t.tarea_fecha_sugerida || t.tarea_estado === 'completada'
@@ -195,8 +203,10 @@ const CLAVE_COLUMNAS = 'super-todo-list:tabla-columnas';
 function preferenciaColumnas() {
   try {
     const guardado = JSON.parse(localStorage.getItem(CLAVE_COLUMNAS));
-    if (Array.isArray(guardado)) return { orden: null, visibles: guardado };
-    if (guardado && Array.isArray(guardado.orden) && Array.isArray(guardado.visibles)) return guardado;
+    // v0.102.0: la columna «Fecha» se eliminó (era la sugerida o, sin ella, el límite): en su lugar queda «Sugerida».
+    const sinFecha = (lista) => [...new Set(lista.map((clave) => (clave === 'fecha' ? 'sugerida' : clave)))];
+    if (Array.isArray(guardado)) return { orden: null, visibles: sinFecha(guardado) };
+    if (guardado && Array.isArray(guardado.orden) && Array.isArray(guardado.visibles)) return { orden: sinFecha(guardado.orden), visibles: sinFecha(guardado.visibles) };
   } catch {
     // Sin preferencia guardada o ilegible: se usan las de por defecto.
   }
@@ -303,6 +313,7 @@ function abrirSelectorColumnas(alCambiar) {
  * editarla.
  */
 export function renderVistaTabla(contenedor) {
+  const filtroUbicacion = obtenerUbicacionActual();
   const columnas = columnasVisibles();
   // Si la columna elegida para ordenar se ocultó, vuelve el orden de prioridad.
   if (columnaOrden !== null && !columnas.some((c) => c.clave === columnaOrden)) columnaOrden = null;
@@ -313,6 +324,7 @@ export function renderVistaTabla(contenedor) {
     .filter((t) => (filtroEstado === 'activas' ? t.tarea_estado !== 'completada' : !filtroEstado || t.tarea_estado === filtroEstado))
     .filter((t) => !filtroImportancia || t.tarea_urgente)
     .filter((t) => !filtroPersona || t.persona_id === filtroPersona)
+    .filter((t) => !filtroUbicacion || t.ubicacion_id === filtroUbicacion)
     .filter((t) => !textoBusqueda || t.tarea_nombre.toLowerCase().includes(textoBusqueda.toLowerCase()))
     .slice();
 
@@ -360,15 +372,25 @@ export function renderVistaTabla(contenedor) {
           ${estado.personas.map((p) => `<option value="${p.persona_id}" ${filtroPersona === p.persona_id ? 'selected' : ''}>${escaparHtml(p.persona_nombre)}</option>`).join('')}
         </select>
       </label>
+      <label title="Mostrar solo las tareas de este lugar">📍 Ubicación
+        <select id="filtro-ubicacion-todas">
+          <option value="">Todas</option>
+          ${estado.ubicaciones.map((u) => `<option value="${u.ubicacion_id}" ${filtroUbicacion === u.ubicacion_id ? 'selected' : ''}>${escaparHtml(u.ubicacion_nombre)}</option>`).join('')}
+        </select>
+      </label>
+      <label class="interruptor" title="Separar la lista por categoría"><input type="checkbox" role="switch" id="toggle-agrupar-categoria-tabla" ${agruparPorCategoria ? 'checked' : ''} /><span class="interruptor-pista" aria-hidden="true"></span><span class="interruptor-texto">🧩 Agrupar por categoría</span><span class="interruptor-estado" aria-hidden="true"></span></label>
       <label>🔎 Buscar
         <input type="search" id="buscador-nombre-todas" title="Buscar por nombre (tecla F)" placeholder="Nombre de la tarea..." value="${escaparHtml(textoBusqueda)}" />
       </label>
       <button title="Elegir qué columnas mostrar" type="button" id="boton-columnas-tabla">🧱 Columnas</button>
       <button title="Volver al orden por prioridad" type="button" id="boton-reset-orden-todas">↺ Prioridad</button>
       <button title="Desempatar a mano tareas igual de prioritarias" type="button" id="boton-versus-todas">⚔️ Versus</button>
+      <button title="Crear un grupo de tareas encadenadas a partir de un procedimiento típico guardado" type="button" id="boton-plantillas">📋 Plantillas</button>
+      <button title="Reordenar las prioridades con ayuda de tu IA" type="button" id="boton-ia-prioridades">🤖 Reestructurar prioridades con IA</button>
       <button title="Elegir varias tareas para editarlas juntas" type="button" id="boton-modo-seleccion-tabla" class="${modoSeleccionTabla ? 'activo' : ''}">☑️ Seleccionar</button>
     </div>
     <div id="contenedor-panel-versus" hidden></div>
+    <div id="contenedor-panel-ia-prioridades" hidden></div>
     <div id="barra-seleccion-tabla" class="barra-seleccion" ${modoSeleccionTabla ? '' : 'hidden'}>
       <span id="conteo-seleccion-tabla">0 seleccionadas</span>
       <button title="Elegir todas las tareas visibles" type="button" id="boton-seleccionar-todas-tabla">☑️ Seleccionar todas</button>
@@ -387,6 +409,7 @@ export function renderVistaTabla(contenedor) {
               const flecha = activa ? (direccionOrden === 'asc' ? ' ▲' : ' ▼') : '';
               return `<th data-columna="${clave}" class="th-ordenable${activa ? ' activa' : ''}">${etiqueta}${flecha}</th>`;
             }).join('')}
+            <th class="th-acciones-tabla">Acciones</th>
           </tr>
         </thead>
         <tbody id="cuerpo-tabla-todas"></tbody>
@@ -405,6 +428,24 @@ export function renderVistaTabla(contenedor) {
   contenedor.querySelector('#filtro-importancia-todas').addEventListener('change', (evento) => {
     filtroImportancia = evento.target.value;
     renderVistaTabla(contenedor);
+  });
+  contenedor.querySelector('#filtro-ubicacion-todas').addEventListener('change', (evento) => {
+    establecerUbicacionActual(evento.target.value);
+    renderVistaTabla(contenedor);
+  });
+  contenedor.querySelector('#toggle-agrupar-categoria-tabla').addEventListener('change', (evento) => {
+    agruparPorCategoria = evento.target.checked;
+    renderVistaTabla(contenedor);
+  });
+  contenedor.querySelector('#boton-plantillas').addEventListener('click', abrirListaPlantillas);
+  const contenedorPanelIA = contenedor.querySelector('#contenedor-panel-ia-prioridades');
+  contenedor.querySelector('#boton-ia-prioridades').addEventListener('click', () => {
+    const yaAbierto = !contenedorPanelIA.hidden;
+    contenedorPanelIA.innerHTML = '';
+    contenedorPanelIA.hidden = true;
+    if (yaAbierto) return;
+    contenedorPanelIA.appendChild(crearPanelIAPrioridades());
+    contenedorPanelIA.hidden = false;
   });
   contenedor.querySelector('#filtro-persona-todas').addEventListener('change', (evento) => {
     filtroPersona = evento.target.value;
@@ -486,15 +527,39 @@ export function renderVistaTabla(contenedor) {
 
   const cuerpo = contenedor.querySelector('#cuerpo-tabla-todas');
   if (filas.length === 0) {
-    cuerpo.innerHTML = '<tr><td colspan="${columnas.length}" class="mensaje-vacio">No hay tareas que coincidan con el filtro.</td></tr>';
+    cuerpo.innerHTML = `<tr><td colspan="${columnas.length + 1}" class="mensaje-vacio">No hay tareas que coincidan con el filtro.</td></tr>`;
     return;
   }
 
   const conOrdenManual = columnaOrden === null;
-  filas.forEach((tarea, indice) => cuerpo.appendChild(renderFila(tarea, columnas, conOrdenManual ? { indice, filas } : null, actualizarBarraSeleccionTabla)));
+  const anchoTotal = columnas.length + 1 + (modoSeleccionTabla ? 1 : 0) + (conOrdenManual ? 1 : 0);
+  const dibujar = (tarea) => cuerpo.appendChild(renderFila(tarea, columnas, conOrdenManual ? { indice: filas.indexOf(tarea), filas } : null, actualizarBarraSeleccionTabla, anchoTotal));
+  if (!agruparPorCategoria) {
+    filas.forEach(dibujar);
+    return;
+  }
+  // Agrupadas por categoría (el orden dentro de cada grupo es el de la lista; ▲▼ sigue siendo el orden global).
+  const separador = (nombre, color) => {
+    const tr = document.createElement('tr');
+    tr.className = 'separador-categoria-tabla';
+    tr.innerHTML = `<td colspan="${anchoTotal}" style="--color-separador:${color || '#888'}"></td>`;
+    tr.firstElementChild.textContent = nombre;
+    return tr;
+  };
+  arbolCategorias(estado.categorias).forEach(({ categoria }) => {
+    const delGrupo = filas.filter((t) => t.categoria_id === categoria.categoria_id);
+    if (delGrupo.length === 0) return;
+    cuerpo.appendChild(separador(caminoCategoria(categoria, estado.categorias), categoria.categoria_color));
+    delGrupo.forEach(dibujar);
+  });
+  const sinCategoria = filas.filter((t) => !t.categoria_id);
+  if (sinCategoria.length > 0) {
+    cuerpo.appendChild(separador('Sin categoría'));
+    sinCategoria.forEach(dibujar);
+  }
 }
 
-function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla = () => {}) {
+function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla = () => {}, anchoTotal = columnas.length + 1) {
   const fila = document.createElement('tr');
   fila.className = 'fila-tabla-tarea';
   const categoria = categoriaDe(tarea);
@@ -504,7 +569,163 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
     ? `<td class="td-seleccion-tabla">${puedeSeleccionar ? `<input type="checkbox" data-seleccionar="${tarea.tarea_id}" ${seleccionadasTabla.has(tarea.tarea_id) ? 'checked' : ''} />` : ''}</td>`
     : '';
   const celdaOrden = ordenManual ? `<td class="td-orden-manual"><span class="acciones-prioridad"><button type="button" data-accion="subir-orden" title="Subir">▲</button><button type="button" data-accion="bajar-orden" title="Bajar">▼</button></span></td>` : '';
-  fila.innerHTML = celdaSeleccion + celdaOrden + columnas.map((c) => `<td>${c.valor(tarea)}</td>`).join('');
+  const bloqueada = tarea.tarea_estado === 'bloqueada';
+  const completada = tarea.tarea_estado === 'completada';
+  const dependeDe = tarea.tarea_dependiente ? estado.tareas.find((t) => t.tarea_id === tarea.tarea_dependiente) : null;
+  const proxima = estado.tareas.find((t) => t.tarea_dependiente === tarea.tarea_id && t.tarea_estado !== 'completada');
+  const checklist = tarea.tarea_checklist || [];
+  const celdaAcciones = `
+    <td class="td-acciones-tabla">
+      <div class="acciones-fila">
+        ${
+          bloqueada
+            ? '<span class="etiqueta-fecha etiqueta-bloqueada">Bloqueada</span>'
+            : `<select data-accion="cambiar-estado" title="Cambiar el estado de la tarea">${ESTADOS_SELECCIONABLES.map((e) => `<option value="${e}" ${e === tarea.tarea_estado ? 'selected' : ''}>${ETIQUETAS_ESTADO_SELECCIONABLE[e]}</option>`).join('')}</select>`
+        }
+        ${completada ? '' : '<button type="button" data-accion="posponer" title="Posponer: elegir otra fecha para la tarea">⏭️</button>'}
+        ${checklist.length > 0 ? `<button type="button" data-accion="ver-checklist" title="Ver y tildar los pasos del checklist">☑️ ${checklist.filter((i) => i.hecho).length}/${checklist.length}</button>` : ''}
+        <details class="menu-fila">
+          <summary title="Más acciones" aria-label="Más acciones">⋯</summary>
+          <div class="menu-fila-opciones">
+            <button type="button" data-accion="editar">✏️ Editar</button>
+            <button type="button" data-accion="duplicar" title="Crear una tarea nueva con los mismos datos (sin enlaces), para editar y guardar aparte">📄 Duplicar</button>
+            <button type="button" data-accion="crear-previa" title="Crear una tarea que bloquea a esta (mismos datos, nombre y descripción vacíos)">⬅️ Crearle tarea previa</button>
+            <button type="button" data-accion="crear-posterior" title="Crear una tarea que depende de esta (mismos datos, nombre y descripción vacíos)">➡️ Crearle tarea posterior</button>
+            ${dependeDe || proxima ? '<button type="button" data-accion="guardar-plantilla" title="Guardar toda la cadena de esta tarea como plantilla">📋 Guardar cadena como plantilla</button>' : ''}
+            <button type="button" data-accion="eliminar">🗑️ Eliminar</button>
+          </div>
+        </details>
+      </div>
+    </td>`;
+  fila.innerHTML = celdaSeleccion + celdaOrden + columnas.map((c) => `<td>${c.valor(tarea)}</td>`).join('') + celdaAcciones;
+  const detalle = document.createElement('tr');
+  detalle.className = 'fila-detalle-tabla';
+  detalle.hidden = true;
+  detalle.innerHTML = `<td colspan="${anchoTotal}"><div class="contenedor-panel-reprogramar" hidden></div><div class="contenedor-panel-mejora" hidden></div><div class="contenedor-checklist-tabla" hidden>${htmlChecklistTarjeta(tarea)}</div></td>`;
+  const panelReprogramar = detalle.querySelector('.contenedor-panel-reprogramar');
+  const panelMejora = detalle.querySelector('.contenedor-panel-mejora');
+  const panelChecklist = detalle.querySelector('.contenedor-checklist-tabla');
+  const actualizarDetalle = () => {
+    detalle.hidden = panelReprogramar.hidden && panelMejora.hidden && panelChecklist.hidden;
+  };
+  if (checklist.length > 0 && checklistsAbiertos.has(tarea.tarea_id)) panelChecklist.hidden = false;
+  actualizarDetalle();
+  conectarChecklistTarjeta(detalle, tarea);
+  const celdaAccionesEl = fila.querySelector('.td-acciones-tabla');
+  // Nada de lo que hay en la celda de acciones abre la edición de la fila.
+  celdaAccionesEl.addEventListener('click', (evento) => evento.stopPropagation());
+  const menu = fila.querySelector('.menu-fila');
+  menu.addEventListener('toggle', () => posicionarMenuFila(menu));
+  const cerrarMenu = () => {
+    menu.open = false;
+  };
+
+  fila.querySelector('[data-accion="cambiar-estado"]')?.addEventListener('change', async (evento) => {
+    const nuevoEstado = evento.target.value;
+    if (nuevoEstado === 'completada' && tarea.tarea_mantenimiento) {
+      panelMejora.innerHTML = `
+        <div class="panel-cierre">
+          <label>¿Qué podrías mejorar la próxima vez? (opcional)
+            <input type="text" data-campo="mejora" />
+          </label>
+          <button title="Confirmar que se cumplió y guardar la nota" type="button" data-accion="confirmar-mejora" class="boton-primario">✔️ Confirmar</button>
+          <button title="No completarla" type="button" data-accion="cancelar-mejora">Cancelar</button>
+        </div>`;
+      panelMejora.hidden = false;
+      actualizarDetalle();
+      panelMejora.querySelector('[data-campo="mejora"]').focus();
+      panelMejora.querySelector('[data-accion="cancelar-mejora"]').addEventListener('click', () => {
+        panelMejora.hidden = true;
+        panelMejora.innerHTML = '';
+        evento.target.value = tarea.tarea_estado;
+        actualizarDetalle();
+      });
+      panelMejora.querySelector('[data-accion="confirmar-mejora"]').addEventListener('click', async () => {
+        const notaMejora = panelMejora.querySelector('[data-campo="mejora"]').value.trim();
+        cumplirTarea(tarea, estado, { notaMejora });
+        panelMejora.hidden = true;
+        panelMejora.innerHTML = '';
+        await persistirYNotificar();
+        ofrecerExportarACalendar(tarea);
+        ofrecerCrearTareaSeguimiento(tarea);
+      });
+      return;
+    }
+    if (nuevoEstado === 'completada') {
+      cumplirTarea(tarea, estado);
+      await persistirYNotificar();
+      ofrecerExportarACalendar(tarea);
+      ofrecerCrearTareaSeguimiento(tarea);
+      return;
+    }
+    const { copiaConservada } = reabrirTarea(tarea, estado);
+    await persistirYNotificar();
+    if (copiaConservada) {
+      await avisar(`Se reabrió «${tarea.tarea_nombre}». La copia que se había generado al completarla no se borró porque ya se modificó o hay tareas que dependen de ella: revisá que no quede duplicada.`);
+    }
+  });
+
+  fila.querySelector('[data-accion="posponer"]')?.addEventListener('click', () => {
+    const yaAbierto = !panelReprogramar.hidden;
+    panelReprogramar.innerHTML = '';
+    panelReprogramar.hidden = true;
+    if (!yaAbierto) {
+      panelReprogramar.appendChild(
+        crearPanelReprogramar({
+          diasHabiles: tarea.tarea_dias_habiles,
+          onConfirmar: async (fechaSugeridaISO) => {
+            const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+            panelReprogramar.hidden = true;
+            panelReprogramar.innerHTML = '';
+            await persistirYNotificar();
+            const aviso = avisoInconsistentes(inconsistentes);
+            if (aviso) await avisar(aviso);
+          },
+          onCancelar: () => {
+            panelReprogramar.hidden = true;
+            panelReprogramar.innerHTML = '';
+            actualizarDetalle();
+          },
+        })
+      );
+      panelReprogramar.hidden = false;
+    }
+    actualizarDetalle();
+  });
+
+  fila.querySelector('[data-accion="ver-checklist"]')?.addEventListener('click', () => {
+    panelChecklist.hidden = !panelChecklist.hidden;
+    if (panelChecklist.hidden) checklistsAbiertos.delete(tarea.tarea_id);
+    else checklistsAbiertos.add(tarea.tarea_id);
+    actualizarDetalle();
+  });
+
+  fila.querySelector('[data-accion="editar"]').addEventListener('click', () => {
+    cerrarMenu();
+    abrirEdicionTarea(tarea.tarea_id);
+  });
+  fila.querySelector('[data-accion="duplicar"]').addEventListener('click', () => {
+    cerrarMenu();
+    abrirAltaTarea(copiaDeTarea(tarea));
+  });
+  fila.querySelector('[data-accion="crear-previa"]').addEventListener('click', () => {
+    cerrarMenu();
+    abrirAltaTarea(copiaDeTarea(tarea, { vaciarNombre: true }), { proximaId: tarea.tarea_id });
+  });
+  fila.querySelector('[data-accion="crear-posterior"]').addEventListener('click', () => {
+    cerrarMenu();
+    abrirAltaTarea(copiaDeTarea(tarea, { vaciarNombre: true }), { previaId: tarea.tarea_id });
+  });
+  fila.querySelector('[data-accion="guardar-plantilla"]')?.addEventListener('click', () => {
+    cerrarMenu();
+    abrirGuardarCadenaComoPlantilla(tarea);
+  });
+  fila.querySelector('[data-accion="eliminar"]').addEventListener('click', async () => {
+    cerrarMenu();
+    if (!await confirmar(`¿Eliminar la tarea "${tarea.tarea_nombre}"?`, { peligro: true, textoAceptar: 'Eliminar' })) return;
+    eliminarTarea(tarea, estado);
+    await persistirYNotificar();
+  });
   fila.querySelector('[data-seleccionar]')?.addEventListener('click', (evento) => {
     evento.stopPropagation();
     if (evento.target.checked) seleccionadasTabla.add(tarea.tarea_id);
@@ -544,8 +765,41 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
     });
   }
 
-  return fila;
+  const fragmento = document.createDocumentFragment();
+  fragmento.append(fila, detalle);
+  return fragmento;
 }
+
+/**
+ * Menú «⋯» de una fila: se posiciona con `fixed` para que el contenedor con scroll de la tabla no lo recorte.
+ */
+function posicionarMenuFila(menu) {
+  const opciones = menu.querySelector('.menu-fila-opciones');
+  if (!menu.open) {
+    opciones.style.cssText = '';
+    return;
+  }
+  // Un solo menú abierto a la vez.
+  document.querySelectorAll('.menu-fila[open]').forEach((otro) => {
+    if (otro !== menu) otro.open = false;
+  });
+  const rect = menu.querySelector('summary').getBoundingClientRect();
+  opciones.style.position = 'fixed';
+  opciones.style.visibility = 'hidden';
+  const alto = opciones.offsetHeight; // fuerza el cálculo de tamaño antes de mostrarlo
+  const ancho = opciones.offsetWidth;
+  const arriba = rect.bottom + alto > window.innerHeight - 8 ? Math.max(8, rect.top - alto) : rect.bottom;
+  opciones.style.top = `${arriba}px`;
+  opciones.style.left = `${Math.max(8, Math.min(window.innerWidth - ancho - 8, rect.right - ancho))}px`;
+  opciones.style.visibility = '';
+}
+
+// Clic afuera (o Esc) cierra el menú «⋯» abierto.
+document.addEventListener('click', (evento) => {
+  document.querySelectorAll('.menu-fila[open]').forEach((menu) => {
+    if (!menu.contains(evento.target)) menu.open = false;
+  });
+});
 
 /**
  * Agrupa las tareas accionables en clusters de tareas mutuamente empatadas

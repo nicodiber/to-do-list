@@ -7,6 +7,7 @@ import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } from '../assets/js/google-calendar.js';
 import { escaparHtml, htmlInterruptor } from '../assets/js/utilidades.js';
 import { registroSesionGoogle } from '../assets/js/google-auth.js';
+import { htmlAtajos } from '../assets/js/atajos.js';
 import { obtenerTema, establecerTema } from '../assets/js/app.js';
 import { avisar, confirmar, pedirTexto } from '../assets/js/avisos.js';
 
@@ -76,6 +77,14 @@ export function renderVistaConfiguraciones(contenedor) {
       <h4>🗓️ Calendarios que se leen</h4>
       <div id="lista-calendarios" class="lista-calendarios"><p class="ayuda">${hayConexionGoogleCalendar() ? 'Cargando tus calendarios…' : 'Conectá Google para elegir los calendarios.'}</p></div>
       <p class="ayuda" id="mensaje-tiempo" hidden></p>
+    </section>
+
+    <section class="seccion-config">
+      <h3>⌨️ Atajos de teclado</h3>
+      <details>
+        <summary>Ver la lista de atajos (también con la tecla «?»)</summary>
+        ${htmlAtajos()}
+      </details>
     </section>
 
     <section class="seccion-config">

@@ -819,7 +819,7 @@ function reconectarEnPrimerGesto() {
   reconexionPorClicArmada = true;
   setSync({ reconectaConClic: true });
   const intentar = async (evento) => {
-    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial, #boton-sync')) return;
+    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], [data-reconectar], #boton-conectar-inicial, #boton-sync')) return;
     document.removeEventListener('pointerdown', intentar, true);
     document.removeEventListener('keydown', intentar, true);
     reconexionPorClicArmada = false;
@@ -844,7 +844,7 @@ function configurarEventos() {
   reconectarEnPrimerGesto();
   // Cada clic o tecla es una oportunidad para renovar la sesión (ver `renovarSiHaceFalta`).
   const alGesto = (evento) => {
-    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], #boton-conectar-inicial, #boton-sync')) return;
+    if (evento.target && evento.target.closest && evento.target.closest('[data-accion-sync="reconectar"], [data-reconectar], #boton-conectar-inicial, #boton-sync')) return;
     renovarSiHaceFalta();
   };
   document.addEventListener('pointerdown', alGesto, true);

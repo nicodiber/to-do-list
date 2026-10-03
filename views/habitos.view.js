@@ -111,6 +111,7 @@ export function renderVistaHabitos(contenedor) {
 
   contenedor.innerHTML = `
     <blockquote class="cita-habitos">Lo que no se mide no se mejora.</blockquote>
+    <blockquote class="cita-habitos">La maldición de la disciplina es que todos los días parecen iguales. La maldición de la indisciplina es que todos los años parecen iguales.</blockquote>
     <p class="ayuda">Cada fila es una tarea con repetición (un hábito) y cada columna un día; hoy es la última.</p>
     <div class="selector-rango" role="group" aria-label="Período">
       ${OPCIONES.map((n) => `<button type="button" data-dias="${n}" title="Ver los últimos ${n} días" class="${n === dias ? 'activo' : ''}">${n} días</button>`).join('')}

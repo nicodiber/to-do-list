@@ -119,7 +119,28 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
     const valor = (evento.submitter && evento.submitter.dataset.valor) || botones[0].valor;
-    if (await alGuardar(formulario, { valor, reiniciarFirma: () => { firmaInicial = firmaFormulario(formulario); } })) cerrar();
+    // Feedback mientras se guarda (v0.102.0): botón deshabilitado con «⏳ …» para que se note que ya empezó y no se envíe dos veces.
+    if (formulario.classList.contains('guardando')) return;
+    const enviables = [...formulario.querySelectorAll('button[type="submit"]')];
+    const presionado = evento.submitter || enviables[0];
+    const textoOriginal = presionado ? presionado.textContent : '';
+    const configurado = botones.find((b) => b.valor === valor);
+    formulario.classList.add('guardando');
+    enviables.forEach((b) => {
+      b.disabled = true;
+    });
+    if (presionado) presionado.textContent = (configurado && configurado.textoEnCurso) || '⏳ Guardando…';
+    let cerrarDialogo = false;
+    try {
+      cerrarDialogo = await alGuardar(formulario, { valor, reiniciarFirma: () => { firmaInicial = firmaFormulario(formulario); } });
+    } finally {
+      formulario.classList.remove('guardando');
+      enviables.forEach((b) => {
+        b.disabled = false;
+      });
+      if (presionado) presionado.textContent = textoOriginal;
+    }
+    if (cerrarDialogo) cerrar();
   });
 
   // Para que quien lo abrió pueda cerrarlo y limpiarlo ya (sin esperar el evento `close`, que puede demorar).
