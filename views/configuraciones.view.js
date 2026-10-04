@@ -8,6 +8,7 @@ import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } f
 import { escaparHtml, htmlInterruptor } from '../assets/js/utilidades.js';
 import { registroSesionGoogle } from '../assets/js/google-auth.js';
 import { htmlAtajos } from '../assets/js/atajos.js';
+import { leerPreferenciaSonidos, guardarPreferenciaSonidos, sonar } from '../assets/js/sonidos.js';
 import { obtenerTema, establecerTema } from '../assets/js/app.js';
 import { avisar, confirmar, pedirTexto } from '../assets/js/avisos.js';
 
@@ -80,6 +81,16 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
 
     <section class="seccion-config">
+      <h3>🔊 Sonidos</h3>
+      <p class="ayuda">Sonidos cortos al agregar, completar o eliminar una tarea, al deshacer, en los avisos y un toque suave al apretar botones. Los genera la propia app (no hay archivos de audio). Se guardan en este dispositivo.</p>
+      <div class="acciones-config">
+        ${htmlInterruptor('sonidos_activo', leerPreferenciaSonidos().activo, '🔊 Sonidos activados')}
+        <label class="campo-volumen" title="Volumen de los sonidos">Volumen <input type="range" id="sonidos-volumen" min="0" max="100" step="5" value="${Math.round(leerPreferenciaSonidos().volumen * 100)}" /></label>
+        <button type="button" id="sonidos-probar" title="Escuchar el sonido de tarea completada">▶️ Probar</button>
+      </div>
+    </section>
+
+    <section class="seccion-config">
       <h3>⌨️ Atajos de teclado</h3>
       <details>
         <summary>Ver la lista de atajos (también con la tecla «?»)</summary>
@@ -116,6 +127,19 @@ export function renderVistaConfiguraciones(contenedor) {
       </div>
     </section>
   `;
+
+  const interruptorSonido = contenedor.querySelector('[name="sonidos_activo"]');
+  const volumenSonido = contenedor.querySelector('#sonidos-volumen');
+  const guardarSonidos = () => guardarPreferenciaSonidos({ activo: interruptorSonido.checked, volumen: Number(volumenSonido.value) / 100 });
+  interruptorSonido.addEventListener('change', () => {
+    guardarSonidos();
+    if (interruptorSonido.checked) sonar('completar');
+  });
+  volumenSonido.addEventListener('change', () => {
+    guardarSonidos();
+    sonar('aviso', { forzar: true });
+  });
+  contenedor.querySelector('#sonidos-probar').addEventListener('click', () => sonar('completar', { forzar: true }));
 
   const registro = contenedor.querySelector('#registro-sesion');
   const etiquetasRegistro = { conexion: '✅ Conexión con ventana', renovacion: '🔄 Renovación silenciosa', fallo: '⚠️ Falló' };

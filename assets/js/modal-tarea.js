@@ -24,6 +24,7 @@ import { ofrecerExportarACalendar } from './exportar-calendar.js';
 import { avisar, confirmar } from './avisos.js';
 import { avisarConflictoEnlace } from './conflicto-enlace.js';
 import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
+import { sonar } from './sonidos.js';
 
 let edicionesAbiertas = 0;
 
@@ -331,6 +332,7 @@ export function abrirAltaTarea(origen = null, { previaId = null, proximaId = nul
       await persistirYNotificar();
       // El horario sugerido se calcula después, en segundo plano: guardar es inmediato (v0.102.0).
       agendarEnSegundoPlano();
+      sonar('agregar');
 
       if (valor === 'siguiente') {
         // Cierra esta ventana y abre una en blanco para la tarea siguiente, ya enlazada como dependiente de esta.

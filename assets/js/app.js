@@ -44,6 +44,7 @@ import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { configurarAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
 import { crearRevisorDeAvisos, abrirAvisosSync } from './avisos-sync.js';
 import { filtrarSinHuecoVigente } from './aviso-sin-hueco.js';
+import { activarSonidoDeClic } from './sonidos.js';
 import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 import { avisar, confirmar } from './avisos.js';
@@ -311,8 +312,17 @@ function actualizarBotonesTareas(s) {
   BOTON_COMPLETAR_CARGA.title = `Completar la carga de ${pendientes} tarea${pendientes === 1 ? '' : 's'} que quedaron con solo el nombre`;
 }
 
+let vistaDibujada = null;
+
 function render({ conservarBorradores = false } = {}) {
   const s = obtenerEstadoSync();
+  // Fundido de entrada solo al cambiar de módulo (v0.104.0).
+  if (vistaDibujada !== null && vistaDibujada !== vistaActual()) {
+    CONTENEDOR.classList.remove('vista-entrando');
+    void CONTENEDOR.offsetWidth; // reinicia la animación
+    CONTENEDOR.classList.add('vista-entrando');
+  }
+  vistaDibujada = vistaActual();
   // Cambios de otro dispositivo: se conserva todo lo escrito; acciones locales: solo los formularios
   // marcados (`data-conservar-borrador`, el alta de tareas), para que los demás se vacíen al agregar.
   const borradores = s.datosListos && !s.soloLectura ? capturarBorradores(CONTENEDOR, conservarBorradores ? {} : { soloEn: '[data-conservar-borrador]' }) : null;
@@ -435,6 +445,7 @@ setInterval(async () => {
 }, 90 * 1000);
 
 document.getElementById('version-app').textContent = VERSION;
+activarSonidoDeClic();
 
 // Menú lateral (v0.102.0): se compacta a solo emojis (se recuerda en este navegador) y, en pantallas angostas, se abre
 // como un panel encima del contenido desde el botón ☰.

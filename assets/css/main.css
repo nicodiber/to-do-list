@@ -3374,3 +3374,36 @@ body.sidebar-compacto .sidebar .indicador-sync { align-items: center; }
   mask-image: linear-gradient(to right, #000 55%, transparent);
 }
 .gantt-infinito { margin-left: auto; padding-right: 0.4rem; font-size: 0.7rem; font-weight: 700; }
+
+.campo-volumen { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+
+/* ===== Animaciones suaves (v0.104.0) ===== */
+@keyframes aparecer-vista { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes aparecer-dialogo { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes aparecer-fondo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aparecer-fila { from { opacity: 0; background: var(--color-fondo-info); } to { opacity: 1; } }
+/* La vista entra con un fundido solo al cambiar de módulo (no en cada redibujado por un cambio de datos). */
+.vista.vista-entrando { animation: aparecer-vista 0.2s ease-out; }
+dialog[open] { animation: aparecer-dialogo 0.16s ease-out; }
+dialog[open]::backdrop { animation: aparecer-fondo 0.16s ease-out; }
+.fila-detalle-tabla:not([hidden]) { animation: aparecer-fila 0.2s ease-out; }
+.enlace-nav, .fila-tabla-tarea, .selector-rango button, .boton-enfoque { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease; }
+.sidebar button:active:not(:disabled), .selector-rango button:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .vista.vista-entrando, dialog[open], dialog[open]::backdrop, .fila-detalle-tabla:not([hidden]) { animation: none; }
+  .sidebar, .enlace-nav, .fila-tabla-tarea { transition: none; }
+}
+
+/* Hábitos: nombre clicable, ocultar y calendario anual estilo GitHub (v0.104.0) */
+.enlace-habito { background: none; border: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-align: left; text-decoration: underline dotted; }
+.boton-habito-ocultar { border: 1px solid var(--color-borde); background: var(--color-fondo); color: var(--color-texto-suave); border-radius: 6px; font-size: 0.7rem; padding: 0.05rem 0.35rem; cursor: pointer; margin-left: 0.3rem; }
+.calendario-habito { display: flex; gap: 3px; overflow-x: auto; padding: 0.4rem 0 0.6rem; }
+.semana-calendario-habito { display: flex; flex-direction: column; gap: 3px; flex: none; }
+.mes-calendario-habito { height: 0.9rem; font-size: 0.65rem; color: var(--color-texto-suave); }
+.dia-calendario-habito { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 3px; border: 1px solid var(--color-borde); vertical-align: middle; }
+.dia-calendario-habito.vacio { border-color: transparent; }
+.dia-calendario-habito.cumplido { background: var(--color-texto-exito); border-color: var(--color-texto-exito); }
+.dia-calendario-habito.incumplido { background: var(--color-peligro); border-color: var(--color-peligro); }
+.dia-calendario-habito.vence { background: transparent; border: 2px solid var(--color-primario); }
+.dia-calendario-habito.no-aplica { background: var(--color-fondo); }
+.dialogo-calendario-habito { width: min(900px, 96vw); }

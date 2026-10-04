@@ -254,6 +254,7 @@ export const PREFERENCIAS_POR_DEFECTO = {
   pref_horizonte_dias: 90,
   pref_capacidad_por_fecha: {},
   pref_ubicacion_clima: null,
+  pref_habitos_ocultos: [],
 };
 
 /**

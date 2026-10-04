@@ -324,6 +324,7 @@ function migrarPreferencias(p) {
     pref_franja: p.pref_franja && p.pref_franja.inicio && p.pref_franja.fin ? { inicio: p.pref_franja.inicio, fin: p.pref_franja.fin } : base.pref_franja,
     pref_calendarios: Array.isArray(p.pref_calendarios) ? p.pref_calendarios : null,
     pref_capacidad_por_fecha: p.pref_capacidad_por_fecha && typeof p.pref_capacidad_por_fecha === 'object' ? p.pref_capacidad_por_fecha : {},
+    pref_habitos_ocultos: Array.isArray(p.pref_habitos_ocultos) ? p.pref_habitos_ocultos : [],
   };
 }
 

@@ -1,6 +1,7 @@
 import { crearTarea, crearMejora, crearCumplimiento, fechaObjetivoMantenimiento, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { ahoraISO, hoyISO, fechaLocalISO, diaLocal, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz } from './utilidades.js';
 import { recalcularBloqueo, puedeAgregarDependencia, proximasActivas, reconectarAlEliminar } from './dependencias.js';
+import { sonar } from './sonidos.js';
 
 // Las dependencias viven en `dependencias.js`; se reexportan para no cambiar los imports de las vistas.
 export { recalcularBloqueo, puedeAgregarDependencia };
@@ -227,6 +228,7 @@ function enlazarCopia(original, copia, listaTareas) {
  * copia creada, o `null`.
  */
 export function cumplirTarea(tarea, estado, { notaMejora = '' } = {}) {
+  sonar('completar'); // el sonido de satisfacción (v0.104.0)
   const copia = completarTarea(tarea, estado.tareas, { notaMejora });
   if (!estado.cumplimientos) estado.cumplimientos = [];
   estado.cumplimientos.push(crearCumplimiento({ tarea, fecha: tarea.tarea_fecha_fin }));
@@ -319,6 +321,7 @@ export function reabrirTarea(tarea, estado) {
  * No toca cumplimientos ni mejoras: son historial.
  */
 export function eliminarTarea(tarea, estado) {
+  sonar('eliminar');
   estado.tareas = estado.tareas.filter((t) => t.tarea_id !== tarea.tarea_id);
   reconectarAlEliminar(tarea, estado.tareas);
 }

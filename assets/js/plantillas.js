@@ -11,6 +11,7 @@ import { abrirDialogoCategoria } from './formularios-entidades.js';
 import { capitalizarPrimera, diaLocal, fechaLocalISO, hoyISO } from './utilidades.js';
 import { avisar, confirmar } from './avisos.js';
 import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
+import { sonar } from './sonidos.js';
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
@@ -373,6 +374,7 @@ export function abrirUsoPlantilla(plantilla, { alVolver = () => {} } = {}) {
       });
       await persistirYNotificar();
       agendarEnSegundoPlano();
+      sonar('agregar');
       return true;
     },
   });

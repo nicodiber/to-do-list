@@ -38,6 +38,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/plantillas.js',
   'assets/js/panel-ia-prioridades.js',
   'assets/js/avisos-sync.js',
+  'assets/js/sonidos.js',
   'assets/js/agendado-segundo-plano.js',
   'assets/js/avisos.js',
   'assets/js/conflicto-enlace.js',
