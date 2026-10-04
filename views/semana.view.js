@@ -48,8 +48,8 @@ function fechaDeReferenciaProyectada(tarea) {
 }
 
 // Escala de color para el degradé de temperatura (frío → calor), en tramos [°C, [r,g,b]].
+// v0.103.0: la escala va de 0 °C a 35 °C (por debajo de 0 queda el primer color y por encima de 35 el último).
 const ESCALA_TEMPERATURA = [
-  [-10, [30, 58, 138]],
   [0, [56, 189, 248]],
   [15, [74, 222, 128]],
   [25, [250, 204, 21]],
@@ -92,8 +92,8 @@ function htmlLeyendaClima(filtroClima) {
     return `<div class="leyenda-clima" title="Color de fondo según la temperatura prevista"><div class="leyenda-clima-barra" style="background:linear-gradient(to right, ${paradas})"></div><div class="leyenda-clima-marcas">${marcas}</div></div>`;
   }
   if (filtroClima === 'lluvia') {
-    const marcas = [0, 25, 50, 75, 100].map((p) => `<span style="left:${p}%">${p} %</span>`).join('');
-    return `<div class="leyenda-clima" title="Color de fondo según la probabilidad de lluvia prevista (el pronóstico no informa milímetros)"><div class="leyenda-clima-barra" style="background:linear-gradient(to right, rgba(56,132,255,0), rgba(56,132,255,0.6))"></div><div class="leyenda-clima-marcas">${marcas}</div><p class="ayuda">Probabilidad de lluvia (%), no milímetros: es el dato que informa el pronóstico.</p></div>`;
+    const marcas = [0, 50, 100].map((p) => `<span style="left:${p}%">${p} %</span>`).join('');
+    return `<div class="leyenda-clima" title="Color de fondo según la probabilidad de lluvia prevista, en % (el pronóstico no informa milímetros)"><div class="leyenda-clima-barra" style="background:linear-gradient(to right, rgba(56,132,255,0), rgba(56,132,255,0.6))"></div><div class="leyenda-clima-marcas">${marcas}</div></div>`;
   }
   return '';
 }
@@ -186,22 +186,28 @@ export function renderVistaSemana(contenedor) {
   const dias = Array.from({ length: cantidadDias }, (_, i) => fechaISOMasDias(offsetDias + i, hoy));
 
   contenedor.innerHTML = `
-    <h2 title="Tareas fijas (con horario agendado), proyección de las pendientes y bloqueadas 🔒 según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.">📆 Semana</h2>
-    <div class="selector-rango" role="group" aria-label="Cantidad de días">
-      ${OPCIONES_DIAS_SEMANA.map((n) => `<button type="button" data-dias="${n}" title="Ver ${n} día${n === 1 ? '' : 's'}" class="${n === cantidadDias ? 'activo' : ''}">${n} día${n === 1 ? '' : 's'}</button>`).join('')}
+    <div class="barra-semana">
+      <div class="barra-semana-izquierda">
+        <h2 title="Tareas fijas (con horario agendado), proyección de las pendientes y bloqueadas 🔒 según su fecha sugerida o límite y, en gris, tus eventos de Google Calendar (se editan desde Calendar). Debajo de cada día, cuánto tiempo llevás planificado contra el disponible: tocalo para ajustar la capacidad de ese día. Hacé clic en una tarea para editarla.">📆 Semana</h2>
+        <div class="selector-rango" role="group" aria-label="Cantidad de días">
+          ${OPCIONES_DIAS_SEMANA.map((n) => `<button type="button" data-dias="${n}" title="Ver ${n} día${n === 1 ? '' : 's'}" class="${n === cantidadDias ? 'activo' : ''}">${n} día${n === 1 ? '' : 's'}</button>`).join('')}
+        </div>
+      </div>
+      <div class="barra-semana-derecha">
+        ${htmlLeyendaClima(filtroClima)}
+        <div class="selector-rango" role="group" aria-label="Clima de fondo">
+          <button type="button" id="boton-sol-semana" aria-pressed="${mostrarSol}" class="${mostrarSol ? 'activo' : ''}" title="Mostrar marcas de amanecer y atardecer (necesita una ubicación de clima en Configuraciones)">🌅 Sol</button>
+          ${['temperatura', 'lluvia']
+            .map((f) => `<button type="button" data-filtro-clima="${f}" aria-pressed="${f === filtroClima}" title="${f === filtroClima ? 'Quitar el' : 'Pintar el'} fondo por hora según ${ETIQUETAS_FILTRO_CLIMA[f].replace(/^\S+\s/, '').toLowerCase()}" class="${f === filtroClima ? 'activo' : ''}">${ETIQUETAS_FILTRO_CLIMA[f]}</button>`)
+            .join('')}
+        </div>
+      </div>
     </div>
     <div class="navegacion-semana">
       <button type="button" data-paso="-1" aria-label="Días anteriores" title="Ver los días anteriores" ${offsetDias === 0 ? 'disabled' : ''}>‹</button>
       <span>${formatearFecha(dias[0])}${dias.length > 1 ? ` – ${formatearFecha(dias[dias.length - 1])}` : ''}</span>
       <button type="button" data-paso="1" aria-label="Días siguientes" title="Ver los días siguientes">›</button>
     </div>
-    <div class="controles-clima-semana">
-      <button type="button" id="boton-sol-semana" class="boton-enfoque" aria-pressed="${mostrarSol}" title="Mostrar marcas de amanecer y atardecer (necesita una ubicación de clima en Configuraciones)">🌅 Sol</button>
-      <div class="selector-rango" role="group" aria-label="Degradé de clima de fondo">
-        ${FILTROS_CLIMA.map((f) => `<button type="button" data-filtro-clima="${f}" title="Fondo por hora según ${ETIQUETAS_FILTRO_CLIMA[f].replace(/^\S+\s/, '').toLowerCase()}" class="${f === filtroClima ? 'activo' : ''}">${ETIQUETAS_FILTRO_CLIMA[f]}</button>`).join('')}
-      </div>
-    </div>
-    ${htmlLeyendaClima(filtroClima)}
     <div class="grilla-semana-contenedor">
       <div class="grilla-semana"></div>
     </div>
@@ -226,7 +232,8 @@ export function renderVistaSemana(contenedor) {
   });
   contenedor.querySelectorAll('.selector-rango button[data-filtro-clima]').forEach((boton) => {
     boton.addEventListener('click', () => {
-      guardarFiltroClima(boton.dataset.filtroClima);
+      // Temperatura y lluvia son excluyentes: tocar el activo lo apaga (queda «ninguno»), tocar el otro cambia.
+      guardarFiltroClima(boton.dataset.filtroClima === filtroClima ? 'ninguno' : boton.dataset.filtroClima);
       renderVistaSemana(contenedor);
     });
   });

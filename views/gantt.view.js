@@ -1,5 +1,5 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
-import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, hoyISO, tieneHora, combinarFechaYHora, formatearHora, arbolCategorias, conservarFoco } from '../assets/js/utilidades.js';
+import { escaparHtml, formatearFecha, fechaISOMasDias, diasEntreFechas, hoyISO, diaLocal, tieneHora, combinarFechaYHora, formatearHora, arbolCategorias, conservarFoco } from '../assets/js/utilidades.js';
 import { reprogramarTareaConCascada, avisoInconsistentes, asignarOrdenManual, motivoBloqueoOrdenManual, eliminarTarea } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } from '../assets/js/gantt-modelo.js';
@@ -255,7 +255,7 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarra
       y += ALTO_CARRIL;
       return;
     }
-    const g = calcularGeometriaFila(fila, modo, { anchoDia, desplazamiento, izquierdaDe });
+    const g = calcularGeometriaFila(fila, modo, { anchoDia, desplazamiento, izquierdaDe, anchoPista, hoy });
     geometria.set(fila.tarea.tarea_id, { ...g, centroY: y + ALTO_FILA / 2 });
     // Vecinas del mismo carril (un separador entre medio corta la adyacencia: no tiene `.tarea`), para las ▲▼.
     const anterior = filas[i - 1]?.tarea ? filas[i - 1] : null;
@@ -271,7 +271,7 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarra
         <div class="gantt-esquina" style="width:${nombresAncho}px"></div>
         <div class="gantt-fechas" style="width:${anchoPista}px;background-size:${7 * anchoDia}px 100%;background-position:${primerLunes * anchoDia}px 0">${marcas}</div>
       </div>
-      <div class="gantt-cuerpo" style="--ancho-nombres:${nombresAncho}px;--ancho-pista:${anchoPista}px;--ancho-semana:${7 * anchoDia}px;--desfase-semana:${primerLunes * anchoDia}px">${filasHtml}</div>
+      <div class="gantt-cuerpo" style="--ancho-nombres:${nombresAncho}px;--ancho-pista:${anchoPista}px;--ancho-dia:${anchoDia}px;--ancho-semana:${7 * anchoDia}px;--desfase-semana:${primerLunes * anchoDia}px">${filasHtml}</div>
       <div class="gantt-superposicion" style="left:${nombresAncho}px;top:${ALTO_CABECERA}px;width:${anchoPista}px;height:${altoFilas}px">
         <div class="gantt-linea-hoy" style="left:${desplazamiento(hoy) * anchoDia + anchoDia / 2}px"></div>
       </div>
@@ -294,7 +294,7 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarra
 }
 
 /** Dónde cae la barra de una fila en el modo actual: `{ x1, x2, ... }` en píxeles dentro de la pista. */
-function calcularGeometriaFila(fila, modo, { anchoDia, desplazamiento, izquierdaDe }) {
+function calcularGeometriaFila(fila, modo, { anchoDia, desplazamiento, izquierdaDe, anchoPista, hoy }) {
   const xPlan = izquierdaDe(fila.plan.dia);
   const anchoPlan = Math.max(anchoDia, 10);
   const recortadaIzq = desplazamiento(fila.plan.dia) < 0;
@@ -302,6 +302,15 @@ function calcularGeometriaFila(fila, modo, { anchoDia, desplazamiento, izquierda
     const x1 = izquierdaDe(fila.ventana.inicio);
     const x2 = (Math.max(0, desplazamiento(fila.ventana.fin)) + 1) * anchoDia;
     return { x1, x2, ancho: Math.max(x2 - x1, 10), xPlan, anchoPlan, recortadaIzq, conVentana: true };
+  }
+  // Modo Ventana, tarea activa sin fecha límite (v0.103.0): no tiene ventana que termine, así que la barra sigue hacia
+  // la derecha hasta el borde de la pista (se desvanece, como una tarea que «tiende al infinito»). Las flechas de
+  // dependencia siguen saliendo del extremo del día plan.
+  if (modo === 'ventana' && !fila.plan.completada && !fila.limite) {
+    const habilitada = fila.tarea.tarea_fecha_inicio_habilitada ? diaLocal(fila.tarea.tarea_fecha_inicio_habilitada) : '';
+    const inicio = habilitada && habilitada > hoy ? habilitada : hoy;
+    const x1 = Math.min(izquierdaDe(inicio), xPlan);
+    return { x1, x2: xPlan + anchoPlan, ancho: Math.max(anchoPista - x1, 10), xPlan, anchoPlan, recortadaIzq, conVentana: false, infinita: true };
   }
   return { x1: xPlan, x2: xPlan + anchoPlan, ancho: anchoPlan, xPlan, anchoPlan, recortadaIzq, conVentana: false };
 }
@@ -322,8 +331,9 @@ function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista, { anterior,
   const completada = plan.completada;
   const clases = ['gantt-barra'];
   if (completada) clases.push('completada');
-  else if (plan.virtual && !(modo === 'ventana' && g.conVentana)) clases.push('virtual');
+  else if (plan.virtual && !(modo === 'ventana' && (g.conVentana || g.infinita))) clases.push('virtual');
   if (modo === 'ventana' && g.conVentana) clases.push('ventana');
+  if (g.infinita) clases.push('infinita');
   if (modo === 'ventana' && ventana && ventana.vencida) clases.push('vencida');
   const puedeArrastrarBordes = modo === 'ventana' && g.conVentana && !ventana.vencida && !completada;
   const titulo = `${tarea.tarea_nombre} · ${plan.virtual ? `día estimado ${formatearFecha(plan.dia)} (sin fecha sugerida)` : `día ${formatearFecha(plan.dia)}`}${limite ? ` · límite ${formatearFecha(limite)}` : ''}`;
@@ -357,12 +367,13 @@ function htmlFila(fila, modo, g, anchoDia, nombresAncho, anchoPista, { anterior,
         ${botonesOrden}
       </div>
       <div class="gantt-pista" style="width:${anchoPista}px">
-        <div class="${clases.join(' ')}" data-tarea-id="${tarea.tarea_id}" style="left:${g.x1}px;width:${g.ancho}px;--color-barra:${color}" title="${escaparHtml(titulo)}">
+        <div class="${clases.join(' ')}" data-tarea-id="${tarea.tarea_id}" style="left:${g.x1}px;width:${g.ancho}px;--color-barra:${color}" title="${escaparHtml(titulo)}${g.infinita ? ' · sin fecha límite: la ventana sigue hacia la derecha' : ''}">
           ${g.recortadaIzq && modo === 'plan' ? '<span class="gantt-punta">◀</span>' : ''}
           ${mostrarNombre ? `<span class="gantt-barra-nombre">${escaparHtml(tarea.tarea_nombre)}</span>` : ''}
+          ${g.infinita ? '<span class="gantt-infinito" aria-hidden="true">∞ ▶</span>' : ''}
           ${puedeArrastrarBordes ? '<div class="gantt-asa izquierda" data-asa="izquierda"></div><div class="gantt-asa derecha" data-asa="derecha"></div>' : ''}
         </div>
-        ${modo === 'ventana' && g.conVentana ? `<span class="gantt-rombo" style="left:${g.xPlan + g.anchoPlan / 2 - 6}px" title="Día plan: ${formatearFecha(plan.dia)}">◆</span>` : ''}
+        ${modo === 'ventana' && (g.conVentana || g.infinita) ? `<span class="gantt-rombo" style="left:${g.xPlan + g.anchoPlan / 2 - 6}px" title="Día plan: ${formatearFecha(plan.dia)}">◆</span>` : ''}
         ${banderaIzq !== null ? `<span class="gantt-limite ${limite < hoyISO() || noLlega ? 'roja' : ''}" style="left:${banderaIzq}px" title="Fecha límite: ${formatearFecha(limite)}">⚑</span>` : ''}
       </div>
     </div>`;

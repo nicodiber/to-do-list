@@ -49,7 +49,7 @@ import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js'
 import { avisar, confirmar } from './avisos.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.102.0';
+const VERSION = 'v0.103.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
