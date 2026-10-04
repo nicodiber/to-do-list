@@ -347,10 +347,11 @@ export function calcularSolapamiento(tarea, eventos) {
  *
  * @param {{inicio: string, fin: string}[]} eventos Eventos con horario (`inicio`/`fin` ISO).
  * @param {number} duracionMin Duración de la tarea (30 si falta).
- * @param {{desde?: Date, dias?: number, franja?: {inicio: string, fin: string}, diasHabiles?: number[]}} [opciones]
- *   `franja` como "HH:MM" (el fin puede ser "24:00"); `diasHabiles` como índices de día de la semana (vacío = todos).
+ * @param {{desde?: Date, dias?: number, franja?: {inicio: string, fin: string}, bloquesPorDia?: {inicio: string, fin: string}[][], diasHabiles?: number[]}} [opciones]
+ *   `franja` como "HH:MM" (el fin puede ser "24:00"); `bloquesPorDia` (v0.105.0) son los bloques disponibles de cada día de la
+ *   semana (índice 0 = domingo) y, si se pasa, manda sobre `franja`; `diasHabiles` como índices de día de la semana (vacío = todos).
  */
-export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dias = diasHorizonteCalendar(), franja = { inicio: '00:00', fin: '24:00' }, diasHabiles = [] } = {}) {
+export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dias = diasHorizonteCalendar(), franja = { inicio: '00:00', fin: '24:00' }, bloquesPorDia = null, diasHabiles = [] } = {}) {
   const duracionMs = (duracionMin || 30) * 60000;
   const ocupados = eventos.map((evento) => ({ inicio: new Date(evento.inicio).getTime(), fin: new Date(evento.fin).getTime() }));
   const minimo = Math.ceil(desde.getTime() / PASO_HUECO_MS) * PASO_HUECO_MS;
@@ -359,15 +360,18 @@ export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dia
     const dia = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + d);
     if (diasHabiles.length > 0 && !diasHabiles.includes(dia.getDay())) continue;
 
-    const inicioFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(franja.inicio)).getTime();
-    const finFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(franja.fin)).getTime();
+    const bloques = bloquesPorDia ? bloquesPorDia[dia.getDay()] || [] : [franja];
+    for (const bloque of bloques) {
+      const inicioFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(bloque.inicio)).getTime();
+      const finFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(bloque.fin)).getTime();
 
-    let candidato = Math.max(inicioFranja, minimo);
-    while (candidato + duracionMs <= finFranja) {
-      const choque = ocupados.find((o) => candidato < o.fin && candidato + duracionMs > o.inicio);
-      if (!choque) return new Date(candidato).toISOString();
-      // Se salta al final del evento que choca (redondeado al próximo paso de 15 min).
-      candidato = Math.ceil(choque.fin / PASO_HUECO_MS) * PASO_HUECO_MS;
+      let candidato = Math.max(inicioFranja, minimo);
+      while (candidato + duracionMs <= finFranja) {
+        const choque = ocupados.find((o) => candidato < o.fin && candidato + duracionMs > o.inicio);
+        if (!choque) return new Date(candidato).toISOString();
+        // Se salta al final del evento que choca (redondeado al próximo paso de 15 min).
+        candidato = Math.ceil(choque.fin / PASO_HUECO_MS) * PASO_HUECO_MS;
+      }
     }
   }
   return null;

@@ -34,7 +34,8 @@ import { preguntarTiempoReal } from '../assets/js/tiempo-real.js';
 import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
-import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
+import { bloquesDeSemana } from '../assets/js/bloques-horarios.js';
+import { obtenerPreferencias } from '../assets/js/preferencias.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
@@ -526,7 +527,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
           const hueco = buscarHuecoLibre(eventos, tarea.tarea_duracion_min, {
             desde,
             dias,
-            franja: obtenerFranjaHoraria(),
+            bloquesPorDia: bloquesDeSemana(obtenerPreferencias()),
             diasHabiles: tarea.tarea_dias_habiles || [],
           });
           if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) {

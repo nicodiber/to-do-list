@@ -40,6 +40,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/js/avisos-sync.js',
   'assets/js/sonidos.js',
   'assets/js/tiempo-real.js',
+  'assets/js/bloques-horarios.js',
   'assets/js/agendado-segundo-plano.js',
   'assets/js/avisos.js',
   'assets/js/conflicto-enlace.js',

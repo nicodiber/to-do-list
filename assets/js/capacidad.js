@@ -3,6 +3,7 @@
 // fechas vencidas se sumarán. Cada una sigue repartiendo a su manera.
 
 import { diaLocal, hoyISO } from './utilidades.js';
+import { bloquesDeSemana, minutosDeBloques } from './bloques-horarios.js';
 
 function aMinutos(hhmm) {
   const [horas, minutos] = String(hhmm).split(':').map(Number);
@@ -21,29 +22,34 @@ export function unirIntervalos(intervalos) {
   return unidos;
 }
 
-function limitesDeFranja(dia, franja) {
+function limitesDeBloque(dia, bloque) {
   const [anio, mes, d] = dia.split('-').map(Number);
-  return [new Date(anio, mes - 1, d, 0, aMinutos(franja.inicio)).getTime(), new Date(anio, mes - 1, d, 0, aMinutos(franja.fin)).getTime()];
+  return [new Date(anio, mes - 1, d, 0, aMinutos(bloque.inicio)).getTime(), new Date(anio, mes - 1, d, 0, aMinutos(bloque.fin)).getTime()];
 }
 
 /**
- * Minutos de la franja de `dia` (`YYYY-MM-DD`) ocupados por `eventos` (`{ inicio, fin }` ISO) y, si se pasa
- * `hastaMs`, por lo que ya transcurrió de la franja (para hoy).
+ * Minutos de los bloques disponibles de `dia` (`YYYY-MM-DD`) ocupados por `eventos` (`{ inicio, fin }` ISO) y, si se pasa
+ * `hastaMs`, por lo que ya transcurrió de esos bloques (para hoy). Solo cuenta lo que cae dentro de algún bloque.
  */
-export function minutosOcupados(eventos, dia, franja, hastaMs = null) {
-  const [desde, hasta] = limitesDeFranja(dia, franja);
-  const intervalos = eventos
-    .map((e) => [Math.max(desde, new Date(e.inicio).getTime()), Math.min(hasta, new Date(e.fin).getTime())])
-    .filter(([a, b]) => b > a);
-  if (hastaMs !== null && hastaMs > desde) intervalos.push([desde, Math.min(hasta, hastaMs)]);
-  return Math.round(unirIntervalos(intervalos).reduce((suma, [a, b]) => suma + (b - a), 0) / 60000);
+export function minutosOcupados(eventos, dia, bloques, hastaMs = null) {
+  const intervalos = [];
+  bloques.forEach((bloque) => {
+    const [desde, hasta] = limitesDeBloque(dia, bloque);
+    eventos.forEach((e) => {
+      const a = Math.max(desde, new Date(e.inicio).getTime());
+      const z = Math.min(hasta, new Date(e.fin).getTime());
+      if (z > a) intervalos.push([a, z]);
+    });
+    if (hastaMs !== null && hastaMs > desde) intervalos.push([desde, Math.min(hasta, hastaMs)]);
+  });
+  return Math.round(unirIntervalos(intervalos).reduce((suma, [x, y]) => suma + (y - x), 0) / 60000);
 }
 
 /**
  * Devuelve `(dia) => { dia, tope, fija, libreCalendar, capacidad, carga, restante, sobrecarga }`:
- * - `tope`: los minutos que el usuario quiere dedicar ese día: el valor fijado para esa fecha o el de su día de la
- *   semana.
- * - `libreCalendar`: minutos de la franja horaria sin eventos que ocupen (`eventos` ya viene filtrado) y, hoy, sin lo
+ * - `tope`: los minutos disponibles ese día: el valor fijado para esa fecha o, si no, la suma de los bloques horarios de
+ *   su día de la semana (v0.105.0; antes un tope en minutos y una franja global).
+ * - `libreCalendar`: minutos de esos bloques sin eventos que ocupen (`eventos` ya viene filtrado) y, hoy, sin lo
  *   que ya pasó.
  * - `capacidad = min(tope, libreCalendar)` (o `tope`, si el usuario fijó ese día); `carga`: minutos de las tareas sin completar con fecha sugerida ese día
  *   (salvo `excluirIds`); `restante = max(0, capacidad − carga)`.
@@ -58,17 +64,17 @@ export function crearCalculadoraCapacidad({ preferencias, eventos = [], tareas =
       cargaPorDia.set(dia, (cargaPorDia.get(dia) || 0) + (t.tarea_duracion_min || 30));
     });
 
-  const franja = preferencias.pref_franja;
+  const semana = bloquesDeSemana(preferencias);
   const memo = new Map();
   return (dia) => {
     if (memo.has(dia)) return memo.get(dia);
     const fijada = (preferencias.pref_capacidad_por_fecha || {})[dia];
     const fija = fijada !== undefined && fijada !== null;
-    const delDia = preferencias.pref_tope_dias[new Date(`${dia}T00:00:00`).getDay()];
-    const tope = fija ? fijada : delDia;
-    const [desde, hasta] = limitesDeFranja(dia, franja);
-    const ocupados = dia < hoy ? Math.round((hasta - desde) / 60000) : minutosOcupados(eventos, dia, franja, dia === hoy ? ahora.getTime() : null);
-    const libreCalendar = Math.max(0, Math.round((hasta - desde) / 60000) - ocupados);
+    const bloques = semana[new Date(`${dia}T00:00:00`).getDay()];
+    const disponible = minutosDeBloques(bloques);
+    const tope = fija ? fijada : disponible;
+    const ocupados = dia < hoy ? disponible : minutosOcupados(eventos, dia, bloques, dia === hoy ? ahora.getTime() : null);
+    const libreCalendar = Math.max(0, disponible - ocupados);
     // Un valor fijado por el usuario para esa fecha manda: no se le resta lo que diga Calendar.
     const capacidad = fija ? tope : Math.min(tope, libreCalendar);
     const carga = cargaPorDia.get(dia) || 0;

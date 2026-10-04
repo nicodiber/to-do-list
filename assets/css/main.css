@@ -3422,3 +3422,19 @@ dialog[open]::backdrop { animation: aparecer-fondo 0.16s ease-out; }
 .barra-calendar-etiqueta { display: inline-flex; align-items: center; gap: 0.35rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .barra-calendar { display: block; height: 0.8rem; min-width: 2px; border-radius: 4px; background: var(--color-primario); }
 .barra-calendar-valor { color: var(--color-texto-suave); white-space: nowrap; }
+
+/* Semana: horas fuera de los bloques disponibles (v0.105.0) */
+.fuera-de-bloque { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 0; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-texto-suave) 16%, transparent) 0 4px, transparent 4px 9px); }
+
+/* Configuraciones: horarios disponibles por día (v0.105.0) */
+.bloques-semana { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.5rem 0; }
+.bloques-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; padding: 0.4rem 0.6rem; border: 1px solid var(--color-borde); border-radius: var(--radio); }
+.nombre-dia-bloques { min-width: 5.5rem; }
+.lista-bloques { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.bloque-horario { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--color-fondo); border: 1px solid var(--color-borde); border-radius: 999px; padding: 0.15rem 0.5rem; font-size: 0.85rem; }
+.bloque-horario label { display: inline-flex; align-items: center; gap: 0.25rem; }
+.bloque-horario button { border: none; background: none; color: var(--color-texto-suave); cursor: pointer; }
+.acciones-bloques-dia { display: inline-flex; align-items: center; gap: 0.4rem; margin-left: auto; }
+.acciones-bloques-dia button { font-size: 0.8rem; padding: 0.15rem 0.5rem; }
+.total-bloques-dia { color: var(--color-texto-suave); min-width: 4.5rem; text-align: right; }
+.mensaje-error-bloques { color: var(--color-peligro); }

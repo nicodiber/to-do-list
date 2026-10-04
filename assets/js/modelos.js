@@ -259,6 +259,7 @@ export const PREFERENCIAS_POR_DEFECTO = {
   pref_ubicacion_clima: null,
   pref_habitos_ocultos: [],
   pref_preguntar_tiempo_real: false,
+  pref_bloques_dias: null,
 };
 
 /**

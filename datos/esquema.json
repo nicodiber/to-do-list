@@ -200,6 +200,10 @@
         "pref_ignorar_rechazados": { "type": "boolean" },
         "pref_ignorar_disponible": { "type": "boolean" },
         "pref_horizonte_dias": { "type": "number", "minimum": 7 },
+        "pref_bloques_dias": {
+          "type": ["array", "null"],
+          "items": { "type": "array", "items": { "type": "object", "required": ["inicio", "fin"], "properties": { "inicio": { "type": "string" }, "fin": { "type": "string" } } } }
+        },
         "pref_preguntar_tiempo_real": { "type": "boolean" },
         "pref_habitos_ocultos": { "type": "array", "items": { "type": "string" } },
         "pref_capacidad_por_fecha": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },

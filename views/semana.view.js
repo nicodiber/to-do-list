@@ -5,6 +5,7 @@ import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 import { obtenerPreferencias, guardarCapacidadDeFecha } from '../assets/js/preferencias.js';
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
+import { bloquesDeSemana, tramosFueraDeBloques } from '../assets/js/bloques-horarios.js';
 import { crearCalculadoraCapacidad } from '../assets/js/capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventos, obtenerEventosParaMostrar } from '../assets/js/google-calendar.js';
 import { obtenerPronosticoDiario, iconoClima, obtenerCoordenadasClima } from '../assets/js/clima.js';
@@ -32,6 +33,8 @@ let HORA_INICIO = 7;
 let HORA_FIN = 23;
 const ALTO_HORA_PX = 48;
 let MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
+// Bloques disponibles de cada día de la semana (v0.105.0), reasignados en cada `renderVistaSemana`.
+let BLOQUES_SEMANA = bloquesDeSemana({});
 
 /** hex "#rrggbb" → "rgba(r, g, b, alpha)", para el fondo tintado de un bloque de evento. */
 function hexARgba(hex, alpha) {
@@ -178,6 +181,7 @@ export function renderVistaSemana(contenedor) {
   HORA_INICIO = minutosDeHHMM(franja.inicio) / 60;
   HORA_FIN = minutosDeHHMM(franja.fin) / 60;
   MINUTOS_VISIBLES = (HORA_FIN - HORA_INICIO) * 60;
+  BLOQUES_SEMANA = bloquesDeSemana(obtenerPreferencias());
   const hoy = hoyISO();
   const cantidadDias = leerDiasSemana();
   const mostrarSol = leerMostrarSol();
@@ -414,6 +418,16 @@ function renderColumnaDia(fechaDia, hoy) {
   `;
 
   const cuerpo = columna.querySelector('.dia-semana-cuerpo');
+
+  // Horas fuera de los bloques disponibles de ese día de la semana (v0.105.0): sombreadas, sin interacción.
+  tramosFueraDeBloques(BLOQUES_SEMANA[fechaObj.getDay()], HORA_INICIO * 60, HORA_FIN * 60).forEach(([desdeMin, hastaMin]) => {
+    const fuera = document.createElement('div');
+    fuera.className = 'fuera-de-bloque';
+    fuera.style.top = `${((desdeMin - HORA_INICIO * 60) / 60) * ALTO_HORA_PX}px`;
+    fuera.style.height = `${((hastaMin - desdeMin) / 60) * ALTO_HORA_PX}px`;
+    fuera.title = 'Fuera de tus horarios disponibles (Configuraciones → Horarios disponibles)';
+    cuerpo.appendChild(fuera);
+  });
 
   // v0.100.0: tocar el nombre del día lleva a la Agenda, desplazada hasta ese día.
   const nombreClic = columna.querySelector('.nombre-dia-clic');
