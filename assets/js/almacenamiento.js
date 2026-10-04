@@ -252,6 +252,9 @@ function migrarTarea(t) {
       tarea_dia_obligatorio: !!resto.tarea_dia_obligatorio,
       // Campos de la v0.105.0 (delegaciones): ausentes en datos anteriores.
       tarea_delegada_a: resto.tarea_delegada_a || null,
+      tarea_fecha_fija: !!resto.tarea_fecha_fija,
+      tarea_cronometro_inicio: resto.tarea_cronometro_inicio || null,
+      tarea_tiempo_acumulado_min: Number(resto.tarea_tiempo_acumulado_min) > 0 ? Number(resto.tarea_tiempo_acumulado_min) : 0,
       tarea_seguimiento_fecha: resto.tarea_delegada_a ? resto.tarea_seguimiento_fecha || '' : '',
     };
   }
@@ -310,6 +313,9 @@ function migrarTarea(t) {
     tarea_dia_obligatorio: false,
     tarea_delegada_a: null,
     tarea_seguimiento_fecha: '',
+    tarea_fecha_fija: false,
+    tarea_cronometro_inicio: null,
+    tarea_tiempo_acumulado_min: 0,
   };
 }
 

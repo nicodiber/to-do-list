@@ -2,12 +2,13 @@ import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { ETIQUETAS_ESTADO, ESTADOS_TAREA, ETIQUETAS_UNIDAD_MANTENIMIENTO } from '../assets/js/modelos.js';
 import { arbolCategorias, caminoCategoria, formatearFechaOFechaHora, textoHolgura, textoHolguraConHoras, escaparHtml, conservarFoco, tieneHora, hoyISO } from '../assets/js/utilidades.js';
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
-import { compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea, disfruteEfectivo, textoRepeticion, cumplirTarea, reabrirTarea, reprogramarTareaConCascada, avisoInconsistentes } from '../assets/js/tareas-logica.js';
+import { fechaFijaVigente, compararPorPrioridad, calcularHolguraDias, calcularHolguraHoras, tareasEmpatadas, esTareaAccionable, ordenarConCadenas, asignarOrdenManual, intercambiarAdyacentes, intercambiarCadena, motivoBloqueoOrdenManual, eliminarTarea, disfruteEfectivo, textoRepeticion, cumplirTarea, reabrirTarea, reprogramarTareaConCascada, avisoInconsistentes } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea, ofrecerCrearTareaSeguimiento } from '../assets/js/modal-tarea.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { DIAS_SEMANA, crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import { abrirListaPlantillas, abrirGuardarCadenaComoPlantilla } from '../assets/js/plantillas.js';
 import { preguntarTiempoReal } from '../assets/js/tiempo-real.js';
+import { cronometroCorriendo, iniciarCronometro, detenerCronometro, tiempoMedidoMinutos, formatearMinutosMedidos } from '../assets/js/cronometro.js';
 import { crearPanelIAPrioridades } from '../assets/js/panel-ia-prioridades.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
@@ -24,6 +25,15 @@ let filtroPersona = '';
 let agruparPorCategoria = false;
 // Checklists desplegados en la fila (sobreviven a los redibujados que provoca tildar una casilla).
 const checklistsAbiertos = new Set();
+
+/** Botón ▶/⏹ del cronómetro de la tarea, con el tiempo medido hasta ahora (v0.106.0). */
+function botonCronometro(tarea) {
+  const corriendo = cronometroCorriendo(tarea);
+  const medido = tiempoMedidoMinutos(tarea);
+  const texto = corriendo ? `⏹ ${formatearMinutosMedidos(medido)}` : medido > 0 ? `▶ ${formatearMinutosMedidos(medido)}` : '▶';
+  const ayuda = corriendo ? 'Cronómetro en marcha: tocá para parar. Al completar la tarea el tiempo se anota solo como tiempo real' : medido > 0 ? 'Seguir con el cronómetro (lleva ese tiempo medido)' : 'Iniciar el cronómetro: mide cuánto tardás de verdad';
+  return `<button type="button" data-accion="cronometro" class="${corriendo ? 'boton-primario' : ''}" title="${ayuda}">${texto}</button>`;
+}
 
 /** Fija el filtro de categoría (lo usa «📋 Ver tareas» de Categorías, antes de navegar a esta vista). */
 export function establecerFiltroCategoria(categoriaId) {
@@ -155,7 +165,7 @@ const COLUMNAS = [
     // v0.99.0: una tarea activa sin hora no debería existir; si pasa (sin sesión de Calendar o sin hueco en el horizonte) se ve el motivo.
     valor: (t) =>
       t.tarea_fecha_sugerida || t.tarea_estado === 'completada'
-        ? fechaOVacia(t.tarea_fecha_sugerida)
+        ? (fechaFijaVigente(t) ? '<span title="Horario fijado por vos: STDL no lo mueve hasta que pase">📌 </span>' : '') + fechaOVacia(t.tarea_fecha_sugerida)
         : '<span title="Todavía sin hora: se agenda sola apenas se pueda leer tu Google Calendar (sin sesión de Google, o sin ningún hueco libre en el horizonte configurado)">⏳ Sin agendar</span>',
     comparar: (a, b) => porFecha(a.tarea_fecha_sugerida, b.tarea_fecha_sugerida) },
   { clave: 'limite', etiqueta: 'Límite', valor: (t) => fechaOVacia(t.tarea_fecha_limite), comparar: (a, b) => porFecha(a.tarea_fecha_limite, b.tarea_fecha_limite) },
@@ -593,6 +603,7 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
             ? '<span class="etiqueta-fecha etiqueta-bloqueada">Bloqueada</span>'
             : `<select data-accion="cambiar-estado" title="Cambiar el estado de la tarea">${ESTADOS_SELECCIONABLES.map((e) => `<option value="${e}" ${e === tarea.tarea_estado ? 'selected' : ''}>${ETIQUETAS_ESTADO_SELECCIONABLE[e]}</option>`).join('')}</select>`
         }
+        ${completada || bloqueada ? '' : botonCronometro(tarea)}
         ${completada ? '' : '<button type="button" data-accion="posponer" title="Posponer: elegir otra fecha para la tarea">⏭️</button>'}
         ${checklist.length > 0 ? `<button type="button" data-accion="ver-checklist" title="Ver y tildar los pasos del checklist">☑️ ${checklist.filter((i) => i.hecho).length}/${checklist.length}</button>` : ''}
         <details class="menu-fila">
@@ -678,6 +689,12 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
     }
   });
 
+  fila.querySelector('[data-accion="cronometro"]')?.addEventListener('click', async () => {
+    if (cronometroCorriendo(tarea)) detenerCronometro(tarea);
+    else iniciarCronometro(tarea);
+    await persistirYNotificar({ deshacer: false });
+  });
+
   fila.querySelector('[data-accion="posponer"]')?.addEventListener('click', () => {
     const yaAbierto = !panelReprogramar.hidden;
     panelReprogramar.innerHTML = '';
@@ -687,7 +704,7 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
         crearPanelReprogramar({
           diasHabiles: tarea.tarea_dias_habiles,
           onConfirmar: async (fechaSugeridaISO) => {
-            const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+            const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas, { fijar: true });
             panelReprogramar.hidden = true;
             panelReprogramar.innerHTML = '';
             await persistirYNotificar();

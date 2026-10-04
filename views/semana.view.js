@@ -1,6 +1,6 @@
 import { estado, persistirYNotificar } from '../assets/js/almacenamiento.js';
 import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, formatearHora, escaparHtml, combinarFechaYHora, tieneHora, minutosDeHHMM } from '../assets/js/utilidades.js';
-import { esTareaAccionable, compararPorPrioridad, ordenarConCadenas } from '../assets/js/tareas-logica.js';
+import { esTareaAccionable, compararPorPrioridad, ordenarConCadenas, fechaFijaVigente } from '../assets/js/tareas-logica.js';
 import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 import { obtenerPreferencias, guardarCapacidadDeFecha } from '../assets/js/preferencias.js';
@@ -490,8 +490,8 @@ function renderBloqueTarea(tarea, minutosDesdeInicio, duracionMin, proyectada, f
   bloque.style.height = `${(alturaMin / 60) * ALTO_HORA_PX}px`;
   bloque.style.borderColor = color;
   bloque.style.background = proyectada ? 'transparent' : color;
-  bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${bloqueada ? '🔒 ' : ''}${escaparHtml(tarea.tarea_nombre)}</span>`;
-  bloque.title = `${bloqueada ? 'Bloqueada: ' : ''}${tarea.tarea_nombre} (${duracionMin} min)`;
+  bloque.innerHTML = `<span class="bloque-tarea-semana-nombre">${bloqueada ? '🔒 ' : ''}${fechaFijaVigente(tarea) ? '📌 ' : ''}${escaparHtml(tarea.tarea_nombre)}</span>`;
+  bloque.title = `${bloqueada ? 'Bloqueada: ' : ''}${fechaFijaVigente(tarea) ? 'Horario fijado: ' : ''}${tarea.tarea_nombre} (${duracionMin} min)`;
 
   bloque.addEventListener('click', () => {
     abrirEdicionTarea(tarea.tarea_id);

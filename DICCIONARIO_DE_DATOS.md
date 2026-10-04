@@ -61,6 +61,9 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `tarea_origen` | objeto \| `null`, default `null` | Ronda 9a | **Reservado, sin uso desde la v0.63.0** (antes marcaba lo que generó el asistente de examen). Se conserva en los datos; una tarea que lo tiene no cuenta como "cargada rápido" |
 | `persona_id` | string (UUID) \| `null`, default `null` | v0.66.0 | Referencia a `Persona.persona_id`: con quién se hace la tarea (una sola). Al eliminar la persona, queda en `null` |
 | `tarea_delegada_a` | string (UUID) \| `null`, default `null` | v0.105.0 | Referencia a `Persona.persona_id`: a quién se delegó la tarea. Al eliminar la persona, queda en `null` (y se borra el seguimiento) |
+| `tarea_fecha_fija` | boolean, default `false` | v0.106.0 | `true` si la `tarea_fecha_sugerida` (con hora) la puso el usuario: STDL no la mueve hasta que pasa su hora + `tarea_duracion_min` (`fechaFijaVigente`); después es una sugerencia más. Se limpia sola al vencer o si la sugerida pierde la hora. Las tareas anteriores arrancan en `false` |
+| `tarea_cronometro_inicio` | datetime ISO \| `null`, default `null` | v0.106.0 | Cuándo se puso en marcha el cronómetro de la tarea (`null` = parado) |
+| `tarea_tiempo_acumulado_min` | number ≥ 0, default `0` | v0.106.0 | Minutos ya medidos por el cronómetro en tramos anteriores; al completar la tarea se anota como `cumplimiento_duracion_real` y vuelve a 0 |
 | `tarea_seguimiento_fecha` | fecha `YYYY-MM-DD` \| `""`, default `""` | v0.105.0 | Solo con `tarea_delegada_a`: el día en que Resumen → Seguimientos muestra la tarea para revisarla |
 
 ## Ubicacion

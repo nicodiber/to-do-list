@@ -629,7 +629,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       contenedorCierre.hidden = true;
       contenedorCierre.innerHTML = '';
       abrirPanelReprogramar(contenedorPanel, tarea, async (fechaSugeridaISO) => {
-        const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+        const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas, { fijar: true });
         await persistirYNotificar();
         const aviso = avisoInconsistentes(inconsistentes);
         if (aviso) await avisar(aviso);

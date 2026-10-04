@@ -2,6 +2,21 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.106.0] - 2026-10-04
+
+Fecha sugerida fija (lo que fijás vos, STDL no lo mueve), asistente de IA con tu propia clave (etapa 1), cronómetro por tarea y exportar a CSV.
+
+### Agregado
+
+- **🤖 Asistente de IA (etapa 1)** (módulo nuevo antes de Configuraciones; `assets/js/asistente.js`, `views/asistente.view.js`): un chat por **texto o voz** (🎤 dictado y «🔊 Leer en voz alta») con un modelo de Claude que lee tus tareas y **propone** cambios: crear (varias a la vez, «cargá estas tareas…»), editar (replanificar, cambiar duración, categoría, límite…), completar o eliminar. **Cada usuario carga su propia clave de API de Anthropic** (Configuraciones → Asistente de IA, o ⚙️ en el módulo): queda solo en ese navegador (nunca en Drive ni en el repositorio) y las consultas salen directo del navegador a Anthropic; el uso se cobra a la cuenta de cada quien. Modelo a elegir (por defecto Claude Opus 5.5; también Sonnet 5.5 y Haiku 4.5). **El asistente nunca cambia nada solo**: cada propuesta aparece como una tarjeta con los cambios **resaltados** (valor de ahora tachado y el propuesto en verde), con todos los campos **editables a mano**, y se aprueba o rechaza **una por una**; lo que ajustaste se le cuenta al modelo. Aplicar usa los mismos caminos que la app (cascada de dependencias, agendado en segundo plano, deshacer con Ctrl+Z). Errores claros (clave inválida, sin saldo, límite de uso, sin conexión). La conversación vive en memoria (no se guarda).
+- **📌 Fecha sugerida fija** (`tarea_fecha_fija`): cuando **vos** ponés un horario (formulario con fecha y hora —se marca solo «📌 Fijar este horario»—, «⏭️ Posponer», arrastrar en Semana o Gantt, edición masiva, asistente), STDL **no lo mueve** (ni reubica, ni adelanta, ni reordena, ni lo corre en una cascada) hasta que pasa su hora más su duración estimada; después vuelve a ser una sugerencia de STDL. Se ve con 📌 en la Tabla y en Semana. Si un horario fijado choca con un evento de Calendar se deja donde está y se avisa al iniciar. Lo que agenda STDL sola y lo urgente no se fija. Las tareas anteriores a la v0.106.0 empiezan como «de STDL».
+- **⏱️ Cronómetro por tarea** (`assets/js/cronometro.js`): botón ▶/⏹ en cada fila de la Tabla (muestra el tiempo medido). Al completar la tarea, el tiempo medido se anota **solo** como tiempo real (alimenta Estadísticas → estimado vs. real) sin preguntar. Sobrevive a cerrar la pestaña o cambiar de dispositivo (`tarea_cronometro_inicio`, `tarea_tiempo_acumulado_min`).
+- **📊 Exportar a CSV** (`assets/js/exportar-csv.js`; Configuraciones → Copia de seguridad): «Tareas (CSV)» y «Cumplimientos (CSV)» para abrir en Excel o Google Sheets (separador «;», UTF-8 con BOM, celdas protegidas de fórmulas). Es solo para analizar: la copia restaurable sigue siendo el JSON.
+
+### Cambiado
+
+- `privacidad.html` aclara que, si el usuario usa el asistente, el navegador envía a Anthropic (con la clave del propio usuario) su consulta y las tareas que el asistente necesita para responder.
+
 ## [v0.105.0] - 2026-10-04
 
 Horarios disponibles por bloques, recordatorio de copia de seguridad y plan de contingencia, delegaciones, memento mori, y documentos de requerimientos e investigación de competencia.

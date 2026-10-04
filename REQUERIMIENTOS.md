@@ -1,6 +1,6 @@
 # Requerimientos de Super To-Do List (STDL)
 
-Documento vivo (v0.105.0): lista los requerimientos funcionales (RF) y no funcionales (RNF) de la app, **de los más simples a los más complejos**, con su estado y dónde están implementados. Es la base para el futuro `SRS.md`. Estado: ✅ implementado · 🟡 parcial · ⏳ pendiente · 🚫 descartado a propósito. Los detalles viven en `LOGICA_FUNCIONES.md`, `PROCESOS_AUTOMATICOS.md`, `REGLAS_DE_PRIORIDAD.md`, `DICCIONARIO_DE_DATOS.md` y `CASOS_DE_USO.md`; lo pendiente en `BACKLOG.md`.
+Documento vivo (v0.106.0): lista los requerimientos funcionales (RF) y no funcionales (RNF) de la app, **de los más simples a los más complejos**, con su estado y dónde están implementados. Es la base para el futuro `SRS.md`. Estado: ✅ implementado · 🟡 parcial · ⏳ pendiente · 🚫 descartado a propósito. Los detalles viven en `LOGICA_FUNCIONES.md`, `PROCESOS_AUTOMATICOS.md`, `REGLAS_DE_PRIORIDAD.md`, `DICCIONARIO_DE_DATOS.md` y `CASOS_DE_USO.md`; lo pendiente en `BACKLOG.md`.
 
 ## 1. Requerimientos funcionales
 
@@ -15,6 +15,7 @@ Documento vivo (v0.105.0): lista los requerimientos funcionales (RF) y no funcio
 | RF-06 | Edición y eliminación masiva (selección múltiple) | ✅ | `edicion-masiva.js` |
 | RF-07 | Dictado del nombre por voz | ✅ | `formulario-tarea.js` |
 | RF-08 | Ocultar hábitos, limpiar completadas viejas, exportar/importar JSON | ✅ | `habitos.view.js`, `configuraciones.view.js` |
+| RF-09 | Exportar tareas y cumplimientos a CSV | ✅ | `exportar-csv.js` |
 
 ### 1.2 Relaciones y repetición
 | ID | Requerimiento | Estado | Dónde |
@@ -53,6 +54,7 @@ Documento vivo (v0.105.0): lista los requerimientos funcionales (RF) y no funcio
 | RF-41 | Nunca dejar una tarea activa sin hora; si no hay hueco antes del límite, agendar después y avisar | ✅ | `programador.js`, `aviso-sin-hueco.js` |
 | RF-42 | Reubicar, adelantar y reordenar cuando Calendar cambia | ✅ | `programador.js` |
 | RF-43 | No asignar ni mover horarios sin una lectura confiable de Calendar | ✅ | `google-calendar.js` |
+| RF-45 | Horario fijado por el usuario: STDL no lo mueve hasta que pasa (hora + duración) | ✅ | `tareas-logica.js` (`fechaFijaVigente`), `programador.js` |
 | RF-44 | Horario preferido por tarea/hábito, tiempos de traslado, bloques de foco | ⏳ | ver `INVESTIGACION_COMPETENCIA.md` |
 
 ### 1.6 Datos y cuentas
@@ -74,6 +76,8 @@ Documento vivo (v0.105.0): lista los requerimientos funcionales (RF) y no funcio
 | RF-62 | Instalable como PWA y utilizable sin conexión | ✅ | `sw.js`, `manifest.json` |
 | RF-63 | Diseño adaptado a celular | 🟡 | CSS responsive básico; rediseño pendiente |
 | RF-64 | Mejor experiencia de la capa de IA conectable | ⏳ | — |
+| RF-65 | Asistente de IA con la clave del propio usuario: leer tareas y proponer crear/editar/completar/eliminar, con confirmación una por una y ajuste manual; texto y voz | 🟡 etapa 1 (a confirmar por el usuario) | `asistente.js`, `asistente.view.js` |
+| RF-66 | Cronómetro por tarea que llena el tiempo real | ✅ | `cronometro.js`, `tiempo-real.js` |
 
 ## 2. Requerimientos no funcionales
 

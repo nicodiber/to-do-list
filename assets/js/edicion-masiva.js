@@ -2,7 +2,7 @@
 // Tabla): aplicar el mismo cambio a varias tareas elegidas de una vez.
 
 import { estado, persistirYNotificar } from './almacenamiento.js';
-import { combinarFechaYHora, htmlInterruptor } from './utilidades.js';
+import { combinarFechaYHora, htmlInterruptor, tieneHora } from './utilidades.js';
 import { limitarFechaSugeridaALimite, avisoInconsistentes } from './tareas-logica.js';
 import { programarParaHoy, programarTareasSinFecha } from './programador.js';
 import {
@@ -122,6 +122,7 @@ export function abrirEdicionMasiva(tareas, alTerminar) {
       for (const tarea of tareas) {
         aplicarCamposATarea(tarea, cambios);
         if (cambios.tarea_fecha_sugerida) {
+          tarea.tarea_fecha_fija = tieneHora(cambios.tarea_fecha_sugerida);
           const limitada = limitarFechaSugeridaALimite(tarea.tarea_fecha_sugerida, tarea.tarea_fecha_limite);
           if (limitada !== tarea.tarea_fecha_sugerida) {
             tarea.tarea_fecha_sugerida = limitada;

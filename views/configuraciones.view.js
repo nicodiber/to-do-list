@@ -1,3 +1,5 @@
+import { htmlConfigAsistente, conectarConfigAsistente } from './asistente.view.js';
+import { csvDeTareas, csvDeCumplimientos, descargarCSV } from '../assets/js/exportar-csv.js';
 import { estado, exportarJSON, importarJSON, borrarTodosLosDatos, persistirYNotificar, ultimaExportacion, leerDiasRecordatorioCopia, guardarDiasRecordatorioCopia, DIAS_RECORDATORIO_COPIA } from '../assets/js/almacenamiento.js';
 import { tareasCompletadasLimpiables, eliminarTarea } from '../assets/js/tareas-logica.js';
 import { bloquesDeSemana, validarBloquesDia, ordenarBloques, minutosDeBloques, HORAS_BLOQUE } from '../assets/js/bloques-horarios.js';
@@ -105,6 +107,11 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
 
     <section class="seccion-config">
+      <h3>🤖 Asistente de IA</h3>
+      ${htmlConfigAsistente()}
+    </section>
+
+    <section class="seccion-config">
       <h3>💾 Copia de seguridad</h3>
       <p class="ayuda">Tus datos viven en tu Google Drive. Exportar descarga una copia en un archivo JSON; importar reemplaza todo lo que hay por el contenido de un archivo (también en Drive).</p>
       <div class="acciones-config">
@@ -113,6 +120,11 @@ export function renderVistaConfiguraciones(contenedor) {
           ⬆️ Importar JSON
           <input type="file" id="input-importar" accept="application/json" hidden />
         </label>
+      </div>
+      <div class="acciones-config">
+        <button title="Descargar tus tareas como planilla (CSV) para abrirla en Excel o Google Sheets" type="button" id="boton-csv-tareas">📊 Tareas (CSV)</button>
+        <button title="Descargar el historial de tareas cumplidas, con tiempo estimado y real, como planilla (CSV)" type="button" id="boton-csv-cumplimientos">📊 Cumplimientos (CSV)</button>
+        <small class="ayuda">Solo para analizar en una planilla: no sirven para restaurar (para eso, el JSON).</small>
       </div>
       <div class="acciones-config">
         <label title="Cada cuántos días la app te recuerda exportar una copia (en este dispositivo)">🔔 Recordarme exportar una copia
@@ -230,7 +242,10 @@ export function renderVistaConfiguraciones(contenedor) {
 
   conectarSeccionTiempo(contenedor);
 
+  conectarConfigAsistente(contenedor, () => renderVistaConfiguraciones(contenedor));
   contenedor.querySelector('#boton-exportar').addEventListener('click', exportarJSON);
+  contenedor.querySelector('#boton-csv-tareas').addEventListener('click', () => descargarCSV(csvDeTareas(), 'tareas'));
+  contenedor.querySelector('#boton-csv-cumplimientos').addEventListener('click', () => descargarCSV(csvDeCumplimientos(), 'cumplimientos'));
 
   contenedor.querySelector('#input-importar').addEventListener('change', async (evento) => {
     const archivo = evento.target.files[0];

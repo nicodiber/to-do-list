@@ -13,7 +13,7 @@ import { crearCalculadoraCapacidad } from './capacidad.js';
 import { leerEventosParaAgendar, eventosQueTocanElDia, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento } from './google-calendar.js';
 import { habilitadaReal } from './gantt-modelo.js';
 import { bloquesDeSemana } from './bloques-horarios.js';
-import { reprogramarTareaConCascada, compararParaAgendar } from './tareas-logica.js';
+import { reprogramarTareaConCascada, compararParaAgendar, fechaFijaVigente } from './tareas-logica.js';
 
 /** ¿`fechaISO` pasa (o iguala) `limiteISO`? Con hora, compara el instante exacto; sin hora, el día calendario
  * (mismo criterio que ya usaba la app). `false` sin límite cargado. Exportada (v0.89.0) para que
@@ -202,7 +202,7 @@ export async function programarTareasSinFecha(estado, { reordenar = true } = {})
 export async function reordenarSugeridasPorPrioridad(estado) {
   const todas = estado.tareas || [];
   const ahora = Date.now();
-  const movibles = todas.filter((t) => t.tarea_estado !== 'completada' && !t.tarea_dia_obligatorio && tieneHora(t.tarea_fecha_sugerida) && new Date(t.tarea_fecha_sugerida).getTime() > ahora);
+  const movibles = todas.filter((t) => t.tarea_estado !== 'completada' && !t.tarea_dia_obligatorio && !fechaFijaVigente(t) && tieneHora(t.tarea_fecha_sugerida) && new Date(t.tarea_fecha_sugerida).getTime() > ahora);
   if (movibles.length < 2) return [];
 
   // Dos tareas de una misma cadena no cuentan: la previa va antes aunque tenga menos prioridad (v0.99.0).
@@ -277,7 +277,7 @@ function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
   let actual = todas.find((t) => t.tarea_dependiente === previa.tarea_id && t.tarea_estado !== 'completada');
 
   while (actual) {
-    if (tieneHora(actual.tarea_fecha_sugerida)) {
+    if (tieneHora(actual.tarea_fecha_sugerida) && !fechaFijaVigente(actual)) {
       const duracion = actual.tarea_duracion_min || 30;
       const otras = todas
         .filter((t) => !idsCadena.has(t.tarea_id) && t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida))
@@ -361,6 +361,7 @@ export async function reprogramarVencidas(estado) {
   const inconsistentes = [];
 
   candidatas.forEach((tarea) => {
+    tarea.tarea_fecha_fija = false; // pasó su día: vuelve a ser una sugerencia de STDL (v0.106.0)
     const duracion = tarea.tarea_duracion_min || 30;
     const diasHabiles = tarea.tarea_dias_habiles || [];
     const diaLimite = tarea.tarea_fecha_limite ? diaLocal(tarea.tarea_fecha_limite) : null;
@@ -418,20 +419,26 @@ export async function reprogramarVencidas(estado) {
  */
 export async function reubicarTareasSolapadas(estado) {
   const candidatas = (estado.tareas || []).filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida));
-  if (candidatas.length === 0) return { movidas: [], sinHueco: [], inconsistentes: [] };
+  if (candidatas.length === 0) return { movidas: [], sinHueco: [], inconsistentes: [], fijasEnChoque: [] };
 
   // Sin lectura confiable de Calendar no hay nada que comparar; se reintenta en el próximo refresco.
   const { listo, conCalendar, eventos } = await leerEventosParaAgendar();
-  if (!listo || !conCalendar) return { movidas: [], sinHueco: [], inconsistentes: [] };
+  if (!listo || !conCalendar) return { movidas: [], sinHueco: [], inconsistentes: [], fijasEnChoque: [] };
 
   const preferencias = obtenerPreferencias();
   const movidas = [];
   const sinHueco = [];
   const inconsistentes = [];
+  const fijasEnChoque = [];
 
   candidatas.forEach((tarea) => {
     const choque = calcularSolapamiento(tarea, eventos);
     if (!choque) return;
+    // Un horario fijado por el usuario no se mueve (v0.106.0): se deja como está y se avisa del choque.
+    if (fechaFijaVigente(tarea)) {
+      fijasEnChoque.push({ tarea, evento: choque });
+      return;
+    }
 
     const duracion = tarea.tarea_duracion_min || 30;
     const diasHabiles = tarea.tarea_dias_habiles || [];
@@ -450,7 +457,7 @@ export async function reubicarTareasSolapadas(estado) {
     }
   });
 
-  return { movidas, sinHueco, inconsistentes };
+  return { movidas, sinHueco, inconsistentes, fijasEnChoque };
 }
 
 /**
@@ -474,6 +481,7 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
   const duracion = tarea.tarea_duracion_min || 30;
   const finEstimado = new Date(tarea.tarea_fecha_sugerida).getTime() + duracion * 60000;
   if (Date.now() < finEstimado) return null; // todavía no le tocaba, o el usuario la está haciendo: no se toca.
+  tarea.tarea_fecha_fija = false; // su ventana ya pasó: vuelve a ser una sugerencia de STDL (v0.106.0)
 
   // v0.98.0 — sin lectura confiable de Calendar no se mueve nada; se reintenta en el próximo chequeo.
   const { listo, eventos } = await leerEventosParaAgendar();
@@ -536,7 +544,7 @@ export async function programarParaHoy(tarea, estado) {
 export async function reasignarUrgentesAHoy(estado) {
   const hoy = hoyISO();
   const candidatas = (estado.tareas || []).filter(
-    (t) => t.tarea_estado === 'pendiente' && t.tarea_urgente && (!t.tarea_fecha_sugerida || diaLocal(t.tarea_fecha_sugerida) !== hoy)
+    (t) => t.tarea_estado === 'pendiente' && t.tarea_urgente && !fechaFijaVigente(t) && (!t.tarea_fecha_sugerida || diaLocal(t.tarea_fecha_sugerida) !== hoy)
   );
   for (const tarea of candidatas) {
     await programarParaHoy(tarea, estado);
@@ -582,7 +590,7 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
     const habilitada = habilitadaReal(tarea);
     if (habilitada && habilitada > hoyISO()) desde = new Date(`${habilitada}T00:00:00`);
     // v0.101.0: un «día obligatorio» no se mueve de día, y una repetición no se adelanta antes del día que le toca.
-    if (tarea.tarea_dia_obligatorio) return;
+    if (tarea.tarea_dia_obligatorio || fechaFijaVigente(tarea)) return;
     if (tarea.tarea_mantenimiento && tarea.tarea_mantenimiento_objetivo) {
       const objetivo = new Date(`${tarea.tarea_mantenimiento_objetivo}T00:00:00`);
       if (objetivo > desde) desde = objetivo;
