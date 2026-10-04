@@ -167,7 +167,7 @@ function renderTarjetaTarea(tarea, { soloInfo = false } = {}) {
     const panel = crearPanelReprogramar({
       diasHabiles: tarea.tarea_dias_habiles,
       onConfirmar: async (fechaSugeridaISO) => {
-        const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas);
+        const inconsistentes = reprogramarTareaConCascada(tarea, fechaSugeridaISO, estado.tareas, { fijar: true });
         contenedorPanel.hidden = true;
         contenedorPanel.innerHTML = '';
         await persistirYNotificar();

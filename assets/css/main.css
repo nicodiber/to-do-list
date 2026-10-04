@@ -3450,3 +3450,37 @@ dialog[open]::backdrop { animation: aparecer-fondo 0.16s ease-out; }
 .casilla-vida.futura { background: transparent; }
 .vida-cuadricula .casilla-vida { width: 0.62rem; height: 0.62rem; }
 @media (prefers-reduced-motion: reduce) { .casilla-vida.actual { animation: none; } }
+
+/* Asistente de IA (v0.106.0) */
+.chat-asistente { display: flex; flex-direction: column; gap: 0.6rem; max-height: 60vh; overflow-y: auto; padding: 0.6rem; border: 1px solid var(--color-borde); border-radius: var(--radio); background: var(--color-fondo); margin: 0.6rem 0; }
+.burbuja-chat { max-width: 85%; padding: 0.5rem 0.75rem; border-radius: var(--radio); line-height: 1.4; overflow-wrap: anywhere; }
+.burbuja-chat.usuario { align-self: flex-end; background: var(--color-fondo-info); color: var(--color-texto-info); }
+.burbuja-chat.asistente { align-self: flex-start; background: var(--color-superficie); border: 1px solid var(--color-borde); }
+.burbuja-chat.sistema { align-self: flex-start; background: transparent; color: var(--color-texto-suave); font-size: 0.85rem; padding: 0.1rem 0.4rem; }
+.burbuja-chat.error { align-self: stretch; max-width: none; background: var(--color-fondo-alerta); color: var(--color-texto-alerta); }
+.item-chat { display: block; padding-left: 0.5rem; }
+.ejemplos-asistente { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+.ejemplos-asistente button { text-align: left; }
+.entrada-chat { display: flex; gap: 0.5rem; align-items: stretch; }
+.entrada-chat textarea { flex: 1; resize: vertical; min-height: 2.6rem; font: inherit; padding: 0.5rem; border-radius: var(--radio); border: 1px solid var(--color-borde); background: var(--color-superficie); color: var(--color-texto); }
+.interruptor-simple { display: inline-flex; align-items: center; gap: 0.35rem; }
+.propuesta-asistente { align-self: stretch; border: 1px solid var(--color-borde); border-left: 4px solid var(--color-primario); border-radius: var(--radio); background: var(--color-superficie); padding: 0.6rem 0.8rem; }
+.propuesta-asistente.aplicada { border-left-color: var(--accion-cumplir); }
+.propuesta-asistente.rechazada, .propuesta-asistente.fallida { border-left-color: var(--color-texto-suave); opacity: 0.8; }
+.propuesta-titulo { font-weight: 600; margin-bottom: 0.3rem; }
+.propuesta-motivo { margin: 0.1rem 0 0.4rem; color: var(--color-texto-suave); font-size: 0.9rem; }
+.propuesta-aviso { margin: 0.2rem 0; color: var(--color-texto-alerta); font-size: 0.85rem; }
+.propuesta-estado, .propuesta-detalle { margin: 0.2rem 0; font-size: 0.9rem; }
+.propuesta-detalle { color: var(--color-texto-suave); }
+.tabla-propuesta { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.tabla-propuesta th, .tabla-propuesta td { text-align: left; padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--color-borde); vertical-align: middle; }
+.tabla-propuesta thead th { color: var(--color-texto-suave); font-weight: 500; font-size: 0.8rem; }
+.tabla-propuesta tbody th { white-space: nowrap; font-weight: 500; }
+.tabla-propuesta .valor-antes { color: var(--color-texto-suave); }
+.tabla-propuesta tr.cambiada .valor-antes { text-decoration: line-through; }
+.tabla-propuesta tr.cambiada { background: var(--color-fondo-exito); }
+.tabla-propuesta tr.cambiada .valor-despues { box-shadow: inset 3px 0 0 var(--accion-cumplir); }
+.tabla-propuesta input[type="text"], .tabla-propuesta textarea, .tabla-propuesta select { width: 100%; box-sizing: border-box; font: inherit; }
+.tabla-propuesta .par-fecha-hora { display: inline-flex; gap: 0.3rem; flex-wrap: wrap; }
+.acciones-propuesta { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+@media (max-width: 600px) { .burbuja-chat { max-width: 95%; } .tabla-propuesta thead { display: none; } }

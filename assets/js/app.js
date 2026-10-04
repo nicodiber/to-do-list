@@ -42,6 +42,7 @@ import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaEstadisticas } from '../../views/estadisticas.view.js';
 import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { renderVistaMemento } from '../../views/memento.view.js';
+import { renderVistaAsistente } from '../../views/asistente.view.js';
 import { configurarAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
 import { crearRevisorDeAvisos, abrirAvisosSync } from './avisos-sync.js';
 import { filtrarSinHuecoVigente } from './aviso-sin-hueco.js';
@@ -52,7 +53,7 @@ import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js'
 import { avisar, confirmar } from './avisos.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.105.0';
+const VERSION = 'v0.106.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -79,6 +80,7 @@ const VISTAS = {
   ubicaciones: { etiqueta: '📍 Ubicaciones', render: renderVistaUbicaciones },
   categorias: { etiqueta: '🗂️ Categorías', render: renderVistaCategorias },
   memento: { etiqueta: '⏳ Memento mori', render: renderVistaMemento },
+  asistente: { etiqueta: '🤖 Asistente', render: renderVistaAsistente },
   configuraciones: { etiqueta: '⚙️ Configuraciones', render: renderVistaConfiguraciones },
 };
 
@@ -386,10 +388,14 @@ async function reprogramarSiCorresponde() {
   }
 }
 
+function textoFijasEnChoque(fijasEnChoque) {
+  return `📌 Fijaste un horario que choca con un evento de Calendar y lo dejé donde está: ${nombrarLista(fijasEnChoque.map((f) => f.tarea))}. Si querés que lo mueva, soltá el 📌 desde su edición.`;
+}
+
 async function ejecutarReprogramacionInicial() {
   const inicioActualizadas = actualizarFechasInicioVencidas(estado.tareas);
   const { reprogramadas: vencidas, sinHueco: sinHuecoVencidas, inconsistentes: inconsistentesVencidas } = await reprogramarVencidas(estado);
-  const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas } = await reubicarTareasSolapadas(estado);
+  const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas, fijasEnChoque } = await reubicarTareasSolapadas(estado);
   const { asignadas: nuevas, sinHueco: sinHuecoNuevas, reordenadas: reordenadasAntes } = await programarTareasSinFecha(estado);
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
   const urgentesReasignadas = await reasignarUrgentesAHoy(estado);
@@ -416,8 +422,10 @@ async function ejecutarReprogramacionInicial() {
     inicioActualizadas.length === 0 &&
     urgentesReasignadas.length === 0 &&
     reordenadas.length === 0
-  )
+  ) {
+    if (fijasEnChoque.length > 0) await avisar(textoFijasEnChoque(fijasEnChoque));
     return;
+  }
   await persistirYNotificar();
 
   // Solo se nombran las que siguen sin hueco tras TODOS los pasos (un paso posterior pudo acomodar lo que uno anterior no).
@@ -433,6 +441,7 @@ async function ejecutarReprogramacionInicial() {
   // Las "inconsistentes" (sugerida después del límite tras un corrimiento en cascada) ya no se avisan acá
   // (v0.89.0): quedan siempre visibles en la sección "⚠️ Sin hueco antes del límite" de Resumen, en vez de un
   // aviso único que se puede perder. `inconsistentes.length` sigue contando para decidir si hay que persistir.
+  if (fijasEnChoque.length > 0) mensaje += `${mensaje ? '\n\n' : ''}${textoFijasEnChoque(fijasEnChoque)}`;
   if (mensaje) await avisar(mensaje);
 }
 

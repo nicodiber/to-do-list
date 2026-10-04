@@ -555,7 +555,7 @@ function conectarInteracciones(desplazable, filas, modo, { anchoDia, agruparPor,
         barra.classList.remove('arrastrando');
         if (dias === 0) return;
         const nuevoDia = fechaISOMasDias(dias, fila.plan.dia);
-        const inconsistentes = reprogramarTareaConCascada(tarea, conservandoHora(tarea.tarea_fecha_sugerida, nuevoDia), estado.tareas);
+        const inconsistentes = reprogramarTareaConCascada(tarea, conservandoHora(tarea.tarea_fecha_sugerida, nuevoDia), estado.tareas, { fijar: true });
         await persistirYNotificar();
         const aviso = avisoInconsistentes(inconsistentes);
         if (aviso) await avisar(aviso);

@@ -236,3 +236,16 @@ Ningún proceso de esta sección (5, 19–31, 34 y 35) asigna o mueve horarios s
 - **Condición** (v0.105.0): hay tareas cargadas, el recordatorio no está en «nunca» y pasaron al menos N días (30 por defecto) desde la última exportación en este dispositivo; si nunca se exportó, desde la primera vez que se abrió la app con datos.
 - **Proceso**: el revisor de avisos (`avisos-sync.js`) muestra una vez por sesión una ventana «💾 Copia de seguridad» con «⬇️ Exportar ahora» o «Más tarde». Exportar registra la fecha y el recordatorio se apaga hasta que pasen otros N días.
 - **Resultado**: siempre hay una copia propia reciente fuera de Drive (ver `PLAN_B.md`).
+
+## 40. Horario fijado por el usuario (fecha sugerida fija)
+
+- **Condición** (v0.106.0): una tarea tiene `tarea_fecha_fija` y su sugerida con hora todavía no pasó (hora + duración estimada).
+- **Proceso**: ningún proceso automático la mueve: ni la reubicación por choque con Calendar (`reubicarTareasSolapadas`), ni adelantar a un hueco mejor, ni el reordenado por prioridad, ni reasignar urgentes a hoy, ni el desplazamiento en cascada de las dependientes. Al iniciar, si una fija choca con un evento de Calendar se deja donde está y una ventana lo avisa («soltá el 📌 desde su edición» para que STDL la mueva). Cuando su hora más su duración pasan, `reprogramarVencidas` / `reprogramarTareaInmediataSiVencio` la sueltan (`tarea_fecha_fija = false`) y la reprograman como a cualquier otra.
+- **Resultado**: lo que el usuario decidió a mano se respeta; todo lo demás sigue agendándose solo. Las que agenda STDL (y las urgentes) nunca se fijan.
+
+## 41. Tiempo real desde el cronómetro
+
+- **Condición** (v0.106.0): se completa una tarea con tiempo medido por el cronómetro (corriendo o acumulado).
+- **Proceso**: `preguntarTiempoReal` detiene el cronómetro, anota el total (redondeado, entre 1 min y 24 h) como `cumplimiento_duracion_real` del cumplimiento recién creado, reinicia `tarea_tiempo_acumulado_min` y no pregunta nada.
+- **Resultado**: Estadísticas → estimado vs. real se alimenta sin tipear.
+

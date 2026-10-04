@@ -5,9 +5,22 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { obtenerPreferencias } from './preferencias.js';
 import { pedirTexto } from './avisos.js';
+import { tiempoMedidoMinutos, detenerCronometro } from './cronometro.js';
 
 /** Pregunta cuántos minutos tardó la tarea recién cumplida (si la preferencia está activada) y lo guarda en su cumplimiento. */
 export async function preguntarTiempoReal(tarea) {
+  // Si usaste el cronómetro (v0.106.0) el tiempo ya está medido: se anota solo, sin preguntar.
+  const medido = tiempoMedidoMinutos(tarea);
+  if (medido > 0) {
+    detenerCronometro(tarea);
+    tarea.tarea_tiempo_acumulado_min = 0;
+    const cumplimiento = [...(estado.cumplimientos || [])].reverse().find((c) => c.cumplimiento_tarea_id === tarea.tarea_id);
+    if (cumplimiento) {
+      cumplimiento.cumplimiento_duracion_real = Math.min(24 * 60, Math.max(1, Math.round(medido)));
+      await persistirYNotificar({ deshacer: false });
+    }
+    return;
+  }
   if (!obtenerPreferencias().pref_preguntar_tiempo_real) return;
   const texto = await pedirTexto(`¿Cuántos minutos te llevó «${tarea.tarea_nombre}»?\n(Opcional. Estimabas ${tarea.tarea_duracion_min || '?'} min. Dejalo vacío para no anotarlo.)`, {
     titulo: '⏱️ Tiempo real',

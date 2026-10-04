@@ -270,6 +270,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       <legend>📅 Cuándo</legend>
       ${htmlParFechaHora('tarea_fecha_inicio_habilitada', enAlta ? '' : t.tarea_fecha_inicio_habilitada, '🚦 Habilitada desde', 'Desde cuándo se puede empezar: antes de esa fecha la tarea figura como todavía no disponible')}
       ${htmlParFechaHora('tarea_fecha_sugerida', t.tarea_fecha_sugerida, '📅 Sugerida', 'Cuándo conviene hacerla; con hora es un horario concreto')}
+      <div class="ancho-completo">${htmlInterruptor('tarea_fecha_fija', t.tarea_fecha_fija, '📌 Fijar este horario', 'title="Con hora, STDL no mueve este horario (ni lo reordena ni lo adelanta) hasta que pase junto con su duración estimada. Se activa solo al cargar o cambiar la fecha sugerida con hora; desmarcalo para que STDL pueda moverlo"')}</div>
       ${htmlParFechaHora('tarea_fecha_limite', t.tarea_fecha_limite, '⏳ Límite', 'Fecha en la que tiene que estar hecha sí o sí')}
       <label class="campo" title="Cuánto tarda, en minutos (por defecto 15)"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 15}" min="0" step="15" /></label>
       <div class="campo ancho-completo" title="Los días de la semana en que se puede hacer; sin marcar, cualquier día"><span class="campo-titulo">🗓️ Días hábiles (sin marcar = cualquier día)</span>${htmlDiasHabiles(t.tarea_dias_habiles || [])}</div>
@@ -437,6 +438,12 @@ function agregarBotonDeDictado(formulario) {
 export function conectarFormularioTarea(formulario, { modo = 'edicion', precargaPorNombre = true } = {}) {
   if (modo === 'alta') resaltarCamposCompletados(formulario);
   if (modo === 'alta') agregarBotonDeDictado(formulario);
+  // Cargar o cambiar la fecha sugerida con hora la fija sola (v0.106.0); el interruptor deja soltarla.
+  const fijarAlCambiarSugerida = () => {
+    const interruptor = formulario.tarea_fecha_fija;
+    if (interruptor && formulario.tarea_fecha_sugerida_fecha.value && formulario.tarea_fecha_sugerida_hora.value) interruptor.checked = true;
+  };
+  ['tarea_fecha_sugerida_fecha', 'tarea_fecha_sugerida_hora'].forEach((nombre) => formulario[nombre]?.addEventListener('change', fijarAlCambiarSugerida));
   formulario.querySelectorAll('.filtro-enlace').forEach((campo) => conectarFiltroDeEnlaces(formulario.querySelector(`[name="${campo.dataset.filtroDe}"]`), campo));
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;
@@ -570,6 +577,9 @@ export function leerFormularioTarea(formulario) {
       tarea_disfrute: datos.get('tarea_disfrute') ? Number(datos.get('tarea_disfrute')) : null,
       tarea_fecha_inicio_habilitada: combinarCampoFechaHora(datos, 'tarea_fecha_inicio_habilitada'),
       tarea_fecha_sugerida: limitarFechaSugeridaALimite(combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'), combinarCampoFechaHora(datos, 'tarea_fecha_limite')),
+      tarea_fecha_fija:
+        datos.get('tarea_fecha_fija') === 'on' &&
+        tieneHora(limitarFechaSugeridaALimite(combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'), combinarCampoFechaHora(datos, 'tarea_fecha_limite'))),
       tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
       tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 15,
       tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,

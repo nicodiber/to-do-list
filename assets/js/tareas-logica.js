@@ -356,9 +356,11 @@ export function eliminarTarea(tarea, estado) {
  * quedaron con `tarea_fecha_sugerida` después de su propia `tarea_fecha_limite` (sin tocar) — para avisar
  * en vez de corregirlas solo; usar con `avisoInconsistentes`.
  */
-export function reprogramarTareaConCascada(tarea, nuevaFechaSugeridaISO, listaTareas) {
+export function reprogramarTareaConCascada(tarea, nuevaFechaSugeridaISO, listaTareas, { fijar = false } = {}) {
   const anteriorISO = tarea.tarea_fecha_sugerida;
   tarea.tarea_fecha_sugerida = nuevaFechaSugeridaISO;
+  // Una fecha que puso el usuario (Posponer, arrastrar en Gantt…) queda fija si tiene hora (v0.106.0): STDL no la mueve.
+  if (fijar) tarea.tarea_fecha_fija = tieneHora(nuevaFechaSugeridaISO);
 
   if (!anteriorISO) return [];
 
@@ -375,6 +377,8 @@ function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados, inconsi
     .filter((t) => t.tarea_dependiente === idTarea && !visitados.has(t.tarea_id))
     .forEach((dependiente) => {
       visitados.add(dependiente.tarea_id);
+      // Un dependiente con horario fijado por el usuario no se corre (ni lo que viene detrás de él, que sigue su posición).
+      if (fechaFijaVigente(dependiente)) return;
 
       if (dependiente.tarea_fecha_sugerida) {
         dependiente.tarea_fecha_sugerida = desplazarFecha(dependiente.tarea_fecha_sugerida, deltaMs);
@@ -385,6 +389,15 @@ function desplazarDependientes(idTarea, deltaMs, listaTareas, visitados, inconsi
 
       desplazarDependientes(dependiente.tarea_id, deltaMs, listaTareas, visitados, inconsistentes);
     });
+}
+
+/**
+ * ¿La fecha sugerida de `tarea` la fijó el usuario y todavía rige? (v0.106.0) Rige desde que la fijó hasta que pasan su
+ * hora de inicio más su duración estimada; después vuelve a ser una sugerencia más y STDL puede reprogramarla.
+ */
+export function fechaFijaVigente(tarea, ahoraMs = Date.now()) {
+  if (!tarea.tarea_fecha_fija || tarea.tarea_estado === 'completada' || !tieneHora(tarea.tarea_fecha_sugerida)) return false;
+  return ahoraMs < new Date(tarea.tarea_fecha_sugerida).getTime() + (tarea.tarea_duracion_min || 30) * 60000;
 }
 
 /** Texto del aviso para `inconsistentes` (ver `reprogramarTareaConCascada`), o `''` si no hay ninguna. */

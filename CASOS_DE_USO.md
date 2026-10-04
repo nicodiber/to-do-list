@@ -472,6 +472,25 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 - **Vistas/funciones**: `views/mejoras.view.js`; `views/hoy.view.js` (`htmlMejorasPendientes`).
 - **Resultado**: cambia `mejora_aplicada` o `mejora_texto`, o elimina la nota (queda registrada la eliminación para las demás pantallas y dispositivos, como cualquier baja).
 
+### E5. Conversar con el asistente de IA
+
+- **Objetivo**: cargar o replanificar tareas hablando en lenguaje natural, sin llenar formularios, y sin perder el control de lo que cambia.
+- **Disparador**: módulo **🤖 Asistente** (necesita tu propia clave de API de Anthropic, que se carga en Configuraciones → Asistente de IA o con ⚙️ en el módulo).
+- **Pasos**: escribir o dictar 🎤 un pedido («cargá estas tres tareas…», «pasá para mañana lo de Casa») → el asistente consulta tus tareas si hace falta y **propone** cambios → cada propuesta aparece como una tarjeta con lo que cambia resaltado y todos los campos editables → «Aplicar» o «Rechazar», una por una → el asistente sigue según lo que aprobaste (y los ajustes que hiciste a mano).
+- **Vistas/funciones**: `views/asistente.view.js`; `assets/js/asistente.js` (`conversar`, `aplicarPropuesta`).
+- **Resultado**: nada cambia sin tu aprobación; lo aprobado se guarda como cualquier edición (se puede deshacer con Ctrl+Z).
+- **Fricciones/pendientes**: ⏳ etapa 1 a confirmar con uso real; la etapa 2 podría ayudar a definir metas medibles y hojas de ruta. Cuesta plata de tu cuenta de Anthropic; la conversación no se guarda.
+
+### E6. Medir cuánto tardo de verdad (cronómetro) y exportar a planilla
+
+- **Pasos**: ▶ en la fila de la Tabla al empezar → ⏹ al parar (o seguir de a tramos) → al completar la tarea el tiempo se anota solo como tiempo real → Estadísticas compara lo estimado con lo real. Para analizar fuera de STDL: Configuraciones → Copia de seguridad → «Tareas (CSV)» o «Cumplimientos (CSV)».
+- **Vistas/funciones**: `assets/js/cronometro.js`, `assets/js/tiempo-real.js`, `assets/js/exportar-csv.js`.
+
+### E7. Fijar un horario que no quiero que STDL mueva
+
+- **Pasos**: cargar o editar una tarea con fecha y hora sugerida (se marca «📌 Fijar este horario»), o posponerla / arrastrarla a un horario → STDL no la mueve (aparece 📌 en Tabla y Semana) hasta que pasa su hora más su duración; si choca con un evento de Calendar, avisa al iniciar y la deja. Para soltarla: desmarcar el interruptor en la edición.
+- **Vistas/funciones**: `fechaFijaVigente` (`tareas-logica.js`), guardas en `programador.js`.
+
 ---
 
 ## Fuera de alcance — IA conectable (suspendido)

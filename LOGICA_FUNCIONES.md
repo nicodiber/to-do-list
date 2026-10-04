@@ -585,3 +585,27 @@ Service worker de la PWA — estrategia network-first.
 - **`install`**: precachea el app shell completo (`ARCHIVOS_PRECACHE`) con `{ cache: 'reload' }` para evitar que el CDN sirva una copia vieja.
 - **`activate`**: borra cualquier caché con un nombre distinto al `CACHE_NAME` actual (se bumpea en cada entrega que cambie archivos del shell).
 - **`fetch`**: red primero, cae a caché si falla (sin conexión).
+
+## Fecha sugerida fija (v0.106.0)
+
+- `fechaFijaVigente(tarea, ahoraMs)` (`assets/js/tareas-logica.js`): `true` si `tarea_fecha_fija`, la tarea no está completada, la sugerida tiene hora y todavía no pasaron su inicio + `tarea_duracion_min` (30 min si no tiene). Es la única pregunta que hacen los demás módulos.
+- `reprogramarTareaConCascada(tarea, fecha, lista, { fijar })`: con `fijar: true` (acciones directas del usuario: Posponer en Resumen/Tabla/Agenda, arrastrar en el Gantt) deja `tarea_fecha_fija = tieneHora(fecha)`. `desplazarDependientes` **saltea** a los dependientes con horario fijado vigente.
+- Formulario de tarea: el interruptor «📌 Fijar este horario» se marca solo al cargar o cambiar la fecha sugerida con hora; solo se guarda si la sugerida tiene hora. Edición masiva: asignar una sugerida con hora la fija. Asistente: lo que el usuario aprueba con hora queda fijo.
+- `programador.js` respeta la fijeza: `reubicarTareasSolapadas` no mueve una fija que choca con Calendar y la devuelve en `fijasEnChoque` (aviso al iniciar, sin persistir); `adelantarTareasSiHayHuecoMejor`, `reordenarSugeridasPorPrioridad`, `reasignarUrgentesAHoy` y `resolverColisionesEnCadena` no la tocan. `reprogramarVencidas` y `reprogramarTareaInmediataSiVencio` la sueltan (`tarea_fecha_fija = false`) cuando su ventana ya pasó.
+
+## `assets/js/cronometro.js`
+
+`iniciarCronometro`, `detenerCronometro` (suma el tramo a `tarea_tiempo_acumulado_min`), `tiempoMedidoMinutos`, `cronometroCorriendo`, `formatearMinutosMedidos`. `preguntarTiempoReal` (tiempo-real.js) usa lo medido: si hay tiempo, lo anota en el cumplimiento sin preguntar y lo reinicia; si no, sigue el comportamiento de antes (preguntar si la preferencia está activada). La Tabla muestra el botón ▶/⏹ con el tiempo.
+
+## `assets/js/exportar-csv.js`
+
+`csvDeTareas`, `csvDeCumplimientos`, `armarCSV`, `celdaCSV` (comillas dobles y protección contra fórmulas `= + - @`), `descargarCSV` (BOM UTF-8, separador «;»).
+
+## `assets/js/asistente.js` y `views/asistente.view.js`
+
+- **Clave y modelo**: `leerClaveAsistente/guardarClaveAsistente`, `leerModeloAsistente/guardarModeloAsistente` en `localStorage` (solo este dispositivo; no se sincronizan). `MODELOS_ASISTENTE` (por defecto `claude-opus-5-5`).
+- **`conversar({ mensajes, alTexto, alConsultar, pedirConfirmacion, alCambiar, signal, estaVigente })`**: llama a `POST https://api.anthropic.com/v1/messages` desde el navegador (cabecera `anthropic-dangerous-direct-browser-access`, sin SDK por la regla de «sin dependencias»), con las instrucciones de `armarSistema()` (fecha de hoy, reglas y categorías) y las herramientas. Bucle manual de herramientas: devuelve el contenido del modelo tal cual (con sus bloques de razonamiento) y manda **todos** los `tool_result` en un solo mensaje. Máximo 14 vueltas por turno.
+- **Herramientas de lectura** (se ejecutan solas): `buscar_tareas` (texto, estado, categoría, día; hasta 40 con `tarea_id`) y `listar_categorias`. **Herramientas de cambio** (siempre pasan por confirmación): `proponer_crear_tarea`, `proponer_editar_tarea`, `proponer_completar_tarea`, `proponer_eliminar_tarea`. Una propuesta (`CAMPOS_PROPUESTA`: nombre, descripción, categoría, duración, sugerida, límite, urgente) se arma con «antes» y «después»; el modelo recibe el resultado (`aplicado` con los `ajustes_del_usuario`, `rechazado` o `error`). Las fechas del modelo se validan (`normalizarFechaPropuesta`) y las categorías se resuelven por nombre o camino (`resolverCategoria`); lo inválido se avisa en la tarjeta y se deja como estaba.
+- **`aplicarPropuesta`**: crear (`crearTarea`, urgente → `programarParaHoy`), editar (la sugerida pasa por `reprogramarTareaConCascada` con `fijar`), completar (`cumplirTarea`) o eliminar (`eliminarTarea`); luego `persistirYNotificar` y `agendarEnSegundoPlano`. Los textos de tareas se tratan como datos, no como instrucciones (también se le indica al modelo).
+- **Vista**: el estado de la conversación vive en el módulo (la app redibuja la vista en cada cambio de datos). La tarjeta de propuesta resalta lo que cambia (ahora tachado → propuesto en verde), deja editar cada campo, y tiene «Aplicar» / «Rechazar»; las ya resueltas quedan como resumen. Dictado con `SpeechRecognition` (es-AR) y lectura en voz alta con `speechSynthesis` (opcional, por dispositivo).
+
