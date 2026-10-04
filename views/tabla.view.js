@@ -139,6 +139,16 @@ const COLUMNAS = [
   },
   { clave: 'inicio', etiqueta: 'Habilitada desde', valor: habilitadaTexto, comparar: (a, b) => porFecha(a.tarea_fecha_inicio_habilitada, b.tarea_fecha_inicio_habilitada) },
   {
+    clave: 'delegada',
+    etiqueta: 'Delegada a',
+    valor: (t) => {
+      const persona = t.tarea_delegada_a ? estado.personas.find((x) => x.persona_id === t.tarea_delegada_a) : null;
+      if (!persona) return '';
+      return `🤝 ${escaparHtml(persona.persona_nombre)}${t.tarea_seguimiento_fecha ? ` · seguimiento ${fechaOVacia(t.tarea_seguimiento_fecha)}` : ''}`;
+    },
+    comparar: (a, b) => (a.tarea_seguimiento_fecha || '9999').localeCompare(b.tarea_seguimiento_fecha || '9999'),
+  },
+  {
     clave: 'sugerida',
     etiqueta: 'Sugerida',
     defecto: true,

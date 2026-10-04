@@ -131,6 +131,19 @@ export function crearRevisorDeAvisos({ obtenerEstado, contexto }) {
     if (s.almacenamientoLocalDisponible === false) {
       lista.set('local', () => avisar('Este navegador no permite guardar una copia temporal: si perdés la conexión, los cambios sin subir se perderían al cerrar la pestaña.', { titulo: '⚠️ Sin copia temporal' }));
     }
+    const copia = s.datosListos ? contexto.copiaVencida() : null;
+    if (copia) {
+      lista.set('copia', () =>
+        avisarConAcciones(
+          `${copia.nunca ? `Todavía no exportaste una copia de seguridad desde este dispositivo (hace ${copia.dias} días que usás la app).` : `Hace ${copia.dias} días que no exportás una copia de seguridad.`} Tus datos están en tu Google Drive, pero una copia propia te cubre si algo le pasa a tu cuenta o a Google. Sale en un clic y no pierde nada.`,
+          {
+            titulo: '💾 Copia de seguridad',
+            textoAceptar: 'Más tarde',
+            acciones: [{ texto: '⬇️ Exportar ahora', alClic: () => contexto.exportar() }],
+          }
+        )
+      );
+    }
     const avisos = contexto.obtenerAvisos();
     if (avisos.length > 0) lista.set(`avisos:${avisos.map((a) => a.id).join(',')}`, () => abrirAvisosSync(contexto.obtenerAvisos));
     return lista;

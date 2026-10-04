@@ -266,6 +266,21 @@ Clasificación de las pantallas por tipo de funcionalidad (además del agrupamie
 
 ---
 
+### A14. Delegar una tarea y hacerle seguimiento (v0.105.0)
+
+- **Objetivo**: no perder el rastro de lo que le pediste a otra persona.
+- **Disparador**: el usuario le encarga una tarea a alguien (o la delega del todo).
+- **Pasos**: en el formulario de la tarea, «🤝 Delegada a» → elegir (o crear) la persona → «📅 Seguimiento» → la fecha en que quiere revisar.
+- **Flujo usuario/sistema**:
+  1. Usuario guarda la tarea delegada; el sistema exige elegir persona si se puso una fecha de seguimiento.
+  2. El día del seguimiento (o después) la tarea aparece en Resumen → «🤝 Seguimientos», con cuánto se atrasó.
+  3. Usuario elige: «✔️ Resuelta» (la cumple), «⏭️ Recordármelo en…» (1 día, 3 días, 1 semana, 2 semanas), «✏️ Editar» o «🔕 Sin seguimiento».
+- **Vistas/funciones**: `assets/js/formulario-tarea.js`, `views/resumen.view.js` (`renderSeguimiento`), columna «Delegada a» de `views/tabla.view.js`.
+- **Resultado**: la tarea sigue activa y agendada como cualquier otra; el seguimiento es solo un recordatorio dentro de la app (sin notificaciones del navegador).
+- **Fricciones**: una tarea delegada igual cuenta en tu carga del día; si la persona se elimina, la tarea queda sin delegar.
+
+---
+
 ## Bloque B — Planificación de objetivos
 
 ### B1. Crear y seguir una Meta

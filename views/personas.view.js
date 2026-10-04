@@ -186,6 +186,10 @@ function renderPersona(persona, contenedorVista) {
     if (!await confirmar(`¿Eliminar a "${persona.persona_nombre}"? Las tareas asociadas quedan sin persona.`, { peligro: true, textoAceptar: 'Eliminar' })) return;
     estado.tareas.forEach((tarea) => {
       if (tarea.persona_id === persona.persona_id) tarea.persona_id = null;
+      if (tarea.tarea_delegada_a === persona.persona_id) {
+        tarea.tarea_delegada_a = null;
+        tarea.tarea_seguimiento_fecha = '';
+      }
     });
     estado.personas = estado.personas.filter((p) => p.persona_id !== persona.persona_id);
     await persistirYNotificar();

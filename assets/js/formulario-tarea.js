@@ -50,9 +50,9 @@ export function htmlOpcionesMeta(seleccionada = '') {
   ].join('');
 }
 
-export function htmlOpcionesPersona(seleccionada = '') {
+export function htmlOpcionesPersona(seleccionada = '', sinValor = 'Sin persona') {
   return [
-    '<option value="">Sin persona</option>',
+    `<option value="">${sinValor}</option>`,
     ...estado.personas.map((p) => `<option value="${p.persona_id}" ${p.persona_id === seleccionada ? 'selected' : ''}>${escaparHtml(p.persona_nombre)}</option>`),
     `<option value="${CREAR_NUEVA}">＋ Crear nueva persona…</option>`,
   ].join('');
@@ -261,6 +261,8 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       <label class="campo" title="Cuánto disfrutás hacerla (1 a 5)"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
       <label class="campo" title="La meta a la que aporta esta tarea"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
       <label class="campo" title="Con quién la hacés, si depende de otra persona"><span class="campo-titulo">👤 Persona</span><select name="persona_id">${htmlOpcionesPersona(t.persona_id || '')}</select></label>
+      <label class="campo" title="A quién le delegaste esta tarea, para hacerle seguimiento"><span class="campo-titulo">🤝 Delegada a</span><select name="tarea_delegada_a">${htmlOpcionesPersona(t.tarea_delegada_a || '', 'No está delegada')}</select></label>
+      <label class="campo" title="Cuándo querés que te lo recuerde la app: ese día aparece en Resumen → Seguimientos"><span class="campo-titulo">📅 Seguimiento</span><input type="date" name="tarea_seguimiento_fecha" value="${escaparHtml(t.tarea_seguimiento_fecha || '')}" /></label>
       <div class="ancho-completo">${htmlInterruptor('tarea_urgente', t.tarea_urgente, '❗ Urgente', 'title="Cuenta para ordenar la lista; al marcarla se le asigna la fecha sugerida de hoy (o el próximo hueco libre si no entra)"')}</div>
     </fieldset>
 
@@ -459,6 +461,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
     ['ubicacion_id', htmlOpcionesUbicacion, abrirDialogoUbicacion, (n) => n.ubicacion_id],
     ['meta_id', htmlOpcionesMeta, abrirDialogoMeta, (n) => n.meta_id],
     ['persona_id', htmlOpcionesPersona, abrirDialogoPersona, (n) => n.persona_id],
+    ['tarea_delegada_a', (sel) => htmlOpcionesPersona(sel, 'No está delegada'), abrirDialogoPersona, (n) => n.persona_id],
   ].forEach(([nombre, htmlOpciones, abrirDialogo, extraerId]) => {
     conectarCrearNueva(formulario[nombre], htmlOpciones, abrirDialogo, extraerId);
   });
@@ -574,6 +577,8 @@ export function leerFormularioTarea(formulario) {
       ubicacion_id: valorSeleccion(datos.get('ubicacion_id')),
       meta_id: valorSeleccion(datos.get('meta_id')),
       persona_id: valorSeleccion(datos.get('persona_id')),
+      tarea_delegada_a: valorSeleccion(datos.get('tarea_delegada_a')),
+      tarea_seguimiento_fecha: valorSeleccion(datos.get('tarea_delegada_a')) ? String(datos.get('tarea_seguimiento_fecha') || '') : '',
       tarea_requiere_clima_bueno: datos.get('tarea_requiere_clima_bueno') === 'on',
       tarea_mantenimiento: esMantenimiento,
       tarea_mantenimiento_intervalo:
@@ -593,6 +598,7 @@ export function leerFormularioTarea(formulario) {
       tarea_repetir_hasta_tarea: esMantenimiento ? datos.get('tarea_repetir_hasta_tarea') || null : null,
       tarea_desencadenante: !esMantenimiento ? null : selectDesencadenante && !selectDesencadenante.disabled ? datos.get('tarea_desencadenante') || null : undefined,
     },
+    seguimientoSinPersona: !valorSeleccion(datos.get('tarea_delegada_a')) && !!datos.get('tarea_seguimiento_fecha'),
     previaId: datos.get('tarea_previa') || null,
     proximaId: datos.get('tarea_proxima') || null,
     // Solo existen en la edición: `null` = el formulario no trae el interruptor de estado (o está deshabilitado).
@@ -627,6 +633,9 @@ export function validarFormularioTarea(leido, tareaId = null) {
   if (desencadenante && previaId && (!tareaId || previaId !== estado.tareas.find((t) => t.tarea_id === tareaId)?.tarea_dependiente)) {
     return { ok: false, motivo: 'Una tarea con desencadenante no puede tener también una tarea previa. Elegí una de las dos.' };
   }
+  if (!campos.tarea_delegada_a && leidoTieneSeguimientoSinPersona(leido)) {
+    return { ok: false, motivo: 'Para hacer seguimiento elegí a quién le delegaste la tarea (o borrá la fecha de seguimiento).' };
+  }
   const fijo = campos.tarea_mantenimiento_dia_fijo;
   if (fijo && fijo.tipo === 'semana' && fijo.dias.length === 0) {
     return { ok: false, motivo: 'Elegí al menos un día de la semana para la repetición (o cambiá a «cada N días»).' };
@@ -658,4 +667,9 @@ export async function ofrecerMarcarCadenaMantenimiento(tarea, listaTareas) {
     t.tarea_mantenimiento_dia_fijo = diaFijo ? structuredClone(diaFijo) : null;
   });
   return faltantes;
+}
+
+/** ¿El formulario trae una fecha de seguimiento sin haber elegido a quién se delegó? (la fecha se descarta al leer: se mira el formulario crudo). */
+function leidoTieneSeguimientoSinPersona(leido) {
+  return !!leido.seguimientoSinPersona;
 }

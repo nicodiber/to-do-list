@@ -1,4 +1,4 @@
-import { estado, exportarJSON, importarJSON, borrarTodosLosDatos, persistirYNotificar } from '../assets/js/almacenamiento.js';
+import { estado, exportarJSON, importarJSON, borrarTodosLosDatos, persistirYNotificar, ultimaExportacion, leerDiasRecordatorioCopia, guardarDiasRecordatorioCopia, DIAS_RECORDATORIO_COPIA } from '../assets/js/almacenamiento.js';
 import { tareasCompletadasLimpiables, eliminarTarea } from '../assets/js/tareas-logica.js';
 import { bloquesDeSemana, validarBloquesDia, ordenarBloques, minutosDeBloques, HORAS_BLOQUE } from '../assets/js/bloques-horarios.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
@@ -114,6 +114,12 @@ export function renderVistaConfiguraciones(contenedor) {
           <input type="file" id="input-importar" accept="application/json" hidden />
         </label>
       </div>
+      <div class="acciones-config">
+        <label title="Cada cuántos días la app te recuerda exportar una copia (en este dispositivo)">🔔 Recordarme exportar una copia
+          <select id="recordatorio-copia">${DIAS_RECORDATORIO_COPIA.map((d) => `<option value="${d}" ${d === leerDiasRecordatorioCopia() ? 'selected' : ''}>${d === 0 ? 'nunca' : `cada ${d} días`}</option>`).join('')}</select>
+        </label>
+        <small class="ayuda">${ultimaExportacion() ? `Última exportación en este dispositivo: ${new Date(ultimaExportacion()).toLocaleDateString('es-AR')}.` : 'Todavía no exportaste una copia en este dispositivo.'} Qué hacer si algo se cae: <code>PLAN_B.md</code>.</small>
+      </div>
     </section>
 
     <section class="seccion-config">
@@ -168,6 +174,8 @@ export function renderVistaConfiguraciones(contenedor) {
     registro.appendChild(li);
   });
 
+
+  contenedor.querySelector('#recordatorio-copia').addEventListener('change', (evento) => guardarDiasRecordatorioCopia(Number(evento.target.value)));
 
   const mensajeLimpiar = contenedor.querySelector('#mensaje-limpiar');
   contenedor.querySelector('#boton-limpiar-completadas').addEventListener('click', async () => {

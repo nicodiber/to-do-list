@@ -3438,3 +3438,15 @@ dialog[open]::backdrop { animation: aparecer-fondo 0.16s ease-out; }
 .acciones-bloques-dia button { font-size: 0.8rem; padding: 0.15rem 0.5rem; }
 .total-bloques-dia { color: var(--color-texto-suave); min-width: 4.5rem; text-align: right; }
 .mensaje-error-bloques { color: var(--color-peligro); }
+
+/* Memento mori (v0.105.0) */
+.vida-contenedor { overflow: auto; max-width: 100%; padding: 0.5rem 0; }
+.vida-cuadricula { display: inline-flex; flex-direction: column; gap: 2px; }
+.fila-vida { display: flex; gap: 2px; align-items: center; }
+.edad-fila-vida { width: 1.6rem; font-size: 0.6rem; color: var(--color-texto-suave); text-align: right; padding-right: 0.25rem; }
+.casilla-vida { display: inline-block; width: 0.55rem; height: 0.55rem; border: 1px solid var(--color-borde); border-radius: 2px; box-sizing: border-box; }
+.casilla-vida.vivida { background: var(--color-primario); border-color: var(--color-primario); }
+.casilla-vida.actual { background: var(--color-peligro); border-color: var(--color-peligro); animation: latido-microfono 1.4s ease-in-out infinite; }
+.casilla-vida.futura { background: transparent; }
+.vida-cuadricula .casilla-vida { width: 0.62rem; height: 0.62rem; }
+@media (prefers-reduced-motion: reduce) { .casilla-vida.actual { animation: none; } }

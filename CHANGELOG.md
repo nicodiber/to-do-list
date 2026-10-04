@@ -2,6 +2,21 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.105.0] - 2026-10-04
+
+Horarios disponibles por bloques, recordatorio de copia de seguridad y plan de contingencia, delegaciones, memento mori, y documentos de requerimientos e investigación de competencia.
+
+### Cambiado
+
+- **Horarios disponibles por bloques** (`assets/js/bloques-horarios.js`; Configuraciones → Tiempo disponible → «Horarios disponibles por día de la semana»): cada día de la semana tiene uno o varios bloques «desde–hasta». Por defecto uno de 00:00 a 24:00, como antes. El editor valida que los bloques no se pisen, no queden pegados (se unen en uno) y no sumen más de 24 h; un día sin bloques es un día libre; «＋ Bloque» agrega uno en el primer hueco con 30 min de respiro y «📋 Copiar a todos» replica un día. **Reemplazan a la franja horaria global y al tope de minutos por día** (`pref_franja`/`pref_tope_dias` ya no se editan; quien los tenía cargados los ve convertidos a bloques). El agendado solo propone horas dentro de los bloques (`buscarHuecoLibre` con `bloquesPorDia`), la capacidad del día es la suma de sus bloques menos tus eventos (`capacidad.js`), Semana muestra la grilla del rango que cubren los bloques y **sombrea las horas fuera de ellos**, y el Gantt sombrea los días sin bloques.
+
+### Agregado
+
+- **Recordatorio de copia de seguridad**: si pasaron más de N días (30 por defecto; configurable o «nunca» en Configuraciones → Copia de seguridad) desde la última exportación en este dispositivo, una ventana te lo recuerda y exporta en un clic (`copiaVencida`, `avisos-sync.js`). **`PLAN_B.md`**: qué hacer si se cae Google o GitHub Pages, cómo servir la app desde otro hosting (y el origen que hay que autorizar en Google Cloud) y qué pasa si se cierra el navegador antes de «guardado».
+- **Delegaciones**: en el formulario de la tarea, «🤝 Delegada a» (una persona) y «📅 Seguimiento» (fecha). El día del seguimiento aparece la sección **🤝 Seguimientos** en Resumen con «✔️ Resuelta», «⏭️ Recordármelo en… (1 día, 3 días, 1 semana, 2 semanas)», «✏️ Editar» y «🔕 Sin seguimiento». La Tabla tiene la columna «Delegada a». Eliminar a la persona deja la tarea sin delegar (`tarea_delegada_a`, `tarea_seguimiento_fecha`).
+- **⏳ Memento mori** (módulo nuevo antes de Configuraciones): el calendario de tu vida en semanas, meses o años (`views/memento.view.js`). Pide la **fecha de nacimiento una sola vez** y la guarda en las preferencias de tu Drive (`pref_fecha_nacimiento`); expectativa de vida editable (80 años por defecto).
+- **`REQUERIMIENTOS.md`**: requerimientos funcionales y no funcionales de más simples a más complejos, con su estado y dónde se implementan. **`INVESTIGACION_COMPETENCIA.md`**: Reclaim.ai, Swift To-Do List, Motion, Sunsama, Morgen y Akiflow frente a STDL, con siete ideas recomendadas (horario preferido por tarea, carga con lenguaje natural, cronómetro, tiempos de traslado, bloques de foco, exportar a CSV y nivel de energía).
+
 ## [v0.104.0] - 2026-10-03
 
 Sonidos, animaciones, hábitos más cómodos, limpieza de completadas, clima por ubicación del dispositivo, dictado por voz, Gantt con días no hábiles y zoom por día, y estadísticas de Google Calendar y de tiempo real.
