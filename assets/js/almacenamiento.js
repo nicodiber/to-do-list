@@ -325,6 +325,7 @@ function migrarPreferencias(p) {
     pref_calendarios: Array.isArray(p.pref_calendarios) ? p.pref_calendarios : null,
     pref_capacidad_por_fecha: p.pref_capacidad_por_fecha && typeof p.pref_capacidad_por_fecha === 'object' ? p.pref_capacidad_por_fecha : {},
     pref_habitos_ocultos: Array.isArray(p.pref_habitos_ocultos) ? p.pref_habitos_ocultos : [],
+    pref_preguntar_tiempo_real: !!p.pref_preguntar_tiempo_real,
   };
 }
 
@@ -337,6 +338,9 @@ function migrarCumplimiento(c) {
     // Campos de la Ronda 6: ausentes en registros anteriores.
     cumplimiento_intervalo: c.cumplimiento_intervalo || null,
     cumplimiento_dias_habiles: Array.isArray(c.cumplimiento_dias_habiles) ? c.cumplimiento_dias_habiles : [],
+    // Campos de la v0.104.0: ausentes en registros anteriores.
+    cumplimiento_duracion_estimada: c.cumplimiento_duracion_estimada || null,
+    cumplimiento_duracion_real: c.cumplimiento_duracion_real || null,
   };
 }
 

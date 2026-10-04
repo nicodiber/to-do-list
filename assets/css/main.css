@@ -3407,3 +3407,18 @@ dialog[open]::backdrop { animation: aparecer-fondo 0.16s ease-out; }
 .dia-calendario-habito.vence { background: transparent; border: 2px solid var(--color-primario); }
 .dia-calendario-habito.no-aplica { background: var(--color-fondo); }
 .dialogo-calendario-habito { width: min(900px, 96vw); }
+
+.boton-microfono { border: 1px solid var(--color-borde); background: var(--color-fondo); color: var(--color-texto); border-radius: var(--radio); padding: 0 0.7rem; cursor: pointer; font-size: 1.1rem; }
+.boton-microfono.escuchando { background: var(--color-fondo-alerta); border-color: var(--color-peligro); animation: latido-microfono 1s ease-in-out infinite; }
+@keyframes latido-microfono { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .boton-microfono.escuchando { animation: none; } }
+
+/* Gantt: días no hábiles (fines de semana y días sin tiempo disponible) (v0.104.0) */
+.gantt-fondo-no-habil { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--color-texto-suave) 12%, transparent); }
+
+/* Estadísticas → Calendar (v0.104.0) */
+.barras-calendar-pasado { list-style: none; margin: 0.4rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.barras-calendar-pasado li { display: grid; grid-template-columns: minmax(7rem, 12rem) 1fr auto; align-items: center; gap: 0.6rem; font-size: 0.85rem; }
+.barra-calendar-etiqueta { display: inline-flex; align-items: center; gap: 0.35rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barra-calendar { display: block; height: 0.8rem; min-width: 2px; border-radius: 4px; background: var(--color-primario); }
+.barra-calendar-valor { color: var(--color-texto-suave); white-space: nowrap; }

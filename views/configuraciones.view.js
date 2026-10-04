@@ -1,4 +1,5 @@
-import { estado, exportarJSON, importarJSON, borrarTodosLosDatos } from '../assets/js/almacenamiento.js';
+import { estado, exportarJSON, importarJSON, borrarTodosLosDatos, persistirYNotificar } from '../assets/js/almacenamiento.js';
+import { tareasCompletadasLimpiables, eliminarTarea } from '../assets/js/tareas-logica.js';
 import { obtenerFranjaHoraria, establecerFranjaHoraria, HORAS_FRANJA } from '../assets/js/preferencias-horario.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
 import { htmlOpcionesUbicacion } from '../assets/js/formulario-tarea.js';
@@ -9,6 +10,7 @@ import { escaparHtml, htmlInterruptor } from '../assets/js/utilidades.js';
 import { registroSesionGoogle } from '../assets/js/google-auth.js';
 import { htmlAtajos } from '../assets/js/atajos.js';
 import { leerPreferenciaSonidos, guardarPreferenciaSonidos, sonar } from '../assets/js/sonidos.js';
+import { climaAutomaticoActivado, guardarClimaAutomatico, detectarCoordenadasDelDispositivo, ultimasCoordenadasDetectadas } from '../assets/js/clima.js';
 import { obtenerTema, establecerTema } from '../assets/js/app.js';
 import { avisar, confirmar, pedirTexto } from '../assets/js/avisos.js';
 
@@ -48,7 +50,11 @@ export function renderVistaConfiguraciones(contenedor) {
       <h3>🌦️ Clima</h3>
       <p class="ayuda">La ubicación que se usa para el pronóstico de la vista Semana (ícono del día, amanecer/atardecer y el degradé de temperatura/lluvia). Si no tiene latitud/longitud cargadas, esas funciones no muestran nada. Se guarda en tu Drive.</p>
       <div class="acciones-config">
-        <label title="Ubicación de referencia para el pronóstico del tiempo">📍 Ubicación para el clima
+        ${htmlInterruptor('clima_automatico', climaAutomaticoActivado(), '📡 Usar la ubicación de este dispositivo', 'title="El clima sigue tu ubicación cuando viajás. El navegador te pide permiso; solo se usan las coordenadas, redondeadas a ~1 km, y únicamente para pedir el pronóstico. Es una opción de este dispositivo."')}
+      </div>
+      <p class="ayuda" id="mensaje-clima-automatico"></p>
+      <div class="acciones-config">
+        <label title="Ubicación de referencia para el pronóstico del tiempo (la que se usa si no está activada la del dispositivo, o si esta falla)">📍 Ubicación fija para el clima
           <select id="ubicacion-clima">${htmlOpcionesUbicacion(preferencias.pref_ubicacion_clima || '')}</select>
         </label>
       </div>
@@ -78,6 +84,14 @@ export function renderVistaConfiguraciones(contenedor) {
       <h4>🗓️ Calendarios que se leen</h4>
       <div id="lista-calendarios" class="lista-calendarios"><p class="ayuda">${hayConexionGoogleCalendar() ? 'Cargando tus calendarios…' : 'Conectá Google para elegir los calendarios.'}</p></div>
       <p class="ayuda" id="mensaje-tiempo" hidden></p>
+    </section>
+
+    <section class="seccion-config">
+      <h3>⏱️ Tiempo real de las tareas</h3>
+      <p class="ayuda">Si lo activás, al completar una tarea te pregunta (opcional) cuánto tardaste. Con eso, Estadísticas compara lo estimado con lo real por categoría y te propone ajustar las duraciones pendientes; nunca cambia nada sin que lo confirmes. Se guarda en tu Drive.</p>
+      <div class="acciones-config">
+        ${htmlInterruptor('pref_preguntar_tiempo_real', preferencias.pref_preguntar_tiempo_real, '⏱️ Preguntar cuánto tardé al completar una tarea')}
+      </div>
     </section>
 
     <section class="seccion-config">
@@ -119,6 +133,23 @@ export function renderVistaConfiguraciones(contenedor) {
       </div>
     </section>
 
+    <section class="seccion-config">
+      <h3>🧹 Limpiar tareas completadas</h3>
+      <p class="ayuda">Elimina las tareas completadas hace mucho para que la Tabla no se llene de historia. El mapa de hábitos y sus rachas <strong>no se tocan</strong> (se calculan con los registros de cumplimiento, que se conservan), y tampoco se eliminan las completadas que otra tarea todavía usa como referencia. Conviene exportar antes una copia.</p>
+      <div class="acciones-config">
+        <label>Completadas hace más de
+          <select id="limpiar-dias">
+            <option value="30">30 días</option>
+            <option value="90" selected>90 días</option>
+            <option value="180">6 meses</option>
+            <option value="365">1 año</option>
+          </select>
+        </label>
+        <button type="button" id="boton-limpiar-completadas" title="Ver cuántas se eliminarían y confirmar">🧹 Limpiar…</button>
+      </div>
+      <p class="ayuda" id="mensaje-limpiar" hidden></p>
+    </section>
+
     <section class="seccion-config seccion-peligro">
       <h3>🗑️ Borrar todos los datos</h3>
       <p class="ayuda">Elimina <strong>todas</strong> tus tareas, categorías, ubicaciones, metas, personas, notas de mejora y registros de cumplimiento. También se borran en Google Drive y en tus otros dispositivos. Conviene exportar antes una copia.</p>
@@ -128,6 +159,9 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
   `;
 
+  contenedor.querySelector('[name="pref_preguntar_tiempo_real"]').addEventListener('change', (evento) => {
+    guardarPreferencias({ pref_preguntar_tiempo_real: evento.target.checked }, { sinNotificar: true });
+  });
   const interruptorSonido = contenedor.querySelector('[name="sonidos_activo"]');
   const volumenSonido = contenedor.querySelector('#sonidos-volumen');
   const guardarSonidos = () => guardarPreferenciaSonidos({ activo: interruptorSonido.checked, volumen: Number(volumenSonido.value) / 100 });
@@ -161,6 +195,46 @@ export function renderVistaConfiguraciones(contenedor) {
   };
   campoInicio.addEventListener('change', guardarFranja);
   campoFin.addEventListener('change', guardarFranja);
+
+  const mensajeLimpiar = contenedor.querySelector('#mensaje-limpiar');
+  contenedor.querySelector('#boton-limpiar-completadas').addEventListener('click', async () => {
+    const dias = Number(contenedor.querySelector('#limpiar-dias').value);
+    const candidatas = tareasCompletadasLimpiables(estado.tareas, dias);
+    if (candidatas.length === 0) {
+      mensajeLimpiar.textContent = `No hay tareas completadas hace más de ${dias} días para limpiar.`;
+      mensajeLimpiar.hidden = false;
+      return;
+    }
+    if (!(await confirmar(`Se van a eliminar ${candidatas.length} tarea${candidatas.length === 1 ? '' : 's'} completada${candidatas.length === 1 ? '' : 's'} hace más de ${dias} días. Tu historial de hábitos se conserva. Se puede deshacer con Ctrl+Z.`, { titulo: '🧹 Limpiar completadas', peligro: true, textoAceptar: 'Eliminar' }))) return;
+    candidatas.forEach((tarea) => eliminarTarea(tarea, estado));
+    await persistirYNotificar();
+    await avisar(`Se eliminaron ${candidatas.length} tarea${candidatas.length === 1 ? '' : 's'} completada${candidatas.length === 1 ? '' : 's'}.`, { titulo: '🧹 Listo' });
+  });
+
+  const mensajeAutomatico = contenedor.querySelector('#mensaje-clima-automatico');
+  const interruptorAutomatico = contenedor.querySelector('[name="clima_automatico"]');
+  const textoCoordenadas = () => {
+    const c = ultimasCoordenadasDetectadas();
+    return c ? `Ubicación detectada: ${c.latitud}, ${c.longitud}.` : '';
+  };
+  mensajeAutomatico.textContent = climaAutomaticoActivado() ? textoCoordenadas() : '';
+  interruptorAutomatico.addEventListener('change', async () => {
+    if (!interruptorAutomatico.checked) {
+      guardarClimaAutomatico(false);
+      mensajeAutomatico.textContent = '';
+      return;
+    }
+    mensajeAutomatico.textContent = 'Pidiendo tu ubicación al navegador…';
+    try {
+      await detectarCoordenadasDelDispositivo({ forzar: true });
+      guardarClimaAutomatico(true);
+      mensajeAutomatico.textContent = `✓ Activado. ${textoCoordenadas()}`;
+    } catch (error) {
+      guardarClimaAutomatico(false);
+      interruptorAutomatico.checked = false;
+      mensajeAutomatico.textContent = error.message;
+    }
+  });
 
   const mensajeClima = contenedor.querySelector('#mensaje-clima');
   conectarCrearNueva(contenedor.querySelector('#ubicacion-clima'), htmlOpcionesUbicacion, abrirDialogoUbicacion, (n) => n.ubicacion_id, async (id) => {

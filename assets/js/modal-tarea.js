@@ -21,6 +21,7 @@ import { aplicarEnlace } from './dependencias.js';
 import { renombrarHistorial, cumplirTarea, reabrirTarea, avisoInconsistentes, eliminarTarea } from './tareas-logica.js';
 import { programarParaHoy } from './programador.js';
 import { ofrecerExportarACalendar } from './exportar-calendar.js';
+import { preguntarTiempoReal } from './tiempo-real.js';
 import { avisar, confirmar } from './avisos.js';
 import { avisarConflictoEnlace } from './conflicto-enlace.js';
 import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
@@ -118,7 +119,10 @@ export function abrirEdicionTarea(id, { apilar = false } = {}) {
       }
       const avisoUrgente = avisoInconsistentes(inconsistentesUrgente);
       if (avisoUrgente) await avisar(avisoUrgente);
-      if (ofrecerExportar) ofrecerExportarACalendar(actual);
+      if (ofrecerExportar) {
+        await preguntarTiempoReal(actual);
+        ofrecerExportarACalendar(actual);
+      }
       return true;
     },
   });
@@ -241,6 +245,7 @@ export function abrirDetalleTarea(tarea, contenidoElemento, { mostrarCumplida = 
         cumplirTarea(tarea, estado, { notaMejora });
         cerrar();
         await persistirYNotificar();
+        await preguntarTiempoReal(tarea);
         ofrecerExportarACalendar(tarea);
         ofrecerCrearTareaSeguimiento(tarea);
       });

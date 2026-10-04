@@ -1,10 +1,95 @@
 import { estado } from './almacenamiento.js';
 import { hoyISO, diaLocal, fechaISOMasDias, tieneHora } from './utilidades.js';
+import { obtenerPreferencias } from './preferencias.js';
 
 const DIAS_MAX_PRONOSTICO = 16;
 const UMBRAL_PROBABILIDAD_LLUVIA = 50;
 
 const cachePronosticos = new Map();
+
+// ---------------------------------------------------------------------------
+// Ubicación del dispositivo (v0.104.0): con «Usar la ubicación de este dispositivo» el clima sigue a la persona cuando
+// viaja. Es una preferencia de cada dispositivo (`localStorage`): la posición de uno no tiene sentido en otro. Solo se
+// piden las coordenadas al navegador (con su permiso), redondeadas a 2 decimales (~1 km), y únicamente se envían a
+// Open-Meteo para pedir el pronóstico.
+// ---------------------------------------------------------------------------
+const CLAVE_AUTOMATICO = 'super-todo-list:clima-automatico';
+const CLAVE_COORDENADAS = 'super-todo-list:clima-coordenadas';
+const VIGENCIA_COORDENADAS_MS = 30 * 60 * 1000;
+
+export function climaAutomaticoActivado() {
+  try {
+    return localStorage.getItem(CLAVE_AUTOMATICO) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function guardarClimaAutomatico(activo) {
+  try {
+    localStorage.setItem(CLAVE_AUTOMATICO, activo ? '1' : '0');
+  } catch {
+    // Es solo una preferencia de este dispositivo.
+  }
+}
+
+/** Las últimas coordenadas detectadas (`{ latitud, longitud, en }`) o `null`. */
+export function ultimasCoordenadasDetectadas() {
+  try {
+    return JSON.parse(localStorage.getItem(CLAVE_COORDENADAS));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pide la posición actual al navegador. Reusa la última si tiene menos de 30 minutos. Rechaza con un `Error` de mensaje
+ * legible si el navegador no la ofrece, el usuario no dio permiso o no se pudo obtener a tiempo.
+ */
+export function detectarCoordenadasDelDispositivo({ forzar = false } = {}) {
+  const guardadas = ultimasCoordenadasDetectadas();
+  if (!forzar && guardadas && Date.now() - guardadas.en < VIGENCIA_COORDENADAS_MS) return Promise.resolve(guardadas);
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.reject(new Error('Este navegador no puede decir dónde estás.'));
+  return new Promise((resolver, rechazar) => {
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        const coordenadas = {
+          latitud: Math.round(posicion.coords.latitude * 100) / 100,
+          longitud: Math.round(posicion.coords.longitude * 100) / 100,
+          en: Date.now(),
+        };
+        try {
+          localStorage.setItem(CLAVE_COORDENADAS, JSON.stringify(coordenadas));
+        } catch {
+          // Sin almacenamiento local se vuelve a pedir cuando haga falta.
+        }
+        resolver(coordenadas);
+      },
+      (error) => rechazar(new Error(error && error.code === 1 ? 'No diste permiso para usar tu ubicación (se puede cambiar en el candado de la barra de direcciones).' : 'No se pudo obtener tu ubicación ahora.')),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: VIGENCIA_COORDENADAS_MS }
+    );
+  });
+}
+
+/**
+ * Las coordenadas que se usan para el clima: las del dispositivo si está activada esa opción (y, si falla, las de la
+ * ubicación fija de Configuraciones) o, si no, las de la ubicación fija. `null` si no hay ninguna.
+ */
+export async function obtenerCoordenadasClima() {
+  if (climaAutomaticoActivado()) {
+    try {
+      const { latitud, longitud } = await detectarCoordenadasDelDispositivo();
+      return { latitud, longitud, origen: 'dispositivo' };
+    } catch {
+      // Se usa la ubicación fija como respaldo.
+    }
+  }
+  const fija = estado.ubicaciones.find((u) => u.ubicacion_id === obtenerPreferencias().pref_ubicacion_clima);
+  if (fija && fija.ubicacion_latitud != null && fija.ubicacion_longitud != null) {
+    return { latitud: fija.ubicacion_latitud, longitud: fija.ubicacion_longitud, origen: 'fija' };
+  }
+  return null;
+}
 
 function fechaDeReferencia(tarea) {
   if (tarea.tarea_fecha_sugerida) {
@@ -83,8 +168,16 @@ export function iconoClima(weathercode) {
 export async function evaluarClimaTarea(tarea) {
   if (!tarea.tarea_requiere_clima_bueno) return null;
 
+  // La ubicación de la propia tarea; sin ella, la del clima general (la del dispositivo si está activada, v0.104.0).
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
-  if (!ubicacion || ubicacion.ubicacion_latitud == null || ubicacion.ubicacion_longitud == null) return null;
+  let latitud = ubicacion ? ubicacion.ubicacion_latitud : null;
+  let longitud = ubicacion ? ubicacion.ubicacion_longitud : null;
+  if (latitud == null || longitud == null) {
+    if (ubicacion) return null;
+    const general = await obtenerCoordenadasClima();
+    if (!general) return null;
+    ({ latitud, longitud } = general);
+  }
 
   const referencia = fechaDeReferencia(tarea);
   if (!referencia) return null;
@@ -93,7 +186,7 @@ export async function evaluarClimaTarea(tarea) {
   const limite = fechaISOMasDias(DIAS_MAX_PRONOSTICO - 1, hoy);
   if (referencia.fecha < hoy || referencia.fecha > limite) return null;
 
-  const datos = await obtenerPronosticoUbicacion(ubicacion.ubicacion_latitud, ubicacion.ubicacion_longitud);
+  const datos = await obtenerPronosticoUbicacion(latitud, longitud);
   if (!datos || !datos.hourly) return null;
 
   const indice = datos.hourly.time.findIndex((t) => t.startsWith(`${referencia.fecha}T${String(referencia.hora).padStart(2, '0')}:00`));

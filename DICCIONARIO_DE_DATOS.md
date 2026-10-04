@@ -157,6 +157,8 @@ Se crea sola al cumplir una tarea de mantenimiento con nota. Es independiente de
 | `cumplimiento_mantenimiento` | boolean | MVP | Si la tarea era de mantenimiento (para filtrar el mapa de hábitos) |
 | `cumplimiento_intervalo` | `{ cantidad, unidad }` \| null | MVP | Cada cuánto se repetía la tarea (`tarea_mantenimiento_intervalo`) al cumplirla. Permite saber si un hábito era diario (y entonces un día sin registro es un incumplimiento) |
 | `cumplimiento_dias_habiles` | number[] (0-6), vacío = todos | MVP | Días de la semana en que la tarea podía hacerse (`tarea_dias_habiles`) al cumplirla: los demás días no cuentan en el mapa de hábitos |
+| `cumplimiento_duracion_estimada` | number (minutos) \| `null` | v0.104.0 | Duración estimada de la tarea al cumplirla (`tarea_duracion_min`) |
+| `cumplimiento_duracion_real` | number (minutos) \| `null` | v0.104.0 | Cuánto tardó de verdad, si el usuario lo contó (preferencia «Preguntar cuánto tardé»). Con la estimada alimenta Estadísticas → «Estimado vs. real» |
 | `cumplimiento_modificado_en` | string (ISO datetime) | MVP | Cuándo se modificó por última vez (lo sella el sistema al guardar). No se edita a mano |
 
 Registro liviano, una entrada por cada tarea que se completa. Reabrir la tarea borra su registro. Es la base del mapa de hábitos (solapa Hábitos de Estadísticas) y sobrevive al archivado de las tareas completadas. Un **hábito** es una tarea de mantenimiento, identificada por su nombre: los registros con `cumplimiento_mantenimiento = true` y el mismo `cumplimiento_tarea_nombre`. Al renombrar una tarea de mantenimiento, los registros con el nombre viejo pasan al nuevo.
@@ -177,6 +179,8 @@ Un **único registro** (`preferencias_id: "unica"`) que se sincroniza con Drive,
 | `pref_ignorar_disponible` | boolean | Ronda 9b | Los eventos marcados como «Disponible» (en vez de «Ocupado») no ocupan tiempo. Por defecto `true` (v0.77.0, antes `false` — un evento "Disponible" contaba como ocupado, causando reprogramaciones no deseadas) |
 | `pref_horizonte_dias` | number | Ronda 9b | Cuántos días hacia adelante se leen los eventos de Calendar. Por defecto 90 (30 · 60 · 90 · 180) |
 | `pref_capacidad_por_fecha` | `{ "YYYY-MM-DD": minutos }` | Ronda 9b | Capacidad fijada por el usuario para un día puntual (0 = ningún tiempo). Manda sobre el tope y sobre Calendar; se descartan las fechas pasadas al guardar |
+| `pref_habitos_ocultos` | array de nombres de hábito, default `[]` | v0.104.0 | Hábitos que el usuario ocultó de la matriz de Estadísticas → Hábitos (por nombre de tarea). No se borra nada: el historial sigue |
+| `pref_preguntar_tiempo_real` | boolean, default `false` | v0.104.0 | Si es `true`, al completar una tarea la app pregunta cuántos minutos tardó (opcional) |
 | `pref_ubicacion_clima` | `ubicacion_id` \| `null` | v0.79.0 | Ubicación de referencia para el pronóstico de la vista Semana (ícono del día, amanecer/atardecer, degradé de temperatura/lluvia). Se elige en Configuraciones → 🌦️ Clima; sin ubicación (o sin coordenadas cargadas) esas funciones no muestran nada |
 | `preferencias_modificado_en` | string (ISO datetime) | Ronda 9b | Lo sella el sistema al guardar. No se edita a mano |
 

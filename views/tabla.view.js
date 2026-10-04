@@ -7,6 +7,7 @@ import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea, ofrecerCrearTareaSegui
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { DIAS_SEMANA, crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import { abrirListaPlantillas, abrirGuardarCadenaComoPlantilla } from '../assets/js/plantillas.js';
+import { preguntarTiempoReal } from '../assets/js/tiempo-real.js';
 import { crearPanelIAPrioridades } from '../assets/js/panel-ia-prioridades.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
@@ -646,6 +647,7 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
         panelMejora.hidden = true;
         panelMejora.innerHTML = '';
         await persistirYNotificar();
+        await preguntarTiempoReal(tarea);
         ofrecerExportarACalendar(tarea);
         ofrecerCrearTareaSeguimiento(tarea);
       });
@@ -654,6 +656,7 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
     if (nuevoEstado === 'completada') {
       cumplirTarea(tarea, estado);
       await persistirYNotificar();
+      await preguntarTiempoReal(tarea);
       ofrecerExportarACalendar(tarea);
       ofrecerCrearTareaSeguimiento(tarea);
       return;

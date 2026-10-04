@@ -254,6 +254,17 @@ export async function obtenerEventosParaMostrar(desdeISODate, hastaISODate) {
   );
 }
 
+/**
+ * Eventos con horario que ya pasaron en los últimos `dias` días, hoy incluido (v0.104.0, solapa «Calendar» de
+ * Estadísticas): lo que realmente ocupó tiempo, según las preferencias de qué ignorar. Los de todo el día no cuentan.
+ */
+export async function obtenerEventosPasados(dias) {
+  const preferencias = obtenerPreferencias();
+  const hoy = fechaLocalISO(new Date());
+  const desde = fechaLocalISO(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - (dias - 1)));
+  return (await eventosCompletos(desde, hoy)).filter((e) => !e.todoElDia && ocupaTiempo(e, preferencias) && new Date(e.inicio).getTime() < Date.now());
+}
+
 /** Eventos de hoy (atajo de `obtenerEventos`). */
 export function obtenerEventosDeHoy() {
   const hoy = fechaLocalISO(new Date());

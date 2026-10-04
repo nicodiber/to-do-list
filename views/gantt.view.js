@@ -5,10 +5,11 @@ import { abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } from '../assets/js/gantt-modelo.js';
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
+import { obtenerPreferencias } from '../assets/js/preferencias.js';
 
 // Preferencias de UI (no datos de la app): zoom, modo y agrupación se recuerdan en este dispositivo.
 const PREFIJO = 'super-todo-list:gantt-';
-const SEMANAS = [2, 4, 12];
+const SEMANAS = [1, 2, 4, 12]; // v0.104.0: «1 sem.» es el zoom por día (cada día ocupa un séptimo del ancho)
 const MODOS = ['plan', 'ventana'];
 const ETIQUETAS_AGRUPACION = { categoria: 'Categoría principal', meta: 'Meta', nada: 'Nada' };
 const ETIQUETAS_ESTADO = { activas: 'Pendientes y bloqueadas', pendientes: 'Solo pendientes', bloqueadas: 'Solo bloqueadas', completadas: 'Completadas', todas: 'Todas' };
@@ -273,6 +274,7 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarra
       </div>
       <div class="gantt-cuerpo" style="--ancho-nombres:${nombresAncho}px;--ancho-pista:${anchoPista}px;--ancho-dia:${anchoDia}px;--ancho-semana:${7 * anchoDia}px;--desfase-semana:${primerLunes * anchoDia}px">${filasHtml}</div>
       <div class="gantt-superposicion" style="left:${nombresAncho}px;top:${ALTO_CABECERA}px;width:${anchoPista}px;height:${altoFilas}px">
+        ${fondosNoHabiles(inicioRango, totalDias, anchoDia)}
         <div class="gantt-linea-hoy" style="left:${desplazamiento(hoy) * anchoDia + anchoDia / 2}px"></div>
       </div>
     </div>
@@ -291,6 +293,23 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarra
     desplazable.scrollLeft = scrollGuardado.left;
     desplazable.scrollTop = scrollGuardado.top;
   }
+}
+
+/**
+ * Fondos de los días no hábiles (v0.104.0): sábados y domingos y, además, los días de la semana en que el usuario puso
+ * en 0 el tiempo disponible (Configuraciones → Tiempo disponible). Son franjas tenues, sin interacción.
+ */
+function fondosNoHabiles(inicioRango, totalDias, anchoDia) {
+  const tope = obtenerPreferencias().pref_tope_dias || [];
+  let html = '';
+  for (let i = 0; i < totalDias; i += 1) {
+    const dia = fechaISOMasDias(i, inicioRango);
+    const numero = diaSemana(dia);
+    if (numero === 0 || numero === 6 || tope[numero] === 0) {
+      html += `<div class="gantt-fondo-no-habil" style="left:${i * anchoDia}px;width:${anchoDia}px"></div>`;
+    }
+  }
+  return html;
 }
 
 /** Dónde cae la barra de una fila en el modo actual: `{ x1, x2, ... }` en píxeles dentro de la pista. */
