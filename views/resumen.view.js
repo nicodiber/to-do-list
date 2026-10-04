@@ -30,6 +30,7 @@ import {
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
+import { preguntarTiempoReal } from '../assets/js/tiempo-real.js';
 import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
@@ -572,6 +573,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
       const notaMejora = campoMejora ? campoMejora.value.trim() : '';
       cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
+      await preguntarTiempoReal(tarea);
       ofrecerExportarACalendar(tarea);
       ofrecerCrearTareaSeguimiento(tarea);
     });

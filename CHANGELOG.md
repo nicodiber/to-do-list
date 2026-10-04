@@ -2,6 +2,22 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.104.0] - 2026-10-03
+
+Sonidos, animaciones, hábitos más cómodos, limpieza de completadas, clima por ubicación del dispositivo, dictado por voz, Gantt con días no hábiles y zoom por día, y estadísticas de Google Calendar y de tiempo real.
+
+### Agregado
+
+- **Sonidos sintetizados** (`assets/js/sonidos.js`, Web Audio API, sin archivos de audio): al agregar una tarea, **sonido de satisfacción al completarla** (arpegio ascendente), eliminar, deshacer/rehacer, avisos y un toque casi imperceptible al apretar botones y módulos del menú. Configuraciones → «Sonidos»: interruptor, volumen y «▶️ Probar». La preferencia es de cada dispositivo. Un sonido repetido (eliminar varias a la vez) no se apila.
+- **Animaciones suaves**: fundido al cambiar de módulo (solo al cambiar, no en cada redibujado), aparición de las ventanas y de las filas desplegables, transiciones en botones y filas. Respetan «reducir movimiento» del sistema.
+- **Hábitos**: botón 🙈 para **ocultar** un hábito que ya no se hace (no se borra nada; «Mostrar los N ocultos» y «↩️ Mostrar», `pref_habitos_ocultos`, sincronizado con Drive) y **calendario anual estilo GitHub** al tocar el nombre de un hábito (último año en columnas de semanas, con racha y porcentaje).
+- **Configuraciones → Limpiar tareas completadas**: elimina las completadas hace más de 30 días / 90 días / 6 meses / 1 año, con confirmación y deshacer. No toca el historial de hábitos (los cumplimientos se conservan) ni las completadas que otra tarea usa como referencia (`tareasCompletadasLimpiables`).
+- **Clima por la ubicación del dispositivo** (Configuraciones → Clima → «📡 Usar la ubicación de este dispositivo»): el pronóstico de Semana sigue tu ubicación cuando viajás (el navegador pide permiso; coordenadas redondeadas a ~1 km, solo para pedir el pronóstico; opción de cada dispositivo). Si falla, usa la ubicación fija. Las tareas «requiere buen tiempo» sin ubicación propia también la usan.
+- **Micrófono** en el alta de tareas (🎤 junto al nombre): dicta el nombre con el reconocimiento de voz del navegador (`es-AR`). Solo aparece donde el navegador lo ofrece (Chrome, Edge); el texto queda en el campo para corregirlo.
+- **Gantt**: fondos tenues en **fines de semana y días sin tiempo disponible** (los que pusiste en 0 en Configuraciones) y **zoom «1 sem.»** (por día).
+- **Estadísticas → 📅 Calendar**: qué pasó realmente en tu Google Calendar en los últimos 7, 30 o 90 días (eventos con horario que ocuparon tiempo): total y promedio de horas, por calendario, por semana y por día de la semana, comparado con lo que cumpliste en STDL (`obtenerEventosPasados`, `google-calendar.js`).
+- **Tiempo real de las tareas** (`assets/js/tiempo-real.js`): opcional (Configuraciones → «Preguntar cuánto tardé al completar una tarea», apagado por defecto); al completar una tarea pregunta cuántos minutos tardó y lo guarda en su cumplimiento (`cumplimiento_duracion_estimada` / `_real`). Estadísticas → Resumen → «⏱️ Estimado vs. real» compara por categoría y, con 3 o más registros y una diferencia de 15 % o más, ofrece **ajustar las duraciones pendientes** de la categoría, siempre con confirmación y deshacer.
+
 ## [v0.103.0] - 2026-10-03
 
 Rediseño de la barra de la vista Semana y dos mejoras del Gantt.

@@ -375,8 +375,66 @@ function resaltarCamposCompletados(formulario) {
   formulario.addEventListener('reset', () => setTimeout(actualizar, 0));
 }
 
+/**
+ * Botón de micrófono junto al nombre del alta (v0.104.0): dicta el nombre de la tarea con el reconocimiento de voz del
+ * navegador (`SpeechRecognition`, en español rioplatense). En Chrome y Edge el audio lo procesa el servicio de voz del
+ * navegador (no la app); en navegadores que no lo tienen (por ejemplo Firefox) el botón directamente no aparece. Lo
+ * dictado se escribe en el campo para poder corregirlo antes de agregar.
+ */
+function agregarBotonDeDictado(formulario) {
+  const Reconocimiento = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
+  const fila = formulario.querySelector('.fila-nombre-tarea');
+  if (!Reconocimiento || !fila) return;
+  const campo = formulario.tarea_nombre;
+  const boton = document.createElement('button');
+  boton.type = 'button';
+  boton.className = 'boton-microfono';
+  boton.textContent = '🎤';
+  boton.title = 'Dictar el nombre de la tarea (el audio lo procesa el servicio de voz de tu navegador)';
+  boton.setAttribute('aria-label', 'Dictar el nombre de la tarea');
+  fila.insertBefore(boton, campo.nextSibling);
+  let reconocimiento = null;
+  const terminar = () => {
+    boton.classList.remove('escuchando');
+    boton.textContent = '🎤';
+    reconocimiento = null;
+  };
+  boton.addEventListener('click', () => {
+    if (reconocimiento) {
+      reconocimiento.stop();
+      return;
+    }
+    reconocimiento = new Reconocimiento();
+    reconocimiento.lang = 'es-AR';
+    reconocimiento.interimResults = true;
+    reconocimiento.continuous = false;
+    const textoPrevio = campo.value.trim();
+    reconocimiento.onresult = (evento) => {
+      const dicho = [...evento.results].map((r) => r[0].transcript).join(' ').trim();
+      campo.value = [textoPrevio, dicho].filter(Boolean).join(' ');
+      campo.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    reconocimiento.onerror = (evento) => {
+      terminar();
+      if (evento.error === 'not-allowed' || evento.error === 'service-not-allowed') {
+        boton.title = 'No diste permiso para usar el micrófono (se puede cambiar en el candado de la barra de direcciones).';
+      }
+    };
+    reconocimiento.onend = terminar;
+    boton.classList.add('escuchando');
+    boton.textContent = '🎙️';
+    try {
+      reconocimiento.start();
+      campo.focus();
+    } catch {
+      terminar();
+    }
+  });
+}
+
 export function conectarFormularioTarea(formulario, { modo = 'edicion', precargaPorNombre = true } = {}) {
   if (modo === 'alta') resaltarCamposCompletados(formulario);
+  if (modo === 'alta') agregarBotonDeDictado(formulario);
   formulario.querySelectorAll('.filtro-enlace').forEach((campo) => conectarFiltroDeEnlaces(formulario.querySelector(`[name="${campo.dataset.filtroDe}"]`), campo));
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;

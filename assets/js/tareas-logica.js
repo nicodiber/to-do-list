@@ -1,6 +1,7 @@
 import { crearTarea, crearMejora, crearCumplimiento, fechaObjetivoMantenimiento, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { ahoraISO, hoyISO, fechaLocalISO, diaLocal, noPuedeEmpezarTodavia, desplazarFecha, tieneHora, categoriaRaiz } from './utilidades.js';
 import { recalcularBloqueo, puedeAgregarDependencia, proximasActivas, reconectarAlEliminar } from './dependencias.js';
+import { sonar } from './sonidos.js';
 
 // Las dependencias viven en `dependencias.js`; se reexportan para no cambiar los imports de las vistas.
 export { recalcularBloqueo, puedeAgregarDependencia };
@@ -227,6 +228,7 @@ function enlazarCopia(original, copia, listaTareas) {
  * copia creada, o `null`.
  */
 export function cumplirTarea(tarea, estado, { notaMejora = '' } = {}) {
+  sonar('completar'); // el sonido de satisfacción (v0.104.0)
   const copia = completarTarea(tarea, estado.tareas, { notaMejora });
   if (!estado.cumplimientos) estado.cumplimientos = [];
   estado.cumplimientos.push(crearCumplimiento({ tarea, fecha: tarea.tarea_fecha_fin }));
@@ -318,7 +320,29 @@ export function reabrirTarea(tarea, estado) {
  * (P→A→N queda P→N) y el desencadenante que la apuntaba pasa a su previa.
  * No toca cumplimientos ni mejoras: son historial.
  */
+/**
+ * Tareas completadas hace más de `dias` días que se pueden limpiar (v0.104.0). Se conservan las que todavía hacen falta:
+ * las que alguna tarea activa usa como referencia para dejar de repetirse (`tarea_repetir_hasta_tarea`) o como
+ * desencadenante. El historial de hábitos (los cumplimientos) no depende de que estas tareas sigan en la lista.
+ */
+export function tareasCompletadasLimpiables(listaTareas, dias) {
+  const limite = new Date();
+  limite.setDate(limite.getDate() - dias);
+  const referenciadas = new Set();
+  listaTareas
+    .filter((t) => t.tarea_estado !== 'completada')
+    .forEach((t) => {
+      if (t.tarea_repetir_hasta_tarea) referenciadas.add(t.tarea_repetir_hasta_tarea);
+      if (t.tarea_desencadenante) referenciadas.add(t.tarea_desencadenante);
+      if (t.tarea_dependiente) referenciadas.add(t.tarea_dependiente);
+    });
+  return listaTareas.filter(
+    (t) => t.tarea_estado === 'completada' && t.tarea_fecha_fin && new Date(t.tarea_fecha_fin) < limite && !referenciadas.has(t.tarea_id)
+  );
+}
+
 export function eliminarTarea(tarea, estado) {
+  sonar('eliminar');
   estado.tareas = estado.tareas.filter((t) => t.tarea_id !== tarea.tarea_id);
   reconectarAlEliminar(tarea, estado.tareas);
 }

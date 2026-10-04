@@ -200,6 +200,8 @@
         "pref_ignorar_rechazados": { "type": "boolean" },
         "pref_ignorar_disponible": { "type": "boolean" },
         "pref_horizonte_dias": { "type": "number", "minimum": 7 },
+        "pref_preguntar_tiempo_real": { "type": "boolean" },
+        "pref_habitos_ocultos": { "type": "array", "items": { "type": "string" } },
         "pref_capacidad_por_fecha": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
         "preferencias_modificado_en": { "type": "string" }
       }

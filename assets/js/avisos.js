@@ -4,6 +4,8 @@
 // redibujados de la vista. Las tres devuelven una promesa: hay que esperarla con `await` donde antes el navegador
 // frenaba el código hasta que el usuario respondía.
 
+import { sonar } from './sonidos.js';
+
 /**
  * Crea y muestra el diálogo. `construirCuerpo(dialogo)` agrega los campos; `botones` es `[{ texto, valor, clase }]`;
  * `valorAlCancelar` es lo que devuelve Esc. Resuelve con `{ valor, dialogo }` y lo limpia.
@@ -65,6 +67,7 @@ function abrirDialogoAviso({ titulo, mensaje, botones, foco, valorAlCancelar, cu
 
 /** Un mensaje con un botón "Entendido". Espera con `await` si lo que sigue depende de que el usuario lo haya leído. */
 export async function avisar(mensaje, { titulo = 'Aviso', textoAceptar = 'Entendido' } = {}) {
+  sonar('aviso');
   await abrirDialogoAviso({
     titulo,
     mensaje,

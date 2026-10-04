@@ -7,6 +7,7 @@
 // Import circular con `almacenamiento.js` (se usa solo dentro de funciones, nunca en la carga del módulo): mismo
 // patrón ya aceptado en el proyecto entre `app.js` y `views/configuraciones.view.js`.
 import { estado, persistirYNotificar } from './almacenamiento.js';
+import { sonar } from './sonidos.js';
 import { COLECCIONES, fotoColecciones } from './sincronizacion.js';
 
 const MAX_PASOS = 20;
@@ -51,10 +52,12 @@ async function moverEntrePilas(origen, destino) {
 
 /** Vuelve al estado de antes de la última acción deshacible. No hace nada si no hay ninguna. */
 export async function deshacer() {
+  if (pilaDeshacer.length > 0) sonar('deshacer');
   await moverEntrePilas(pilaDeshacer, pilaRehacer);
 }
 
 /** Vuelve a aplicar la última acción deshecha. No hace nada si no hay ninguna. */
 export async function rehacer() {
+  if (pilaRehacer.length > 0) sonar('rehacer');
   await moverEntrePilas(pilaRehacer, pilaDeshacer);
 }

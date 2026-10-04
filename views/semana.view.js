@@ -7,7 +7,7 @@ import { obtenerPreferencias, guardarCapacidadDeFecha } from '../assets/js/prefe
 import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
 import { crearCalculadoraCapacidad } from '../assets/js/capacidad.js';
 import { hayConexionGoogleCalendar, obtenerEventos, obtenerEventosParaMostrar } from '../assets/js/google-calendar.js';
-import { obtenerPronosticoDiario, iconoClima } from '../assets/js/clima.js';
+import { obtenerPronosticoDiario, iconoClima, obtenerCoordenadasClima } from '../assets/js/clima.js';
 import { pedirEnfocarDiaAgenda } from '../assets/js/vista-agenda.js';
 import {
   OPCIONES_DIAS_SEMANA,
@@ -258,15 +258,13 @@ export function renderVistaSemana(contenedor) {
   }
 
   // El ícono de clima por día se muestra siempre que haya ubicación configurada; "Sol" y el degradé son aparte.
-  const ubicacionClima = estado.ubicaciones.find((u) => u.ubicacion_id === obtenerPreferencias().pref_ubicacion_clima);
-  if (ubicacionClima && ubicacionClima.ubicacion_latitud != null && ubicacionClima.ubicacion_longitud != null) {
-    obtenerPronosticoDiario(ubicacionClima.ubicacion_latitud, ubicacionClima.ubicacion_longitud)
-      .then((pronostico) => {
-        if (!grilla.isConnected || !pronostico) return;
-        pintarClima(grilla, dias, pronostico, { mostrarSol, filtroClima });
-      })
-      .catch((error) => console.warn(error.message));
-  }
+  obtenerCoordenadasClima()
+    .then((coordenadas) => (coordenadas ? obtenerPronosticoDiario(coordenadas.latitud, coordenadas.longitud) : null))
+    .then((pronostico) => {
+      if (!grilla.isConnected || !pronostico) return;
+      pintarClima(grilla, dias, pronostico, { mostrarSol, filtroClima });
+    })
+    .catch((error) => console.warn(error.message));
 }
 
 /** Reposiciona (o, si hoy no está en el rango visible o cayó fuera de horario, esconde) la línea de "ahora". */

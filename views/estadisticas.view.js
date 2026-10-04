@@ -3,6 +3,10 @@ import { hoyISO, diaLocal, fechaISOMasDias, formatearFecha, escaparHtml } from '
 import { fechaDeReferencia } from '../assets/js/vista-agenda.js';
 import { renderVistaProgreso } from './progreso.view.js';
 import { renderVistaHabitos } from './habitos.view.js';
+import { renderVistaCalendarPasado } from './calendar-pasado.view.js';
+import { compararEstimadoVsReal, aplicarFactorADuraciones } from '../assets/js/tiempo-real.js';
+import { persistirYNotificar } from '../assets/js/almacenamiento.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 
 const DIAS_VENTANA = 7;
 const ESTADOS_ACTIVOS = ['bloqueada', 'pendiente'];
@@ -91,6 +95,8 @@ function renderResumen(contenedor) {
   const maxThroughput = Math.max(1, ...throughput.map((s) => s.cantidad));
   const totalHechas = throughput.filter((s) => !s.planificada).reduce((suma, s) => suma + s.cantidad, 0);
   const totalPlanificadas = throughput.filter((s) => s.planificada).reduce((suma, s) => suma + s.cantidad, 0);
+  const comparacion = compararEstimadoVsReal(estado.cumplimientos).sort((a, b) => b.cantidad - a.cantidad);
+  const nombreCategoria = (id) => (estado.categorias.find((c) => c.categoria_id === id) || {}).categoria_nombre || 'Sin categoría';
 
   contenedor.innerHTML = `
     <p class="ayuda">Calculados sobre los últimos ${DIAS_VENTANA} días. Es un primer corte simple, no un histórico completo de eventos.</p>
@@ -153,7 +159,43 @@ function renderResumen(contenedor) {
             <p class="ayuda">Completadas: ${(totalHechas / SEMANAS_HECHAS).toFixed(1)} tarea(s)/semana en las últimas ${SEMANAS_HECHAS} semanas. Planificadas: ${(totalPlanificadas / SEMANAS_PLANIFICADAS).toFixed(1)} tarea(s)/semana en las próximas ${SEMANAS_PLANIFICADAS}.</p>`
       }
     </section>
+
+    ${
+      comparacion.length === 0
+        ? ''
+        : `<section>
+      <h3>⏱️ Estimado vs. real</h3>
+      <p class="ayuda">Con los tiempos que anotaste al completar tareas. «Factor» = real ÷ estimado: más de 1 significa que tardás más de lo que estimás. Con 3 o más registros por categoría podés ajustar las duraciones de sus tareas pendientes (te pide confirmación).</p>
+      <ul class="barras-calendar-pasado">
+        ${comparacion
+          .map(
+            (g) => `<li><span class="barra-calendar-etiqueta">${escaparHtml(nombreCategoria(g.categoriaId))}</span><span class="barra-calendar-valor">${g.cantidad} registro${g.cantidad === 1 ? '' : 's'} · estimado ${Math.round(g.estimado / g.cantidad)} min · real ${Math.round(g.real / g.cantidad)} min · factor ${g.factor.toFixed(2)}</span>${
+              g.cantidad >= 3 && Math.abs(g.factor - 1) >= 0.15
+                ? `<button type="button" data-ajustar-categoria="${escaparHtml(g.categoriaId)}" data-factor="${g.factor.toFixed(2)}" title="Multiplicar por ${g.factor.toFixed(2)} la duración de las tareas pendientes de esta categoría">Ajustar ×${g.factor.toFixed(2)}</button>`
+                : '<span></span>'
+            }</li>`
+          )
+          .join('')}
+      </ul>
+    </section>`
+    }
   `;
+
+  contenedor.querySelectorAll('[data-ajustar-categoria]').forEach((boton) =>
+    boton.addEventListener('click', async () => {
+      const categoriaId = boton.dataset.ajustarCategoria;
+      const factor = Number(boton.dataset.factor);
+      const afectadas = estado.tareas.filter((t) => t.tarea_estado !== 'completada' && (t.categoria_id || '') === categoriaId).length;
+      if (afectadas === 0) {
+        await avisar('Esa categoría no tiene tareas pendientes para ajustar.');
+        return;
+      }
+      if (!(await confirmar(`Se va a multiplicar por ${factor.toFixed(2)} la duración de las ${afectadas} tarea${afectadas === 1 ? '' : 's'} pendiente${afectadas === 1 ? '' : 's'} de «${nombreCategoria(categoriaId)}» (redondeada a 5 minutos). Se puede deshacer con Ctrl+Z.`, { titulo: '⏱️ Ajustar duraciones', textoAceptar: 'Ajustar' }))) return;
+      const cambiadas = aplicarFactorADuraciones(estado.tareas, categoriaId, factor);
+      await persistirYNotificar();
+      await avisar(`Se ajustó la duración de ${cambiadas} tarea${cambiadas === 1 ? '' : 's'}.`);
+    })
+  );
 }
 
 // Solapas internas de Estadísticas. La activa se recuerda mientras la página está abierta.
@@ -161,6 +203,7 @@ const SOLAPAS = [
   { clave: 'resumen', ayuda: 'Completadas, costos y tareas por semana', etiqueta: '🧮 Resumen', render: renderResumen },
   { clave: 'progreso', ayuda: 'Cuánto falta en cada categoría y cuándo vence', etiqueta: '🎯 Progreso por categoría', render: renderVistaProgreso },
   { clave: 'habitos', ayuda: 'Mapa de las tareas que se repiten y de la actividad por categoría', etiqueta: '🔥 Hábitos', render: renderVistaHabitos },
+  { clave: 'calendar', ayuda: 'Qué pasó realmente en tu Google Calendar en los últimos días', etiqueta: '📅 Calendar', render: renderVistaCalendarPasado },
 ];
 let solapaActiva = 'resumen';
 

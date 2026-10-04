@@ -239,6 +239,9 @@ export function crearCumplimiento({ tarea, fecha }) {
     // Cada cuánto se repetía y qué días se podía hacer al cumplirla: hacen falta para saber, más tarde,
     // si un día sin registro fue un incumplimiento (hábito diario) o simplemente no tocaba.
     cumplimiento_intervalo: tarea.tarea_mantenimiento_intervalo ? { ...tarea.tarea_mantenimiento_intervalo } : null,
+    // v0.104.0: cuánto se estimó y (si el usuario lo contó) cuánto tardó de verdad, en minutos.
+    cumplimiento_duracion_estimada: tarea.tarea_duracion_min || null,
+    cumplimiento_duracion_real: null,
     cumplimiento_dias_habiles: [...(tarea.tarea_dias_habiles || [])],
   };
 }
@@ -254,6 +257,8 @@ export const PREFERENCIAS_POR_DEFECTO = {
   pref_horizonte_dias: 90,
   pref_capacidad_por_fecha: {},
   pref_ubicacion_clima: null,
+  pref_habitos_ocultos: [],
+  pref_preguntar_tiempo_real: false,
 };
 
 /**
