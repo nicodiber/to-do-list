@@ -250,6 +250,9 @@ function migrarTarea(t) {
       tarea_mantenimiento_dia_fijo: resto.tarea_mantenimiento_dia_fijo || null,
       tarea_mantenimiento_objetivo: resto.tarea_mantenimiento_objetivo || '',
       tarea_dia_obligatorio: !!resto.tarea_dia_obligatorio,
+      // Campos de la v0.105.0 (delegaciones): ausentes en datos anteriores.
+      tarea_delegada_a: resto.tarea_delegada_a || null,
+      tarea_seguimiento_fecha: resto.tarea_delegada_a ? resto.tarea_seguimiento_fecha || '' : '',
     };
   }
 
@@ -305,6 +308,8 @@ function migrarTarea(t) {
     tarea_mantenimiento_dia_fijo: null,
     tarea_mantenimiento_objetivo: '',
     tarea_dia_obligatorio: false,
+    tarea_delegada_a: null,
+    tarea_seguimiento_fecha: '',
   };
 }
 
@@ -326,6 +331,9 @@ function migrarPreferencias(p) {
     pref_capacidad_por_fecha: p.pref_capacidad_por_fecha && typeof p.pref_capacidad_por_fecha === 'object' ? p.pref_capacidad_por_fecha : {},
     pref_habitos_ocultos: Array.isArray(p.pref_habitos_ocultos) ? p.pref_habitos_ocultos : [],
     pref_preguntar_tiempo_real: !!p.pref_preguntar_tiempo_real,
+    pref_bloques_dias: Array.isArray(p.pref_bloques_dias) && p.pref_bloques_dias.length === 7 ? p.pref_bloques_dias : null,
+    pref_fecha_nacimiento: /^\d{4}-\d{2}-\d{2}$/.test(p.pref_fecha_nacimiento || '') ? p.pref_fecha_nacimiento : '',
+    pref_esperanza_vida: Number.isFinite(p.pref_esperanza_vida) && p.pref_esperanza_vida >= 40 && p.pref_esperanza_vida <= 120 ? p.pref_esperanza_vida : 80,
   };
 }
 
@@ -984,7 +992,69 @@ export function descartarDatosViejos() {
 // Exportar / importar (respaldo manual)
 // ---------------------------------------------------------------------------
 
+// Copia de seguridad (v0.105.0): cuándo se exportó por última vez en este dispositivo y cada cuántos días recordarlo.
+const CLAVE_ULTIMA_EXPORTACION = 'super-todo-list:ultima-exportacion';
+const CLAVE_RECORDATORIO_COPIA = 'super-todo-list:recordatorio-copia-dias';
+const CLAVE_PRIMER_USO = 'super-todo-list:primer-uso-copia';
+export const DIAS_RECORDATORIO_COPIA = [0, 7, 14, 30, 90]; // 0 = nunca
+
+export function ultimaExportacion() {
+  try {
+    return localStorage.getItem(CLAVE_ULTIMA_EXPORTACION) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function leerDiasRecordatorioCopia() {
+  try {
+    const guardado = localStorage.getItem(CLAVE_RECORDATORIO_COPIA);
+    const dias = guardado === null ? 30 : Number(guardado);
+    return DIAS_RECORDATORIO_COPIA.includes(dias) ? dias : 30;
+  } catch {
+    return 30;
+  }
+}
+
+export function guardarDiasRecordatorioCopia(dias) {
+  try {
+    localStorage.setItem(CLAVE_RECORDATORIO_COPIA, String(dias));
+  } catch {
+    // Es solo una preferencia de este dispositivo.
+  }
+}
+
+/**
+ * Si toca recordar la copia de seguridad: `{ dias, nunca }` (días desde la última exportación; `nunca` si en este
+ * dispositivo todavía no se exportó nada, en cuyo caso se cuenta desde la primera vez que se abrió la app con datos) o
+ * `null` si no toca (recordatorio apagado, sin datos o copia reciente).
+ */
+export function copiaVencida() {
+  const limite = leerDiasRecordatorioCopia();
+  if (limite === 0 || !estado.tareas || estado.tareas.length === 0) return null;
+  const ultima = ultimaExportacion();
+  let base = ultima;
+  if (!base) {
+    try {
+      base = localStorage.getItem(CLAVE_PRIMER_USO);
+      if (!base) {
+        base = new Date().toISOString();
+        localStorage.setItem(CLAVE_PRIMER_USO, base);
+      }
+    } catch {
+      return null;
+    }
+  }
+  const dias = Math.floor((Date.now() - new Date(base).getTime()) / 86400000);
+  return dias >= limite ? { dias, nunca: !ultima } : null;
+}
+
 export function exportarJSON() {
+  try {
+    localStorage.setItem(CLAVE_ULTIMA_EXPORTACION, new Date().toISOString());
+  } catch {
+    // Solo es el registro de cuándo se exportó.
+  }
   const blob = new Blob([JSON.stringify(estado, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const enlace = document.createElement('a');

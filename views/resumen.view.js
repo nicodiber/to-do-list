@@ -31,10 +31,11 @@ import {
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { preguntarTiempoReal } from '../assets/js/tiempo-real.js';
-import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea } from '../assets/js/modal-tarea.js';
+import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea, abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
-import { obtenerFranjaHoraria } from '../assets/js/preferencias-horario.js';
+import { bloquesDeSemana } from '../assets/js/bloques-horarios.js';
+import { obtenerPreferencias } from '../assets/js/preferencias.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
@@ -76,6 +77,11 @@ export function renderVistaResumen(contenedor) {
   );
   const idsSinHueco = new Set(sinHuecoAntesDelLimite.map((t) => t.tarea_id));
   const activasRestantes = pendientesActivas.filter((t) => !idsSinHueco.has(t.tarea_id));
+
+  // Seguimientos (v0.105.0): tareas delegadas cuyo día de seguimiento llegó (o ya pasó), de la más atrasada a la más reciente.
+  const seguimientos = estado.tareas
+    .filter((t) => t.tarea_estado !== 'completada' && t.tarea_delegada_a && t.tarea_seguimiento_fecha && t.tarea_seguimiento_fecha <= hoyISO())
+    .sort((a, b) => a.tarea_seguimiento_fecha.localeCompare(b.tarea_seguimiento_fecha));
 
   const bloqueadasTodas = activasRestantes.filter((t) => t.tarea_estado === 'bloqueada');
   // Una bloqueada con límite vencido/hoy también es urgente: se muestra ahí (de solo lectura, no se puede
@@ -139,6 +145,14 @@ export function renderVistaResumen(contenedor) {
         ? `<section>
             <h3 title="Tareas cuya fecha sugerida quedó después de su fecha límite: no se encontró un hueco real a tiempo (por ejemplo, por falta de disponibilidad en tu Calendar). Revisalas para reprogramarlas a mano, cambiar el límite o eliminarlas.">⚠️ Sin hueco antes del límite (${sinHuecoAntesDelLimite.length})</h3>
             <ul id="lista-sin-hueco" class="lista-tareas"></ul>
+          </section>`
+        : ''
+    }
+    ${
+      seguimientos.length > 0
+        ? `<section>
+            <h3 title="Tareas que delegaste y cuya fecha de seguimiento es hoy o ya pasó">🤝 Seguimientos (${seguimientos.length})</h3>
+            <ul id="lista-seguimientos" class="lista-tareas"></ul>
           </section>`
         : ''
     }
@@ -225,6 +239,11 @@ export function renderVistaResumen(contenedor) {
     listaVencidas.innerHTML = '<p class="mensaje-vacio">No tenés tareas vencidas 🎉</p>';
   } else {
     vencidas.forEach((tarea) => listaVencidas.appendChild(renderItem(tarea)));
+  }
+
+  const listaSeguimientos = contenedor.querySelector('#lista-seguimientos');
+  if (listaSeguimientos) {
+    seguimientos.forEach((tarea) => listaSeguimientos.appendChild(renderSeguimiento(tarea)));
   }
 
   const listaSinHueco = contenedor.querySelector('#lista-sin-hueco');
@@ -526,7 +545,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
           const hueco = buscarHuecoLibre(eventos, tarea.tarea_duracion_min, {
             desde,
             dias,
-            franja: obtenerFranjaHoraria(),
+            bloquesPorDia: bloquesDeSemana(obtenerPreferencias()),
             diasHabiles: tarea.tarea_dias_habiles || [],
           });
           if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) {
@@ -633,3 +652,48 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
   return li;
 }
 
+
+/** Una tarea delegada que toca revisar hoy: a quién se delegó, cuánto se atrasó el seguimiento y qué hacer. */
+function renderSeguimiento(tarea) {
+  const persona = estado.personas.find((p) => p.persona_id === tarea.tarea_delegada_a);
+  const atraso = diasEntreFechas(tarea.tarea_seguimiento_fecha, hoyISO());
+  const li = document.createElement('li');
+  li.className = 'item-tarea';
+  li.innerHTML = `
+    <div class="item-tarea-info">
+      <strong></strong>
+      <span class="etiquetas">
+        <span class="etiqueta-fecha">🤝 ${escaparHtml(persona ? persona.persona_nombre : 'Alguien')}</span>
+        <span class="etiqueta-fecha${atraso > 0 ? ' etiqueta-vencida' : ''}">📅 Seguimiento ${atraso > 0 ? `atrasado ${atraso} día${atraso === 1 ? '' : 's'}` : 'hoy'}</span>
+      </span>
+    </div>
+    <div class="item-tarea-acciones">
+      <button type="button" data-accion="completar" title="Ya está resuelta: marcarla como cumplida">✔️ Resuelta</button>
+      <select data-accion="posponer-seguimiento" title="Volver a preguntarme más adelante">
+        <option value="">⏭️ Recordármelo en…</option>
+        <option value="1">1 día</option>
+        <option value="3">3 días</option>
+        <option value="7">1 semana</option>
+        <option value="14">2 semanas</option>
+      </select>
+      <button type="button" data-accion="editar" title="Abrir la tarea">✏️ Editar</button>
+      <button type="button" data-accion="dejar" title="No hacerle más seguimiento (queda delegada, sin fecha)">🔕 Sin seguimiento</button>
+    </div>`;
+  li.querySelector('strong').textContent = tarea.tarea_nombre;
+  li.querySelector('[data-accion="completar"]').addEventListener('click', async () => {
+    cumplirTarea(tarea, estado);
+    await persistirYNotificar();
+    await preguntarTiempoReal(tarea);
+  });
+  li.querySelector('[data-accion="posponer-seguimiento"]').addEventListener('change', async (evento) => {
+    if (!evento.target.value) return;
+    tarea.tarea_seguimiento_fecha = fechaISOMasDias(Number(evento.target.value), hoyISO());
+    await persistirYNotificar();
+  });
+  li.querySelector('[data-accion="editar"]').addEventListener('click', () => abrirEdicionTarea(tarea.tarea_id));
+  li.querySelector('[data-accion="dejar"]').addEventListener('click', async () => {
+    tarea.tarea_seguimiento_fecha = '';
+    await persistirYNotificar();
+  });
+  return li;
+}

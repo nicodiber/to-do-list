@@ -158,6 +158,8 @@ export function crearTarea({
   tarea_costo_estimado = 0,
   meta_id = null,
   persona_id = null,
+  tarea_delegada_a = null,
+  tarea_seguimiento_fecha = '',
   tarea_prioridad_manual = null,
   tarea_disfrute = null,
   tarea_exportada_calendar = false,
@@ -195,6 +197,8 @@ export function crearTarea({
     tarea_costo_estimado,
     meta_id: meta_id || null,
     persona_id: persona_id || null,
+    tarea_delegada_a: tarea_delegada_a || null,
+    tarea_seguimiento_fecha: tarea_delegada_a ? tarea_seguimiento_fecha || '' : '',
     tarea_prioridad_manual,
     tarea_disfrute,
     tarea_exportada_calendar,
@@ -259,6 +263,9 @@ export const PREFERENCIAS_POR_DEFECTO = {
   pref_ubicacion_clima: null,
   pref_habitos_ocultos: [],
   pref_preguntar_tiempo_real: false,
+  pref_bloques_dias: null,
+  pref_fecha_nacimiento: '',
+  pref_esperanza_vida: 80,
 };
 
 /**

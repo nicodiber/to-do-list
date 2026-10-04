@@ -6,6 +6,7 @@ import { construirFilas, calcularPosiciones, calcularConexiones, AGRUPACIONES } 
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
 import { obtenerPreferencias } from '../assets/js/preferencias.js';
+import { bloquesDeSemana } from '../assets/js/bloques-horarios.js';
 
 // Preferencias de UI (no datos de la app): zoom, modo y agrupación se recuerdan en este dispositivo.
 const PREFIJO = 'super-todo-list:gantt-';
@@ -296,16 +297,16 @@ function dibujarGrilla(desplazable, { semanas, modo, agruparPor, actualizarBarra
 }
 
 /**
- * Fondos de los días no hábiles (v0.104.0): sábados y domingos y, además, los días de la semana en que el usuario puso
- * en 0 el tiempo disponible (Configuraciones → Tiempo disponible). Son franjas tenues, sin interacción.
+ * Fondos de los días no hábiles (v0.104.0): sábados y domingos y, además, los días de la semana sin ningún horario
+ * disponible (Configuraciones → Horarios disponibles, v0.105.0). Son franjas tenues, sin interacción.
  */
 function fondosNoHabiles(inicioRango, totalDias, anchoDia) {
-  const tope = obtenerPreferencias().pref_tope_dias || [];
+  const semana = bloquesDeSemana(obtenerPreferencias());
   let html = '';
   for (let i = 0; i < totalDias; i += 1) {
     const dia = fechaISOMasDias(i, inicioRango);
     const numero = diaSemana(dia);
-    if (numero === 0 || numero === 6 || tope[numero] === 0) {
+    if (numero === 0 || numero === 6 || semana[numero].length === 0) {
       html += `<div class="gantt-fondo-no-habil" style="left:${i * anchoDia}px;width:${anchoDia}px"></div>`;
     }
   }

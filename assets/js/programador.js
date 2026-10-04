@@ -12,6 +12,7 @@ import { obtenerPreferencias } from './preferencias.js';
 import { crearCalculadoraCapacidad } from './capacidad.js';
 import { leerEventosParaAgendar, eventosQueTocanElDia, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento } from './google-calendar.js';
 import { habilitadaReal } from './gantt-modelo.js';
+import { bloquesDeSemana } from './bloques-horarios.js';
 import { reprogramarTareaConCascada, compararParaAgendar } from './tareas-logica.js';
 
 /** ¿`fechaISO` pasa (o iguala) `limiteISO`? Con hora, compara el instante exacto; sin hora, el día calendario
@@ -139,7 +140,7 @@ async function asignarTareasSinFecha(estado) {
         if (restanteDelDia(candidato) < duracion) continue;
         const eventosDelDia = [...(conCalendar ? eventosQueTocanElDia(eventosCalendar, candidato) : []), ...(horariosPorDia.get(candidato) || [])];
         const desde = candidato === diaMinimo ? piso : new Date(`${candidato}T00:00:00`);
-        const hueco = buscarHuecoLibre(eventosDelDia, duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
+        const hueco = buscarHuecoLibre(eventosDelDia, duracion, { desde, dias: 1, bloquesPorDia: bloquesDeSemana(preferencias), diasHabiles });
         if (!hueco) continue;
         if (respetarLimite && superaLimite(hueco, tarea.tarea_fecha_limite)) return null; // La sugerida no supera el límite (con hora incluida).
         return { dia: candidato, hueco };
@@ -302,7 +303,7 @@ function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
         if (finPrevia != null && finPrevia > desde.getTime()) desde = new Date(finPrevia);
         const diaLimite = actual.tarea_fecha_limite ? diaLocal(actual.tarea_fecha_limite) : null;
         const dias = diaLimite ? Math.max(1, diasEntreFechas(fechaLocalISO(desde), diaLimite) + 1) : diasHorizonteCalendar();
-        const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles: actual.tarea_dias_habiles || [] });
+        const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, bloquesPorDia: bloquesDeSemana(preferencias), diasHabiles: actual.tarea_dias_habiles || [] });
         if (hueco && !superaLimite(hueco, actual.tarea_fecha_limite)) actual.tarea_fecha_sugerida = hueco;
       }
     }
@@ -374,7 +375,7 @@ export async function reprogramarVencidas(estado) {
         if (restanteDelDia(candidato) < duracion) continue;
         const eventosDelDia = conCalendar ? eventosQueTocanElDia(eventosCalendar, candidato) : [];
         const desde = candidato === hoy ? ahora : new Date(`${candidato}T00:00:00`);
-        const hueco = buscarHuecoLibre([...eventosDelDia, ...otras], duracion, { desde, dias: 1, franja: preferencias.pref_franja, diasHabiles });
+        const hueco = buscarHuecoLibre([...eventosDelDia, ...otras], duracion, { desde, dias: 1, bloquesPorDia: bloquesDeSemana(preferencias), diasHabiles });
         if (!hueco) continue;
         if (respetarLimite && superaLimite(hueco, tarea.tarea_fecha_limite)) return null;
         return { dia: candidato, hueco };
@@ -439,7 +440,7 @@ export async function reubicarTareasSolapadas(estado) {
     const dias = diaLimite ? Math.max(1, diasEntreFechas(diaLocal(tarea.tarea_fecha_sugerida), diaLimite) + 1) : diasHorizonteCalendar();
 
     const otras = otrasTareasComoEventos(estado.tareas, tarea.tarea_id);
-    const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
+    const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, bloquesPorDia: bloquesDeSemana(preferencias), diasHabiles });
     if (hueco && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
       inconsistentes.push(...reprogramarTareaConCascada(tarea, hueco, estado.tareas));
       resolverColisionesEnCadena(tarea, estado.tareas, eventos, preferencias);
@@ -485,7 +486,7 @@ export async function reprogramarTareaInmediataSiVencio(estado) {
   const dias = diaLimite ? Math.max(1, diasEntreFechas(hoyISO(), diaLimite) + 1) : diasHorizonteCalendar();
 
   const otras = otrasTareasComoEventos(estado.tareas, tarea.tarea_id);
-  const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
+  const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, bloquesPorDia: bloquesDeSemana(preferencias), diasHabiles });
   if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
   const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
@@ -517,7 +518,7 @@ export async function programarParaHoy(tarea, estado) {
   const dias = diaLimite ? Math.max(1, diasEntreFechas(hoyISO(), diaLimite) + 1) : diasHorizonteCalendar();
 
   const otras = otrasTareasComoEventos(estado.tareas || [], tarea.tarea_id);
-  const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde: new Date(), dias, franja: preferencias.pref_franja, diasHabiles });
+  const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde: new Date(), dias, bloquesPorDia: bloquesDeSemana(preferencias), diasHabiles });
   if (!hueco || superaLimite(hueco, tarea.tarea_fecha_limite)) return { tarea, sinHueco: true, inconsistentes: [] };
 
   const inconsistentes = reprogramarTareaConCascada(tarea, hueco, estado.tareas);
@@ -595,7 +596,7 @@ export async function adelantarTareasSiHayHuecoMejor(estado) {
     // v0.98.0 — "otras" son TODAS las demás tareas con hora (las ya revisadas en esta pasada, en su horario final, y
     // las que todavía no): antes solo contaban las ya revisadas, y una tarea podía adelantarse encima de otra.
     const otras = otrasTareasComoEventos(todas, tarea.tarea_id);
-    const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, franja: preferencias.pref_franja, diasHabiles });
+    const hueco = buscarHuecoLibre([...eventos, ...otras], duracion, { desde, dias, bloquesPorDia: bloquesDeSemana(preferencias), diasHabiles });
     if (hueco && new Date(hueco).getTime() < new Date(tarea.tarea_fecha_sugerida).getTime() && !superaLimite(hueco, tarea.tarea_fecha_limite)) {
       reprogramarTareaConCascada(tarea, hueco, todas);
       resolverColisionesEnCadena(tarea, todas, eventos, preferencias);

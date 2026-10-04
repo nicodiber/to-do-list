@@ -41,16 +41,18 @@ import { renderVistaGantt } from '../../views/gantt.view.js';
 import { renderVistaPersonas } from '../../views/personas.view.js';
 import { renderVistaEstadisticas } from '../../views/estadisticas.view.js';
 import { renderVistaMejoras } from '../../views/mejoras.view.js';
+import { renderVistaMemento } from '../../views/memento.view.js';
 import { configurarAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
 import { crearRevisorDeAvisos, abrirAvisosSync } from './avisos-sync.js';
 import { filtrarSinHuecoVigente } from './aviso-sin-hueco.js';
+import { copiaVencida, exportarJSON } from './almacenamiento.js';
 import { activarSonidoDeClic } from './sonidos.js';
 import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 import { avisar, confirmar } from './avisos.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.104.0';
+const VERSION = 'v0.105.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -76,6 +78,7 @@ const VISTAS = {
   personas: { etiqueta: '👥 Personas', render: renderVistaPersonas },
   ubicaciones: { etiqueta: '📍 Ubicaciones', render: renderVistaUbicaciones },
   categorias: { etiqueta: '🗂️ Categorías', render: renderVistaCategorias },
+  memento: { etiqueta: '⏳ Memento mori', render: renderVistaMemento },
   configuraciones: { etiqueta: '⚙️ Configuraciones', render: renderVistaConfiguraciones },
 };
 
@@ -202,6 +205,8 @@ const revisarAvisos = crearRevisorDeAvisos({
       if (await confirmar('¿Descartar los datos antiguos de este navegador? No se pueden recuperar después.', { peligro: true, textoAceptar: 'Descartar' })) descartarDatosViejos();
     },
     obtenerAvisos: () => obtenerEstadoSync().avisos,
+    copiaVencida,
+    exportar: exportarJSON,
   },
 });
 

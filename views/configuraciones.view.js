@@ -1,6 +1,6 @@
-import { estado, exportarJSON, importarJSON, borrarTodosLosDatos, persistirYNotificar } from '../assets/js/almacenamiento.js';
+import { estado, exportarJSON, importarJSON, borrarTodosLosDatos, persistirYNotificar, ultimaExportacion, leerDiasRecordatorioCopia, guardarDiasRecordatorioCopia, DIAS_RECORDATORIO_COPIA } from '../assets/js/almacenamiento.js';
 import { tareasCompletadasLimpiables, eliminarTarea } from '../assets/js/tareas-logica.js';
-import { obtenerFranjaHoraria, establecerFranjaHoraria, HORAS_FRANJA } from '../assets/js/preferencias-horario.js';
+import { bloquesDeSemana, validarBloquesDia, ordenarBloques, minutosDeBloques, HORAS_BLOQUE } from '../assets/js/bloques-horarios.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
 import { htmlOpcionesUbicacion } from '../assets/js/formulario-tarea.js';
 import { conectarCrearNueva } from '../assets/js/dialogo-formulario.js';
@@ -22,7 +22,6 @@ const HORIZONTES = [30, 60, 90, 180];
 const PALABRA_CONFIRMACION = 'BORRAR';
 
 export function renderVistaConfiguraciones(contenedor) {
-  const franja = obtenerFranjaHoraria();
   const preferencias = obtenerPreferencias();
   contenedor.innerHTML = `
     <h2>⚙️ Configuraciones</h2>
@@ -30,20 +29,6 @@ export function renderVistaConfiguraciones(contenedor) {
     <section class="seccion-config">
       <h3>🎨 Apariencia</h3>
       ${htmlInterruptor('tema_oscuro', obtenerTema() === 'oscuro', '🌙 Tema oscuro', 'title="Se guarda en este dispositivo"')}
-    </section>
-
-    <section class="seccion-config">
-      <h3>🗓️ Agenda y Calendar</h3>
-      <p class="ayuda">Es la parte del día en que se pueden proponer horarios (botón «Al próximo hueco libre», cuando una tarea se superpone con un evento de Calendar) y en que se cuenta tu tiempo libre. Se guarda en tu Drive, para todos tus dispositivos.</p>
-      <div class="acciones-config franja-horaria">
-        <label title="Primera hora del día en que se pueden proponer horarios">🌅 Desde
-          <select id="franja-inicio">${HORAS_FRANJA.slice(0, -1).map((h) => `<option value="${h}" ${h === franja.inicio ? 'selected' : ''}>${h}</option>`).join('')}</select>
-        </label>
-        <label title="Última hora del día en que se pueden proponer horarios">🌇 Hasta
-          <select id="franja-fin">${HORAS_FRANJA.slice(1).map((h) => `<option value="${h}" ${h === franja.fin ? 'selected' : ''}>${h}</option>`).join('')}</select>
-        </label>
-      </div>
-      <p class="ayuda" id="mensaje-franja" hidden></p>
     </section>
 
     <section class="seccion-config">
@@ -62,14 +47,12 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
 
     <section class="seccion-config" id="seccion-tiempo">
-      <h3>⏱️ Tiempo disponible</h3>
-      <p class="ayuda">Cuánto tiempo querés dedicar a tus tareas cada día. Se usa para la barra de carga de la vista Semana. También cuenta tu Calendar: cada evento le quita tiempo al día. Para un día puntual (un viaje, un día libre) tocá su barra en Semana. Se guarda en tu Drive.</p>
-      <h4>⏳ Tope por día de la semana (minutos)</h4>
-      <div class="topes-dias">
-        ${[1, 2, 3, 4, 5, 6, 0]
-          .map((d) => `<label title="Minutos que querés dedicar a tareas cada ${NOMBRES_DIA_CORTO[d].toLowerCase()} (hasta ${TOPE_MAXIMO_MIN}, un día entero)">${NOMBRES_DIA_CORTO[d]}<input type="number" data-tope-dia="${d}" min="0" max="${TOPE_MAXIMO_MIN}" step="15" value="${preferencias.pref_tope_dias[d]}" /></label>`)
-          .join('')}
-      </div>
+      <h3>🕘 Tiempo disponible</h3>
+      <p class="ayuda">Cuándo y cuánto tiempo querés dedicar a tus tareas. Se usa para el agendado y para la barra de carga de la vista Semana. También cuenta tu Calendar: cada evento le quita tiempo al día. Para un día puntual (un viaje, un día libre) tocá su barra en Semana. Se guarda en tu Drive.</p>
+      <h4>🕘 Horarios disponibles por día de la semana</h4>
+      <p class="ayuda">Los bloques «de qué hora a qué hora» en que querés hacer tareas. El agendado solo propone horarios dentro de ellos, el tiempo disponible de cada día es la suma de sus bloques (menos tus eventos de Calendar) y en Semana se sombrean las horas fuera de ellos. Por defecto cada día tiene un bloque de 00:00 a 24:00. Los bloques no pueden pisarse ni quedar pegados (se unen en uno) y suman como máximo 24 h por día. Un día sin bloques es un día libre.</p>
+      <div class="bloques-semana" id="bloques-semana"></div>
+      <p class="ayuda" id="mensaje-bloques" hidden></p>
       <div class="acciones-config">
         <label title="Cuántos días hacia adelante se leen tus eventos de Calendar (para calcular tu tiempo libre)">📆 Leer Calendar hasta
           <select id="horizonte-calendar">${HORIZONTES.map((h) => `<option value="${h}" ${h === preferencias.pref_horizonte_dias ? 'selected' : ''}>${h} días</option>`).join('')}</select>
@@ -131,6 +114,12 @@ export function renderVistaConfiguraciones(contenedor) {
           <input type="file" id="input-importar" accept="application/json" hidden />
         </label>
       </div>
+      <div class="acciones-config">
+        <label title="Cada cuántos días la app te recuerda exportar una copia (en este dispositivo)">🔔 Recordarme exportar una copia
+          <select id="recordatorio-copia">${DIAS_RECORDATORIO_COPIA.map((d) => `<option value="${d}" ${d === leerDiasRecordatorioCopia() ? 'selected' : ''}>${d === 0 ? 'nunca' : `cada ${d} días`}</option>`).join('')}</select>
+        </label>
+        <small class="ayuda">${ultimaExportacion() ? `Última exportación en este dispositivo: ${new Date(ultimaExportacion()).toLocaleDateString('es-AR')}.` : 'Todavía no exportaste una copia en este dispositivo.'} Qué hacer si algo se cae: <code>PLAN_B.md</code>.</small>
+      </div>
     </section>
 
     <section class="seccion-config">
@@ -185,16 +174,8 @@ export function renderVistaConfiguraciones(contenedor) {
     registro.appendChild(li);
   });
 
-  const campoInicio = contenedor.querySelector('#franja-inicio');
-  const campoFin = contenedor.querySelector('#franja-fin');
-  const mensajeFranja = contenedor.querySelector('#mensaje-franja');
-  const guardarFranja = () => {
-    const guardada = establecerFranjaHoraria({ inicio: campoInicio.value, fin: campoFin.value });
-    mensajeFranja.textContent = guardada ? '✓ Guardado en este dispositivo.' : 'El «Desde» tiene que ser anterior al «Hasta»: no se guardó.';
-    mensajeFranja.hidden = false;
-  };
-  campoInicio.addEventListener('change', guardarFranja);
-  campoFin.addEventListener('change', guardarFranja);
+
+  contenedor.querySelector('#recordatorio-copia').addEventListener('change', (evento) => guardarDiasRecordatorioCopia(Number(evento.target.value)));
 
   const mensajeLimpiar = contenedor.querySelector('#mensaje-limpiar');
   contenedor.querySelector('#boton-limpiar-completadas').addEventListener('click', async () => {
@@ -293,15 +274,114 @@ function conectarSeccionTiempo(contenedor) {
     mensaje.hidden = false;
   };
 
-  seccion.querySelectorAll('[data-tope-dia]').forEach((campo) => {
-    campo.addEventListener('change', () => {
-      const topes = [...obtenerPreferencias().pref_tope_dias];
-      const minutos = Math.min(TOPE_MAXIMO_MIN, Math.max(0, Math.round(Number(campo.value) || 0)));
-      topes[Number(campo.dataset.topeDia)] = minutos;
-      campo.value = String(minutos);
-      guardar({ pref_tope_dias: topes });
+  // Horarios disponibles por día (v0.105.0): un editor de bloques por día; se guarda en cuanto todos los bloques son válidos.
+  const contenedorBloques = seccion.querySelector('#bloques-semana');
+  const mensajeBloques = seccion.querySelector('#mensaje-bloques');
+  const horasSelect = (valor, desde, hasta) =>
+    `<select>${HORAS_BLOQUE.slice(desde, hasta).map((h) => `<option value="${h}" ${h === valor ? 'selected' : ''}>${h}</option>`).join('')}</select>`;
+  const filaBloque = (b) =>
+    `<span class="bloque-horario"><label>Desde ${horasSelect(b.inicio, 0, 48)}</label><label>Hasta ${horasSelect(b.fin, 1, 49)}</label><button type="button" data-quitar-bloque title="Quitar este bloque">✕</button></span>`;
+  const textoHoras = (minutos) => (minutos === 0 ? 'Día libre' : `${Math.floor(minutos / 60)} h${minutos % 60 ? ` ${minutos % 60} min` : ''}`);
+  let semanaEditada = bloquesDeSemana(obtenerPreferencias()).map((bloques) => ordenarBloques(bloques));
+
+  const leerDia = (fila) =>
+    [...fila.querySelectorAll('.bloque-horario')].map((el) => {
+      const [desde, hasta] = el.querySelectorAll('select');
+      return { inicio: desde.value, fin: hasta.value };
     });
+  const dibujarBloques = () => {
+    contenedorBloques.innerHTML = [1, 2, 3, 4, 5, 6, 0]
+      .map(
+        (d) => `<div class="bloques-dia" data-dia-bloques="${d}">
+          <strong class="nombre-dia-bloques">${NOMBRES_DIA_CORTO[d]}</strong>
+          <span class="lista-bloques">${semanaEditada[d].map(filaBloque).join('')}</span>
+          <span class="acciones-bloques-dia">
+            <button type="button" data-agregar-bloque title="Agregar otro bloque a este día">＋ Bloque</button>
+            <button type="button" data-copiar-dia title="Copiar los bloques de este día a todos los demás días">📋 Copiar a todos</button>
+            <small class="total-bloques-dia">${textoHoras(minutosDeBloques(semanaEditada[d]))}</small>
+          </span>
+        </div>`
+      )
+      .join('');
+  };
+  const guardarBloques = async () => {
+    await guardarPreferencias({ pref_bloques_dias: semanaEditada.map((b) => ordenarBloques(b)) }, { sinNotificar: true });
+    invalidarCacheEventos();
+    mensajeBloques.className = 'ayuda';
+    mensajeBloques.textContent = '✓ Guardado en tu Drive.';
+    mensajeBloques.hidden = false;
+  };
+  const mostrarError = (motivo) => {
+    mensajeBloques.className = 'ayuda mensaje-error-bloques';
+    mensajeBloques.textContent = `⚠️ ${motivo} No se guardó.`;
+    mensajeBloques.hidden = false;
+  };
+  dibujarBloques();
+  contenedorBloques.addEventListener('change', (evento) => {
+    const fila = evento.target.closest('[data-dia-bloques]');
+    if (!fila || evento.target.tagName !== 'SELECT') return;
+    const dia = Number(fila.dataset.diaBloques);
+    const bloques = leerDia(fila);
+    const validacion = validarBloquesDia(bloques);
+    if (!validacion.ok) {
+      mostrarError(validacion.motivo);
+      return;
+    }
+    semanaEditada[dia] = ordenarBloques(bloques);
+    fila.querySelector('.total-bloques-dia').textContent = textoHoras(minutosDeBloques(semanaEditada[dia]));
+    guardarBloques();
   });
+  contenedorBloques.addEventListener('click', (evento) => {
+    const fila = evento.target.closest('[data-dia-bloques]');
+    if (!fila) return;
+    const dia = Number(fila.dataset.diaBloques);
+    if (evento.target.closest('[data-quitar-bloque]')) {
+      const indice = [...fila.querySelectorAll('.bloque-horario')].indexOf(evento.target.closest('.bloque-horario'));
+      const bloques = leerDia(fila);
+      bloques.splice(indice, 1);
+      semanaEditada[dia] = ordenarBloques(bloques);
+      dibujarBloques();
+      guardarBloques();
+    } else if (evento.target.closest('[data-agregar-bloque]')) {
+      const bloques = ordenarBloques(leerDia(fila));
+      if (!validarBloquesDia(bloques).ok) {
+        mostrarError(validarBloquesDia(bloques).motivo);
+        return;
+      }
+      // El nuevo bloque va en el primer hueco de al menos una hora que deje un respiro de 30 min con los demás.
+      const aMin = (h) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3));
+      const aHHMM = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+      let candidato = null;
+      if (bloques.length === 0) {
+        candidato = [9 * 60, 17 * 60];
+      } else {
+        // Huecos: antes del primero, entre bloques y después del último (con 30 min de separación de cada bloque vecino).
+        const huecos = [[0, aMin(bloques[0].inicio) - 30]];
+        for (let i = 1; i < bloques.length; i += 1) huecos.push([aMin(bloques[i - 1].fin) + 30, aMin(bloques[i].inicio) - 30]);
+        huecos.push([aMin(bloques[bloques.length - 1].fin) + 30, 24 * 60]);
+        const hueco = huecos.find(([desde, hasta]) => hasta - desde >= 60);
+        if (hueco) candidato = [hueco[0], Math.min(hueco[1], hueco[0] + 4 * 60)];
+      }
+      if (!candidato) {
+        mostrarError('No hay lugar libre para otro bloque (tiene que haber al menos 1 hora y 30 minutos de separación entre bloques).');
+        return;
+      }
+      semanaEditada[dia] = ordenarBloques([...bloques, { inicio: aHHMM(candidato[0]), fin: aHHMM(candidato[1]) }]);
+      dibujarBloques();
+      guardarBloques();
+    } else if (evento.target.closest('[data-copiar-dia]')) {
+      const bloques = ordenarBloques(leerDia(fila));
+      const validacion = validarBloquesDia(bloques);
+      if (!validacion.ok) {
+        mostrarError(validacion.motivo);
+        return;
+      }
+      semanaEditada = semanaEditada.map(() => bloques.map((b) => ({ ...b })));
+      dibujarBloques();
+      guardarBloques();
+    }
+  });
+
   seccion.querySelector('#horizonte-calendar').addEventListener('change', (evento) => guardar({ pref_horizonte_dias: Number(evento.target.value) }, { recalendar: true }));
   [['ignorar_todo_el_dia', 'pref_ignorar_todo_el_dia'], ['ignorar_rechazados', 'pref_ignorar_rechazados'], ['ignorar_disponible', 'pref_ignorar_disponible']].forEach(([nombre, clave]) => {
     seccion.querySelector(`[name="${nombre}"]`).addEventListener('change', (evento) => guardar({ [clave]: !evento.target.checked }));

@@ -230,3 +230,9 @@ Ningún proceso de esta sección (5, 19–31, 34 y 35) asigna o mueve horarios s
 - **Condición** (v0.102.0): se acaba de guardar una tarea nueva, una edición o el uso de una plantilla.
 - **Proceso**: primero se guarda (inmediato, con su paso de deshacer) y después `agendarEnSegundoPlano` (`assets/js/agendado-segundo-plano.js`) corre `programarTareasSinFecha` (leer Calendar, asignar huecos, reordenar). Si asignó o reordenó algo, guarda otra vez sin sumar un paso de deshacer. Las corridas se encolan; el aviso «sin hueco antes del límite» solo nombra lo que sigue sin lugar según el estado final y espera a que no haya otra ventana abierta.
 - **Resultado**: «Agregar» ya no espera al agendado; el horario sugerido aparece unos segundos después.
+
+## 39. Recordatorio de copia de seguridad
+
+- **Condición** (v0.105.0): hay tareas cargadas, el recordatorio no está en «nunca» y pasaron al menos N días (30 por defecto) desde la última exportación en este dispositivo; si nunca se exportó, desde la primera vez que se abrió la app con datos.
+- **Proceso**: el revisor de avisos (`avisos-sync.js`) muestra una vez por sesión una ventana «💾 Copia de seguridad» con «⬇️ Exportar ahora» o «Más tarde». Exportar registra la fecha y el recordatorio se apaga hasta que pasen otros N días.
+- **Resultado**: siempre hay una copia propia reciente fuera de Drive (ver `PLAN_B.md`).

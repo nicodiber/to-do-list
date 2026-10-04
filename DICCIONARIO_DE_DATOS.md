@@ -60,6 +60,8 @@ El "camino" completo de una categoría hasta su raíz (ej. "Facultad / IR") se a
 | `tarea_dia_obligatorio` | boolean, default `false` | v0.101.0 | Solo tareas con repetición: «día obligatorio». Su copia nace con ese día también como `tarea_fecha_limite`, el agendado no la mueve de día (`adelantarTareasSiHayHuecoMejor` y `reordenarSugeridasPorPrioridad` la saltean) y su holgura la prioriza sobre las tareas sin fecha |
 | `tarea_origen` | objeto \| `null`, default `null` | Ronda 9a | **Reservado, sin uso desde la v0.63.0** (antes marcaba lo que generó el asistente de examen). Se conserva en los datos; una tarea que lo tiene no cuenta como "cargada rápido" |
 | `persona_id` | string (UUID) \| `null`, default `null` | v0.66.0 | Referencia a `Persona.persona_id`: con quién se hace la tarea (una sola). Al eliminar la persona, queda en `null` |
+| `tarea_delegada_a` | string (UUID) \| `null`, default `null` | v0.105.0 | Referencia a `Persona.persona_id`: a quién se delegó la tarea. Al eliminar la persona, queda en `null` (y se borra el seguimiento) |
+| `tarea_seguimiento_fecha` | fecha `YYYY-MM-DD` \| `""`, default `""` | v0.105.0 | Solo con `tarea_delegada_a`: el día en que Resumen → Seguimientos muestra la tarea para revisarla |
 
 ## Ubicacion
 
@@ -181,6 +183,9 @@ Un **único registro** (`preferencias_id: "unica"`) que se sincroniza con Drive,
 | `pref_capacidad_por_fecha` | `{ "YYYY-MM-DD": minutos }` | Ronda 9b | Capacidad fijada por el usuario para un día puntual (0 = ningún tiempo). Manda sobre el tope y sobre Calendar; se descartan las fechas pasadas al guardar |
 | `pref_habitos_ocultos` | array de nombres de hábito, default `[]` | v0.104.0 | Hábitos que el usuario ocultó de la matriz de Estadísticas → Hábitos (por nombre de tarea). No se borra nada: el historial sigue |
 | `pref_preguntar_tiempo_real` | boolean, default `false` | v0.104.0 | Si es `true`, al completar una tarea la app pregunta cuántos minutos tardó (opcional) |
+| `pref_bloques_dias` | array de 7 listas de `{ inicio: "HH:MM", fin: "HH:MM" }` \| `null` | v0.105.0 | Horarios disponibles por día de la semana (índice 0 = domingo). Uno o varios bloques por día, sin pisarse ni quedar pegados, de 00:00 a 24:00; lista vacía = día libre. `null` = se derivan de `pref_franja` y `pref_tope_dias` (datos de antes). Reemplazan a ambos en la interfaz |
+| `pref_fecha_nacimiento` | fecha `YYYY-MM-DD` \| `""` | v0.105.0 | Fecha de nacimiento del usuario, para el módulo Memento mori. Se pide una sola vez |
+| `pref_esperanza_vida` | number (años, 40–120), default `80` | v0.105.0 | Expectativa de vida para dibujar la cuadrícula de Memento mori |
 | `pref_ubicacion_clima` | `ubicacion_id` \| `null` | v0.79.0 | Ubicación de referencia para el pronóstico de la vista Semana (ícono del día, amanecer/atardecer, degradé de temperatura/lluvia). Se elige en Configuraciones → 🌦️ Clima; sin ubicación (o sin coordenadas cargadas) esas funciones no muestran nada |
 | `preferencias_modificado_en` | string (ISO datetime) | Ronda 9b | Lo sella el sistema al guardar. No se edita a mano |
 
