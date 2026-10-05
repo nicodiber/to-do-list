@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.107.1] - 2026-10-05
+
+### Corregido
+
+- **Eventos de Semana con el color genérico (gris)** en vez del de su calendario: si la lista de calendarios fallaba un momento (red, token), el fallo se guardaba en la caché y, mientras duraba, STDL leía solo el calendario principal con un gris de relleno —y esos eventos se guardaban así—. Ahora un fallo no se cachea, se usa la última lista de calendarios conocida (con sus colores, recordada en este navegador) y las lecturas hechas con una lista degradada no se guardan, así el próximo dibujo reintenta y recupera los colores reales.
+
 ## [v0.107.0] - 2026-10-05
 
 Ajustes visuales, personas por etiqueta y horario preferido por tarea.

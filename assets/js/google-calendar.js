@@ -59,6 +59,26 @@ async function pedirJSON(url, accessToken) {
  * Los calendarios del usuario (`{ id, nombre, color, principal }`), con el principal primero. El permiso es el mismo
  * de solo lectura que ya se pidió. Sin conexión con Calendar o si falla la consulta devuelve `[]`.
  */
+let listaDegradada = false;
+const CLAVE_CALENDARIOS = 'super-todo-list:calendarios-conocidos';
+
+function recordarCalendarios(lista) {
+  try {
+    localStorage.setItem(CLAVE_CALENDARIOS, JSON.stringify(lista));
+  } catch {
+    // Solo sirve de respaldo si falla la próxima lectura.
+  }
+}
+
+function calendariosRecordados() {
+  try {
+    const lista = JSON.parse(localStorage.getItem(CLAVE_CALENDARIOS) || '[]');
+    return Array.isArray(lista) ? lista : [];
+  } catch {
+    return [];
+  }
+}
+
 export function listarCalendarios() {
   if (cacheCalendarios && Date.now() - cacheCalendarios.timestamp < DURACION_CACHE_MS) return cacheCalendarios.promesa;
   const accessToken = obtenerTokenAcceso();
@@ -73,8 +93,17 @@ export function listarCalendarios() {
       (datos.items || []).forEach((c) => calendarios.push({ id: c.id, nombre: c.summaryOverride || c.summary || c.id, color: c.backgroundColor || '#9ca3af', principal: !!c.primary }));
       pagina = datos.nextPageToken || '';
     } while (pagina);
-    return calendarios.sort((a, b) => Number(b.principal) - Number(a.principal) || a.nombre.localeCompare(b.nombre, 'es'));
-  })().catch(() => []);
+    const ordenados = calendarios.sort((a, b) => Number(b.principal) - Number(a.principal) || a.nombre.localeCompare(b.nombre, 'es'));
+    recordarCalendarios(ordenados);
+    listaDegradada = false;
+    return ordenados;
+  })().catch(() => {
+    // Un fallo no se cachea (v0.107.1): antes quedaba la lista vacía —y todos los eventos en gris— hasta que vencía la caché.
+    // Se usa la última lista que se pudo leer (con sus colores) y se marca el resultado como degradado para reintentar.
+    listaDegradada = true;
+    if (cacheCalendarios?.promesa === promesa) cacheCalendarios = null;
+    return calendariosRecordados();
+  });
   cacheCalendarios = { promesa, timestamp: Date.now() };
   return promesa;
 }
@@ -121,7 +150,10 @@ export function listarColoresEvento() {
 /** Los calendarios a leer: los elegidos en las preferencias o, sin elección, todos (y si no se puede listar, el principal). */
 async function calendariosALeer() {
   const todos = await listarCalendarios();
-  if (todos.length === 0) return [{ id: 'primary', nombre: 'Calendario principal', color: '#9ca3af' }];
+  if (todos.length === 0) {
+    listaDegradada = true;
+    return [{ id: 'primary', nombre: 'Calendario principal', color: '#9ca3af' }];
+  }
   const elegidos = obtenerPreferencias().pref_calendarios;
   return elegidos ? todos.filter((c) => elegidos.includes(c.id)) : todos;
 }
@@ -217,6 +249,10 @@ function eventosCompletos(desdeISODate, hastaISODate) {
 
   const promesa = pedirEventos(desdeISODate, hastaISODate);
   cacheEventos.set(clave, { promesa, timestamp: Date.now() });
+  // Si la lista de calendarios no se pudo leer (colores posiblemente genéricos), no se guarda: el próximo dibujo reintenta.
+  promesa.then(() => {
+    if (listaDegradada && cacheEventos.get(clave)?.promesa === promesa) cacheEventos.delete(clave);
+  }).catch(() => {});
   // Un error no se cachea: el próximo dibujo vuelve a intentar.
   promesa.catch(() => {
     if (erroresLectura.length === 0) erroresLectura = ['Google Calendar'];
