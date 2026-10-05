@@ -69,10 +69,11 @@ export function renderVistaResumen(contenedor) {
   const manana = fechaISOMasDias(1, hoyISO());
 
   // Tareas cuya fecha sugerida quedó después de su propia fecha límite (un corrimiento en cascada, sin hueco
-  // real disponible, la dejó así) — se muestran aparte (v0.89.0), no en su sección habitual.
+  // real disponible, la dejó así) — se muestran aparte (v0.89.0), no en su sección habitual. Una tarea cuyo límite ya
+  // pasó (v0.106.1) no entra acá: ya no hay «antes del límite» al que llegar, y su lugar es Vencidas (o Urgentes de las bloqueadas).
   const sinHuecoAntesDelLimite = ordenarConCadenas(
     pendientesActivas
-      .filter((t) => t.tarea_fecha_sugerida && superaLimite(t.tarea_fecha_sugerida, t.tarea_fecha_limite))
+      .filter((t) => t.tarea_fecha_sugerida && !esVencida(t.tarea_fecha_limite) && superaLimite(t.tarea_fecha_sugerida, t.tarea_fecha_limite))
       .sort((a, b) => compararPorPrioridad(a, b, estado.categorias))
   );
   const idsSinHueco = new Set(sinHuecoAntesDelLimite.map((t) => t.tarea_id));

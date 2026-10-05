@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.106.1] - 2026-10-05
+
+### Corregido
+
+- **Tareas vencidas que no aparecían en «Vencidas» (Resumen)**: una tarea con el límite ya pasado y la sugerida posterior a ese límite caía en «⚠️ Sin hueco antes del límite» (que se calcula primero y se las quedaba) en vez de «Vencidas». Con el límite vencido ya no hay un «antes del límite» al que llegar, así que esa sección solo toma tareas con límite vigente; las vencidas van a Vencidas (o a Urgentes, si están bloqueadas). El aviso al iniciar («No hay hueco libre antes de su fecha límite») aplica el mismo criterio.
+
 ## [v0.106.0] - 2026-10-04
 
 Fecha sugerida fija (lo que fijás vos, STDL no lo mueve), asistente de IA con tu propia clave (etapa 1), cronómetro por tarea y exportar a CSV.
