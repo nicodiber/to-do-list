@@ -137,7 +137,7 @@ export function renderVistaResumen(contenedor) {
       <button title="Ver los eventos reales de tu Calendar y agregar las tareas de continuidad que hayan surgido" type="button" id="boton-revisar-dia" class="boton-primario">👀 Revisar mi día</button>
       <div class="contenedor-selector-dia-revision" hidden></div>
     </div>
-    <details class="completadas-plegadas">
+    <details class="completadas-plegadas" ${vencidas.length > 0 ? 'open' : ''}>
       <summary title="Tareas accionables cuya fecha límite ya venció">🔴 Vencidas (${vencidas.length})</summary>
       <ul id="lista-vencidas" class="lista-tareas"></ul>
     </details>

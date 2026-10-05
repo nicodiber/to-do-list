@@ -759,7 +759,8 @@ export function tareasEmpatadas(a, b, categorias) {
  * tape siempre a las demás.
  */
 export function mejorTareaPorCategoria(tareas, categorias) {
-  const raices = categorias.filter((c) => !c.categoria_padre_id);
+  // En el orden de la jerarquía de categorías (`categoria_prioridad`, el mismo de Categorías y los selectores) desde la v0.107.0.
+  const raices = categorias.filter((c) => !c.categoria_padre_id).sort((a, b) => a.categoria_prioridad - b.categoria_prioridad);
   return raices
     .map((raiz) => {
       const candidatas = tareas.filter((t) => {

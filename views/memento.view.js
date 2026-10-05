@@ -71,11 +71,13 @@ export function renderVistaMemento(contenedor) {
   }
 
   contenedor.innerHTML = `
-    <h2 title="Un calendario de tu vida: cada casilla es una ${unidad.clave === 'semanas' ? 'semana' : unidad.clave === 'meses' ? 'mes' : 'año'}">⏳ Memento mori</h2>
-    <blockquote class="cita-habitos">Recordá que vas a morir: no para entristecerte, sino para elegir en qué gastar el tiempo.</blockquote>
-    <div class="selector-rango" role="group" aria-label="Unidad">
-      ${UNIDADES.map((u) => `<button type="button" data-unidad="${u.clave}" class="${u.clave === unidad.clave ? 'activo' : ''}" title="Una casilla por ${u.etiqueta.toLowerCase().replace(/s$/, '')}">${u.etiqueta}</button>`).join('')}
+    <div class="barra-titulo">
+      <h2 title="Un calendario de tu vida: cada casilla es una ${unidad.clave === 'semanas' ? 'semana' : unidad.clave === 'meses' ? 'mes' : 'año'}">⏳ Memento mori</h2>
+      <div class="selector-rango" role="group" aria-label="Unidad">
+        ${UNIDADES.map((u) => `<button type="button" data-unidad="${u.clave}" class="${u.clave === unidad.clave ? 'activo' : ''}" title="Una casilla por ${u.etiqueta.toLowerCase().replace(/s$/, '')}">${u.etiqueta}</button>`).join('')}
+      </div>
     </div>
+    <blockquote class="cita-habitos">Recordá que vas a morir: no para entristecerte, sino para elegir en qué gastar el tiempo.</blockquote>
     <p>Naciste el <strong>${formatearFecha(nacimiento)}</strong>: tenés <strong>${edadAnios}</strong> años, viviste <strong>${diasVividos.toLocaleString('es-AR')}</strong> días (${porcentaje.toFixed(1).replace('.', ',')} % de una vida de ${esperanza} años) y, si llegás a los ${esperanza}, te quedan unos <strong>${diasRestantes.toLocaleString('es-AR')}</strong> días (≈ ${Math.round(diasRestantes / 7).toLocaleString('es-AR')} semanas).</p>
     <div class="acciones-config">
       <label title="Hasta qué edad pensás vivir, solo para dibujar la cuadrícula">Expectativa de vida

@@ -351,16 +351,34 @@ export function calcularSolapamiento(tarea, eventos) {
  *   `franja` como "HH:MM" (el fin puede ser "24:00"); `bloquesPorDia` (v0.105.0) son los bloques disponibles de cada día de la
  *   semana (índice 0 = domingo) y, si se pasa, manda sobre `franja`; `diasHabiles` como índices de día de la semana (vacío = todos).
  */
-export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dias = diasHorizonteCalendar(), franja = { inicio: '00:00', fin: '24:00' }, bloquesPorDia = null, diasHabiles = [] } = {}) {
+/** Los bloques recortados a la ventana `{ inicio, fin }` (los que no se cruzan con ella desaparecen). */
+function recortarBloques(bloques, ventana) {
+  const vi = minutosDeHHMM(ventana.inicio);
+  const vf = minutosDeHHMM(ventana.fin);
+  const aHHMM = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  return bloques
+    .map((b) => ({ inicio: aHHMM(Math.max(vi, minutosDeHHMM(b.inicio))), fin: aHHMM(Math.min(vf, minutosDeHHMM(b.fin))) }))
+    .filter((b) => minutosDeHHMM(b.inicio) < minutosDeHHMM(b.fin));
+}
+
+/** Ventanas del horario preferido de una tarea (`tarea_horario_preferido`). */
+export const HORARIOS_PREFERIDOS = {
+  manana: { etiqueta: '🌅 Mañana (6 a 12)', inicio: '06:00', fin: '12:00' },
+  tarde: { etiqueta: '☀️ Tarde (12 a 18)', inicio: '12:00', fin: '18:00' },
+  noche: { etiqueta: '🌙 Noche (18 a 24)', inicio: '18:00', fin: '24:00' },
+};
+
+/** La ventana preferida de la tarea (`{ inicio, fin }`) o `null` si no tiene. */
+export function ventanaPreferida(tarea) {
+  return HORARIOS_PREFERIDOS[tarea.tarea_horario_preferido] || null;
+}
+
+export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dias = diasHorizonteCalendar(), franja = { inicio: '00:00', fin: '24:00' }, bloquesPorDia = null, diasHabiles = [], preferido = null } = {}) {
   const duracionMs = (duracionMin || 30) * 60000;
   const ocupados = eventos.map((evento) => ({ inicio: new Date(evento.inicio).getTime(), fin: new Date(evento.fin).getTime() }));
   const minimo = Math.ceil(desde.getTime() / PASO_HUECO_MS) * PASO_HUECO_MS;
 
-  for (let d = 0; d < dias; d += 1) {
-    const dia = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + d);
-    if (diasHabiles.length > 0 && !diasHabiles.includes(dia.getDay())) continue;
-
-    const bloques = bloquesPorDia ? bloquesPorDia[dia.getDay()] || [] : [franja];
+  const buscarEnBloques = (dia, bloques) => {
     for (const bloque of bloques) {
       const inicioFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(bloque.inicio)).getTime();
       const finFranja = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, minutosDeHHMM(bloque.fin)).getTime();
@@ -372,6 +390,20 @@ export function buscarHuecoLibre(eventos, duracionMin, { desde = new Date(), dia
         // Se salta al final del evento que choca (redondeado al próximo paso de 15 min).
         candidato = Math.ceil(choque.fin / PASO_HUECO_MS) * PASO_HUECO_MS;
       }
+    }
+    return null;
+  };
+
+  for (let d = 0; d < dias; d += 1) {
+    const dia = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + d);
+    if (diasHabiles.length > 0 && !diasHabiles.includes(dia.getDay())) continue;
+
+    const bloques = bloquesPorDia ? bloquesPorDia[dia.getDay()] || [] : [franja];
+    // Horario preferido (v0.107.0): se intenta primero dentro de esa ventana; si ese día no hay lugar, se usa el resto del día.
+    const intentos = preferido ? [recortarBloques(bloques, preferido), bloques] : [bloques];
+    for (const lista of intentos) {
+      const hallado = buscarEnBloques(dia, lista);
+      if (hallado) return hallado;
     }
   }
   return null;

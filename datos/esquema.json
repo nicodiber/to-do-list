@@ -133,6 +133,7 @@
         "persona_id": { "type": ["string", "null"] },
         "tarea_delegada_a": { "type": ["string", "null"] },
         "tarea_fecha_fija": { "type": "boolean" },
+        "tarea_horario_preferido": { "type": "string", "enum": ["", "manana", "tarde", "noche"] },
         "tarea_cronometro_inicio": { "type": ["string", "null"] },
         "tarea_tiempo_acumulado_min": { "type": "number", "minimum": 0 },
         "tarea_seguimiento_fecha": { "type": "string" },
