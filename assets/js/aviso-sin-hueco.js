@@ -4,7 +4,7 @@
 
 import { estado } from './almacenamiento.js';
 import { avisar } from './avisos.js';
-import { nombrarConCategoria, tieneHora, diaLocal, hoyISO } from './utilidades.js';
+import { nombrarConCategoria, tieneHora, diaLocal, hoyISO, esVencida } from './utilidades.js';
 import { superaLimite } from './programador.js';
 
 /**
@@ -22,6 +22,8 @@ export function filtrarSinHuecoVigente(lista) {
     .filter((t) => {
       if (!t || t.tarea_estado === 'completada' || vistos.has(t.tarea_id)) return false;
       vistos.add(t.tarea_id);
+      // Con el límite ya vencido (v0.106.1) no hay «antes del límite»: está en Resumen → Vencidas, no en «Sin hueco».
+      if (esVencida(t.tarea_fecha_limite)) return false;
       if (!tieneHora(t.tarea_fecha_sugerida)) return true;
       return superaLimite(t.tarea_fecha_sugerida, t.tarea_fecha_limite) || diaLocal(t.tarea_fecha_sugerida) < hoy;
     });
