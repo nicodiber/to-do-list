@@ -64,14 +64,26 @@ export function renderVistaPersonas(contenedor) {
     return;
   }
 
-  estado.personas
-    .slice()
-    .sort((a, b) => {
-      // Las fallecidas siempre al final, sin importar hace cuánto no hay contacto (v0.91.0).
-      if (!!a.persona_fallecida !== !!b.persona_fallecida) return a.persona_fallecida ? 1 : -1;
-      return diasDesdeContacto(b) - diasDesdeContacto(a);
-    })
-    .forEach((persona) => listaPersonas.appendChild(renderPersona(persona, contenedor)));
+  // Agrupadas por etiqueta (v0.107.0): los grupos por nombre de etiqueta y «Sin etiqueta» al final; dentro de cada grupo,
+  // de más tiempo sin contacto a menos (las fallecidas siempre al final del grupo).
+  const porContacto = (a, b) => {
+    if (!!a.persona_fallecida !== !!b.persona_fallecida) return a.persona_fallecida ? 1 : -1;
+    return diasDesdeContacto(b) - diasDesdeContacto(a);
+  };
+  const etiquetas = [...(estado.etiquetas || [])].sort((a, b) => a.etiqueta_nombre.localeCompare(b.etiqueta_nombre, 'es'));
+  const grupos = etiquetas.map((e) => ({ etiqueta: e, personas: estado.personas.filter((p) => p.persona_etiqueta_id === e.etiqueta_id) }));
+  grupos.push({ etiqueta: null, personas: estado.personas.filter((p) => !p.persona_etiqueta_id || !etiquetas.some((e) => e.etiqueta_id === p.persona_etiqueta_id)) });
+  grupos
+    .filter((g) => g.personas.length > 0)
+    .forEach((g) => {
+      const titulo = document.createElement('h3');
+      titulo.className = 'titulo-grupo-personas';
+      titulo.innerHTML = g.etiqueta
+        ? `<span class="punto-etiqueta" style="background:${escaparHtml(g.etiqueta.etiqueta_color)}"></span> ${escaparHtml(g.etiqueta.etiqueta_nombre)} (${g.personas.length})`
+        : `Sin etiqueta (${g.personas.length})`;
+      listaPersonas.appendChild(titulo);
+      g.personas.sort(porContacto).forEach((persona) => listaPersonas.appendChild(renderPersona(persona, contenedor)));
+    });
 }
 
 function htmlBarraSeleccion() {

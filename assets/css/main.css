@@ -1573,13 +1573,10 @@ section h3 {
   margin-top: 0.5rem;
 }
 
-/* La tabla se desplaza hacia el costado y hacia abajo dentro de su recuadro, no la página; el encabezado
-   de columnas queda fijo arriba de ese scroll propio (no del de la página, para no chocar con la cabecera). */
+/* La tabla muestra todas las filas y se desplaza hacia abajo con la página (v0.107.0); solo hacia el costado tiene scroll propio. */
 .tabla-tareas-contenedor {
   overflow-x: auto;
-  overflow-y: auto;
   max-width: 100%;
-  max-height: 70vh;
 }
 
 .tabla-informe thead th {
@@ -1907,8 +1904,7 @@ span.etiqueta-exportada {
 
 .gantt-desplazable {
   position: relative;
-  overflow: auto;
-  max-height: 70vh;
+  overflow-x: auto;
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
   background: var(--color-superficie);
@@ -3307,9 +3303,10 @@ kbd {
   transition: width 0.15s ease;
 }
 .app-layout > .vista { flex: 1 1 auto; min-width: 0; width: 100%; }
-.sidebar-marca { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; }
-.sidebar-marca h1 { margin: 0; font-size: 1.25rem; }
-.sidebar-marca .version-app { flex: 1; }
+.sidebar-marca { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'nombre boton' 'version boton'; align-items: center; column-gap: 0.4rem; }
+.sidebar-marca h1 { grid-area: nombre; margin: 0; font-size: 1.25rem; line-height: 1.1; }
+.sidebar-marca .version-app { grid-area: version; }
+.sidebar-marca .boton-compactar { grid-area: boton; }
 .boton-compactar { border: 1px solid var(--color-borde); background: var(--color-fondo); color: var(--color-texto); border-radius: 6px; cursor: pointer; padding: 0.1rem 0.5rem; font-size: 0.9rem; }
 .sidebar-estado { display: flex; flex-direction: column; gap: 0.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-borde); }
 .sidebar .indicador-sync { align-items: flex-start; text-align: left; }
@@ -3330,9 +3327,9 @@ kbd {
 /* Compacto: solo emojis. */
 body.sidebar-compacto .sidebar { width: 3.6rem; padding: 0.9rem 0.4rem; align-items: stretch; }
 body.sidebar-compacto .sidebar .texto-sidebar { display: none; }
-body.sidebar-compacto .sidebar-marca { flex-direction: column; align-items: center; gap: 0.2rem; }
+body.sidebar-compacto .sidebar-marca { grid-template-columns: 1fr; grid-template-areas: 'nombre' 'version' 'boton'; justify-items: center; row-gap: 0.2rem; }
 body.sidebar-compacto .sidebar-marca h1 { font-size: 0.85rem; }
-body.sidebar-compacto .sidebar-marca .version-app { display: none; }
+body.sidebar-compacto .sidebar-marca .version-app { font-size: 0.55rem; }
 body.sidebar-compacto .sidebar .enlace-nav { justify-content: center; padding: 0.45rem 0; }
 body.sidebar-compacto .sidebar button { text-align: center; padding: 0.4rem 0.2rem; }
 body.sidebar-compacto .sidebar-acciones { flex-direction: column; }
@@ -3343,8 +3340,8 @@ body.sidebar-compacto .sidebar .indicador-sync { align-items: center; }
   .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: min(17rem, 85vw) !important; transform: translateX(-105%); transition: transform 0.18s ease; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.35); }
   body.menu-abierto .sidebar { transform: none; }
   body.sidebar-compacto .sidebar .texto-sidebar { display: inline; }
-  body.sidebar-compacto .sidebar-marca { flex-direction: row; align-items: baseline; }
-  body.sidebar-compacto .sidebar-marca .version-app { display: inline; }
+  body.sidebar-compacto .sidebar-marca { grid-template-columns: 1fr auto; grid-template-areas: 'nombre boton' 'version boton'; justify-items: stretch; }
+  body.sidebar-compacto .sidebar-marca .version-app { font-size: 0.7rem; }
   body.sidebar-compacto .sidebar .enlace-nav { justify-content: flex-start; padding: 0.45rem 0.6rem; }
   body.sidebar-compacto .sidebar button { text-align: left; }
   body.sidebar-compacto .sidebar-acciones { flex-direction: row; }
@@ -3484,3 +3481,13 @@ dialog[open]::backdrop { animation: aparecer-fondo 0.16s ease-out; }
 .tabla-propuesta .par-fecha-hora { display: inline-flex; gap: 0.3rem; flex-wrap: wrap; }
 .acciones-propuesta { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
 @media (max-width: 600px) { .burbuja-chat { max-width: 95%; } .tabla-propuesta thead { display: none; } }
+
+/* Personas agrupadas por etiqueta (v0.107.0) */
+.titulo-grupo-personas { margin: 1rem 0 0.4rem; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem; }
+.punto-etiqueta { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; }
+
+/* Título y controles en la misma línea (v0.107.0), como en Semana */
+.barra-titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-bottom: 0.5rem; }
+.barra-titulo h2 { margin: 0; }
+.barra-titulo .selector-rango, .barra-titulo .solapas { margin: 0; flex-wrap: wrap; }
+.barra-titulo.controles-gantt .selector-rango + .selector-rango { margin-left: 0; }

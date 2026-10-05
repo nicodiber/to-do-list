@@ -60,8 +60,8 @@ export function renderVistaGantt(contenedor) {
   seleccionadasGantt = new Set([...seleccionadasGantt].filter((id) => estado.tareas.some((t) => t.tarea_id === id)));
 
   contenedor.innerHTML = `
-    <h2>📊 Gantt</h2>
-    <div class="controles-gantt">
+    <div class="barra-titulo controles-gantt">
+      <h2>📊 Gantt</h2>
       <div class="selector-rango" role="group" aria-label="Modo">
         <button type="button" data-modo="plan" class="${modo === 'plan' ? 'activo' : ''}" title="Cada tarea en su día sugerido">📅 Plan</button>
         <button type="button" data-modo="ventana" class="${modo === 'ventana' ? 'activo' : ''}" title="El margen (holgura) entre habilitada y límite">↔️ Ventana</button>

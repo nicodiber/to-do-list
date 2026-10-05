@@ -2,6 +2,29 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.107.1] - 2026-10-05
+
+### Corregido
+
+- **Eventos de Semana con el color genérico (gris)** en vez del de su calendario: si la lista de calendarios fallaba un momento (red, token), el fallo se guardaba en la caché y, mientras duraba, STDL leía solo el calendario principal con un gris de relleno —y esos eventos se guardaban así—. Ahora un fallo no se cachea, se usa la última lista de calendarios conocida (con sus colores, recordada en este navegador) y las lecturas hechas con una lista degradada no se guardan, así el próximo dibujo reintenta y recupera los colores reales.
+
+## [v0.107.0] - 2026-10-05
+
+Ajustes visuales, personas por etiqueta y horario preferido por tarea.
+
+### Agregado
+
+- **🕓 Horario preferido por tarea** (`tarea_horario_preferido`: mañana 6–12, tarde 12–18, noche 18–24; campo en el formulario de la tarea): el agendado (`buscarHuecoLibre`, opción `preferido`) busca primero dentro de esa franja y de tus horarios disponibles de cada día; si ese día no hay lugar en la franja, usa el resto del día (no retrasa la tarea a otro día por la preferencia). Cierra el ítem «Horario preferido por tarea o hábito» del backlog.
+- **Personas agrupadas por etiqueta**: un grupo por etiqueta (por nombre) y «Sin etiqueta» al final; dentro de cada grupo se mantiene el orden de último contacto (más tiempo sin contacto primero, fallecidas al final).
+
+### Cambiado
+
+- **Resumen → Vencidas** se muestra abierta por defecto cuando tiene al menos una tarea.
+- **Resumen → Próximos por categoría** ahora sigue el orden de la jerarquía de categorías (`categoria_prioridad`, el mismo de Categorías); antes salía en el orden en que estaban guardadas las categorías raíz.
+- **Título y controles en la misma línea** en Agenda (3/8/15 días), Gantt, Estadísticas, Mejoras y Memento mori, como en Semana.
+- **Menú lateral**: la versión va debajo de «STDL» y también se ve con el menú compactado.
+- **Gantt y Tabla** muestran todas las tareas y se desplazan hacia abajo con la página, no dentro del recuadro (solo conservan scroll propio hacia el costado). Consecuencia: los encabezados de columnas ya no quedan fijos al desplazarse hacia abajo.
+
 ## [v0.106.1] - 2026-10-05
 
 ### Corregido

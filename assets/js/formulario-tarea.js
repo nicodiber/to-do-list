@@ -2,6 +2,7 @@
 // edición y "Completar carga de tareas": un solo lugar para armar los campos,
 // leerlos y validarlos, en lugar de tres copias.
 
+import { HORARIOS_PREFERIDOS } from './google-calendar.js';
 import { estado } from './almacenamiento.js';
 import { UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelos.js';
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora, htmlInterruptor } from './utilidades.js';
@@ -273,6 +274,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
       <div class="ancho-completo">${htmlInterruptor('tarea_fecha_fija', t.tarea_fecha_fija, '📌 Fijar este horario', 'title="Con hora, STDL no mueve este horario (ni lo reordena ni lo adelanta) hasta que pase junto con su duración estimada. Se activa solo al cargar o cambiar la fecha sugerida con hora; desmarcalo para que STDL pueda moverlo"')}</div>
       ${htmlParFechaHora('tarea_fecha_limite', t.tarea_fecha_limite, '⏳ Límite', 'Fecha en la que tiene que estar hecha sí o sí')}
       <label class="campo" title="Cuánto tarda, en minutos (por defecto 15)"><span class="campo-titulo">⏱️ Duración (minutos)</span><input type="number" name="tarea_duracion_min" value="${t.tarea_duracion_min || 15}" min="0" step="15" /></label>
+      <label class="campo" title="Franja del día en la que preferís hacerla: el agendado la intenta primero ahí y, si no hay lugar ese día, usa el resto del día"><span class="campo-titulo">🕓 Horario preferido</span><select name="tarea_horario_preferido"><option value="">Sin preferencia</option>${Object.entries(HORARIOS_PREFERIDOS).map(([clave, h]) => `<option value="${clave}" ${t.tarea_horario_preferido === clave ? 'selected' : ''}>${h.etiqueta}</option>`).join('')}</select></label>
       <div class="campo ancho-completo" title="Los días de la semana en que se puede hacer; sin marcar, cualquier día"><span class="campo-titulo">🗓️ Días hábiles (sin marcar = cualquier día)</span>${htmlDiasHabiles(t.tarea_dias_habiles || [])}</div>
     </fieldset>
 
@@ -582,6 +584,7 @@ export function leerFormularioTarea(formulario) {
         tieneHora(limitarFechaSugeridaALimite(combinarCampoFechaHora(datos, 'tarea_fecha_sugerida'), combinarCampoFechaHora(datos, 'tarea_fecha_limite'))),
       tarea_fecha_limite: combinarCampoFechaHora(datos, 'tarea_fecha_limite'),
       tarea_duracion_min: Number(datos.get('tarea_duracion_min')) || 15,
+      tarea_horario_preferido: datos.get('tarea_horario_preferido') || '',
       tarea_costo_estimado: Number(datos.get('tarea_costo_estimado')) || 0,
       tarea_descripcion: String(datos.get('tarea_descripcion') || '').trim(),
       ubicacion_id: valorSeleccion(datos.get('ubicacion_id')),

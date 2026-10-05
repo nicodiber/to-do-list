@@ -53,9 +53,11 @@ export function renderVistaAgenda(contenedor, cantidadDias, alCambiarRango = nul
   });
 
   contenedor.innerHTML = `
-    <h2>📖 Agenda</h2>
-    <div class="selector-rango" role="group" aria-label="Cantidad de días">
-      ${[3, 8, 15].map((n) => `<button type="button" data-dias="${n}" title="Ver los próximos ${n} días" class="${n === cantidadDias ? 'activo' : ''}">${n} días</button>`).join('')}
+    <div class="barra-titulo">
+      <h2>📖 Agenda</h2>
+      <div class="selector-rango" role="group" aria-label="Cantidad de días">
+        ${[3, 8, 15].map((n) => `<button type="button" data-dias="${n}" title="Ver los próximos ${n} días" class="${n === cantidadDias ? 'activo' : ''}">${n} días</button>`).join('')}
+      </div>
     </div>
     <p class="ayuda">Tareas con fecha límite o sugerida en este período — para anticipar cuellos de botella antes de que se conviertan en urgencias.</p>
     <div class="agenda"></div>

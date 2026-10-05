@@ -209,9 +209,11 @@ let solapaActiva = 'resumen';
 
 export function renderVistaEstadisticas(contenedor) {
   contenedor.innerHTML = `
-    <h2>📈 Estadísticas</h2>
-    <div class="solapas" role="tablist">
-      ${SOLAPAS.map((sol) => `<button type="button" role="tab" title="${sol.ayuda}" data-solapa="${sol.clave}" aria-selected="${sol.clave === solapaActiva}" class="${sol.clave === solapaActiva ? 'activa' : ''}">${sol.etiqueta}</button>`).join('')}
+    <div class="barra-titulo">
+      <h2>📈 Estadísticas</h2>
+      <div class="solapas" role="tablist">
+        ${SOLAPAS.map((sol) => `<button type="button" role="tab" title="${sol.ayuda}" data-solapa="${sol.clave}" aria-selected="${sol.clave === solapaActiva}" class="${sol.clave === solapaActiva ? 'activa' : ''}">${sol.etiqueta}</button>`).join('')}
+      </div>
     </div>
     <div class="contenido-solapa"></div>
   `;

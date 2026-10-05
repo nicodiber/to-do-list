@@ -21,9 +21,11 @@ export function renderVistaMejoras(contenedor) {
   const nombres = [...porTarea.keys()].sort((a, b) => a.localeCompare(b, 'es'));
 
   contenedor.innerHTML = `
-    <h2 title="Las notas que dejás al cumplir una tarea con repetición (¿qué podrías mejorar la próxima vez?). Repasalas y marcalas como aplicadas cuando ya las incorporaste.">💡 Mejoras</h2>
-    <div class="selector-rango" role="group" aria-label="Filtro">
-      ${FILTROS.map((f) => `<button type="button" data-filtro="${f.clave}" title="Mostrar las notas ${f.etiqueta.toLowerCase()}" class="${f.clave === filtro ? 'activo' : ''}">${f.etiqueta} (${mejoras.filter(f.cuenta).length})</button>`).join('')}
+    <div class="barra-titulo">
+      <h2 title="Las notas que dejás al cumplir una tarea con repetición (¿qué podrías mejorar la próxima vez?). Repasalas y marcalas como aplicadas cuando ya las incorporaste.">💡 Mejoras</h2>
+      <div class="selector-rango" role="group" aria-label="Filtro">
+        ${FILTROS.map((f) => `<button type="button" data-filtro="${f.clave}" title="Mostrar las notas ${f.etiqueta.toLowerCase()}" class="${f.clave === filtro ? 'activo' : ''}">${f.etiqueta} (${mejoras.filter(f.cuenta).length})</button>`).join('')}
+      </div>
     </div>
     <div class="lista-mejoras"></div>
   `;

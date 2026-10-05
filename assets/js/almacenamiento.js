@@ -253,6 +253,7 @@ function migrarTarea(t) {
       // Campos de la v0.105.0 (delegaciones): ausentes en datos anteriores.
       tarea_delegada_a: resto.tarea_delegada_a || null,
       tarea_fecha_fija: !!resto.tarea_fecha_fija,
+      tarea_horario_preferido: ['manana', 'tarde', 'noche'].includes(resto.tarea_horario_preferido) ? resto.tarea_horario_preferido : '',
       tarea_cronometro_inicio: resto.tarea_cronometro_inicio || null,
       tarea_tiempo_acumulado_min: Number(resto.tarea_tiempo_acumulado_min) > 0 ? Number(resto.tarea_tiempo_acumulado_min) : 0,
       tarea_seguimiento_fecha: resto.tarea_delegada_a ? resto.tarea_seguimiento_fecha || '' : '',
@@ -314,6 +315,7 @@ function migrarTarea(t) {
     tarea_delegada_a: null,
     tarea_seguimiento_fecha: '',
     tarea_fecha_fija: false,
+    tarea_horario_preferido: '',
     tarea_cronometro_inicio: null,
     tarea_tiempo_acumulado_min: 0,
   };

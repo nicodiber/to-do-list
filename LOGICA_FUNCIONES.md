@@ -593,6 +593,10 @@ Service worker de la PWA — estrategia network-first.
 - Formulario de tarea: el interruptor «📌 Fijar este horario» se marca solo al cargar o cambiar la fecha sugerida con hora; solo se guarda si la sugerida tiene hora. Edición masiva: asignar una sugerida con hora la fija. Asistente: lo que el usuario aprueba con hora queda fijo.
 - `programador.js` respeta la fijeza: `reubicarTareasSolapadas` no mueve una fija que choca con Calendar y la devuelve en `fijasEnChoque` (aviso al iniciar, sin persistir); `adelantarTareasSiHayHuecoMejor`, `reordenarSugeridasPorPrioridad`, `reasignarUrgentesAHoy` y `resolverColisionesEnCadena` no la tocan. `reprogramarVencidas` y `reprogramarTareaInmediataSiVencio` la sueltan (`tarea_fecha_fija = false`) cuando su ventana ya pasó.
 
+## Horario preferido (v0.107.0)
+
+`buscarHuecoLibre(..., { preferido })` (`assets/js/google-calendar.js`): con una ventana `{ inicio, fin }` (`ventanaPreferida(tarea)`, de `HORARIOS_PREFERIDOS`), cada día prueba primero los bloques disponibles recortados a esa ventana y, si no entra, los bloques completos del día. Todos los llamados del agendado de `programador.js` la pasan.
+
 ## `assets/js/cronometro.js`
 
 `iniciarCronometro`, `detenerCronometro` (suma el tramo a `tarea_tiempo_acumulado_min`), `tiempoMedidoMinutos`, `cronometroCorriendo`, `formatearMinutosMedidos`. `preguntarTiempoReal` (tiempo-real.js) usa lo medido: si hay tiempo, lo anota en el cumplimiento sin preguntar y lo reinicia; si no, sigue el comportamiento de antes (preguntar si la preferencia está activada). La Tabla muestra el botón ▶/⏹ con el tiempo.

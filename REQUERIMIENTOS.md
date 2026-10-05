@@ -55,7 +55,8 @@ Documento vivo (v0.106.0): lista los requerimientos funcionales (RF) y no funcio
 | RF-42 | Reubicar, adelantar y reordenar cuando Calendar cambia | ✅ | `programador.js` |
 | RF-43 | No asignar ni mover horarios sin una lectura confiable de Calendar | ✅ | `google-calendar.js` |
 | RF-45 | Horario fijado por el usuario: STDL no lo mueve hasta que pasa (hora + duración) | ✅ | `tareas-logica.js` (`fechaFijaVigente`), `programador.js` |
-| RF-44 | Horario preferido por tarea/hábito, tiempos de traslado, bloques de foco | ⏳ | ver `INVESTIGACION_COMPETENCIA.md` |
+| RF-44 | Horario preferido por tarea/hábito | ✅ | `google-calendar.js` (`buscarHuecoLibre`, `preferido`) |
+| RF-46 | Tiempos de traslado y descansos, bloques de foco | ⏳ | ver `INVESTIGACION_COMPETENCIA.md` |
 
 ### 1.6 Datos y cuentas
 | ID | Requerimiento | Estado | Dónde |
