@@ -14,9 +14,10 @@ import { repararEnlaces } from './dependencias.js';
 import { fechaLocalISO } from './utilidades.js';
 import { registrarPasoDeshacer, invalidarHistorialDeshacer } from './deshacer.js';
 import { confirmar } from './avisos.js';
+import { PREFIJO_APP } from './entorno.js';
 
-const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
-const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
+const CLAVE_LOCALSTORAGE_VIEJA = `${PREFIJO_APP}:datos`;
+const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = `${PREFIJO_APP}:ultima-modificacion`;
 const DEBOUNCE_SUBIDA_MS = 2000;
 const INTERVALO_VERIFICACION_MS = 5 * 60 * 1000;
 const REINTENTO_ERROR_MS = 60 * 1000;
@@ -1001,9 +1002,9 @@ export function descartarDatosViejos() {
 // ---------------------------------------------------------------------------
 
 // Copia de seguridad (v0.105.0): cuándo se exportó por última vez en este dispositivo y cada cuántos días recordarlo.
-const CLAVE_ULTIMA_EXPORTACION = 'super-todo-list:ultima-exportacion';
-const CLAVE_RECORDATORIO_COPIA = 'super-todo-list:recordatorio-copia-dias';
-const CLAVE_PRIMER_USO = 'super-todo-list:primer-uso-copia';
+const CLAVE_ULTIMA_EXPORTACION = `${PREFIJO_APP}:ultima-exportacion`;
+const CLAVE_RECORDATORIO_COPIA = `${PREFIJO_APP}:recordatorio-copia-dias`;
+const CLAVE_PRIMER_USO = `${PREFIJO_APP}:primer-uso-copia`;
 export const DIAS_RECORDATORIO_COPIA = [0, 7, 14, 30, 90]; // 0 = nunca
 
 export function ultimaExportacion() {

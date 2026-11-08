@@ -3,12 +3,13 @@ import { calcularMapaHabitos, calcularMapaCategorias, calcularHabito, ESTADOS_CE
 import { escaparHtml, formatearFecha, hoyISO, fechaISOMasDias } from '../assets/js/utilidades.js';
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 // Mostrar también los hábitos ocultos (estado de la sesión, no un dato de la app).
 let mostrarOcultos = false;
 
 // Preferencia de UI (no un dato de la app): cuántos días muestra el mapa de hábitos.
-const CLAVE_LOCALSTORAGE = 'super-todo-list:habitos-dias';
+const CLAVE_LOCALSTORAGE = `${PREFIJO_APP}:habitos-dias`;
 const OPCIONES = [7, 30, 90];
 const POR_DEFECTO = 30;
 

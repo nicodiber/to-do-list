@@ -44,7 +44,7 @@ Lista de todo lo que usa Super To-Do List, qué hace cada cosa y dónde se usa. 
 
 | Tecnología | Para qué se usa |
 |---|---|
-| **GitHub Pages** | Publica la app desde la rama `main`: https://nicodiber.github.io/to-do-list/ |
+| **GitHub Pages** | Publica la app desde la rama `main`: https://nicodiber.github.io/to-do-list/. La rama `develop` se publica aparte como **entorno de pruebas** con datos separados (ver `assets/js/entorno.js`). |
 | **Git y GitHub** | Historial y código fuente. Se trabaja en la rama `develop` y se pasa a `main` con cada versión validada. |
 
 ## Herramientas de desarrollo

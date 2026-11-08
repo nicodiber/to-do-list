@@ -1,6 +1,7 @@
 import { obtenerTokenAcceso, invalidarToken } from './google-auth.js';
+import { PREFIJO_APP } from './entorno.js';
 
-const NOMBRE_ARCHIVO = 'super-todo-list-datos.json';
+const NOMBRE_ARCHIVO = `${PREFIJO_APP}-datos.json`; // v0.107.3: en pruebas, otro archivo (ver entorno.js)
 
 let idArchivoCacheado = null;
 

@@ -2,6 +2,18 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.107.3] - 2026-11-08
+
+### Agregado
+
+- **Entorno de pruebas con datos separados** (H16): fuera de la app real (`nicodiber.github.io/to-do-list/`) —la URL de pruebas de `develop` o una copia local— STDL usa otra base local (`super-todo-list-pruebas`), otro archivo de Drive (`super-todo-list-pruebas-datos.json`), otras preferencias y otra caché, y se marca con «🧪 PRUEBAS» (versión, título de la pestaña y una franja arriba). Así nunca lee ni escribe los datos reales: para probar con tus datos se importa una copia de seguridad exportada. En la app real todos los nombres quedan exactamente iguales. Nuevo `assets/js/entorno.js`.
+- **Pista de cuenta para renovar la sesión de Google en silencio** (H14, primer paso): al conectarse se recuerda en el navegador el email de la cuenta (vía Drive `about`, sin permisos nuevos) y se le pasa a Google en cada renovación. Con varias cuentas de Google abiertas en el navegador, la renovación silenciosa no sabía cuál usar y terminaba pidiendo «Reconectar». El registro de Configuraciones → «Sesión de Google» lo anota como «👤 Cuenta recordada».
+
+### Cambiado
+
+- **Backlog en formato kanban** (📥 Backlog → ✅ Listo para hacer → 🔨 En curso → 🧪 Para probar → ✔️ Hecho), con las historias de usuario H01-H16. No se perdió ningún ítem (verificado línea por línea).
+- La caché del service worker borra solo sus propias versiones viejas, nunca la del otro entorno.
+
 ## [v0.107.2] - 2026-11-08
 
 ### Corregido

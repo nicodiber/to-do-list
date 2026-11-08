@@ -51,9 +51,10 @@ import { activarSonidoDeClic } from './sonidos.js';
 import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 import { avisar, confirmar } from './avisos.js';
+import { PREFIJO_APP, ES_PRUEBAS } from './entorno.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.107.2';
+const VERSION = 'v0.107.3';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -63,7 +64,7 @@ const BOTON_DESHACER = document.getElementById('boton-deshacer');
 const BOTON_REHACER = document.getElementById('boton-rehacer');
 const BOTON_NUEVA_TAREA = document.getElementById('boton-nueva-tarea');
 const BOTON_COMPLETAR_CARGA = document.getElementById('boton-completar-carga');
-const CLAVE_LOCALSTORAGE_TEMA = 'super-todo-list:tema';
+const CLAVE_LOCALSTORAGE_TEMA = `${PREFIJO_APP}:tema`;
 
 // El orden es el de las pestañas y el de sus atajos: las diez primeras se abren con las teclas 1…9 y 0 (ver atajos.js).
 // Primero las de mirar el trabajo (por tiempo), después las de estructura y las de uso ocasional.
@@ -458,12 +459,17 @@ setInterval(async () => {
   if (resultado && !resultado.sinHueco) await persistirYNotificar();
 }, 90 * 1000);
 
-document.getElementById('version-app').textContent = VERSION;
+document.getElementById('version-app').textContent = ES_PRUEBAS ? `${VERSION} · 🧪 PRUEBAS` : VERSION;
+// v0.107.3 (H16): en el entorno de pruebas, una marca visible para no confundirlo con la app real (datos separados).
+if (ES_PRUEBAS) {
+  document.documentElement.classList.add('entorno-pruebas');
+  document.title = `🧪 PRUEBAS · ${document.title}`;
+}
 activarSonidoDeClic();
 
 // Menú lateral (v0.102.0): se compacta a solo emojis (se recuerda en este navegador) y, en pantallas angostas, se abre
 // como un panel encima del contenido desde el botón ☰.
-const CLAVE_SIDEBAR_COMPACTO = 'super-todo-list:sidebar-compacto';
+const CLAVE_SIDEBAR_COMPACTO = `${PREFIJO_APP}:sidebar-compacto`;
 const BOTON_COMPACTAR = document.getElementById('boton-compactar-sidebar');
 function aplicarSidebarCompacto(compacto) {
   document.body.classList.toggle('sidebar-compacto', compacto);

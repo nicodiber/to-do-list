@@ -1,4 +1,8 @@
-const CACHE_NAME = 'super-todo-list-v71';
+// v0.107.3 (H16): la copia de pruebas usa otra caché (mismo criterio que assets/js/entorno.js) y cada una borra
+// solo sus propias versiones viejas, nunca la caché de la otra.
+const ES_APP_REAL = self.location.hostname === 'nicodiber.github.io' && self.location.pathname.startsWith('/to-do-list/');
+const PREFIJO_CACHE = ES_APP_REAL ? 'super-todo-list-v' : 'super-todo-list-pruebas-v';
+const CACHE_NAME = `${PREFIJO_CACHE}72`;
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -14,6 +18,7 @@ const ARCHIVOS_PRECACHE = [
   'assets/icons/icon-maskable-512.png',
   'assets/icons/apple-touch-icon.png',
   'assets/js/app.js',
+  'assets/js/entorno.js',
   'assets/js/almacenamiento.js',
   'assets/js/modelos.js',
   'assets/js/utilidades.js',
@@ -98,7 +103,7 @@ self.addEventListener('activate', (evento) => {
   evento.waitUntil(
     caches
       .keys()
-      .then((claves) => Promise.all(claves.filter((clave) => clave !== CACHE_NAME).map((clave) => caches.delete(clave))))
+      .then((claves) => Promise.all(claves.filter((clave) => clave.startsWith(PREFIJO_CACHE) && clave !== CACHE_NAME).map((clave) => caches.delete(clave))))
       .then(() => self.clients.claim())
   );
 });

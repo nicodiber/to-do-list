@@ -15,6 +15,7 @@ import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/che
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
 import { abrirDialogoFormulario } from '../assets/js/dialogo-formulario.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 let filtroCategoria = '';
 // 'activas' (Pendientes y bloqueadas, por defecto) | '' (Todas) | un estado puntual.
@@ -217,7 +218,7 @@ const COLUMNAS = [
 const COMPARADORES = Object.fromEntries(COLUMNAS.map((c) => [c.clave, c.comparar]));
 
 // La elección y el orden de columnas son una preferencia de UI (no un dato de la app).
-const CLAVE_COLUMNAS = 'super-todo-list:tabla-columnas';
+const CLAVE_COLUMNAS = `${PREFIJO_APP}:tabla-columnas`;
 
 /** Lo guardado en `localStorage`: `{ orden, visibles }`, o `null` sin preferencia (o si es ilegible). Acepta también
  * el formato viejo (array plano de claves visibles, de antes de poder reordenar), tomándolo como `visibles`. */

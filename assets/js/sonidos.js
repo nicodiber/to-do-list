@@ -1,9 +1,10 @@
+import { PREFIJO_APP } from './entorno.js';
 // Sonidos de la app (v0.104.0), sintetizados con la Web Audio API: no hay archivos de audio. Se pueden desactivar y regular
 // desde Configuraciones; la preferencia es de cada dispositivo (`localStorage`), no se sincroniza con Drive.
 // Los navegadores solo dejan sonar audio después de un gesto del usuario: como todo sonido sale de un clic o una tecla,
 // el contexto de audio se crea recién la primera vez que hace falta.
 
-const CLAVE = 'super-todo-list:sonidos';
+const CLAVE = `${PREFIJO_APP}:sonidos`;
 const POR_DEFECTO = { activo: true, volumen: 0.5 };
 
 export function leerPreferenciaSonidos() {

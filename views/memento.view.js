@@ -5,13 +5,14 @@
 import { obtenerPreferencias, guardarPreferencias } from '../assets/js/preferencias.js';
 import { hoyISO, formatearFecha } from '../assets/js/utilidades.js';
 import { avisar } from '../assets/js/avisos.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 const UNIDADES = [
   { clave: 'semanas', etiqueta: 'Semanas', porFila: 52, porAnio: 52 },
   { clave: 'meses', etiqueta: 'Meses', porFila: 12, porAnio: 12 },
   { clave: 'anios', etiqueta: 'Años', porFila: 10, porAnio: 1 },
 ];
-const CLAVE_UNIDAD = 'super-todo-list:memento-unidad';
+const CLAVE_UNIDAD = `${PREFIJO_APP}:memento-unidad`;
 
 function leerUnidad() {
   try {

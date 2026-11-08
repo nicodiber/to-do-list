@@ -14,10 +14,11 @@ import { cumplirTarea, eliminarTarea, reprogramarTareaConCascada, limitarFechaSu
 import { programarParaHoy } from './programador.js';
 import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
 import { preguntarTiempoReal } from './tiempo-real.js';
+import { PREFIJO_APP } from './entorno.js';
 
 const URL_API = 'https://api.anthropic.com/v1/messages';
-const CLAVE_API = 'super-todo-list:asistente-clave';
-const CLAVE_MODELO = 'super-todo-list:asistente-modelo';
+const CLAVE_API = `${PREFIJO_APP}:asistente-clave`;
+const CLAVE_MODELO = `${PREFIJO_APP}:asistente-modelo`;
 const MAX_VUELTAS = 14;
 
 /** Minúsculas y sin acentos, para comparar nombres. */

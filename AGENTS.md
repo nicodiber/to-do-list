@@ -46,6 +46,7 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 - **Nunca perder información.** Todo cambio en la forma de los datos lleva su migración en `almacenamiento.js` (`migrarTarea`, etc.) y una prueba en `pruebas/`. Un campo no se borra: se deja de usar.
 - Los procesos automáticos **solo completan lo que falta**: no pisan lo que el usuario cargó a mano (fecha fijada con 📌, fecha límite, textos).
 - Antes de una entrega que cambie datos guardados, recordarle al usuario exportar una copia de seguridad (Configuraciones) y hacer un ensayo en seco sobre una copia de sus datos reales para mostrarle qué cambiaría.
+- **Entorno de pruebas (H16):** fuera de la app real, `assets/js/entorno.js` cambia el prefijo de todo lo guardado (`PREFIJO_APP`: base local, `localStorage`, archivo de Drive; y la caché en `sw.js`). **Toda clave nueva de `localStorage`, base local o archivo de Drive debe usar `PREFIJO_APP`**, nunca el literal `'super-todo-list'`, para que pruebas y app real no se mezclen. Las entregas se prueban primero en el entorno de pruebas, con una copia de seguridad importada.
 - **Pruebas automáticas:** `node --test pruebas/*.test.js` (Node 22+, sin npm ni dependencias; los archivos de prueba no se suman a `sw.js`). Correrlas antes de cada commit; sumar una prueba por cada bug corregido.
 
 ## Cómo definir funcionalidades con el usuario

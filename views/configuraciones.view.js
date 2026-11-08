@@ -177,7 +177,7 @@ export function renderVistaConfiguraciones(contenedor) {
   contenedor.querySelector('#sonidos-probar').addEventListener('click', () => sonar('completar', { forzar: true }));
 
   const registro = contenedor.querySelector('#registro-sesion');
-  const etiquetasRegistro = { conexion: '✅ Conexión con ventana', renovacion: '🔄 Renovación silenciosa', fallo: '⚠️ Falló' };
+  const etiquetasRegistro = { conexion: '✅ Conexión con ventana', renovacion: '🔄 Renovación silenciosa', fallo: '⚠️ Falló', cuenta: '👤 Cuenta recordada' };
   const entradas = registroSesionGoogle().slice().reverse();
   if (entradas.length === 0) registro.innerHTML = '<li>Todavía no hay registros.</li>';
   entradas.forEach((e) => {
