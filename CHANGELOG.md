@@ -2,6 +2,16 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.107.2] - 2026-11-08
+
+### Corregido
+
+- **La primera vez que una tarea repite en día fijo no respetaba ese día** (H04): solo las copias que nacen al cumplir una tarea guardaban el día que les toca (`tarea_mantenimiento_objetivo`); la tarea original no, y el agendado la ubicaba en cualquier hueco libre. Caso real: «Update AEP depto», el día 1 de cada mes con sábado y domingo como días permitidos, quedaba el sábado 7/11 en vez del domingo 1/11. Ahora `anclarRepeticionesDiaFijo` le calcula ese día (desde hoy o desde su habilitación, inclusive, aplicando los días hábiles) antes de cada agendado y la deja ese día sin hora para que el agendado le busque el hueco. Si se cambia la regla del día fijo (o sus días hábiles) al editar, se recalcula. No pisa una fecha fijada con 📌 ni una fecha límite cargada a mano.
+
+### Agregado
+
+- **Pruebas automáticas sin dependencias** en `pruebas/` (`node --test pruebas/*.test.js`, Node 22+), empezando por las repeticiones en día fijo.
+
 ## [v0.107.1] - 2026-10-05
 
 ### Corregido

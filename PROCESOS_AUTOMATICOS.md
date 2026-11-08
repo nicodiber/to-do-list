@@ -249,3 +249,8 @@ Ningún proceso de esta sección (5, 19–31, 34 y 35) asigna o mueve horarios s
 - **Proceso**: `preguntarTiempoReal` detiene el cronómetro, anota el total (redondeado, entre 1 min y 24 h) como `cumplimiento_duracion_real` del cumplimiento recién creado, reinicia `tarea_tiempo_acumulado_min` y no pregunta nada.
 - **Resultado**: Estadísticas → estimado vs. real se alimenta sin tipear.
 
+## 42. Anclaje de la primera repetición en día fijo
+
+- **Condición** (v0.107.2): hay una tarea activa que repite en día fijo («el día N de cada mes» o «todos los lunes…») sin fecha límite y sin `tarea_mantenimiento_objetivo` — típicamente la tarea original, recién creada o recién pasada a repetición, que todavía no se cumplió nunca. También al editar la regla del día fijo (o sus días hábiles), que borra el objetivo anterior.
+- **Proceso**: `anclarRepeticionesDiaFijo` (`assets/js/tareas-logica.js`), al empezar cada agendado (`asignarTareasSinFecha`, `reprogramarVencidas`, `reubicarTareasSolapadas`, `adelantarTareasSiHayHuecoMejor`), calcula el primer día que le toca desde hoy o su habilitación (inclusive), pasando al próximo día hábil si hace falta, y lo guarda como objetivo; con «día obligatorio» también como límite. Si la fecha sugerida cae otro día y no está fijada con 📌, la deja en ese día sin hora.
+- **Resultado**: el agendado la ubica ese día (o el siguiente posible si ese día no hay hueco), igual que a las copias que nacen al cumplirla. Antes la primera aparición podía quedar en cualquier hueco libre.

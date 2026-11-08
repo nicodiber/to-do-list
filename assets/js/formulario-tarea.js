@@ -8,7 +8,7 @@ import { UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelo
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora, htmlInterruptor } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
-import { limitarFechaSugeridaALimite, textoRepeticion } from './tareas-logica.js';
+import { limitarFechaSugeridaALimite, textoRepeticion, cambioReglaDiaFijo, fechaFijaVigente } from './tareas-logica.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDialogoPersona } from './formularios-entidades.js';
 
 import { activarMayusculaInicial, conectarCrearNueva, CREAR_NUEVA } from './dialogo-formulario.js';
@@ -628,11 +628,30 @@ export function vaciarFormularioTarea(formulario) {
   formulario.tarea_nombre.focus();
 }
 
-/** Aplica los `campos` leídos del formulario a una tarea existente (sin tocar sus enlaces). */
+/**
+ * Aplica los `campos` leídos del formulario a una tarea existente (sin tocar sus enlaces).
+ * v0.107.2: si cambió la regla de repetición en día fijo (o sus días hábiles), el día que le tocaba deja de valer:
+ * se borra `tarea_mantenimiento_objetivo` (y el límite y la fecha sugerida que venían de ese día, salvo una fecha
+ * fijada con 📌) para que `anclarRepeticionesDiaFijo` le calcule el día nuevo en el próximo agendado.
+ */
 export function aplicarCamposATarea(tarea, campos) {
+  const antes = { tarea_mantenimiento_dia_fijo: tarea.tarea_mantenimiento_dia_fijo, tarea_dias_habiles: tarea.tarea_dias_habiles };
+  const objetivoAnterior = tarea.tarea_mantenimiento_objetivo;
+  const eraDiaObligatorio = !!tarea.tarea_dia_obligatorio;
   Object.entries(campos).forEach(([clave, valor]) => {
     if (valor !== undefined) tarea[clave] = valor;
   });
+  if (tarea.tarea_estado !== 'completada' && 'tarea_mantenimiento_dia_fijo' in campos && cambioReglaDiaFijo(antes, tarea)) {
+    tarea.tarea_mantenimiento_objetivo = '';
+    // Solo el límite que venía de «día obligatorio» (era el mismo día objetivo); un límite cargado a mano se respeta.
+    if ((eraDiaObligatorio || tarea.tarea_dia_obligatorio) && objetivoAnterior && diaDe(tarea.tarea_fecha_limite) === objetivoAnterior) tarea.tarea_fecha_limite = '';
+    if (!fechaFijaVigente(tarea)) tarea.tarea_fecha_sugerida = '';
+  }
+}
+
+function diaDe(fechaISO) {
+  if (!fechaISO) return '';
+  return tieneHora(fechaISO) ? fechaLocalISO(new Date(fechaISO)) : fechaISO;
 }
 
 /**

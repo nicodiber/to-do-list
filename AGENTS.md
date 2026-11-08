@@ -31,6 +31,23 @@ Convenciones para quien (humano o agente de IA) trabaje en este repositorio.
 - **Archivo nuevo en `assets/js/` o `views/`:** sumarlo también a `ARCHIVOS_PRECACHE` en `sw.js`, para que la primera carga offline (sin visitas previas) lo incluya.
 - **Nueva funcionalidad grande:** primero registrarla como ítem en `BACKLOG.md` bajo la fase que corresponda (ver `SPEC.md` para la definición de fases), salvo que el usuario ya la haya pedido explícitamente para la iteración actual.
 
+## Metodología de trabajo (acordada con el usuario, v0.107.2)
+
+- **Desarrollo por rebanada vertical (vertical slice):** cada entrega es una funcionalidad completa y chica (datos + lógica + interfaz) que el usuario puede usar y probar enseguida. Nada de entregas "a medias por capa".
+- **Historias de usuario atómicas** con el formato «Como [tipo de usuario] quiero [hacer algo] para [beneficio]», cada una con un código (`H01`, `H02`…) y criterios de aceptación verificables. Viven en el backlog, ordenado tipo kanban (Backlog → Listo para hacer → En curso → Para probar → Hecho).
+- **AI pair programming:** la IA es el *driver* (escribe) y el usuario es el *navigator* (decide el rumbo, prueba y da feedback).
+- **Reparto de modelos:** Opus analiza y define los casos (historias, casos borde, decisiones); las tareas ya definidas (programar, documentar, convertir archivos) se delegan a Sonnet o Haiku, y Opus revisa el resultado antes de mostrarlo.
+- **Primero que funcione, después documentar:** se entrega la funcionalidad para que el usuario la pruebe; la documentación extensa (`LOGICA_FUNCIONES.md`, `CASOS_DE_USO.md`, etc.) se completa una vez que el usuario confirma que quedó bien. `CHANGELOG.md` y la versión se actualizan en cada entrega.
+- **Preguntas con código:** cada pregunta lleva un código (`P1`, `P2`…) y cada respuesta sugerida un sub-código (`P1-A`, `P1-B`…), para que el usuario pueda responder referenciándolos. Hacer todas las preguntas necesarias, sugiriendo opciones.
+- **Opciones visuales antes de programar:** toda historia con cambios de interfaz arranca con **3 opciones visuales** (maquetas) para que el usuario elija una o pida correcciones. Las correcciones de lógica sin cambio visual no lo necesitan.
+
+## Protección de los datos del usuario (la app está en uso real)
+
+- **Nunca perder información.** Todo cambio en la forma de los datos lleva su migración en `almacenamiento.js` (`migrarTarea`, etc.) y una prueba en `pruebas/`. Un campo no se borra: se deja de usar.
+- Los procesos automáticos **solo completan lo que falta**: no pisan lo que el usuario cargó a mano (fecha fijada con 📌, fecha límite, textos).
+- Antes de una entrega que cambie datos guardados, recordarle al usuario exportar una copia de seguridad (Configuraciones) y hacer un ensayo en seco sobre una copia de sus datos reales para mostrarle qué cambiaría.
+- **Pruebas automáticas:** `node --test pruebas/*.test.js` (Node 22+, sin npm ni dependencias; los archivos de prueba no se suman a `sw.js`). Correrlas antes de cada commit; sumar una prueba por cada bug corregido.
+
 ## Cómo definir funcionalidades con el usuario
 
 - Al definir o discutir una funcionalidad, **plantear proactivamente los casos borde y escenarios que el usuario no mencionó** (ej. qué pasa al eliminar una tarea del medio de una cadena de dependencias, al alternar dispositivos, al fallar un guardado, con datos ya existentes), con una propuesta concreta y una pregunta cerrada para confirmar. Al usuario le resulta muy útil que se le señalen los casos que le faltó completar.
