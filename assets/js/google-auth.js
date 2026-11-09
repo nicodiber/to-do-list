@@ -281,3 +281,25 @@ async function recordarCuenta(accessToken) {
     // Solo una ayuda para la renovación silenciosa.
   }
 }
+
+/**
+ * Cierra la sesión de Google en este navegador (v0.108.0, H14): revoca el permiso del token actual, lo descarta y olvida
+ * la cuenta recordada y la marca de «se conectó alguna vez», así la próxima conexión pide elegir cuenta y no se intenta
+ * renovar en silencio. No toca los datos (ni los locales ni los de Drive).
+ */
+export function cerrarSesionGoogle() {
+  const accessToken = token && token.accessToken;
+  token = null;
+  try {
+    if (accessToken && soportaGoogle()) google.accounts.oauth2.revoke(accessToken, () => {});
+  } catch {
+    // Si no se pudo revocar, el token vence solo en menos de una hora.
+  }
+  try {
+    localStorage.removeItem(CLAVE_CUENTA);
+    localStorage.removeItem(CLAVE_CONECTADO_ALGUNA_VEZ);
+  } catch {
+    // Solo preferencias.
+  }
+  registrarSesion('cierre', 'Cerraste la sesión desde Configuraciones');
+}

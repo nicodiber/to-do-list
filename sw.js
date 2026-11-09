@@ -2,7 +2,7 @@
 // solo sus propias versiones viejas, nunca la caché de la otra.
 const ES_APP_REAL = self.location.hostname === 'nicodiber.github.io' && self.location.pathname.startsWith('/to-do-list/');
 const PREFIJO_CACHE = ES_APP_REAL ? 'super-todo-list-v' : 'super-todo-list-pruebas-v';
-const CACHE_NAME = `${PREFIJO_CACHE}72`;
+const CACHE_NAME = `${PREFIJO_CACHE}73`;
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o
@@ -12,6 +12,7 @@ const ARCHIVOS_PRECACHE = [
   'index.html',
   'manifest.json',
   'assets/css/main.css',
+  'assets/css/descripcion.css',
   'assets/icons/icon.svg',
   'assets/icons/icon-192.png',
   'assets/icons/icon-512.png',
@@ -19,9 +20,11 @@ const ARCHIVOS_PRECACHE = [
   'assets/icons/apple-touch-icon.png',
   'assets/js/app.js',
   'assets/js/entorno.js',
+  'assets/js/estado-agenda.js',
   'assets/js/almacenamiento.js',
   'assets/js/modelos.js',
   'assets/js/utilidades.js',
+  'assets/js/links.js',
   'assets/js/reprogramar.js',
   'assets/js/tareas-logica.js',
   'assets/js/deshacer.js',

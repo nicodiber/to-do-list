@@ -13,6 +13,7 @@ import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDi
 
 import { activarMayusculaInicial, conectarCrearNueva, CREAR_NUEVA } from './dialogo-formulario.js';
 import { confirmar } from './avisos.js';
+import { extraerLinks } from './links.js';
 
 export { firmaFormulario } from './dialogo-formulario.js';
 
@@ -256,8 +257,9 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
     <fieldset class="seccion-form">
       <legend>📝 Qué</legend>
       <label class="campo ancho-completo" title="Notas, enlaces o lo que quieras recordar de la tarea"><span class="campo-titulo">🗒️ Descripción, notas o links</span>
-        <input type="text" name="tarea_descripcion" placeholder="Opcional" value="${escaparHtml(t.tarea_descripcion || '')}" />
+        <textarea name="tarea_descripcion" class="campo-descripcion" rows="3" placeholder="Opcional" aria-label="Descripción, notas o links">${escaparHtml(t.tarea_descripcion || '')}</textarea>
       </label>
+      <div class="links-descripcion ancho-completo" data-links-descripcion hidden></div>
       <label class="campo" title="El área de tu vida a la que pertenece; define su prioridad"><span class="campo-titulo">🗂️ Categoría</span><select name="categoria_id">${htmlOpcionesCategoria(t.categoria_id || '')}</select></label>
       <label class="campo" title="Cuánto disfrutás hacerla (1 a 5)"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
       <label class="campo" title="La meta a la que aporta esta tarea"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
@@ -437,7 +439,44 @@ function agregarBotonDeDictado(formulario) {
   });
 }
 
+/**
+ * Descripción de varias líneas (H03-A): el textarea crece solo con el texto (hasta ~12 líneas, después scrollea)
+ * y debajo se muestran como chips los links detectados, que se actualizan en vivo. Todo texto del usuario se
+ * escapa con `escaparHtml`. Una carga por código (`precargar`, `reset`) avisa con el evento `actualizar-descripcion`.
+ */
+function conectarDescripcion(formulario) {
+  const campo = formulario.tarea_descripcion;
+  const contenedor = formulario.querySelector('[data-links-descripcion]');
+  if (!campo || campo.tagName !== 'TEXTAREA') return;
+  const actualizar = () => {
+    campo.style.height = 'auto';
+    campo.style.height = `${campo.scrollHeight}px`;
+    if (!contenedor) return;
+    const links = extraerLinks(campo.value);
+    contenedor.hidden = links.length === 0;
+    contenedor.innerHTML = links
+      .map((l) => `<a class="chip-link" href="${escaparHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="${escaparHtml(l.href)}">🔗 ${escaparHtml(l.etiqueta)}</a>`)
+      .join('');
+  };
+  campo.addEventListener('input', actualizar);
+  campo.addEventListener('actualizar-descripcion', actualizar);
+  formulario.addEventListener('reset', () => setTimeout(actualizar));
+  actualizar();
+  // El diálogo todavía puede estar cerrado (alto 0) al conectar: se recalcula cuando se muestra.
+  requestAnimationFrame(actualizar);
+  if (typeof ResizeObserver === 'function') {
+    let anchoPrevio = campo.offsetWidth;
+    new ResizeObserver(() => {
+      if (campo.offsetWidth !== anchoPrevio && campo.offsetWidth > 0) {
+        anchoPrevio = campo.offsetWidth;
+        actualizar();
+      }
+    }).observe(campo);
+  }
+}
+
 export function conectarFormularioTarea(formulario, { modo = 'edicion', precargaPorNombre = true } = {}) {
+  conectarDescripcion(formulario);
   if (modo === 'alta') resaltarCamposCompletados(formulario);
   if (modo === 'alta') agregarBotonDeDictado(formulario);
   // Cargar o cambiar la fecha sugerida con hora la fija sola (v0.106.0); el interruptor deja soltarla.
@@ -514,6 +553,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
     if (!campo || !sinTocar(campo)) return false;
     if (campo.type === 'checkbox' || campo.type === 'radio') campo.checked = !!valor;
     else campo.value = valor;
+    if (campo.tagName === 'TEXTAREA') campo.dispatchEvent(new Event('actualizar-descripcion'));
     precargados.set(campo, campo.type === 'checkbox' || campo.type === 'radio' ? campo.checked : campo.value);
     return true;
   };

@@ -1,0 +1,45 @@
+/* Descripción de varias líneas con links clicables (H03-A). Usa las variables de main.css (tema claro y oscuro). */
+.formulario-tarea .campo textarea.campo-descripcion {
+  resize: vertical;
+  min-height: 4.5rem;
+  max-height: 18rem; /* ~12 líneas; después scrollea */
+  overflow-y: auto;
+  line-height: 1.4;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.links-descripcion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.links-descripcion[hidden] {
+  display: none;
+}
+
+.chip-link {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+  background: var(--color-fondo-info);
+  color: var(--color-primario);
+  font-size: 0.85rem;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-link:hover,
+.chip-link:focus-visible {
+  text-decoration: underline;
+}
+
+/* Las descripciones guardadas respetan los saltos de línea. */
+.notas-tarea {
+  white-space: pre-line;
+}

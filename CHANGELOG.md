@@ -2,6 +2,14 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.108.0] - 2026-11-08
+
+### Agregado
+
+- **Indicador de sincronización en dos renglones** (H15, opción B): «☁️ Drive: guardado» por un lado y «📅 Agenda: al día» / «🔄 Agenda: reorganizando 3/6» (con barra de progreso) por otro. Antes «Sincronizado» aparecía y al rato los procesos automáticos (agendado inicial, refresco de Calendar cada 5 minutos, agendado en segundo plano) movían las tareas sin aviso. La agenda figura «reorganizando» hasta que termina, guardado incluido; si la reorganización dura menos de 0,4 s no se muestra, para no parpadear. Nuevo `assets/js/estado-agenda.js`.
+- **Descripción de varias líneas con links clicables** (H03, opción A): el campo «Descripción, notas o links» es un cuadro que crece solo con el texto (hasta unas 12 líneas, después scrollea); Enter hace salto de línea y Ctrl+Enter guarda. Debajo aparecen los links del texto como chips que abren en otra pestaña (solo al abrir la tarea, decisión P26-A). Las descripciones existentes no cambian. Nuevos `assets/js/links.js` y `assets/css/descripcion.css`.
+- **Cerrar sesión de Google** (H14) en Configuraciones → «Sesión de Google», que también muestra con qué cuenta se renueva la sesión. Sirve para conectarse con otra cuenta; no borra datos y no se puede cerrar con cambios sin subir a Drive.
+
 ## [v0.107.3] - 2026-11-08
 
 ### Agregado

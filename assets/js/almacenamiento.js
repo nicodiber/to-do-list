@@ -4,7 +4,7 @@
 // buffer "pendiente" (IndexedDB, ver almacenamiento-local.js) que la UI nunca
 // presenta como guardado. Las vistas siguen usando solo `estado` y
 // `persistirYNotificar()`.
-import { conectar, hayToken, msHastaVencer, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion } from './google-auth.js';
+import { conectar, hayToken, msHastaVencer, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion, cerrarSesionGoogle } from './google-auth.js';
 import { buscarArchivoRemoto, leerArchivoRemoto, guardarArchivoRemoto, ErrorDrive } from './google-drive-sync.js';
 import * as almacenamientoLocal from './almacenamiento-local.js';
 import { COLECCIONES, FORMATO_ARCHIVO, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
@@ -789,6 +789,19 @@ export async function conectarDrive() {
   }
   setSync({ estado: 'conectando' });
   await sincronizarAhora({ forzar: true });
+}
+
+/**
+ * Cierra la sesión de Google (v0.108.0, H14) para poder conectarse con otra cuenta. Si hay cambios que Drive todavía
+ * no confirmó, no la cierra (se perderían de vista hasta reconectar): primero hay que esperar a que se suban. Los datos
+ * de este navegador quedan como están; la cabecera pasa a «Hace falta reconectar» con el botón «Reconectar».
+ */
+export function cerrarSesion() {
+  if (sync.hayPendiente) {
+    throw new Error('Hay cambios que Drive todavía no confirmó. Esperá a que figure «Drive: guardado» y volvé a intentar.');
+  }
+  cerrarSesionGoogle();
+  setSync({ estado: sync.datosListos ? 'sesion-vencida' : 'sin-destino', reconexionManual: true, reconectaConClic: false });
 }
 
 export function limpiarRecienConectado() {

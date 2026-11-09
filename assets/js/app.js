@@ -52,9 +52,10 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 import { avisar, confirmar } from './avisos.js';
 import { PREFIJO_APP, ES_PRUEBAS } from './entorno.js';
+import { conReorganizacion, iniciarReorganizacion, pasoAgendaHecho, estadoAgenda, suscribirAgenda } from './estado-agenda.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.107.3';
+const VERSION = 'v0.108.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -130,6 +131,31 @@ const ETIQUETAS_ESTADO_SYNC = {
   error: '⚠️ Error al sincronizar',
 };
 
+// v0.108.0 (H15-B): el estado de Drive en su propio renglón, corto («Drive: guardado»), separado del de la agenda.
+const ETIQUETAS_DRIVE = {
+  'sin-destino': '⚪ Drive: sin conectar',
+  conectando: '⏳ Drive: conectando…',
+  verificando: '⏳ Drive: verificando…',
+  guardando: '⏳ Drive: guardando…',
+  pendiente: '🟡 Drive: cambios sin subir',
+  sincronizado: '☁️ Drive: guardado',
+  'sin-conexion': '📴 Drive: sin conexión',
+  'sesion-vencida': '⚠️ Drive: sesión vencida',
+  error: '⚠️ Drive: error al sincronizar',
+};
+
+/** Renglón de la agenda (H15-B): «reorganizando N/total» con barra de progreso mientras el sistema mueve horarios. */
+function htmlRenglonAgenda() {
+  const a = estadoAgenda();
+  if (!a.reorganizando) {
+    return '<span class="renglon-agenda agenda-al-dia" title="Agenda al día: el sistema no está moviendo horarios"><span aria-hidden="true">📅</span><span class="texto-sidebar"> Agenda: al día</span></span>';
+  }
+  const progreso = a.total > 0 ? ` ${a.hechos}/${a.total}` : '';
+  const porcentaje = a.total > 0 ? Math.round((a.hechos / a.total) * 100) : 0;
+  return `<span class="renglon-agenda agenda-reorganizando" title="El sistema está reorganizando horarios: las tareas pueden moverse"><span aria-hidden="true">🔄</span><span class="texto-sidebar"> Agenda: reorganizando${progreso}</span></span>
+    ${a.total > 0 ? `<span class="barra-agenda texto-sidebar" role="progressbar" aria-label="Reorganización de la agenda" aria-valuemin="0" aria-valuemax="${a.total}" aria-valuenow="${a.hechos}"><span style="width: ${porcentaje}%"></span></span>` : ''}`;
+}
+
 function escaparTexto(texto) {
   const div = document.createElement('div');
   div.textContent = texto == null ? '' : String(texto);
@@ -164,12 +190,13 @@ const cantidadSinHorario = () => estado.tareas.filter((t) => t.tarea_estado !== 
  */
 function actualizarCabeceraSync() {
   const s = obtenerEstadoSync();
-  const [icono, ...palabras] = (ETIQUETAS_ESTADO_SYNC[s.estado] || s.estado).split(' ');
+  const [icono, ...palabras] = (ETIQUETAS_DRIVE[s.estado] || ETIQUETAS_ESTADO_SYNC[s.estado] || s.estado).split(' ');
   const sinHorario = cantidadSinHorario();
   const lecturaCalendar = ultimaLecturaCalendar();
 
   INDICADOR_SYNC.innerHTML = `
     <strong class="estado-sync" title="${escaparHtml(ETIQUETAS_ESTADO_SYNC[s.estado] || s.estado)}"><span aria-hidden="true">${icono}</span><span class="texto-sidebar"> ${escaparHtml(palabras.join(' '))}</span></strong>
+    ${s.datosListos ? htmlRenglonAgenda() : ''}
     <span class="indicador-sync-detalle texto-sidebar">Último guardado en Drive: ${formatoCorto(s.modificadoEnDrive)} · Verificado: ${formatoCorto(s.verificadoEn)}</span>
     ${lecturaCalendar ? `<span class="indicador-sync-detalle texto-sidebar" title="Cuándo se leyeron por última vez tus eventos de Google Calendar (se refresca cada 5 minutos)">Calendar leído: ${formatoCorto(lecturaCalendar)}</span>` : ''}
     ${s.hayPendiente ? '<span class="indicador-sync-detalle texto-sidebar">Hay cambios que Drive todavía no confirmó.</span>' : ''}
@@ -265,18 +292,24 @@ async function refrescarCalendar() {
 
   await reprogramarSiCorresponde().catch(() => {}); // por si el agendado inicial quedó pendiente por falta de Calendar
 
-  let cambio = false;
-  try {
-    const { movidas: reubicadas } = await reubicarTareasSolapadas(estado);
-    const { asignadas, reordenadas } = await programarTareasSinFecha(estado);
-    const { movidas: adelantadas } = await adelantarTareasSiHayHuecoMejor(estado);
-    cambio = reubicadas.length > 0 || asignadas.length > 0 || reordenadas.length > 0 || adelantadas.length > 0;
-  } catch {
-    // Falla momentánea de red al pedir eventos: se reintenta en el próximo refresco.
-  }
+  // v0.108.0 (H15-B): la agenda figura «reorganizando» hasta que termina, guardado incluido.
+  await conReorganizacion(async () => {
+    let cambio = false;
+    try {
+      const { movidas: reubicadas } = await reubicarTareasSolapadas(estado);
+      pasoAgendaHecho();
+      const { asignadas, reordenadas } = await programarTareasSinFecha(estado);
+      pasoAgendaHecho();
+      const { movidas: adelantadas } = await adelantarTareasSiHayHuecoMejor(estado);
+      pasoAgendaHecho();
+      cambio = reubicadas.length > 0 || asignadas.length > 0 || reordenadas.length > 0 || adelantadas.length > 0;
+    } catch {
+      // Falla momentánea de red al pedir eventos: se reintenta en el próximo refresco.
+    }
 
-  if (cambio) await persistirYNotificar(); // ya redibuja
-  else render(); // solo para reflejar los eventos nuevos de Calendar
+    if (cambio) await persistirYNotificar(); // ya redibuja
+    else render(); // solo para reflejar los eventos nuevos de Calendar
+  }, 3);
   actualizarCabeceraSync(); // por si cambió el aviso de "no pude leer Calendar"
 }
 
@@ -355,6 +388,8 @@ function render({ conservarBorradores = false } = {}) {
 // Los cambios de estado de sincronización solo actualizan la cabecera; la
 // vista se redibuja únicamente cuando cambia lo que corresponde mostrar
 // (pantalla inicial, aviso de otra pestaña o los datos ya listos).
+suscribirAgenda(() => actualizarCabeceraSync()); // v0.108.0 (H15-B)
+
 suscribirSync((s) => {
   if (claveDeRender(s) !== claveUltimoRender) render();
   else actualizarCabeceraSync();
@@ -394,14 +429,30 @@ function textoFijasEnChoque(fijasEnChoque) {
 }
 
 async function ejecutarReprogramacionInicial() {
+  // v0.108.0 (H15-B): «Agenda: reorganizando N/6» hasta el guardado; se suelta antes de cualquier aviso que espere al usuario.
+  const terminarReorganizacion = iniciarReorganizacion(6);
+  try {
+    await pasosReprogramacionInicial(terminarReorganizacion);
+  } finally {
+    terminarReorganizacion();
+  }
+}
+
+async function pasosReprogramacionInicial(terminarReorganizacion) {
   const inicioActualizadas = actualizarFechasInicioVencidas(estado.tareas);
   const { reprogramadas: vencidas, sinHueco: sinHuecoVencidas, inconsistentes: inconsistentesVencidas } = await reprogramarVencidas(estado);
+  pasoAgendaHecho();
   const { movidas: reubicadas, sinHueco: sinHuecoReubicadas, inconsistentes: inconsistentesReubicadas, fijasEnChoque } = await reubicarTareasSolapadas(estado);
+  pasoAgendaHecho();
   const { asignadas: nuevas, sinHueco: sinHuecoNuevas, reordenadas: reordenadasAntes } = await programarTareasSinFecha(estado);
+  pasoAgendaHecho();
   const inmediata = await reprogramarTareaInmediataSiVencio(estado);
+  pasoAgendaHecho();
   const urgentesReasignadas = await reasignarUrgentesAHoy(estado);
+  pasoAgendaHecho();
   // Las urgentes se agendan para hoy en el primer hueco libre: un último pase por si quedaron detrás de otra menos prioritaria.
   const reordenadasDespues = await reordenarSugeridasPorPrioridad(estado);
+  pasoAgendaHecho();
   const reordenadas = [...reordenadasAntes, ...reordenadasDespues];
   const personasAfectadas = pasarProximoContactoVencido(estado.personas);
 
@@ -424,10 +475,12 @@ async function ejecutarReprogramacionInicial() {
     urgentesReasignadas.length === 0 &&
     reordenadas.length === 0
   ) {
+    terminarReorganizacion();
     if (fijasEnChoque.length > 0) await avisar(textoFijasEnChoque(fijasEnChoque));
     return;
   }
   await persistirYNotificar();
+  terminarReorganizacion();
 
   // Solo se nombran las que siguen sin hueco tras TODOS los pasos (un paso posterior pudo acomodar lo que uno anterior no).
   const sinHueco = filtrarSinHuecoVigente(sinHuecoBruto);

@@ -94,7 +94,9 @@ export function abrirDialogoFormulario({ titulo, cuerpoHtml, textoGuardar = '�
   // con el primero de `botonesGuardar` (v0.88.0 — antes al revés: Enter disparaba el envío nativo del
   // navegador, que siempre manda al primero del DOM, y Ctrl+Enter al principal).
   dialogo.addEventListener('keydown', (evento) => {
-    if (evento.key !== 'Enter' || evento.target.tagName === 'TEXTAREA') return;
+    if (evento.key !== 'Enter') return;
+    // En un textarea Enter es salto de línea; solo Ctrl/Cmd+Enter guarda.
+    if (evento.target.tagName === 'TEXTAREA' && !(evento.ctrlKey || evento.metaKey)) return;
     const enviables = [...formulario.querySelectorAll('button[type="submit"]')];
     const principal = formulario.querySelector('button.boton-primario[type="submit"]') || enviables[0];
     const boton = evento.ctrlKey || evento.metaKey ? enviables[0] : principal;

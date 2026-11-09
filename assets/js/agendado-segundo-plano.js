@@ -6,6 +6,7 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { programarTareasSinFecha } from './programador.js';
 import { avisarSiSinHueco } from './aviso-sin-hueco.js';
+import { iniciarReorganizacion } from './estado-agenda.js';
 
 let corriendo = false;
 let pedidoPendiente = false;
@@ -16,6 +17,7 @@ export async function agendarEnSegundoPlano() {
     return;
   }
   corriendo = true;
+  const terminarReorganizacion = iniciarReorganizacion(); // v0.108.0 (H15-B)
   try {
     do {
       pedidoPendiente = false;
@@ -23,11 +25,13 @@ export async function agendarEnSegundoPlano() {
       const huboCambios = resultado.asignadas.length > 0 || (resultado.reordenadas || []).length > 0;
       // El cambio ya tiene su paso de deshacer (el de crear o editar la tarea): este guardado no suma otro.
       if (huboCambios) await persistirYNotificar({ deshacer: false });
+      if (!pedidoPendiente) terminarReorganizacion(); // antes del aviso, que puede esperar al usuario
       await avisarSiSinHueco(resultado);
     } while (pedidoPendiente);
   } catch {
     // Falla momentánea (por ejemplo sin red): lo retoma la red de seguridad de app.js o el próximo refresco de Calendar.
   } finally {
+    terminarReorganizacion();
     corriendo = false;
   }
 }
