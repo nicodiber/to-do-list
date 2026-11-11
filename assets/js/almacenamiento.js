@@ -9,7 +9,7 @@ import { buscarArchivoRemoto, leerArchivoRemoto, guardarArchivoRemoto, ErrorDriv
 import * as almacenamientoLocal from './almacenamiento-local.js';
 import { COLECCIONES, FORMATO_ARCHIVO, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
 import { crearPreferencias } from './modelos.js';
-import { recalcularBloqueo } from './tareas-logica.js';
+import { recalcularBloqueo, anclarRepeticionesDiaFijo } from './tareas-logica.js';
 import { repararEnlaces } from './dependencias.js';
 import { fechaLocalISO } from './utilidades.js';
 import { registrarPasoDeshacer, invalidarHistorialDeshacer } from './deshacer.js';
@@ -1097,7 +1097,11 @@ export async function importarJSON(archivo) {
   const texto = await archivo.text();
   const normalizados = normalizarDatosCrudos(JSON.parse(texto));
   for (const cfg of COLECCIONES) estado[cfg.clave] = normalizados[cfg.clave];
+  // v0.108.1: los datos importados no pasaron por el agendado de esta sesión (que ya corrió al conectar, con los
+  // datos anteriores). Se completa ya el día de las repeticiones en día fijo y se avisa para reagendar todo.
+  anclarRepeticionesDiaFijo(estado.tareas);
   await persistirYNotificar();
+  window.dispatchEvent(new CustomEvent('stdl:datos-importados'));
 }
 
 /**

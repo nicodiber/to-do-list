@@ -55,7 +55,7 @@ import { PREFIJO_APP, ES_PRUEBAS } from './entorno.js';
 import { conReorganizacion, iniciarReorganizacion, pasoAgendaHecho, estadoAgenda, suscribirAgenda } from './estado-agenda.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.108.0';
+const VERSION = 'v0.108.1';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -398,6 +398,11 @@ suscribirSync((s) => {
 });
 
 let reprogramado = false;
+// v0.108.1: al importar una copia de seguridad, el agendado inicial vuelve a correr con los datos nuevos.
+window.addEventListener('stdl:datos-importados', () => {
+  reprogramado = false;
+  reprogramarSiCorresponde().catch(() => {});
+});
 let reprogramando = false;
 
 function nombrarLista(tareas) {

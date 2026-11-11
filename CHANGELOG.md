@@ -2,6 +2,12 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.108.1] - 2026-11-11
+
+### Corregido
+
+- **Al importar una copia de seguridad no se reagendaba nada** hasta recargar la página: el agendado inicial ya había corrido al conectar (con los datos anteriores) y el refresco de cada 5 minutos se saltea mientras hay una ventana abierta. Por eso «Update AEP depto» seguía en el 14/11 en la URL de pruebas en vez del 5/12 (H04). Ahora importar completa el día de las repeticiones en día fijo y vuelve a correr el agendado inicial.
+
 ## [v0.108.0] - 2026-11-08
 
 ### Agregado
