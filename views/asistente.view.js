@@ -15,8 +15,9 @@ import {
   ErrorAsistente,
 } from '../assets/js/asistente.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
-const CLAVE_VOZ = 'super-todo-list:asistente-voz';
+const CLAVE_VOZ = `${PREFIJO_APP}:asistente-voz`;
 
 const conv = {
   visibles: [], // {rol: 'usuario'|'asistente'|'sistema'|'error'|'propuesta', texto?, propuesta?}

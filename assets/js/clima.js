@@ -1,6 +1,7 @@
 import { estado } from './almacenamiento.js';
 import { hoyISO, diaLocal, fechaISOMasDias, tieneHora } from './utilidades.js';
 import { obtenerPreferencias } from './preferencias.js';
+import { PREFIJO_APP } from './entorno.js';
 
 const DIAS_MAX_PRONOSTICO = 16;
 const UMBRAL_PROBABILIDAD_LLUVIA = 50;
@@ -13,8 +14,8 @@ const cachePronosticos = new Map();
 // piden las coordenadas al navegador (con su permiso), redondeadas a 2 decimales (~1 km), y únicamente se envían a
 // Open-Meteo para pedir el pronóstico.
 // ---------------------------------------------------------------------------
-const CLAVE_AUTOMATICO = 'super-todo-list:clima-automatico';
-const CLAVE_COORDENADAS = 'super-todo-list:clima-coordenadas';
+const CLAVE_AUTOMATICO = `${PREFIJO_APP}:clima-automatico`;
+const CLAVE_COORDENADAS = `${PREFIJO_APP}:clima-coordenadas`;
 const VIGENCIA_COORDENADAS_MS = 30 * 60 * 1000;
 
 export function climaAutomaticoActivado() {

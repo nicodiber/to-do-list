@@ -7,9 +7,10 @@ import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
 import { obtenerPreferencias } from '../assets/js/preferencias.js';
 import { bloquesDeSemana } from '../assets/js/bloques-horarios.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 // Preferencias de UI (no datos de la app): zoom, modo y agrupación se recuerdan en este dispositivo.
-const PREFIJO = 'super-todo-list:gantt-';
+const PREFIJO = `${PREFIJO_APP}:gantt-`;
 const SEMANAS = [1, 2, 4, 12]; // v0.104.0: «1 sem.» es el zoom por día (cada día ocupa un séptimo del ancho)
 const MODOS = ['plan', 'ventana'];
 const ETIQUETAS_AGRUPACION = { categoria: 'Categoría principal', meta: 'Meta', nada: 'Nada' };

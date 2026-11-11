@@ -1,3 +1,4 @@
+import { PREFIJO_APP } from './entorno.js';
 // Almacenamiento local en IndexedDB, SOLO como apoyo de la sincronización con
 // Google Drive (nunca como destino final de los datos):
 // - `cache`: la última copia confirmada en Drive. Sirve de base para mezclar
@@ -11,7 +12,7 @@
 // está disponible (ej. ventana privada), la app sigue funcionando en memoria
 // y `hayAlmacenamientoLocal()` permite avisarle al usuario.
 
-const NOMBRE_BD = 'super-todo-list';
+const NOMBRE_BD = PREFIJO_APP; // v0.107.3: en pruebas, otra base (ver entorno.js)
 const VERSION_BD = 2;
 const ALMACENES = ['cache', 'pendiente', 'avisos'];
 const CLAVE = 'principal';

@@ -13,7 +13,7 @@ import { crearCalculadoraCapacidad } from './capacidad.js';
 import { leerEventosParaAgendar, eventosQueTocanElDia, diasHorizonteCalendar, buscarHuecoLibre, calcularSolapamiento, ventanaPreferida } from './google-calendar.js';
 import { habilitadaReal } from './gantt-modelo.js';
 import { bloquesDeSemana } from './bloques-horarios.js';
-import { reprogramarTareaConCascada, compararParaAgendar, fechaFijaVigente } from './tareas-logica.js';
+import { reprogramarTareaConCascada, compararParaAgendar, fechaFijaVigente, anclarRepeticionesDiaFijo } from './tareas-logica.js';
 
 /** ¿`fechaISO` pasa (o iguala) `limiteISO`? Con hora, compara el instante exacto; sin hora, el día calendario
  * (mismo criterio que ya usaba la app). `false` sin límite cargado. Exportada (v0.89.0) para que
@@ -46,6 +46,7 @@ function otrasTareasComoEventos(todas, excluirId) {
  */
 async function asignarTareasSinFecha(estado) {
   const todas = estado.tareas || [];
+  anclarRepeticionesDiaFijo(estado.tareas); // v0.107.2: la primera repetición en día fijo respeta su día
   // v0.96.0 — si dos compiten por el mismo hueco, gana la de más prioridad, no la que aparece primero en la lista.
   // v0.99.0 — con el orden de la Tabla (`compararParaAgendar`: Holgura), así una bloqueada con fecha límite se agenda
   // antes que las tareas sin límite; y entran también las de mantenimiento (antes quedaban siempre sin hora).
@@ -329,6 +330,7 @@ function resolverColisionesEnCadena(cabeza, todas, eventos, preferencias) {
  */
 export async function reprogramarVencidas(estado) {
   const todas = estado.tareas || [];
+  anclarRepeticionesDiaFijo(estado.tareas); // v0.107.2: la primera repetición en día fijo respeta su día
   const hoy = hoyISO();
   const candidatas = todas
     .filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida) && diaLocal(t.tarea_fecha_sugerida) < hoy)
@@ -418,6 +420,7 @@ export async function reprogramarVencidas(estado) {
  * de su propia fecha límite tras el corrimiento (ver `avisoInconsistentes` en `tareas-logica.js`).
  */
 export async function reubicarTareasSolapadas(estado) {
+  anclarRepeticionesDiaFijo(estado.tareas); // v0.107.2: la primera repetición en día fijo respeta su día
   const candidatas = (estado.tareas || []).filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida));
   if (candidatas.length === 0) return { movidas: [], sinHueco: [], inconsistentes: [], fijasEnChoque: [] };
 
@@ -565,6 +568,7 @@ export async function reasignarUrgentesAHoy(estado) {
  */
 export async function adelantarTareasSiHayHuecoMejor(estado) {
   const todas = estado.tareas || [];
+  anclarRepeticionesDiaFijo(estado.tareas); // v0.107.2: la primera repetición en día fijo respeta su día
   const porId = new Map(todas.map((t) => [t.tarea_id, t]));
   const candidatas = todas
     .filter((t) => t.tarea_estado !== 'completada' && tieneHora(t.tarea_fecha_sugerida))

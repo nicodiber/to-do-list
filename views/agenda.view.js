@@ -1,6 +1,7 @@
 import { renderVistaAgenda } from '../assets/js/vista-agenda.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
-const CLAVE_LOCALSTORAGE = 'super-todo-list:agenda-dias';
+const CLAVE_LOCALSTORAGE = `${PREFIJO_APP}:agenda-dias`;
 const OPCIONES = [3, 8, 15];
 const POR_DEFECTO = 8;
 

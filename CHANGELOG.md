@@ -2,6 +2,42 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.108.1] - 2026-11-11
+
+### Corregido
+
+- **Al importar una copia de seguridad no se reagendaba nada** hasta recargar la página: el agendado inicial ya había corrido al conectar (con los datos anteriores) y el refresco de cada 5 minutos se saltea mientras hay una ventana abierta. Por eso «Update AEP depto» seguía en el 14/11 en la URL de pruebas en vez del 5/12 (H04). Ahora importar completa el día de las repeticiones en día fijo y vuelve a correr el agendado inicial.
+
+## [v0.108.0] - 2026-11-08
+
+### Agregado
+
+- **Indicador de sincronización en dos renglones** (H15, opción B): «☁️ Drive: guardado» por un lado y «📅 Agenda: al día» / «🔄 Agenda: reorganizando 3/6» (con barra de progreso) por otro. Antes «Sincronizado» aparecía y al rato los procesos automáticos (agendado inicial, refresco de Calendar cada 5 minutos, agendado en segundo plano) movían las tareas sin aviso. La agenda figura «reorganizando» hasta que termina, guardado incluido; si la reorganización dura menos de 0,4 s no se muestra, para no parpadear. Nuevo `assets/js/estado-agenda.js`.
+- **Descripción de varias líneas con links clicables** (H03, opción A): el campo «Descripción, notas o links» es un cuadro que crece solo con el texto (hasta unas 12 líneas, después scrollea); Enter hace salto de línea y Ctrl+Enter guarda. Debajo aparecen los links del texto como chips que abren en otra pestaña (solo al abrir la tarea, decisión P26-A). Las descripciones existentes no cambian. Nuevos `assets/js/links.js` y `assets/css/descripcion.css`.
+- **Cerrar sesión de Google** (H14) en Configuraciones → «Sesión de Google», que también muestra con qué cuenta se renueva la sesión. Sirve para conectarse con otra cuenta; no borra datos y no se puede cerrar con cambios sin subir a Drive.
+
+## [v0.107.3] - 2026-11-08
+
+### Agregado
+
+- **Entorno de pruebas con datos separados** (H16): fuera de la app real (`nicodiber.github.io/to-do-list/`) —la URL de pruebas de `develop` o una copia local— STDL usa otra base local (`super-todo-list-pruebas`), otro archivo de Drive (`super-todo-list-pruebas-datos.json`), otras preferencias y otra caché, y se marca con «🧪 PRUEBAS» (versión, título de la pestaña y una franja arriba). Así nunca lee ni escribe los datos reales: para probar con tus datos se importa una copia de seguridad exportada. En la app real todos los nombres quedan exactamente iguales. Nuevo `assets/js/entorno.js`.
+- **Pista de cuenta para renovar la sesión de Google en silencio** (H14, primer paso): al conectarse se recuerda en el navegador el email de la cuenta (vía Drive `about`, sin permisos nuevos) y se le pasa a Google en cada renovación. Con varias cuentas de Google abiertas en el navegador, la renovación silenciosa no sabía cuál usar y terminaba pidiendo «Reconectar». El registro de Configuraciones → «Sesión de Google» lo anota como «👤 Cuenta recordada».
+
+### Cambiado
+
+- **Backlog en formato kanban** (📥 Backlog → ✅ Listo para hacer → 🔨 En curso → 🧪 Para probar → ✔️ Hecho), con las historias de usuario H01-H16. No se perdió ningún ítem (verificado línea por línea).
+- La caché del service worker borra solo sus propias versiones viejas, nunca la del otro entorno.
+
+## [v0.107.2] - 2026-11-08
+
+### Corregido
+
+- **La primera vez que una tarea repite en día fijo no respetaba ese día** (H04): solo las copias que nacen al cumplir una tarea guardaban el día que les toca (`tarea_mantenimiento_objetivo`); la tarea original no, y el agendado la ubicaba en cualquier hueco libre. Caso real: «Update AEP depto», el día 1 de cada mes con sábado y domingo como días permitidos, quedaba el sábado 7/11 en vez del domingo 1/11. Ahora `anclarRepeticionesDiaFijo` le calcula ese día (desde hoy o desde su habilitación, inclusive, aplicando los días hábiles) antes de cada agendado y la deja ese día sin hora para que el agendado le busque el hueco. Si se cambia la regla del día fijo (o sus días hábiles) al editar, se recalcula. No pisa una fecha fijada con 📌 ni una fecha límite cargada a mano.
+
+### Agregado
+
+- **Pruebas automáticas sin dependencias** en `pruebas/` (`node --test pruebas/*.test.js`, Node 22+), empezando por las repeticiones en día fijo.
+
 ## [v0.107.1] - 2026-10-05
 
 ### Corregido

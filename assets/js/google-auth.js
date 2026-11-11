@@ -1,3 +1,4 @@
+import { PREFIJO_APP } from './entorno.js';
 // Client ID de una app OAuth pública (no es secreto, a diferencia de un
 // Client Secret) creada en Google Cloud Console. Un solo token client pide
 // los permisos de Drive y de Calendar (solo lectura) juntos, para que haya un
@@ -9,10 +10,12 @@ const SCOPES = {
   calendar: 'https://www.googleapis.com/auth/calendar.readonly',
 };
 const SCOPES_TODOS = `${SCOPES.drive} ${SCOPES.calendar}`;
-const CLAVE_CONECTADO_ALGUNA_VEZ = 'super-todo-list:google-conectado';
+const CLAVE_CONECTADO_ALGUNA_VEZ = `${PREFIJO_APP}:google-conectado`;
 const MARGEN_VENCIMIENTO_MS = 60 * 1000;
-const CLAVE_REGISTRO = 'super-todo-list:google-registro';
+const CLAVE_REGISTRO = `${PREFIJO_APP}:google-registro`;
 const MAX_REGISTRO = 30;
+// v0.107.3 (H14): la cuenta con la que se conectó (solo en este navegador), como pista para Google.
+const CLAVE_CUENTA = `${PREFIJO_APP}:google-cuenta`;
 
 let token = null; // { accessToken, venceEn, respuesta }
 let clienteToken = null;
@@ -223,6 +226,7 @@ function pedirToken({ silencioso }) {
       };
       recordarConexion();
       registrarSesion(silencioso ? 'renovacion' : 'conexion');
+      recordarCuenta(respuesta.access_token);
       resolve();
     };
     manejarErrorToken = (error) => {
@@ -241,6 +245,61 @@ function pedirToken({ silencioso }) {
       });
     }
 
-    clienteToken.requestAccessToken({ prompt: silencioso ? 'none' : '' });
+    // v0.107.3 (H14): con la pista de la cuenta (`hint`), Google sabe cuál renovar en silencio aunque haya varias
+    // cuentas abiertas en el navegador; sin ella, con más de una cuenta, la renovación silenciosa fallaba y pedía
+    // «Reconectar». La pista solo preselecciona: en la ventana se puede elegir otra cuenta igual.
+    const cuenta = cuentaRecordada();
+    clienteToken.requestAccessToken({ prompt: silencioso ? 'none' : '', ...(cuenta ? { hint: cuenta } : {}) });
   });
+}
+
+/** Email de la cuenta de Google con la que se conectó por última vez en este navegador (`''` si no se sabe). */
+export function cuentaRecordada() {
+  try {
+    return localStorage.getItem(CLAVE_CUENTA) || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Averigua el email de la cuenta recién conectada (Drive `about`, permitido con el permiso `drive.file` que ya
+ * tiene la app) y lo guarda como pista para las próximas renovaciones. Falla en silencio: es solo una ayuda.
+ */
+async function recordarCuenta(accessToken) {
+  try {
+    const respuesta = await fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!respuesta.ok) return;
+    const email = (await respuesta.json())?.user?.emailAddress;
+    if (email && email !== cuentaRecordada()) {
+      localStorage.setItem(CLAVE_CUENTA, email);
+      registrarSesion('cuenta', 'Se recordó la cuenta para renovar en silencio');
+    }
+  } catch {
+    // Solo una ayuda para la renovación silenciosa.
+  }
+}
+
+/**
+ * Cierra la sesión de Google en este navegador (v0.108.0, H14): revoca el permiso del token actual, lo descarta y olvida
+ * la cuenta recordada y la marca de «se conectó alguna vez», así la próxima conexión pide elegir cuenta y no se intenta
+ * renovar en silencio. No toca los datos (ni los locales ni los de Drive).
+ */
+export function cerrarSesionGoogle() {
+  const accessToken = token && token.accessToken;
+  token = null;
+  try {
+    if (accessToken && soportaGoogle()) google.accounts.oauth2.revoke(accessToken, () => {});
+  } catch {
+    // Si no se pudo revocar, el token vence solo en menos de una hora.
+  }
+  try {
+    localStorage.removeItem(CLAVE_CUENTA);
+    localStorage.removeItem(CLAVE_CONECTADO_ALGUNA_VEZ);
+  } catch {
+    // Solo preferencias.
+  }
+  registrarSesion('cierre', 'Cerraste la sesión desde Configuraciones');
 }

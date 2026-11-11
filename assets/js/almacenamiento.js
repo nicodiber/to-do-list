@@ -4,19 +4,20 @@
 // buffer "pendiente" (IndexedDB, ver almacenamiento-local.js) que la UI nunca
 // presenta como guardado. Las vistas siguen usando solo `estado` y
 // `persistirYNotificar()`.
-import { conectar, hayToken, msHastaVencer, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion } from './google-auth.js';
+import { conectar, hayToken, msHastaVencer, tieneScope, invalidarToken, esperarGoogle, conectadoAlgunaVez, alPerderSesion, cerrarSesionGoogle } from './google-auth.js';
 import { buscarArchivoRemoto, leerArchivoRemoto, guardarArchivoRemoto, ErrorDrive } from './google-drive-sync.js';
 import * as almacenamientoLocal from './almacenamiento-local.js';
 import { COLECCIONES, FORMATO_ARCHIVO, sellarCambios, mezclar, datosParaArchivo, fotoColecciones, difierenDatos, copiarProfundo } from './sincronizacion.js';
 import { crearPreferencias } from './modelos.js';
-import { recalcularBloqueo } from './tareas-logica.js';
+import { recalcularBloqueo, anclarRepeticionesDiaFijo } from './tareas-logica.js';
 import { repararEnlaces } from './dependencias.js';
 import { fechaLocalISO } from './utilidades.js';
 import { registrarPasoDeshacer, invalidarHistorialDeshacer } from './deshacer.js';
 import { confirmar } from './avisos.js';
+import { PREFIJO_APP } from './entorno.js';
 
-const CLAVE_LOCALSTORAGE_VIEJA = 'super-todo-list:datos';
-const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = 'super-todo-list:ultima-modificacion';
+const CLAVE_LOCALSTORAGE_VIEJA = `${PREFIJO_APP}:datos`;
+const CLAVE_LOCALSTORAGE_ULTIMA_MOD_VIEJA = `${PREFIJO_APP}:ultima-modificacion`;
 const DEBOUNCE_SUBIDA_MS = 2000;
 const INTERVALO_VERIFICACION_MS = 5 * 60 * 1000;
 const REINTENTO_ERROR_MS = 60 * 1000;
@@ -790,6 +791,19 @@ export async function conectarDrive() {
   await sincronizarAhora({ forzar: true });
 }
 
+/**
+ * Cierra la sesión de Google (v0.108.0, H14) para poder conectarse con otra cuenta. Si hay cambios que Drive todavía
+ * no confirmó, no la cierra (se perderían de vista hasta reconectar): primero hay que esperar a que se suban. Los datos
+ * de este navegador quedan como están; la cabecera pasa a «Hace falta reconectar» con el botón «Reconectar».
+ */
+export function cerrarSesion() {
+  if (sync.hayPendiente) {
+    throw new Error('Hay cambios que Drive todavía no confirmó. Esperá a que figure «Drive: guardado» y volvé a intentar.');
+  }
+  cerrarSesionGoogle();
+  setSync({ estado: sync.datosListos ? 'sesion-vencida' : 'sin-destino', reconexionManual: true, reconectaConClic: false });
+}
+
 export function limpiarRecienConectado() {
   setSync({ recienConectado: false });
 }
@@ -1001,9 +1015,9 @@ export function descartarDatosViejos() {
 // ---------------------------------------------------------------------------
 
 // Copia de seguridad (v0.105.0): cuándo se exportó por última vez en este dispositivo y cada cuántos días recordarlo.
-const CLAVE_ULTIMA_EXPORTACION = 'super-todo-list:ultima-exportacion';
-const CLAVE_RECORDATORIO_COPIA = 'super-todo-list:recordatorio-copia-dias';
-const CLAVE_PRIMER_USO = 'super-todo-list:primer-uso-copia';
+const CLAVE_ULTIMA_EXPORTACION = `${PREFIJO_APP}:ultima-exportacion`;
+const CLAVE_RECORDATORIO_COPIA = `${PREFIJO_APP}:recordatorio-copia-dias`;
+const CLAVE_PRIMER_USO = `${PREFIJO_APP}:primer-uso-copia`;
 export const DIAS_RECORDATORIO_COPIA = [0, 7, 14, 30, 90]; // 0 = nunca
 
 export function ultimaExportacion() {
@@ -1083,7 +1097,11 @@ export async function importarJSON(archivo) {
   const texto = await archivo.text();
   const normalizados = normalizarDatosCrudos(JSON.parse(texto));
   for (const cfg of COLECCIONES) estado[cfg.clave] = normalizados[cfg.clave];
+  // v0.108.1: los datos importados no pasaron por el agendado de esta sesión (que ya corrió al conectar, con los
+  // datos anteriores). Se completa ya el día de las repeticiones en día fijo y se avisa para reagendar todo.
+  anclarRepeticionesDiaFijo(estado.tareas);
   await persistirYNotificar();
+  window.dispatchEvent(new CustomEvent('stdl:datos-importados'));
 }
 
 /**

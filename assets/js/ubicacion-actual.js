@@ -1,9 +1,10 @@
+import { PREFIJO_APP } from './entorno.js';
 // Preferencia de UI compartida entre vistas (Hoy, Tareas, Agenda): qué
 // ubicación está "activa" para filtrar tareas. Vive en localStorage bajo
 // una clave propia (no en `estado`) porque es una preferencia de sesión,
 // no un dato de la app — no debe sincronizarse vía Drive/carpeta local.
 // Mismo patrón ya usado para el tema claro/oscuro (assets/js/app.js).
-const CLAVE_LOCALSTORAGE = 'super-todo-list:ubicacion-actual';
+const CLAVE_LOCALSTORAGE = `${PREFIJO_APP}:ubicacion-actual`;
 
 export function obtenerUbicacionActual() {
   try {

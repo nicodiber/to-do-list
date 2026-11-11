@@ -8,11 +8,12 @@ import { UNIDADES_MANTENIMIENTO, ETIQUETAS_UNIDAD_MANTENIMIENTO } from './modelo
 import { escaparHtml, arbolCategorias, caminoCategoria, tieneHora, combinarFechaYHora, capitalizarPrimera, fechaLocalISO, formatearHora, htmlInterruptor } from './utilidades.js';
 import { DIAS_SEMANA } from './reprogramar.js';
 import { opcionesPrevia, opcionesProxima, evaluarEnlace, tareasDeLaCadenaNoRepetibles } from './dependencias.js';
-import { limitarFechaSugeridaALimite, textoRepeticion } from './tareas-logica.js';
+import { limitarFechaSugeridaALimite, textoRepeticion, cambioReglaDiaFijo, fechaFijaVigente } from './tareas-logica.js';
 import { abrirDialogoCategoria, abrirDialogoUbicacion, abrirDialogoMeta, abrirDialogoPersona } from './formularios-entidades.js';
 
 import { activarMayusculaInicial, conectarCrearNueva, CREAR_NUEVA } from './dialogo-formulario.js';
 import { confirmar } from './avisos.js';
+import { extraerLinks } from './links.js';
 
 export { firmaFormulario } from './dialogo-formulario.js';
 
@@ -256,8 +257,9 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
     <fieldset class="seccion-form">
       <legend>📝 Qué</legend>
       <label class="campo ancho-completo" title="Notas, enlaces o lo que quieras recordar de la tarea"><span class="campo-titulo">🗒️ Descripción, notas o links</span>
-        <input type="text" name="tarea_descripcion" placeholder="Opcional" value="${escaparHtml(t.tarea_descripcion || '')}" />
+        <textarea name="tarea_descripcion" class="campo-descripcion" rows="3" placeholder="Opcional" aria-label="Descripción, notas o links">${escaparHtml(t.tarea_descripcion || '')}</textarea>
       </label>
+      <div class="links-descripcion ancho-completo" data-links-descripcion hidden></div>
       <label class="campo" title="El área de tu vida a la que pertenece; define su prioridad"><span class="campo-titulo">🗂️ Categoría</span><select name="categoria_id">${htmlOpcionesCategoria(t.categoria_id || '')}</select></label>
       <label class="campo" title="Cuánto disfrutás hacerla (1 a 5)"><span class="campo-titulo">⭐ Disfrute</span><select name="tarea_disfrute">${htmlOpcionesDisfrute(t.tarea_disfrute ?? null)}</select></label>
       <label class="campo" title="La meta a la que aporta esta tarea"><span class="campo-titulo">🏁 Meta</span><select name="meta_id">${htmlOpcionesMeta(t.meta_id || '')}</select></label>
@@ -437,7 +439,44 @@ function agregarBotonDeDictado(formulario) {
   });
 }
 
+/**
+ * Descripción de varias líneas (H03-A): el textarea crece solo con el texto (hasta ~12 líneas, después scrollea)
+ * y debajo se muestran como chips los links detectados, que se actualizan en vivo. Todo texto del usuario se
+ * escapa con `escaparHtml`. Una carga por código (`precargar`, `reset`) avisa con el evento `actualizar-descripcion`.
+ */
+function conectarDescripcion(formulario) {
+  const campo = formulario.tarea_descripcion;
+  const contenedor = formulario.querySelector('[data-links-descripcion]');
+  if (!campo || campo.tagName !== 'TEXTAREA') return;
+  const actualizar = () => {
+    campo.style.height = 'auto';
+    campo.style.height = `${campo.scrollHeight}px`;
+    if (!contenedor) return;
+    const links = extraerLinks(campo.value);
+    contenedor.hidden = links.length === 0;
+    contenedor.innerHTML = links
+      .map((l) => `<a class="chip-link" href="${escaparHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="${escaparHtml(l.href)}">🔗 ${escaparHtml(l.etiqueta)}</a>`)
+      .join('');
+  };
+  campo.addEventListener('input', actualizar);
+  campo.addEventListener('actualizar-descripcion', actualizar);
+  formulario.addEventListener('reset', () => setTimeout(actualizar));
+  actualizar();
+  // El diálogo todavía puede estar cerrado (alto 0) al conectar: se recalcula cuando se muestra.
+  requestAnimationFrame(actualizar);
+  if (typeof ResizeObserver === 'function') {
+    let anchoPrevio = campo.offsetWidth;
+    new ResizeObserver(() => {
+      if (campo.offsetWidth !== anchoPrevio && campo.offsetWidth > 0) {
+        anchoPrevio = campo.offsetWidth;
+        actualizar();
+      }
+    }).observe(campo);
+  }
+}
+
 export function conectarFormularioTarea(formulario, { modo = 'edicion', precargaPorNombre = true } = {}) {
+  conectarDescripcion(formulario);
   if (modo === 'alta') resaltarCamposCompletados(formulario);
   if (modo === 'alta') agregarBotonDeDictado(formulario);
   // Cargar o cambiar la fecha sugerida con hora la fija sola (v0.106.0); el interruptor deja soltarla.
@@ -514,6 +553,7 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
     if (!campo || !sinTocar(campo)) return false;
     if (campo.type === 'checkbox' || campo.type === 'radio') campo.checked = !!valor;
     else campo.value = valor;
+    if (campo.tagName === 'TEXTAREA') campo.dispatchEvent(new Event('actualizar-descripcion'));
     precargados.set(campo, campo.type === 'checkbox' || campo.type === 'radio' ? campo.checked : campo.value);
     return true;
   };
@@ -628,11 +668,30 @@ export function vaciarFormularioTarea(formulario) {
   formulario.tarea_nombre.focus();
 }
 
-/** Aplica los `campos` leídos del formulario a una tarea existente (sin tocar sus enlaces). */
+/**
+ * Aplica los `campos` leídos del formulario a una tarea existente (sin tocar sus enlaces).
+ * v0.107.2: si cambió la regla de repetición en día fijo (o sus días hábiles), el día que le tocaba deja de valer:
+ * se borra `tarea_mantenimiento_objetivo` (y el límite y la fecha sugerida que venían de ese día, salvo una fecha
+ * fijada con 📌) para que `anclarRepeticionesDiaFijo` le calcule el día nuevo en el próximo agendado.
+ */
 export function aplicarCamposATarea(tarea, campos) {
+  const antes = { tarea_mantenimiento_dia_fijo: tarea.tarea_mantenimiento_dia_fijo, tarea_dias_habiles: tarea.tarea_dias_habiles };
+  const objetivoAnterior = tarea.tarea_mantenimiento_objetivo;
+  const eraDiaObligatorio = !!tarea.tarea_dia_obligatorio;
   Object.entries(campos).forEach(([clave, valor]) => {
     if (valor !== undefined) tarea[clave] = valor;
   });
+  if (tarea.tarea_estado !== 'completada' && 'tarea_mantenimiento_dia_fijo' in campos && cambioReglaDiaFijo(antes, tarea)) {
+    tarea.tarea_mantenimiento_objetivo = '';
+    // Solo el límite que venía de «día obligatorio» (era el mismo día objetivo); un límite cargado a mano se respeta.
+    if ((eraDiaObligatorio || tarea.tarea_dia_obligatorio) && objetivoAnterior && diaDe(tarea.tarea_fecha_limite) === objetivoAnterior) tarea.tarea_fecha_limite = '';
+    if (!fechaFijaVigente(tarea)) tarea.tarea_fecha_sugerida = '';
+  }
+}
+
+function diaDe(fechaISO) {
+  if (!fechaISO) return '';
+  return tieneHora(fechaISO) ? fechaLocalISO(new Date(fechaISO)) : fechaISO;
 }
 
 /**

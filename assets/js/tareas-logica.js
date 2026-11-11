@@ -82,6 +82,57 @@ export function calcularProximaRepeticion(desdeISODatetime, tarea) {
   return proximoDiaHabil(crudo, tarea.tarea_dias_habiles);
 }
 
+/**
+ * Primer día (`YYYY-MM-DD`) en que le toca a una repetición en **día fijo** que todavía no tiene día asignado,
+ * contando **desde `desdeISO` inclusive** (si hoy es el día fijo, es hoy) y aplicando los días hábiles. `''` si la
+ * tarea no repite en día fijo. v0.107.2.
+ */
+export function primerDiaRepeticionDiaFijo(tarea, desdeISO) {
+  if (!tarea.tarea_mantenimiento || !tarea.tarea_mantenimiento_dia_fijo) return '';
+  const fijo = tarea.tarea_mantenimiento_dia_fijo;
+  if (fijo.tipo === 'semana' && (!fijo.dias || fijo.dias.length === 0)) return '';
+  const [a, m, d] = desdeISO.split('-').map(Number);
+  const ayer = fechaLocalISO(new Date(a, m - 1, d - 1));
+  return proximoDiaHabil(proximoDiaFijo(`${ayer}T12:00:00`, fijo), tarea.tarea_dias_habiles);
+}
+
+/**
+ * Ancla la **primera** aparición de las tareas que repiten en día fijo (v0.107.2, corrige E1). Hasta ahora solo las
+ * copias que nacen al cumplir una tarea guardaban `tarea_mantenimiento_objetivo`; la tarea original no, así que el
+ * agendado la ubicaba en cualquier hueco libre (ej.: «el día 1 de cada mes» terminaba el día 7). Para cada tarea
+ * activa con día fijo, sin fecha límite y sin objetivo: le calcula el objetivo (desde hoy o desde su habilitación, lo
+ * que sea más tarde); si tiene «día obligatorio», ese día pasa también a ser su límite (igual que en las copias); y si
+ * su fecha sugerida cae **otro día** (y no la fijó el usuario con 📌), la deja en ese día sin hora para que el
+ * agendado le busque un hueco real ese día (o el siguiente posible, si ese día no hay lugar). Solo completa datos que faltaban: no borra ni pisa nada que
+ * el usuario haya cargado. Muta las tareas y devuelve las que cambió.
+ */
+export function anclarRepeticionesDiaFijo(tareas, hoy = hoyISO()) {
+  const cambiadas = [];
+  (tareas || []).forEach((tarea) => {
+    if (tarea.tarea_estado === 'completada' || tarea.tarea_fecha_limite || tarea.tarea_mantenimiento_objetivo) return;
+    const habilitada = diaLocal(tarea.tarea_fecha_inicio_habilitada || '');
+    const desde = habilitada && habilitada > hoy ? habilitada : hoy;
+    const objetivo = primerDiaRepeticionDiaFijo(tarea, desde);
+    if (!objetivo) return;
+    tarea.tarea_mantenimiento_objetivo = objetivo;
+    if (tarea.tarea_dia_obligatorio) tarea.tarea_fecha_limite = objetivo;
+    if (!fechaFijaVigente(tarea) && diaLocal(tarea.tarea_fecha_sugerida || '') !== objetivo) {
+      tarea.tarea_fecha_sugerida = objetivo;
+    }
+    cambiadas.push(tarea);
+  });
+  return cambiadas;
+}
+
+/** ¿Cambió la regla de repetición en día fijo (o sus días hábiles) entre dos versiones de una tarea? */
+export function cambioReglaDiaFijo(antes, despues) {
+  if (!despues.tarea_mantenimiento_dia_fijo) return false;
+  return (
+    JSON.stringify(antes.tarea_mantenimiento_dia_fijo || null) !== JSON.stringify(despues.tarea_mantenimiento_dia_fijo) ||
+    JSON.stringify([...(antes.tarea_dias_habiles || [])].sort()) !== JSON.stringify([...(despues.tarea_dias_habiles || [])].sort())
+  );
+}
+
 /** Texto corto de cómo se repite una tarea (para etiquetas y tarjetas): «cada 2 semanas», «el día 1 de cada mes»… */
 export function textoRepeticion(tarea) {
   const fijo = tarea.tarea_mantenimiento_dia_fijo;

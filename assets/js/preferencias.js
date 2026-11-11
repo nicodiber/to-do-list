@@ -5,9 +5,10 @@
 import { estado, persistirYNotificar } from './almacenamiento.js';
 import { crearPreferencias, PREFERENCIAS_POR_DEFECTO } from './modelos.js';
 import { hoyISO } from './utilidades.js';
+import { PREFIJO_APP } from './entorno.js';
 
 // Antes de la Ronda 9b la franja horaria vivía solo en este dispositivo.
-const CLAVE_FRANJA_VIEJA = 'super-todo-list:franja-horaria';
+const CLAVE_FRANJA_VIEJA = `${PREFIJO_APP}:franja-horaria`;
 
 function franjaVieja() {
   try {

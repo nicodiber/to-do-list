@@ -9,7 +9,8 @@ import { conectarCrearNueva } from '../assets/js/dialogo-formulario.js';
 import { abrirDialogoUbicacion } from '../assets/js/formularios-entidades.js';
 import { hayConexionGoogleCalendar, listarCalendarios, invalidarCacheEventos } from '../assets/js/google-calendar.js';
 import { escaparHtml, htmlInterruptor } from '../assets/js/utilidades.js';
-import { registroSesionGoogle } from '../assets/js/google-auth.js';
+import { registroSesionGoogle, cuentaRecordada, hayToken } from '../assets/js/google-auth.js';
+import { cerrarSesion } from '../assets/js/almacenamiento.js';
 import { htmlAtajos } from '../assets/js/atajos.js';
 import { leerPreferenciaSonidos, guardarPreferenciaSonidos, sonar } from '../assets/js/sonidos.js';
 import { climaAutomaticoActivado, guardarClimaAutomatico, detectarCoordenadasDelDispositivo, ultimasCoordenadasDetectadas } from '../assets/js/clima.js';
@@ -100,6 +101,8 @@ export function renderVistaConfiguraciones(contenedor) {
     <section class="seccion-config">
       <h3>🔑 Sesión de Google</h3>
       <p class="ayuda">La sesión de Google dura cerca de una hora y se renueva sola mientras usás la app (cada clic o tecla es una oportunidad). Si la perdés seguido, este registro (guardado solo en este navegador) muestra qué pasó y sirve para encontrar la causa.</p>
+      <p id="cuenta-google" class="ayuda"></p>
+      <button type="button" id="boton-cerrar-sesion">🚪 Cerrar sesión de Google</button>
       <details>
         <summary>Ver las últimas conexiones y fallos</summary>
         <ul class="registro-sesion" id="registro-sesion"></ul>
@@ -176,8 +179,30 @@ export function renderVistaConfiguraciones(contenedor) {
   });
   contenedor.querySelector('#sonidos-probar').addEventListener('click', () => sonar('completar', { forzar: true }));
 
+  // v0.108.0 (H14): cuenta con la que se renueva la sesión y botón para cerrarla (y poder conectarse con otra).
+  const cuenta = cuentaRecordada();
+  contenedor.querySelector('#cuenta-google').textContent = cuenta
+    ? `Cuenta conectada: ${cuenta}. La sesión se renueva siempre con esta cuenta.`
+    : hayToken()
+      ? 'Conectado a Google (la cuenta se va a mostrar acá después de la próxima renovación).'
+      : 'Sin sesión de Google en este navegador.';
+  const botonCerrar = contenedor.querySelector('#boton-cerrar-sesion');
+  botonCerrar.hidden = !hayToken() && !cuenta;
+  botonCerrar.addEventListener('click', async () => {
+    const ok = await confirmar(
+      `¿Cerrar la sesión de Google${cuenta ? ` (${cuenta})` : ''}?\n\nTus datos no se borran: quedan en Drive y en este navegador. Para volver a sincronizar vas a tener que tocar «Reconectar» y elegir la cuenta.`
+    );
+    if (!ok) return;
+    try {
+      cerrarSesion();
+      renderVistaConfiguraciones(contenedor);
+    } catch (error) {
+      await avisar(error.message);
+    }
+  });
+
   const registro = contenedor.querySelector('#registro-sesion');
-  const etiquetasRegistro = { conexion: '✅ Conexión con ventana', renovacion: '🔄 Renovación silenciosa', fallo: '⚠️ Falló' };
+  const etiquetasRegistro = { conexion: '✅ Conexión con ventana', renovacion: '🔄 Renovación silenciosa', fallo: '⚠️ Falló', cuenta: '👤 Cuenta recordada', cierre: '🚪 Sesión cerrada' };
   const entradas = registroSesionGoogle().slice().reverse();
   if (entradas.length === 0) registro.innerHTML = '<li>Todavía no hay registros.</li>';
   entradas.forEach((e) => {

@@ -1,6 +1,7 @@
 import { soportaGoogle, hayToken, tieneScope, obtenerTokenAcceso, invalidarToken } from './google-auth.js';
 import { fechaLocalISO, minutosDeHHMM } from './utilidades.js';
 import { obtenerPreferencias } from './preferencias.js';
+import { PREFIJO_APP } from './entorno.js';
 
 const DURACION_CACHE_MS = 5 * 60 * 1000;
 const EVENTOS_POR_PAGINA = 250;
@@ -60,7 +61,7 @@ async function pedirJSON(url, accessToken) {
  * de solo lectura que ya se pidió. Sin conexión con Calendar o si falla la consulta devuelve `[]`.
  */
 let listaDegradada = false;
-const CLAVE_CALENDARIOS = 'super-todo-list:calendarios-conocidos';
+const CLAVE_CALENDARIOS = `${PREFIJO_APP}:calendarios-conocidos`;
 
 function recordarCalendarios(lista) {
   try {
@@ -199,7 +200,7 @@ async function pedirEventosDeCalendario(calendario, inicio, fin, accessToken, co
   return eventos;
 }
 
-const CLAVE_ULTIMA_LECTURA = 'super-todo-list:calendar-ultima-lectura';
+const CLAVE_ULTIMA_LECTURA = `${PREFIJO_APP}:calendar-ultima-lectura`;
 
 /** Cuándo se leyó Google Calendar completo por última vez (ISO), o `''` (v0.101.0). Se recuerda en este navegador. */
 export function ultimaLecturaCalendar() {

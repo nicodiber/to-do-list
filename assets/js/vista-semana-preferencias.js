@@ -1,6 +1,7 @@
+import { PREFIJO_APP } from './entorno.js';
 // Preferencia de UI (no un dato de la app): cuántos días muestra la vista Semana. Mismo patrón que Agenda
 // (`vista-agenda.js`): `localStorage`, con try/catch porque puede no estar disponible.
-const CLAVE_LOCALSTORAGE = 'super-todo-list:semana-dias';
+const CLAVE_LOCALSTORAGE = `${PREFIJO_APP}:semana-dias`;
 export const OPCIONES_DIAS_SEMANA = [1, 3, 7, 8, 15];
 const POR_DEFECTO = 8;
 
@@ -25,8 +26,8 @@ export function guardarDiasSemana(dias) {
 // patrón de preferencia de UI en `localStorage` que la cantidad de días.
 // v0.103.0: por defecto «Sol» y «Lluvia» vienen activados. Las claves son nuevas (`-v2`) para que el cambio de valores por
 // defecto también le llegue a quien ya había guardado «apagado»/«ninguno» con la versión anterior.
-const CLAVE_MOSTRAR_SOL = 'super-todo-list:semana-mostrar-sol-v2';
-const CLAVE_FILTRO_CLIMA = 'super-todo-list:semana-filtro-clima-v2';
+const CLAVE_MOSTRAR_SOL = `${PREFIJO_APP}:semana-mostrar-sol-v2`;
+const CLAVE_FILTRO_CLIMA = `${PREFIJO_APP}:semana-filtro-clima-v2`;
 export const FILTROS_CLIMA = ['ninguno', 'temperatura', 'lluvia'];
 
 export function leerMostrarSol() {
