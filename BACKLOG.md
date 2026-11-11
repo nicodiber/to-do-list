@@ -61,9 +61,8 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 
 ## ✅ Listo para hacer
 
+- [ ] **H21** Como usuario quiero que al conectarme con otra cuenta de Google se carguen solo los datos de esa cuenta, para no mezclar cuentas. *Decisión P32-C (v0.108.1): hoy los datos de este navegador se copiarían al Drive de la cuenta nueva.*
 - [ ] **H01** Como usuario quiero el sidebar compacto por defecto (solo ícono por módulo) y que se expanda al pasar el mouse mostrando el nombre, para ganar espacio sin perder la navegación.
-- [ ] **H06** Como usuario quiero que una tarea pueda aparecer a la vez en 🧭 Próximos por categoría y en Hoy o Urgentes, para no perderla de vista.
-- [ ] **H05** Como usuario quiero que 🧭 Próximos por categoría muestre también las subcategorías, no solo las categorías padre, para ver opciones más finas.
 - [ ] **H07** Como usuario quiero que en Semana los colores de temperatura se adapten al rango del período mostrado, para distinguir el momento más caluroso aunque la semana tenga temperaturas parecidas.
 - [ ] **H08** Como usuario quiero ver arriba en Resumen la fecha, la hora y el tiempo actual, para ubicarme al abrir la app.
 - [ ] **H09** Como usuario quiero ver en Resumen cuándo es la próxima lluvia, para planificar.
@@ -71,11 +70,13 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 - [ ] **H11** Como usuario quiero que el modo claro/oscuro cambie solo según la salida y la puesta del sol, para no hacerlo a mano.
 - [ ] **H12** Como usuario quiero vincular mis tareas a mis metas, para medir su avance (hoy hay 4 metas y ninguna tarea vinculada).
 - [ ] **H13** Como usuario quiero un plan de acción por meta (y por tarea cuando sirva) con pasos, fechas, recursos y métricas, armado con ayuda de la IA, para saber qué hacer y medir el avance.
-- [ ] **H02** Como usuario quiero un buscador en el sidebar, para llegar rápido a un módulo o a una tarea.
 
 
 ## 🔨 En curso
 
+- [ ] **H02** Como usuario quiero un buscador en el sidebar, para llegar rápido a un módulo o a una tarea. *Pedido el 11/11 (costó encontrar una tarea). Pendiente elegir entre 3 opciones visuales (H02-A/B/C).*
+- [ ] **H05** Como usuario quiero que 🧭 Próximos por categoría muestre también las subcategorías, no solo las categorías padre, para ver opciones más finas. *Decisión P30: árbol con sangría (A) + poder plegar/desplegar cada padre (C).*
+- [ ] **H06** Como usuario quiero que una tarea pueda aparecer a la vez en 🧭 Próximos por categoría y en Hoy o Urgentes, para no perderla de vista.
 - [ ] **H14** Como usuario quiero que la sesión de Google no se corte seguido, para no tener que reconectar a mano. *Sucede seguido en PC con Brave (ventana emergente que aparece y desaparece, y botón «Reconectar»). Plan P10-C: primero diagnosticar, después reconexión por redirección sin clic.* *v0.107.3-v0.108.0: la sesión se renueva siempre con la misma cuenta (pista `hint`) y hay «Cerrar sesión» en Configuraciones; en observación con los Shields de Brave desactivados.*
 - [ ] **Reconexión con Google sin necesidad de un clic (investigar en una versión futura, después de la v1.0)**: hoy, al abrir la app sin sesión de Google, el navegador bloquea el popup silencioso de Google Identity Services (no hay ningún gesto del usuario todavía) y el primer clic o tecla en cualquier parte reconecta y sincroniza solo; es un solo clic por apertura (y otro cada ~1 hora si la pestaña sigue abierta y vence el token). El usuario decidió dejarlo así por ahora. Alternativas a investigar: (1) **flujo OAuth por redirección de página completa con `prompt=none`**: sin popup ni clic, porque las redirecciones no las bloquea el navegador; costo: una navegación extra a Google en cada apertura, registrar un URI de redireccionamiento en Google Cloud Console, manejar el token que vuelve en la URL con un parámetro `state` contra CSRF y volver a la misma vista, y verificar que Google siga permitiendo ese flujo para este tipo de credencial (no se puede probar en el entorno de desarrollo, solo en el navegador real); (2) **servidor intermedio liviano** (por ejemplo el Google Apps Script de la idea de analítica) que guarde un permiso de larga duración (refresh token) y entregue tokens de acceso: más robusto pero contradice el principio de app 100% cliente y sumaría otra dependencia de Google, así que solo tendría sentido si ese servidor ya se construye por otra razón *En observación (v0.105.0): con la renovación silenciosa y el botón «Reconectar» el usuario no volvió a ver el modal de sesión; se retoma solo si aparecen molestias.*
   - *v0.107.4: retomado como parte de H14 (en Brave la renovación silenciosa falla siempre con popup_closed).*
@@ -83,10 +84,7 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 
 ## 🧪 Para probar
 
-- [ ] **H16** Como usuario quiero una URL de pruebas para la rama `develop`, con datos separados de los reales, para probar cada entrega sin riesgo. *Decisión P8-C.* *v0.107.3: hecha — https://nicodiber.github.io/to-do-list-pruebas/ (datos separados).*
-- [ ] **H03** Como usuario quiero que el campo Descripción sea de varias líneas y con links clicables, para cargar y leer notas largas cómodamente. *v0.108.0: implementada la opción A (cuadro que crece; links como chips solo al abrir la tarea, P26-A).*
-- [ ] **H15** Como usuario quiero que «Sincronizado» aparezca recién cuando terminaron los reacomodos automáticos, para confiar en lo que veo. *Decisión P11-A: mostrar «Reorganizando…» hasta que terminen. Pendiente elegir entre 3 opciones visuales.* *v0.108.0: implementada la opción B (dos renglones Drive / Agenda).*
-- [ ] **H04** Como usuario quiero que la primera repetición de una tarea en día fijo respete ese día, para que caiga cuando corresponde. *Implementado en la v0.107.2 (`anclarRepeticionesDiaFijo`); si el día fijo no es un día permitido, pasa al siguiente permitido (decisión P7-A). Falta que el usuario lo pruebe en la URL de pruebas.*
+- [ ] **H04** Como usuario quiero que la primera repetición de una tarea en día fijo respete ese día, para que caiga cuando corresponde. *Implementado en la v0.107.2 (`anclarRepeticionesDiaFijo`); si el día fijo no es un día permitido, pasa al siguiente permitido (decisión P7-A). Falta que el usuario lo pruebe en la URL de pruebas.* *v0.108.1: importar un respaldo ahora reagenda (por eso en pruebas seguía el 14/11).*
 
 ### Previos a v1.0.0
 
@@ -94,7 +92,7 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 
 ## ✔️ Hecho
 
-<details><summary>Ver ítems hechos (376)</summary>
+<details><summary>Ver ítems hechos (379)</summary>
 
 ### Previos a v1.0.0
 
@@ -507,6 +505,12 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 - [x] El mapa de hábitos usa `cumplimiento_fecha_limite` para saber si hubo incumplimiento. Sin límite, ¿contra qué fecha se mide? (Propuesta: contra la fecha sugerida objetivo; con «día obligatorio», contra ese día.)
 - [x] Qué pasa con las tareas de mantenimiento y las copias ya cargadas con límite. (Propuesta: no se tocan; el cambio vale para las copias que se creen de ahí en más.)
 - [x] Interacción con «repetir hasta» (`tarea_repetir_hasta`, `tarea_repetir_hasta_tarea`) y con las cadenas de mantenimiento (anillo): el día fijo debe respetarlas. (Propuesta: sin cambios; la repetición se corta igual al llegar al «hasta».)
+
+### Confirmadas en la v0.108.1
+
+- [x] **H03** Como usuario quiero que el campo Descripción sea de varias líneas y con links clicables, para cargar y leer notas largas cómodamente. *v0.108.0: implementada la opción A (cuadro que crece; links como chips solo al abrir la tarea, P26-A).* *Confirmada por el usuario el 11/11; en la app real desde la v0.108.1.*
+- [x] **H15** Como usuario quiero que «Sincronizado» aparezca recién cuando terminaron los reacomodos automáticos, para confiar en lo que veo. *Decisión P11-A: mostrar «Reorganizando…» hasta que terminen. Pendiente elegir entre 3 opciones visuales.* *v0.108.0: implementada la opción B (dos renglones Drive / Agenda).* *Confirmada por el usuario el 11/11; en la app real desde la v0.108.1.*
+- [x] **H16** Como usuario quiero una URL de pruebas para la rama `develop`, con datos separados de los reales, para probar cada entrega sin riesgo. *Decisión P8-C.* *v0.107.3: hecha — https://nicodiber.github.io/to-do-list-pruebas/ (datos separados).* *Confirmada por el usuario el 11/11; en la app real desde la v0.108.1.*
 
 ### Divididos en la v0.107.4 (P19-C)
 
