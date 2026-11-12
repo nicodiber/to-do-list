@@ -2,6 +2,17 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.109.0] - 2026-11-12
+
+### Agregado
+
+- **Buscador** (H02, opción B «paleta rápida»): botón «🔎 Buscar» en el menú o **Ctrl+K** (Cmd+K en Mac) desde cualquier lado. Busca tareas por nombre (sin importar mayúsculas ni acentos) y módulos; ↑↓ para moverse, Enter abre la tarea o el módulo, Esc cierra. Al final ofrece «➕ Crear tarea» con lo escrito. Nuevos `assets/js/buscador.js`, `assets/js/paleta-busqueda.js` y `assets/css/buscador.css`.
+
+### Cambiado
+
+- **«🧭 Próximos por categoría» en árbol plegable** (H05, opciones A + C): cada categoría padre muestra la mejor tarea de toda su rama y, al desplegarla, cada subcategoría (de cualquier nivel) con la suya. Los padres arrancan plegados y se recuerda cuáles abriste (en este navegador).
+- **Próximos también muestra tareas que ya están en Urgentes, Hoy o Mañana** (H06), marcadas «también en …», y «📋 Resto de tus pendientes» ya no las saca (P39-B).
+
 ## [v0.108.1] - 2026-11-11
 
 ### Corregido

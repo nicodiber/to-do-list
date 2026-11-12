@@ -44,6 +44,7 @@ import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { renderVistaMemento } from '../../views/memento.view.js';
 import { renderVistaAsistente } from '../../views/asistente.view.js';
 import { configurarAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
+import { iniciarPaletaBusqueda } from './paleta-busqueda.js';
 import { crearRevisorDeAvisos, abrirAvisosSync } from './avisos-sync.js';
 import { filtrarSinHuecoVigente } from './aviso-sin-hueco.js';
 import { copiaVencida, exportarJSON } from './almacenamiento.js';
@@ -55,7 +56,7 @@ import { PREFIJO_APP, ES_PRUEBAS } from './entorno.js';
 import { conReorganizacion, iniciarReorganizacion, pasoAgendaHecho, estadoAgenda, suscribirAgenda } from './estado-agenda.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.108.1';
+const VERSION = 'v0.109.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -624,6 +625,19 @@ configurarAtajos({
   rehacer,
   puedeDeshacer,
   puedeRehacer,
+});
+
+// Buscador (H02-B): botón «Buscar» del menú y Ctrl+K (el atajo está en atajos.js).
+iniciarPaletaBusqueda({
+  modulos: Object.entries(VISTAS).map(([clave, vista]) => ({ clave, etiqueta: vista.etiqueta })),
+  irAVista: (clave) => {
+    location.hash = `#/${clave}`;
+  },
+  puedeUsarse: () => {
+    const s = obtenerEstadoSync();
+    return s.datosListos && !s.soloLectura;
+  },
+  hayDatos: () => obtenerEstadoSync().datosListos,
 });
 
 function temaEfectivo() {

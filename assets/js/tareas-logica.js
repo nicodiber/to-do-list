@@ -827,6 +827,55 @@ export function mejorTareaPorCategoria(tareas, categorias) {
 }
 
 /**
+ * «🧭 Próximos por categoría» como árbol (v0.109.0, H05, decisiones P30 A+C y P38-A): por cada categoría raíz (en el
+ * orden de la jerarquía) la mejor tarea accionable de **toda su rama**, y en `hijos` cada subcategoría (de cualquier
+ * nivel, en orden de jerarquía, recorrido en profundidad) cuya propia rama tenga alguna tarea accionable, con la mejor
+ * de esa rama y su `nivel` (1 = hija directa). Una tarea puede repetirse en la fila del padre y en la de su subcategoría.
+ * "Mejor" = la primera según `compararPorPrioridad`. Devuelve `[{ categoria, tarea, hijos: [{ categoria, tarea, nivel }] }]`.
+ */
+export function arbolProximosPorCategoria(tareas, categorias) {
+  const accionables = tareas.filter((t) => esTareaAccionable(t));
+  const hijosDe = (id) => categorias.filter((c) => c.categoria_padre_id === id).sort((a, b) => a.categoria_prioridad - b.categoria_prioridad);
+  const ramaDe = (categoria) => {
+    const ids = new Set();
+    const pila = [categoria];
+    while (pila.length) {
+      const actual = pila.pop();
+      if (ids.has(actual.categoria_id)) continue; // por si hubiera un ciclo en los datos
+      ids.add(actual.categoria_id);
+      pila.push(...hijosDe(actual.categoria_id));
+    }
+    return ids;
+  };
+  const mejorDe = (categoria) => {
+    const ids = ramaDe(categoria);
+    const candidatas = accionables.filter((t) => ids.has(t.categoria_id));
+    if (candidatas.length === 0) return null;
+    return [...candidatas].sort((a, b) => compararPorPrioridad(a, b, categorias))[0];
+  };
+  const raices = categorias.filter((c) => !c.categoria_padre_id).sort((a, b) => a.categoria_prioridad - b.categoria_prioridad);
+  return raices
+    .map((raiz) => {
+      const tarea = mejorDe(raiz);
+      if (!tarea) return null;
+      const hijos = [];
+      const visitar = (categoria, nivel, vistos) => {
+        hijosDe(categoria.categoria_id).forEach((hija) => {
+          if (vistos.has(hija.categoria_id)) return;
+          vistos.add(hija.categoria_id);
+          const mejor = mejorDe(hija);
+          if (!mejor) return;
+          hijos.push({ categoria: hija, tarea: mejor, nivel });
+          visitar(hija, nivel + 1, vistos);
+        });
+      };
+      visitar(raiz, 1, new Set([raiz.categoria_id]));
+      return { categoria: raiz, tarea, hijos };
+    })
+    .filter(Boolean);
+}
+
+/**
  * ¿La tarea quedó "solo con nombre"? Sin completar, sin ningún dato cargado más
  * allá del nombre (todo en su valor por defecto) y sin enlaces con otras
  * tareas. Sirve para "Completar carga de tareas": encontrar lo que se cargó

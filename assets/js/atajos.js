@@ -1,6 +1,7 @@
 // Atajos de teclado de la app y su ventana de ayuda. Son teclas solas (sin Ctrl/Alt), que solo actúan con el foco
 // fuera de un campo y sin una ventana abierta: Ctrl+1…9 lo usa el navegador para cambiar de pestaña del navegador,
 // Alt+Shift cambia el idioma del teclado y Ctrl+Alt es AltGr en los teclados latinoamericanos.
+// Excepción: Ctrl+K / Cmd+K (buscador) funciona desde cualquier lado, también dentro de un campo.
 // La tabla de abajo es la única fuente: la usan el listener, la ventana de ayuda y los `title` de las pestañas.
 
 /** Atajos que no dependen del orden de las pestañas. `grupo` ordena la ventana de ayuda. */
@@ -10,6 +11,7 @@ export const ATAJOS_FIJOS = [
   { tecla: 'Ctrl + Enter', descripcion: 'Guardar o agregar desde cualquier ventana de formulario', grupo: 'Tareas' },
   { tecla: 'Ctrl + Z', descripcion: 'Deshacer el último cambio', grupo: 'Tareas' },
   { tecla: 'Ctrl + Shift + Z', descripcion: 'Rehacer', grupo: 'Tareas' },
+  { tecla: 'Ctrl + K', descripcion: 'Buscar una tarea o un módulo (Cmd + K en Mac); funciona también dentro de un campo', grupo: 'Vistas' },
   { tecla: 'F', descripcion: 'Ir al buscador o al filtro de la vista', grupo: 'Vistas' },
   { tecla: 'Esc', descripcion: 'Cerrar la ventana abierta', grupo: 'Ventanas' },
   { tecla: '?', descripcion: 'Mostrar esta ayuda', grupo: 'Ayuda' },
@@ -25,6 +27,8 @@ export function teclaDeVista(clave, vistas) {
 export function tituloConTecla(etiqueta, tecla) {
   return tecla ? `${etiqueta} (tecla ${tecla})` : etiqueta;
 }
+
+import { abrirPaletaBusqueda } from './paleta-busqueda.js';
 
 const SELECTOR_FILTRO = '#vista input[type="search"], #vista select[id^="filtro"], #vista .filtros select';
 
@@ -100,6 +104,13 @@ export function abrirAyudaAtajos() {
 export function configurarAtajos({ vistas, etiquetas, irAVista, abrirNuevaTarea, puedeUsarse, deshacer, rehacer, puedeDeshacer, puedeRehacer }) {
   contexto = { vistas, etiquetas };
   window.addEventListener('keydown', (evento) => {
+    // Ctrl+K / Cmd+K: abre el buscador desde cualquier lado (también escribiendo en un campo). Se frena el
+    // comportamiento del navegador (Ctrl+K enfoca su barra de búsqueda).
+    if ((evento.ctrlKey || evento.metaKey) && !evento.altKey && !evento.shiftKey && (evento.key === 'k' || evento.key === 'K')) {
+      evento.preventDefault();
+      if (!evento.repeat) abrirPaletaBusqueda();
+      return;
+    }
     // Ctrl+Z / Ctrl+Shift+Z: mismas guardas que el resto (fuera de un campo, sin ventana abierta), para no pisar
     // el deshacer nativo del navegador mientras se edita texto.
     if ((evento.ctrlKey || evento.metaKey) && !evento.altKey && !evento.repeat && (evento.key === 'z' || evento.key === 'Z')) {

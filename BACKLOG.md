@@ -61,6 +61,9 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 
 ## ✅ Listo para hacer
 
+- [ ] **H22** Como usuario quiero que la app guarde sola una copia de mis datos en Drive cada vez que cambia de versión, para tener un respaldo antes de cada actualización. *Propuesta M5, aceptada (P40-D).*
+- [ ] **H23** Como usuario quiero ver un aviso corto de «qué cambió» al abrir una versión nueva, para saber qué probar. *Propuesta M6, aceptada (P40-D).*
+- [ ] **H24** Como usuario quiero una revisión de mis tareas que se repiten con su próximo día, para detectar repeticiones mal configuradas. *Propuesta M7, aceptada (P40-D).*
 - [ ] **H21** Como usuario quiero que al conectarme con otra cuenta de Google se carguen solo los datos de esa cuenta, para no mezclar cuentas. *Decisión P32-C (v0.108.1): hoy los datos de este navegador se copiarían al Drive de la cuenta nueva.*
 - [ ] **H01** Como usuario quiero el sidebar compacto por defecto (solo ícono por módulo) y que se expanda al pasar el mouse mostrando el nombre, para ganar espacio sin perder la navegación.
 - [ ] **H07** Como usuario quiero que en Semana los colores de temperatura se adapten al rango del período mostrado, para distinguir el momento más caluroso aunque la semana tenga temperaturas parecidas.
@@ -74,9 +77,6 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 
 ## 🔨 En curso
 
-- [ ] **H02** Como usuario quiero un buscador en el sidebar, para llegar rápido a un módulo o a una tarea. *Pedido el 11/11 (costó encontrar una tarea). Pendiente elegir entre 3 opciones visuales (H02-A/B/C).*
-- [ ] **H05** Como usuario quiero que 🧭 Próximos por categoría muestre también las subcategorías, no solo las categorías padre, para ver opciones más finas. *Decisión P30: árbol con sangría (A) + poder plegar/desplegar cada padre (C).*
-- [ ] **H06** Como usuario quiero que una tarea pueda aparecer a la vez en 🧭 Próximos por categoría y en Hoy o Urgentes, para no perderla de vista.
 - [ ] **H14** Como usuario quiero que la sesión de Google no se corte seguido, para no tener que reconectar a mano. *Sucede seguido en PC con Brave (ventana emergente que aparece y desaparece, y botón «Reconectar»). Plan P10-C: primero diagnosticar, después reconexión por redirección sin clic.* *v0.107.3-v0.108.0: la sesión se renueva siempre con la misma cuenta (pista `hint`) y hay «Cerrar sesión» en Configuraciones; en observación con los Shields de Brave desactivados.*
 - [ ] **Reconexión con Google sin necesidad de un clic (investigar en una versión futura, después de la v1.0)**: hoy, al abrir la app sin sesión de Google, el navegador bloquea el popup silencioso de Google Identity Services (no hay ningún gesto del usuario todavía) y el primer clic o tecla en cualquier parte reconecta y sincroniza solo; es un solo clic por apertura (y otro cada ~1 hora si la pestaña sigue abierta y vence el token). El usuario decidió dejarlo así por ahora. Alternativas a investigar: (1) **flujo OAuth por redirección de página completa con `prompt=none`**: sin popup ni clic, porque las redirecciones no las bloquea el navegador; costo: una navegación extra a Google en cada apertura, registrar un URI de redireccionamiento en Google Cloud Console, manejar el token que vuelve en la URL con un parámetro `state` contra CSRF y volver a la misma vista, y verificar que Google siga permitiendo ese flujo para este tipo de credencial (no se puede probar en el entorno de desarrollo, solo en el navegador real); (2) **servidor intermedio liviano** (por ejemplo el Google Apps Script de la idea de analítica) que guarde un permiso de larga duración (refresh token) y entregue tokens de acceso: más robusto pero contradice el principio de app 100% cliente y sumaría otra dependencia de Google, así que solo tendría sentido si ese servidor ya se construye por otra razón *En observación (v0.105.0): con la renovación silenciosa y el botón «Reconectar» el usuario no volvió a ver el modal de sesión; se retoma solo si aparecen molestias.*
   - *v0.107.4: retomado como parte de H14 (en Brave la renovación silenciosa falla siempre con popup_closed).*
@@ -84,6 +84,9 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 
 ## 🧪 Para probar
 
+- [ ] **H05** Como usuario quiero que 🧭 Próximos por categoría muestre también las subcategorías, no solo las categorías padre, para ver opciones más finas. *Decisión P30: árbol con sangría (A) + poder plegar/desplegar cada padre (C).* *v0.109.0: árbol plegable (padres plegados al empezar, P43), la fila del padre muestra la mejor de toda la rama (P38-A).*
+- [ ] **H06** Como usuario quiero que una tarea pueda aparecer a la vez en 🧭 Próximos por categoría y en Hoy o Urgentes, para no perderla de vista. *v0.109.0: Próximos usa todas las disponibles y marca «también en Urgentes/Hoy/Mañana»; Resto también las muestra (P39-B).*
+- [ ] **H02** Como usuario quiero un buscador en el sidebar, para llegar rápido a un módulo o a una tarea. *Pedido el 11/11 (costó encontrar una tarea). Pendiente elegir entre 3 opciones visuales (H02-A/B/C).* *v0.109.0: paleta rápida (H02-B): lupa en el menú o Ctrl+K, busca tareas por nombre y módulos.*
 - [ ] **H04** Como usuario quiero que la primera repetición de una tarea en día fijo respete ese día, para que caiga cuando corresponde. *Implementado en la v0.107.2 (`anclarRepeticionesDiaFijo`); si el día fijo no es un día permitido, pasa al siguiente permitido (decisión P7-A). Falta que el usuario lo pruebe en la URL de pruebas.* *v0.108.1: importar un respaldo ahora reagenda (por eso en pruebas seguía el 14/11).*
 
 ### Previos a v1.0.0

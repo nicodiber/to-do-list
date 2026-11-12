@@ -25,7 +25,7 @@ import {
   avisoInconsistentes,
   compararPorPrioridad,
   calcularHolguraDias,
-  mejorTareaPorCategoria,
+  arbolProximosPorCategoria,
   ordenarConCadenas,
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
@@ -39,6 +39,7 @@ import { obtenerPreferencias } from '../assets/js/preferencias.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
 import { avisar, confirmar } from '../assets/js/avisos.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
@@ -123,10 +124,11 @@ export function renderVistaResumen(contenedor) {
   const idsManana = new Set(tareasManana.map((t) => t.tarea_id));
   const idsHastaManana = new Set([...idsHasta, ...idsManana]);
   const resto = disponibles.filter((t) => !idsHastaManana.has(t.tarea_id)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
-  // "Próximos por categoría" va primero y "Resto" muestra lo que queda sin repetirlos.
-  const proximosPorCategoria = mejorTareaPorCategoria(resto, estado.categorias);
-  const idsProximos = new Set(proximosPorCategoria.map(({ tarea }) => tarea.tarea_id));
-  const restoSinProximos = ordenarConCadenas(resto.filter((t) => !idsProximos.has(t.tarea_id)));
+  // v0.109.0: «Próximos por categoría» en árbol (H05) y con TODAS las disponibles, también las que ya están en
+  // Urgentes, Hoy o Mañana (H06, marcadas «también en …»); «Resto» ya no las excluye (P39-B).
+  const proximosPorCategoria = arbolProximosPorCategoria(disponibles, estado.categorias);
+  const tambienEn = (id) => (idsUrgentes.has(id) ? 'Urgentes' : idsHoyNueva.has(id) ? 'Hoy' : idsManana.has(id) ? 'Mañana' : '');
+  const restoSinProximos = ordenarConCadenas(resto);
   const completadasHoy = estado.tareas
     .filter((t) => t.tarea_estado === 'completada' && seCompletoHoy(t))
     .sort((a, b) => b.tarea_fecha_fin.localeCompare(a.tarea_fecha_fin));
@@ -274,7 +276,51 @@ export function renderVistaResumen(contenedor) {
 
   const listaPorCategoria = contenedor.querySelector('#lista-por-categoria');
   if (listaPorCategoria) {
-    proximosPorCategoria.forEach(({ tarea }) => listaPorCategoria.appendChild(renderItem(tarea, { caminoCompleto: true })));
+    const abiertos = leerProximosAbiertos();
+    const marcarTambien = (li, tarea) => {
+      const donde = tambienEn(tarea.tarea_id);
+      if (!donde) return;
+      const etiqueta = document.createElement('span');
+      etiqueta.className = 'etiqueta-fecha etiqueta-tambien';
+      etiqueta.textContent = `también en ${donde}`;
+      li.querySelector('.etiquetas')?.prepend(etiqueta);
+    };
+    proximosPorCategoria.forEach(({ categoria, tarea, hijos }) => {
+      const li = renderItem(tarea, { caminoCompleto: true });
+      marcarTambien(li, tarea);
+      listaPorCategoria.appendChild(li);
+      if (hijos.length === 0) return;
+      // H05 (P30 A+C, P43): cada categoría padre se despliega o pliega; arrancan plegadas y se recuerda cuáles abriste.
+      const abierto = abiertos.has(categoria.categoria_id);
+      const filaToggle = document.createElement('li');
+      filaToggle.className = 'proximos-toggle';
+      filaToggle.innerHTML = `<button type="button" aria-expanded="${abierto}" title="Mostrar u ocultar las subcategorías de ${escaparHtml(categoria.categoria_nombre)}"><span class="flecha" aria-hidden="true">${abierto ? '▾' : '▸'}</span> ${hijos.length} subcategoría${hijos.length === 1 ? '' : 's'} con tareas</button>`;
+      listaPorCategoria.appendChild(filaToggle);
+      const filasHijas = hijos.map(({ categoria: sub, tarea: mejor, nivel }) => {
+        const hija = renderItem(mejor, { caminoCompleto: true });
+        hija.classList.add('proximo-hijo');
+        hija.style.setProperty('--nivel', nivel);
+        hija.hidden = !abierto;
+        const rotulo = document.createElement('span');
+        rotulo.className = 'rotulo-subcategoria';
+        rotulo.textContent = `↳ ${sub.categoria_nombre}`;
+        hija.querySelector('.item-tarea-info')?.prepend(rotulo);
+        marcarTambien(hija, mejor);
+        listaPorCategoria.appendChild(hija);
+        return hija;
+      });
+      filaToggle.querySelector('button').addEventListener('click', (evento) => {
+        const boton = evento.currentTarget;
+        const abrir = boton.getAttribute('aria-expanded') !== 'true';
+        boton.setAttribute('aria-expanded', String(abrir));
+        boton.querySelector('.flecha').textContent = abrir ? '▾' : '▸';
+        filasHijas.forEach((fila) => (fila.hidden = !abrir));
+        const actuales = leerProximosAbiertos();
+        if (abrir) actuales.add(categoria.categoria_id);
+        else actuales.delete(categoria.categoria_id);
+        guardarProximosAbiertos(actuales);
+      });
+    });
   }
 
   const listaResto = contenedor.querySelector('#lista-resto');
@@ -424,6 +470,25 @@ function conectarMejorasPendientes(li) {
       await persistirYNotificar();
     });
   });
+}
+
+// v0.109.0 (H05): qué categorías padre dejaste desplegadas en «Próximos por categoría» (solo en este navegador).
+const CLAVE_PROXIMOS_ABIERTOS = `${PREFIJO_APP}:proximos-abiertos`;
+
+function leerProximosAbiertos() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CLAVE_PROXIMOS_ABIERTOS) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function guardarProximosAbiertos(ids) {
+  try {
+    localStorage.setItem(CLAVE_PROXIMOS_ABIERTOS, JSON.stringify([...ids]));
+  } catch {
+    // Solo una preferencia.
+  }
 }
 
 function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {

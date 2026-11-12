@@ -452,6 +452,8 @@ Ventana modal de edición (`<dialog>` en `document.body`, sobrevive a los redibu
 
 Funciones de `assets/js/tareas-logica.js` y `assets/js/modelos.js`; decisiones en `REDISENO.md`.
 
+- **`arbolProximosPorCategoria(tareas, categorias)`** (v0.109.0, H05): por cada categoría raíz, la mejor tarea accionable de toda su rama (`compararPorPrioridad`) y en `hijos` cada subcategoría con tareas, en profundidad, con su mejor tarea y su nivel. Reemplaza a `mejorTareaPorCategoria` en Resumen (que sigue existiendo).
+- **`buscador.js`** (v0.109.0, H02): `normalizarTexto` (sin acentos ni mayúsculas), `buscarTareas(tareas, texto, categorias, max)` (no completadas primero, después las que empiezan con el texto, después por fecha sugerida; tope 20), `buscarModulos`, `partirResaltado`, `fechaCorta`. La UI está en `paleta-busqueda.js`.
 - **`estado-agenda.js`** (v0.108.0, H15-B): `conReorganizacion(fn, totalPasos)` / `iniciarReorganizacion(totalPasos)` marcan que el sistema está moviendo horarios (se pueden anidar), `pasoAgendaHecho()` suma un paso al «N/total», `estadoAgenda()` y `suscribirAgenda(fn)` lo informan a la cabecera. El aviso aparece solo si dura más de 0,4 s.
 - **`extraerLinks(texto)`** (`links.js`, v0.108.0, H03-A): links `http(s)://` y `www.` de un texto, sin repetir y sin la puntuación final que no forma parte del link; los muestra el formulario de tarea como chips bajo la descripción.
 - **`cerrarSesion()`** (`almacenamiento.js`) / **`cerrarSesionGoogle()`** (`google-auth.js`) (v0.108.0, H14): revoca el token, olvida la cuenta recordada y la marca de conexión; se niega si hay cambios sin confirmar en Drive. **`cuentaRecordada()`**: el email con el que se renueva la sesión en silencio (pista `hint` para Google).
