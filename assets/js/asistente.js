@@ -13,7 +13,7 @@ import { caminoCategoria, hoyISO, tieneHora, arbolCategorias, fechaLocalISO, for
 import { cumplirTarea, eliminarTarea, reprogramarTareaConCascada, limitarFechaSugeridaALimite, fechaFijaVigente } from './tareas-logica.js';
 import { programarParaHoy } from './programador.js';
 import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
-import { preguntarTiempoReal } from './tiempo-real.js';
+import { trasCumplirTarea } from './tras-cumplir.js';
 import { PREFIJO_APP } from './entorno.js';
 
 const URL_API = 'https://api.anthropic.com/v1/messages';
@@ -394,7 +394,7 @@ export async function aplicarPropuesta(p) {
     if (tarea.tarea_estado === 'bloqueada') return { ok: false, mensaje: 'La tarea está bloqueada: no se puede completar.' };
     cumplirTarea(tarea, estado);
     await persistirYNotificar();
-    await preguntarTiempoReal(tarea);
+    await trasCumplirTarea(tarea);
     return { ok: true, mensaje: `Tarea «${tarea.tarea_nombre}» completada.` };
   }
 

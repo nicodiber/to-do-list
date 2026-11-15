@@ -830,7 +830,8 @@ export function mejorTareaPorCategoria(tareas, categorias) {
  * «🧭 Próximos por categoría» como árbol (v0.109.0, H05, decisiones P30 A+C y P38-A): por cada categoría raíz (en el
  * orden de la jerarquía) la mejor tarea accionable de **toda su rama**, y en `hijos` cada subcategoría (de cualquier
  * nivel, en orden de jerarquía, recorrido en profundidad) cuya propia rama tenga alguna tarea accionable, con la mejor
- * de esa rama y su `nivel` (1 = hija directa). Una tarea puede repetirse en la fila del padre y en la de su subcategoría.
+ * de esa rama y su `nivel` (1 = hija directa). **Sin repetir** (P48, v0.110.0): cada subcategoría muestra la mejor de su
+ * rama que todavía no apareció más arriba en ese padre; si no le queda ninguna, su fila (y la de sus hijas) no va.
  * "Mejor" = la primera según `compararPorPrioridad`. Devuelve `[{ categoria, tarea, hijos: [{ categoria, tarea, nivel }] }]`.
  */
 export function arbolProximosPorCategoria(tareas, categorias) {
@@ -847,9 +848,9 @@ export function arbolProximosPorCategoria(tareas, categorias) {
     }
     return ids;
   };
-  const mejorDe = (categoria) => {
+  const mejorDe = (categoria, usadas = new Set()) => {
     const ids = ramaDe(categoria);
-    const candidatas = accionables.filter((t) => ids.has(t.categoria_id));
+    const candidatas = accionables.filter((t) => ids.has(t.categoria_id) && !usadas.has(t.tarea_id));
     if (candidatas.length === 0) return null;
     return [...candidatas].sort((a, b) => compararPorPrioridad(a, b, categorias))[0];
   };
@@ -859,12 +860,14 @@ export function arbolProximosPorCategoria(tareas, categorias) {
       const tarea = mejorDe(raiz);
       if (!tarea) return null;
       const hijos = [];
+      const usadas = new Set([tarea.tarea_id]);
       const visitar = (categoria, nivel, vistos) => {
         hijosDe(categoria.categoria_id).forEach((hija) => {
           if (vistos.has(hija.categoria_id)) return;
           vistos.add(hija.categoria_id);
-          const mejor = mejorDe(hija);
+          const mejor = mejorDe(hija, usadas);
           if (!mejor) return;
+          usadas.add(mejor.tarea_id);
           hijos.push({ categoria: hija, tarea: mejor, nivel });
           visitar(hija, nivel + 1, vistos);
         });

@@ -20,8 +20,7 @@ import { abrirDialogoFormulario } from './dialogo-formulario.js';
 import { aplicarEnlace } from './dependencias.js';
 import { renombrarHistorial, cumplirTarea, reabrirTarea, avisoInconsistentes, eliminarTarea } from './tareas-logica.js';
 import { programarParaHoy } from './programador.js';
-import { ofrecerExportarACalendar } from './exportar-calendar.js';
-import { preguntarTiempoReal } from './tiempo-real.js';
+import { trasCumplirTarea } from './tras-cumplir.js';
 import { avisar, confirmar } from './avisos.js';
 import { avisarConflictoEnlace } from './conflicto-enlace.js';
 import { agendarEnSegundoPlano } from './agendado-segundo-plano.js';
@@ -120,8 +119,7 @@ export function abrirEdicionTarea(id, { apilar = false } = {}) {
       const avisoUrgente = avisoInconsistentes(inconsistentesUrgente);
       if (avisoUrgente) await avisar(avisoUrgente);
       if (ofrecerExportar) {
-        await preguntarTiempoReal(actual);
-        ofrecerExportarACalendar(actual);
+        await trasCumplirTarea(actual);
       }
       return true;
     },
@@ -164,7 +162,7 @@ export function copiaDeTarea(origen, { vaciarNombre = false } = {}) {
  * `copiaDeTarea` (categoría, meta, persona, etc.), nombre y descripción vacíos y **sin fechas** (a diferencia
  * de Duplicar/Crearle previa/posterior, acá no tendría sentido arrastrar la fecha límite ya vencida de la
  * que se acaba de completar). No enlaza la nueva con la recién completada (ya no bloquearía nada). Se llama
- * junto a `ofrecerExportarACalendar`, en los mismos puntos donde ya se llama esa.
+ * junto a `trasCumplirTarea`, en los mismos puntos.
  */
 export function ofrecerCrearTareaSeguimiento(tarea) {
   abrirDialogoFormulario({
@@ -245,8 +243,7 @@ export function abrirDetalleTarea(tarea, contenidoElemento, { mostrarCumplida = 
         cumplirTarea(tarea, estado, { notaMejora });
         cerrar();
         await persistirYNotificar();
-        await preguntarTiempoReal(tarea);
-        ofrecerExportarACalendar(tarea);
+        await trasCumplirTarea(tarea);
         ofrecerCrearTareaSeguimiento(tarea);
       });
       contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {

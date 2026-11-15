@@ -74,11 +74,12 @@ export function fechaCorta(fechaISO) {
 /**
  * Tareas cuyo nombre contiene `texto` (sin distinguir mayúsculas ni acentos), ordenadas: no completadas antes que
  * completadas; dentro de cada grupo, las que empiezan con el texto antes que las que solo lo contienen; después por
- * fecha sugerida más próxima (las que no tienen fecha, al final) y, por último, por nombre.
+ * cercanía de la fecha sugerida a hoy, pasada o futura (P45-B, v0.110.0; las que no tienen fecha, al final) y, por
+ * último, por nombre. `ahora` (ms) es para las pruebas.
  * Devuelve `{ resultados, total, restantes }`: hasta `max` resultados `{ tarea, categoria, empieza }` y cuántas quedaron fuera.
  * Con texto vacío no devuelve tareas.
  */
-export function buscarTareas(tareas, texto, categorias = [], max = MAX_TAREAS_BUSCADOR) {
+export function buscarTareas(tareas, texto, categorias = [], max = MAX_TAREAS_BUSCADOR, ahora = Date.now()) {
   const buscado = normalizarTexto(texto).trim();
   if (!buscado) return { resultados: [], total: 0, restantes: 0 };
   const porId = new Map((categorias || []).map((c) => [c.categoria_id, c]));
@@ -102,7 +103,7 @@ export function buscarTareas(tareas, texto, categorias = [], max = MAX_TAREAS_BU
     const sinFechaA = !Number.isFinite(fa);
     const sinFechaB = !Number.isFinite(fb);
     if (sinFechaA !== sinFechaB) return sinFechaA ? 1 : -1;
-    if (!sinFechaA && fa !== fb) return fa - fb;
+    if (!sinFechaA && fa !== fb) return Math.abs(fa - ahora) - Math.abs(fb - ahora);
     return String(a.tarea.tarea_nombre).localeCompare(String(b.tarea.tarea_nombre), 'es');
   });
   const limite = Math.max(0, max);

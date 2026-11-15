@@ -21,6 +21,7 @@ function abrirDialogoAviso({ titulo, mensaje, botones, foco, valorAlCancelar, cu
     const texto = document.createElement('div');
     texto.className = 'aviso-mensaje';
     texto.textContent = mensaje;
+    texto.hidden = !mensaje;
     const acciones = document.createElement('div');
     acciones.className = 'acciones-modal';
     dialogo.append(encabezado, texto);
@@ -105,6 +106,38 @@ export async function pedirTexto(mensaje, { titulo = 'Escribí un texto', textoA
     cuerpoExtra: campo,
     leerExtra: () => campo.value,
     foco: () => campo,
+    botones: [
+      { texto: textoCancelar, valor: false, clase: '' },
+      { texto: textoAceptar, valor: true, clase: 'boton-primario' },
+    ],
+    valorAlCancelar: false,
+  });
+  return valor === true ? extra : null;
+}
+
+/**
+ * Confirmación con un campo de texto opcional (H25), por ejemplo «¿Qué podrías mejorar la próxima vez?». Devuelve `null`
+ * si el usuario canceló (botón, Esc) y, si confirmó, lo escrito (puede ser ''). Sin `etiquetaCampo` no hay campo y el foco
+ * va al botón de confirmar. Enter confirma (también dentro del campo, que es de una línea) y Esc cancela.
+ */
+export async function confirmarConCampo(titulo, { mensaje = '', etiquetaCampo = '', textoAceptar = 'Aceptar', textoCancelar = 'Cancelar' } = {}) {
+  let campo = null;
+  let cuerpoExtra = null;
+  if (etiquetaCampo) {
+    campo = document.createElement('input');
+    campo.type = 'text';
+    campo.className = 'aviso-campo';
+    campo.setAttribute('aria-label', etiquetaCampo.replace(/^\P{L}+/u, ''));
+    cuerpoExtra = document.createElement('label');
+    cuerpoExtra.className = 'aviso-campo-etiqueta';
+    cuerpoExtra.append(etiquetaCampo, campo);
+  }
+  const { valor, extra } = await abrirDialogoAviso({
+    titulo,
+    mensaje,
+    cuerpoExtra,
+    leerExtra: () => (campo ? campo.value.trim() : ''),
+    foco: campo ? () => campo : null,
     botones: [
       { texto: textoCancelar, valor: false, clase: '' },
       { texto: textoAceptar, valor: true, clase: 'boton-primario' },

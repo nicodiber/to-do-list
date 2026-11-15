@@ -30,7 +30,7 @@ import {
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { preguntarTiempoReal } from '../assets/js/tiempo-real.js';
+import { trasCumplirTarea } from '../assets/js/tras-cumplir.js';
 import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea, abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
@@ -38,7 +38,7 @@ import { bloquesDeSemana } from '../assets/js/bloques-horarios.js';
 import { obtenerPreferencias } from '../assets/js/preferencias.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
-import { avisar, confirmar } from '../assets/js/avisos.js';
+import { avisar, confirmar, confirmarConCampo } from '../assets/js/avisos.js';
 import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
@@ -635,37 +635,20 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
 
   if (soloInfo) return li;
 
-  li.querySelector('[data-accion="cumplida"]').addEventListener('click', () => {
+  li.querySelector('[data-accion="cumplida"]').addEventListener('click', async () => {
     contenedorPanel.hidden = true;
     contenedorPanel.innerHTML = '';
-    contenedorCierre.innerHTML = `
-      <div class="panel-cierre">
-        ${
-          tarea.tarea_mantenimiento
-            ? `<label>💡 ¿Qué podrías mejorar la próxima vez? (opcional)
-                <input type="text" data-campo="mejora" />
-              </label>`
-            : ''
-        }
-        <button title="Confirmar que la tarea se cumplió" type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
-        <button title="Cancelar y volver a la tarea" type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
-      </div>
-    `;
-    contenedorCierre.hidden = false;
-
-    contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
-      const campoMejora = contenedorCierre.querySelector('[data-campo="mejora"]');
-      const notaMejora = campoMejora ? campoMejora.value.trim() : '';
-      cumplirTarea(tarea, estado, { notaMejora });
-      await persistirYNotificar();
-      await preguntarTiempoReal(tarea);
-      ofrecerExportarACalendar(tarea);
-      ofrecerCrearTareaSeguimiento(tarea);
+    // H25: la confirmación es un modal (Enter confirma, Esc cancela); ya no se pregunta tiempo real ni Calendar por defecto.
+    const notaMejora = await confirmarConCampo(`✔️ ¿Se cumplió «${tarea.tarea_nombre}»?`, {
+      etiquetaCampo: tarea.tarea_mantenimiento ? '💡 ¿Qué podrías mejorar la próxima vez? (opcional)' : '',
+      textoAceptar: '✔️ Confirmar',
+      textoCancelar: '↩️ Cancelar',
     });
-    contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
-      contenedorCierre.hidden = true;
-      contenedorCierre.innerHTML = '';
-    });
+    if (notaMejora === null) return;
+    cumplirTarea(tarea, estado, { notaMejora });
+    await persistirYNotificar();
+    await trasCumplirTarea(tarea);
+    ofrecerCrearTareaSeguimiento(tarea);
   });
 
   li.querySelector('[data-accion="no-cumplida"]').addEventListener('click', () => {
@@ -749,7 +732,7 @@ function renderSeguimiento(tarea) {
   li.querySelector('[data-accion="completar"]').addEventListener('click', async () => {
     cumplirTarea(tarea, estado);
     await persistirYNotificar();
-    await preguntarTiempoReal(tarea);
+    await trasCumplirTarea(tarea);
   });
   li.querySelector('[data-accion="posponer-seguimiento"]').addEventListener('change', async (evento) => {
     if (!evento.target.value) return;

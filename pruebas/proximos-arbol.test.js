@@ -17,11 +17,22 @@ test('una fila por raíz, en orden de jerarquía, con la mejor de toda su rama',
   assert.equal(arbol[1].tarea.tarea_nombre, 'Cursograma'); // viene de un nieto (TdC)
 });
 
-test('subcategorías de cualquier nivel, en profundidad, solo las que tienen tareas; la tarea se puede repetir (P38-A)', () => {
-  const t = [tarea('Entrega 3', 'bd2'), tarea('Entregables', 'mw'), tarea('Cursograma', 'tdc')];
+test('sin repetir (P48): cada subcategoría muestra la mejor de su rama que no apareció más arriba', () => {
+  const t = [
+    tarea('Entrega 3', 'bd2', '2026-11-20'),
+    tarea('Repaso BD2', 'bd2', '2026-11-25'),
+    tarea('Entregables', 'mw', '2026-12-01'),
+    tarea('Cursograma', 'tdc', '2026-11-15'),
+    tarea('Informes', 's', '2026-11-18'),
+  ];
   const arbol = arbolProximosPorCategoria(t, categorias);
-  assert.deepEqual(arbol[0].hijos.map((h) => [h.categoria.categoria_nombre, h.nivel]), [['BD2', 1], ['MW', 1]]);
-  assert.deepEqual(arbol[1].hijos.map((h) => [h.categoria.categoria_nombre, h.nivel, h.tarea.tarea_nombre]), [['SINET', 1, 'Cursograma'], ['TdC', 2, 'Cursograma']]);
+  // ISI muestra «Entrega 3» (de BD2): la fila de BD2 pasa a la siguiente de su rama.
+  assert.deepEqual(arbol[0].hijos.map((h) => [h.categoria.categoria_nombre, h.nivel, h.tarea.tarea_nombre]), [['BD2', 1, 'Repaso BD2'], ['MW', 1, 'Entregables']]);
+  // Trabajo muestra «Cursograma» (de TdC, nieta); SINET muestra «Informes»; a TdC no le queda ninguna: no va.
+  assert.equal(arbol[1].tarea.tarea_nombre, 'Cursograma');
+  assert.deepEqual(arbol[1].hijos.map((h) => [h.categoria.categoria_nombre, h.nivel, h.tarea.tarea_nombre]), [['SINET', 1, 'Informes']]);
+  const todas = arbol.flatMap((r) => [r.tarea, ...r.hijos.map((h) => h.tarea)]).map((x) => x.tarea_id);
+  assert.equal(new Set(todas).size, todas.length);
 });
 
 test('ignora completadas, bloqueadas y raíces sin tareas', () => {

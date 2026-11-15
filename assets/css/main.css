@@ -3238,6 +3238,8 @@ kbd {
 .dialogo-aviso { max-width: 30rem; }
 .dialogo-aviso .aviso-mensaje { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.4rem 0 1rem; line-height: 1.45; }
 .dialogo-aviso .aviso-campo { width: 100%; box-sizing: border-box; margin-bottom: 1rem; }
+.dialogo-aviso .aviso-campo-etiqueta { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.4rem 0 1rem; }
+.dialogo-aviso .aviso-campo-etiqueta .aviso-campo { margin-bottom: 0; }
 
 /* Mejoras con notas pendientes (v0.100.0): resaltado para que llame la atención, distinto del azul de la pestaña activa. */
 .enlace-nav.con-pendientes:not(.activo) {

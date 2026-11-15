@@ -6,6 +6,19 @@
   <title>Super To-Do List</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1c1f27" />
+  <script>
+    // Evita el parpadeo del tema equivocado: aplica la elección guardada (claro / oscuro / sistema) antes de cargar los módulos.
+    // Misma lógica que `assets/js/tema.js` y `app.js`; sin elección guardada queda oscuro.
+    (function () {
+      try {
+        var real = location.hostname === 'nicodiber.github.io' && location.pathname.indexOf('/to-do-list/') === 0;
+        var eleccion = localStorage.getItem((real ? 'super-todo-list' : 'super-todo-list-pruebas') + ':tema');
+        var tema = eleccion === 'claro' ? 'claro' : eleccion === 'sistema' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro') : 'oscuro';
+        document.documentElement.dataset.tema = tema;
+        document.querySelector('meta[name="theme-color"]').content = tema === 'oscuro' ? '#1c1f27' : '#ffffff';
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />

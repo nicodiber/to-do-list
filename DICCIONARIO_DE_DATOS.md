@@ -187,6 +187,8 @@ Un **único registro** (`preferencias_id: "unica"`) que se sincroniza con Drive,
 | `pref_capacidad_por_fecha` | `{ "YYYY-MM-DD": minutos }` | Ronda 9b | Capacidad fijada por el usuario para un día puntual (0 = ningún tiempo). Manda sobre el tope y sobre Calendar; se descartan las fechas pasadas al guardar |
 | `pref_habitos_ocultos` | array de nombres de hábito, default `[]` | v0.104.0 | Hábitos que el usuario ocultó de la matriz de Estadísticas → Hábitos (por nombre de tarea). No se borra nada: el historial sigue |
 | `pref_preguntar_tiempo_real` | boolean, default `false` | v0.104.0 | Si es `true`, al completar una tarea la app pregunta cuántos minutos tardó (opcional) |
+| `pref_tiempo_real_al_cumplir` | booleano | Al cumplir una tarea, preguntar cuánto tardó (v0.110.0; reemplaza a `pref_preguntar_tiempo_real`, que queda sin uso). Apagada por defecto. |
+| `pref_ofrecer_calendar_al_cumplir` | booleano | Al cumplir una tarea, ofrecer guardarla en Google Calendar (v0.110.0). Apagada por defecto. |
 | `pref_bloques_dias` | array de 7 listas de `{ inicio: "HH:MM", fin: "HH:MM" }` \| `null` | v0.105.0 | Horarios disponibles por día de la semana (índice 0 = domingo). Uno o varios bloques por día, sin pisarse ni quedar pegados, de 00:00 a 24:00; lista vacía = día libre. `null` = se derivan de `pref_franja` y `pref_tope_dias` (datos de antes). Reemplazan a ambos en la interfaz |
 | `pref_fecha_nacimiento` | fecha `YYYY-MM-DD` \| `""` | v0.105.0 | Fecha de nacimiento del usuario, para el módulo Memento mori. Se pide una sola vez |
 | `pref_esperanza_vida` | number (años, 40–120), default `80` | v0.105.0 | Expectativa de vida para dibujar la cuadrícula de Memento mori |

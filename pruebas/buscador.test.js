@@ -35,12 +35,22 @@ test('las completadas van al final aunque empiecen con el texto', () => {
   assert.deepEqual(nombres(r), ['Pagar gas', 'Ya pagar luz', 'Pagar luz']);
 });
 
-test('desempata por fecha sugerida más próxima, sin fecha al final', () => {
+test('desempata por cercanía a hoy de la fecha sugerida, pasada o futura (P45-B); sin fecha al final', () => {
+  const hoy = new Date('2026-11-15T12:00:00.000Z').getTime();
   const r = buscarTareas(
-    [t('Tarea c'), t('Tarea b', { tarea_fecha_sugerida: '2026-12-05' }), t('Tarea a', { tarea_fecha_sugerida: '2026-12-01T15:00:00.000Z' })],
-    'tarea'
+    [
+      t('Tarea sin fecha'),
+      t('Tarea lejana', { tarea_fecha_sugerida: '2026-12-05T12:00:00.000Z' }),
+      t('Tarea muy vieja', { tarea_fecha_sugerida: '2026-09-01T12:00:00.000Z' }),
+      t('Tarea ayer', { tarea_fecha_sugerida: '2026-11-14T12:00:00.000Z' }),
+      t('Tarea en 3 dias', { tarea_fecha_sugerida: '2026-11-18T12:00:00.000Z' }),
+    ],
+    'tarea',
+    [],
+    20,
+    hoy
   );
-  assert.deepEqual(nombres(r), ['Tarea a', 'Tarea b', 'Tarea c']);
+  assert.deepEqual(nombres(r), ['Tarea ayer', 'Tarea en 3 dias', 'Tarea lejana', 'Tarea muy vieja', 'Tarea sin fecha']);
 });
 
 test('tope de 20 tareas con el resto contado', () => {
