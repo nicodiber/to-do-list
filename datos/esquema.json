@@ -213,6 +213,8 @@
         "pref_fecha_nacimiento": { "type": "string" },
         "pref_esperanza_vida": { "type": "number", "minimum": 40, "maximum": 120 },
         "pref_preguntar_tiempo_real": { "type": "boolean" },
+        "pref_tiempo_real_al_cumplir": { "type": "boolean" },
+        "pref_ofrecer_calendar_al_cumplir": { "type": "boolean" },
         "pref_habitos_ocultos": { "type": "array", "items": { "type": "string" } },
         "pref_capacidad_por_fecha": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
         "preferencias_modificado_en": { "type": "string" }

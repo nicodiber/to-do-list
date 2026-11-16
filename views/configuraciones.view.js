@@ -22,6 +22,12 @@ const TOPE_MAXIMO_MIN = 1440; // minutos que tiene un día (24 h)
 const NOMBRES_DIA_CORTO = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo' };
 const HORIZONTES = [30, 60, 90, 180];
 
+const OPCIONES_TEMA = [
+  ['claro', '☀️ Claro'],
+  ['oscuro', '🌙 Oscuro'],
+  ['sistema', '💻 Igual que el sistema'],
+];
+
 const PALABRA_CONFIRMACION = 'BORRAR';
 
 export function renderVistaConfiguraciones(contenedor) {
@@ -31,7 +37,11 @@ export function renderVistaConfiguraciones(contenedor) {
 
     <section class="seccion-config">
       <h3>🎨 Apariencia</h3>
-      ${htmlInterruptor('tema_oscuro', obtenerTema() === 'oscuro', '🌙 Tema oscuro', 'title="Se guarda en este dispositivo"')}
+      <div class="acciones-config">
+        <label title="Se guarda en este dispositivo. «Igual que el sistema» sigue el tema claro u oscuro de tu dispositivo y cambia solo cuando él cambia.">🎨 Tema
+          <select id="tema-app">${OPCIONES_TEMA.map(([valor, texto]) => `<option value="${valor}" ${valor === obtenerTema() ? 'selected' : ''}>${texto}</option>`).join('')}</select>
+        </label>
+      </div>
     </section>
 
     <section class="seccion-config">
@@ -73,10 +83,11 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
 
     <section class="seccion-config">
-      <h3>⏱️ Tiempo real de las tareas</h3>
-      <p class="ayuda">Si lo activás, al completar una tarea te pregunta (opcional) cuánto tardaste. Con eso, Estadísticas compara lo estimado con lo real por categoría y te propone ajustar las duraciones pendientes; nunca cambia nada sin que lo confirmes. Se guarda en tu Drive.</p>
+      <h3>✔️ Al cumplir una tarea</h3>
+      <p class="ayuda">Qué más te pregunta la app después de que marcás una tarea como cumplida. Las dos preguntas están desactivadas por defecto. Si preguntás el tiempo real (opcional), Estadísticas compara lo estimado con lo real por categoría y te propone ajustar las duraciones pendientes; nunca cambia nada sin que lo confirmes. Se guarda en tu Drive.</p>
       <div class="acciones-config">
-        ${htmlInterruptor('pref_preguntar_tiempo_real', preferencias.pref_preguntar_tiempo_real, '⏱️ Preguntar cuánto tardé al completar una tarea')}
+        ${htmlInterruptor('pref_tiempo_real_al_cumplir', preferencias.pref_tiempo_real_al_cumplir, '⏱️ Al cumplir una tarea, preguntar el tiempo real')}
+        ${htmlInterruptor('pref_ofrecer_calendar_al_cumplir', preferencias.pref_ofrecer_calendar_al_cumplir, '📅 Al cumplir una tarea, ofrecer guardarla en Google Calendar')}
       </div>
     </section>
 
@@ -163,8 +174,11 @@ export function renderVistaConfiguraciones(contenedor) {
     </section>
   `;
 
-  contenedor.querySelector('[name="pref_preguntar_tiempo_real"]').addEventListener('change', (evento) => {
-    guardarPreferencias({ pref_preguntar_tiempo_real: evento.target.checked }, { sinNotificar: true });
+  contenedor.querySelector('[name="pref_tiempo_real_al_cumplir"]').addEventListener('change', (evento) => {
+    guardarPreferencias({ pref_tiempo_real_al_cumplir: evento.target.checked }, { sinNotificar: true });
+  });
+  contenedor.querySelector('[name="pref_ofrecer_calendar_al_cumplir"]').addEventListener('change', (evento) => {
+    guardarPreferencias({ pref_ofrecer_calendar_al_cumplir: evento.target.checked }, { sinNotificar: true });
   });
   const interruptorSonido = contenedor.querySelector('[name="sonidos_activo"]');
   const volumenSonido = contenedor.querySelector('#sonidos-volumen');
@@ -261,8 +275,8 @@ export function renderVistaConfiguraciones(contenedor) {
     mensajeClima.hidden = false;
   });
 
-  contenedor.querySelector('[name="tema_oscuro"]').addEventListener('change', (evento) => {
-    establecerTema(evento.target.checked ? 'oscuro' : 'claro');
+  contenedor.querySelector('#tema-app').addEventListener('change', (evento) => {
+    establecerTema(evento.target.value);
   });
 
   conectarSeccionTiempo(contenedor);

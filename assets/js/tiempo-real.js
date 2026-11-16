@@ -21,7 +21,7 @@ export async function preguntarTiempoReal(tarea) {
     }
     return;
   }
-  if (!obtenerPreferencias().pref_preguntar_tiempo_real) return;
+  if (!obtenerPreferencias().pref_tiempo_real_al_cumplir) return;
   const texto = await pedirTexto(`¿Cuántos minutos te llevó «${tarea.tarea_nombre}»?\n(Opcional. Estimabas ${tarea.tarea_duracion_min || '?'} min. Dejalo vacío para no anotarlo.)`, {
     titulo: '⏱️ Tiempo real',
     placeholder: 'Ej. 25',

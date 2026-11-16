@@ -25,12 +25,12 @@ import {
   avisoInconsistentes,
   compararPorPrioridad,
   calcularHolguraDias,
-  mejorTareaPorCategoria,
+  arbolProximosPorCategoria,
   ordenarConCadenas,
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { preguntarTiempoReal } from '../assets/js/tiempo-real.js';
+import { trasCumplirTarea } from '../assets/js/tras-cumplir.js';
 import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea, abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
@@ -38,7 +38,8 @@ import { bloquesDeSemana } from '../assets/js/bloques-horarios.js';
 import { obtenerPreferencias } from '../assets/js/preferencias.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
-import { avisar, confirmar } from '../assets/js/avisos.js';
+import { avisar, confirmar, confirmarConCampo } from '../assets/js/avisos.js';
+import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
 function seCompletoHoy(tarea) {
@@ -123,10 +124,11 @@ export function renderVistaResumen(contenedor) {
   const idsManana = new Set(tareasManana.map((t) => t.tarea_id));
   const idsHastaManana = new Set([...idsHasta, ...idsManana]);
   const resto = disponibles.filter((t) => !idsHastaManana.has(t.tarea_id)).sort((a, b) => compararPorPrioridad(a, b, estado.categorias));
-  // "Próximos por categoría" va primero y "Resto" muestra lo que queda sin repetirlos.
-  const proximosPorCategoria = mejorTareaPorCategoria(resto, estado.categorias);
-  const idsProximos = new Set(proximosPorCategoria.map(({ tarea }) => tarea.tarea_id));
-  const restoSinProximos = ordenarConCadenas(resto.filter((t) => !idsProximos.has(t.tarea_id)));
+  // v0.109.0: «Próximos por categoría» en árbol (H05) y con TODAS las disponibles, también las que ya están en
+  // Urgentes, Hoy o Mañana (H06, marcadas «también en …»); «Resto» ya no las excluye (P39-B).
+  const proximosPorCategoria = arbolProximosPorCategoria(disponibles, estado.categorias);
+  const tambienEn = (id) => (idsUrgentes.has(id) ? 'Urgentes' : idsHoyNueva.has(id) ? 'Hoy' : idsManana.has(id) ? 'Mañana' : '');
+  const restoSinProximos = ordenarConCadenas(resto);
   const completadasHoy = estado.tareas
     .filter((t) => t.tarea_estado === 'completada' && seCompletoHoy(t))
     .sort((a, b) => b.tarea_fecha_fin.localeCompare(a.tarea_fecha_fin));
@@ -274,7 +276,51 @@ export function renderVistaResumen(contenedor) {
 
   const listaPorCategoria = contenedor.querySelector('#lista-por-categoria');
   if (listaPorCategoria) {
-    proximosPorCategoria.forEach(({ tarea }) => listaPorCategoria.appendChild(renderItem(tarea, { caminoCompleto: true })));
+    const abiertos = leerProximosAbiertos();
+    const marcarTambien = (li, tarea) => {
+      const donde = tambienEn(tarea.tarea_id);
+      if (!donde) return;
+      const etiqueta = document.createElement('span');
+      etiqueta.className = 'etiqueta-fecha etiqueta-tambien';
+      etiqueta.textContent = `también en ${donde}`;
+      li.querySelector('.etiquetas')?.prepend(etiqueta);
+    };
+    proximosPorCategoria.forEach(({ categoria, tarea, hijos }) => {
+      const li = renderItem(tarea, { caminoCompleto: true });
+      marcarTambien(li, tarea);
+      listaPorCategoria.appendChild(li);
+      if (hijos.length === 0) return;
+      // H05 (P30 A+C, P43): cada categoría padre se despliega o pliega; arrancan plegadas y se recuerda cuáles abriste.
+      const abierto = abiertos.has(categoria.categoria_id);
+      const filaToggle = document.createElement('li');
+      filaToggle.className = 'proximos-toggle';
+      filaToggle.innerHTML = `<button type="button" aria-expanded="${abierto}" title="Mostrar u ocultar las subcategorías de ${escaparHtml(categoria.categoria_nombre)}"><span class="flecha" aria-hidden="true">${abierto ? '▾' : '▸'}</span> ${hijos.length} subcategoría${hijos.length === 1 ? '' : 's'} con tareas</button>`;
+      listaPorCategoria.appendChild(filaToggle);
+      const filasHijas = hijos.map(({ categoria: sub, tarea: mejor, nivel }) => {
+        const hija = renderItem(mejor, { caminoCompleto: true });
+        hija.classList.add('proximo-hijo');
+        hija.style.setProperty('--nivel', nivel);
+        hija.hidden = !abierto;
+        const rotulo = document.createElement('span');
+        rotulo.className = 'rotulo-subcategoria';
+        rotulo.textContent = `↳ ${sub.categoria_nombre}`;
+        hija.querySelector('.item-tarea-info')?.prepend(rotulo);
+        marcarTambien(hija, mejor);
+        listaPorCategoria.appendChild(hija);
+        return hija;
+      });
+      filaToggle.querySelector('button').addEventListener('click', (evento) => {
+        const boton = evento.currentTarget;
+        const abrir = boton.getAttribute('aria-expanded') !== 'true';
+        boton.setAttribute('aria-expanded', String(abrir));
+        boton.querySelector('.flecha').textContent = abrir ? '▾' : '▸';
+        filasHijas.forEach((fila) => (fila.hidden = !abrir));
+        const actuales = leerProximosAbiertos();
+        if (abrir) actuales.add(categoria.categoria_id);
+        else actuales.delete(categoria.categoria_id);
+        guardarProximosAbiertos(actuales);
+      });
+    });
   }
 
   const listaResto = contenedor.querySelector('#lista-resto');
@@ -426,6 +472,25 @@ function conectarMejorasPendientes(li) {
   });
 }
 
+// v0.109.0 (H05): qué categorías padre dejaste desplegadas en «Próximos por categoría» (solo en este navegador).
+const CLAVE_PROXIMOS_ABIERTOS = `${PREFIJO_APP}:proximos-abiertos`;
+
+function leerProximosAbiertos() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(CLAVE_PROXIMOS_ABIERTOS) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function guardarProximosAbiertos(ids) {
+  try {
+    localStorage.setItem(CLAVE_PROXIMOS_ABIERTOS, JSON.stringify([...ids]));
+  } catch {
+    // Solo una preferencia.
+  }
+}
+
 function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
   const categoria = estado.categorias.find((c) => c.categoria_id === tarea.categoria_id);
   const ubicacion = estado.ubicaciones.find((u) => u.ubicacion_id === tarea.ubicacion_id);
@@ -570,37 +635,20 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
 
   if (soloInfo) return li;
 
-  li.querySelector('[data-accion="cumplida"]').addEventListener('click', () => {
+  li.querySelector('[data-accion="cumplida"]').addEventListener('click', async () => {
     contenedorPanel.hidden = true;
     contenedorPanel.innerHTML = '';
-    contenedorCierre.innerHTML = `
-      <div class="panel-cierre">
-        ${
-          tarea.tarea_mantenimiento
-            ? `<label>💡 ¿Qué podrías mejorar la próxima vez? (opcional)
-                <input type="text" data-campo="mejora" />
-              </label>`
-            : ''
-        }
-        <button title="Confirmar que la tarea se cumplió" type="button" data-accion="confirmar-cumplida" class="boton-primario">✔️ Confirmar</button>
-        <button title="Cancelar y volver a la tarea" type="button" data-accion="cancelar-cierre">↩️ Cancelar</button>
-      </div>
-    `;
-    contenedorCierre.hidden = false;
-
-    contenedorCierre.querySelector('[data-accion="confirmar-cumplida"]').addEventListener('click', async () => {
-      const campoMejora = contenedorCierre.querySelector('[data-campo="mejora"]');
-      const notaMejora = campoMejora ? campoMejora.value.trim() : '';
-      cumplirTarea(tarea, estado, { notaMejora });
-      await persistirYNotificar();
-      await preguntarTiempoReal(tarea);
-      ofrecerExportarACalendar(tarea);
-      ofrecerCrearTareaSeguimiento(tarea);
+    // H25: la confirmación es un modal (Enter confirma, Esc cancela); ya no se pregunta tiempo real ni Calendar por defecto.
+    const notaMejora = await confirmarConCampo(`✔️ ¿Se cumplió «${tarea.tarea_nombre}»?`, {
+      etiquetaCampo: tarea.tarea_mantenimiento ? '💡 ¿Qué podrías mejorar la próxima vez? (opcional)' : '',
+      textoAceptar: '✔️ Confirmar',
+      textoCancelar: '↩️ Cancelar',
     });
-    contenedorCierre.querySelector('[data-accion="cancelar-cierre"]').addEventListener('click', () => {
-      contenedorCierre.hidden = true;
-      contenedorCierre.innerHTML = '';
-    });
+    if (notaMejora === null) return;
+    cumplirTarea(tarea, estado, { notaMejora });
+    await persistirYNotificar();
+    await trasCumplirTarea(tarea);
+    ofrecerCrearTareaSeguimiento(tarea);
   });
 
   li.querySelector('[data-accion="no-cumplida"]').addEventListener('click', () => {
@@ -684,7 +732,7 @@ function renderSeguimiento(tarea) {
   li.querySelector('[data-accion="completar"]').addEventListener('click', async () => {
     cumplirTarea(tarea, estado);
     await persistirYNotificar();
-    await preguntarTiempoReal(tarea);
+    await trasCumplirTarea(tarea);
   });
   li.querySelector('[data-accion="posponer-seguimiento"]').addEventListener('change', async (evento) => {
     if (!evento.target.value) return;

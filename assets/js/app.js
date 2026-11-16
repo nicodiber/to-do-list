@@ -44,6 +44,7 @@ import { renderVistaMejoras } from '../../views/mejoras.view.js';
 import { renderVistaMemento } from '../../views/memento.view.js';
 import { renderVistaAsistente } from '../../views/asistente.view.js';
 import { configurarAtajos, teclaDeVista, tituloConTecla } from './atajos.js';
+import { iniciarPaletaBusqueda } from './paleta-busqueda.js';
 import { crearRevisorDeAvisos, abrirAvisosSync } from './avisos-sync.js';
 import { filtrarSinHuecoVigente } from './aviso-sin-hueco.js';
 import { copiaVencida, exportarJSON } from './almacenamiento.js';
@@ -52,10 +53,11 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 import { avisar, confirmar } from './avisos.js';
 import { PREFIJO_APP, ES_PRUEBAS } from './entorno.js';
+import { normalizarEleccionTema, resolverTema } from './tema.js';
 import { conReorganizacion, iniciarReorganizacion, pasoAgendaHecho, estadoAgenda, suscribirAgenda } from './estado-agenda.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.108.1';
+const VERSION = 'v0.110.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -292,7 +294,16 @@ async function refrescarCalendar() {
 
   await reprogramarSiCorresponde().catch(() => {}); // por si el agendado inicial quedó pendiente por falta de Calendar
 
-  // v0.108.0 (H15-B): la agenda figura «reorganizando» hasta que termina, guardado incluido.
+  await reorganizarAgenda({ redibujarSiNoCambio: true });
+  actualizarCabeceraSync(); // por si cambió el aviso de "no pude leer Calendar"
+}
+
+/**
+ * La reorganización en sí (reubicar → programar sin fecha → adelantar), con la agenda figurando «reorganizando» hasta
+ * que termina, guardado incluido (v0.108.0, H15-B). La usan el refresco de Calendar y, tras cumplir una tarea, el
+ * evento `stdl:tarea-cumplida` (H26). `redibujarSiNoCambio`: si nada se movió, redibuja igual para reflejar eventos nuevos.
+ */
+async function reorganizarAgenda({ redibujarSiNoCambio = false } = {}) {
   await conReorganizacion(async () => {
     let cambio = false;
     try {
@@ -308,10 +319,44 @@ async function refrescarCalendar() {
     }
 
     if (cambio) await persistirYNotificar(); // ya redibuja
-    else render(); // solo para reflejar los eventos nuevos de Calendar
+    else if (redibujarSiNoCambio) render(); // solo para reflejar los eventos nuevos de Calendar
   }, 3);
-  actualizarCabeceraSync(); // por si cambió el aviso de "no pude leer Calendar"
 }
+
+// H26: tras cumplir una tarea la agenda se reorganiza sola para aprovechar el hueco. A diferencia del refresco de
+// Calendar, no espera a que se cierren los diálogos (el de «crear tarea de seguimiento» puede estar abierto). Con
+// debounce de ~1 s (varias tareas cumplidas seguidas = una sola reorganización) y sin correr dos a la vez: si ya hay
+// una en curso, queda encolada una más.
+const DEMORA_REORGANIZAR_TRAS_CUMPLIR_MS = 1000;
+let temporizadorTrasCumplir = null;
+let reorganizandoTrasCumplir = false;
+let reorganizarOtraVez = false;
+
+async function reorganizarTrasCumplir() {
+  const s = obtenerEstadoSync();
+  if (!s.datosListos || s.soloLectura) return;
+  if (reorganizandoTrasCumplir) {
+    reorganizarOtraVez = true;
+    return;
+  }
+  reorganizandoTrasCumplir = true;
+  try {
+    await reorganizarAgenda();
+  } catch {
+    // Sin Calendar o sin red las funciones no hacen nada o fallan en silencio: se reintenta en el próximo refresco.
+  } finally {
+    reorganizandoTrasCumplir = false;
+    if (reorganizarOtraVez) {
+      reorganizarOtraVez = false;
+      reorganizarTrasCumplir();
+    }
+  }
+}
+
+window.addEventListener('stdl:tarea-cumplida', () => {
+  clearTimeout(temporizadorTrasCumplir);
+  temporizadorTrasCumplir = setTimeout(reorganizarTrasCumplir, DEMORA_REORGANIZAR_TRAS_CUMPLIR_MS);
+});
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') refrescarCalendar();
@@ -626,11 +671,25 @@ configurarAtajos({
   puedeRehacer,
 });
 
-function temaEfectivo() {
-  const guardado = localStorage.getItem(CLAVE_LOCALSTORAGE_TEMA);
-  if (guardado === 'claro' || guardado === 'oscuro') return guardado;
+// Buscador (H02-B): botón «Buscar» del menú y Ctrl+K (el atajo está en atajos.js).
+iniciarPaletaBusqueda({
+  modulos: Object.entries(VISTAS).map(([clave, vista]) => ({ clave, etiqueta: vista.etiqueta })),
+  irAVista: (clave) => {
+    location.hash = `#/${clave}`;
+  },
+  puedeUsarse: () => {
+    const s = obtenerEstadoSync();
+    return s.datosListos && !s.soloLectura;
+  },
+  hayDatos: () => obtenerEstadoSync().datosListos,
+});
+
+// Tema (H27): la elección guardada es 'claro' | 'oscuro' | 'sistema'. Con 'sistema' se sigue al dispositivo en vivo.
+const CONSULTA_SISTEMA_OSCURO = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+
+function leerEleccionTema() {
   // Sin elección guardada la app se abre en oscuro (es como se usa casi siempre), aunque el sistema esté en claro.
-  return 'oscuro';
+  return normalizarEleccionTema(localStorage.getItem(CLAVE_LOCALSTORAGE_TEMA));
 }
 
 function aplicarTema(tema) {
@@ -639,19 +698,34 @@ function aplicarTema(tema) {
   if (colorTema) colorTema.content = tema === 'oscuro' ? '#1c1f27' : '#ffffff';
 }
 
-let temaActual = temaEfectivo();
-aplicarTema(temaActual);
+let eleccionTema = leerEleccionTema();
+let temaAplicado = resolverTema(eleccionTema, !!(CONSULTA_SISTEMA_OSCURO && CONSULTA_SISTEMA_OSCURO.matches));
+aplicarTema(temaAplicado);
 
-/** Tema actual ('oscuro' | 'claro'). Lo usa Configuraciones para el interruptor. */
-export function obtenerTema() {
-  return temaActual;
+if (CONSULTA_SISTEMA_OSCURO) {
+  CONSULTA_SISTEMA_OSCURO.addEventListener('change', (evento) => {
+    if (eleccionTema !== 'sistema') return;
+    temaAplicado = resolverTema('sistema', evento.matches);
+    aplicarTema(temaAplicado);
+  });
 }
 
-/** Cambia el tema, lo guarda en este dispositivo y lo aplica. */
-export function establecerTema(tema) {
-  temaActual = tema === 'claro' ? 'claro' : 'oscuro';
-  localStorage.setItem(CLAVE_LOCALSTORAGE_TEMA, temaActual);
-  aplicarTema(temaActual);
+/** La elección del usuario: 'claro' | 'oscuro' | 'sistema'. Lo usa Configuraciones. */
+export function obtenerTema() {
+  return eleccionTema;
+}
+
+/** El tema que quedó puesto ahora: 'claro' | 'oscuro' (con 'sistema' es el que dicta el dispositivo). */
+export function obtenerTemaAplicado() {
+  return temaAplicado;
+}
+
+/** Cambia la elección de tema, la guarda en este dispositivo y la aplica. */
+export function establecerTema(eleccion) {
+  eleccionTema = normalizarEleccionTema(eleccion);
+  localStorage.setItem(CLAVE_LOCALSTORAGE_TEMA, eleccionTema);
+  temaAplicado = resolverTema(eleccionTema, !!(CONSULTA_SISTEMA_OSCURO && CONSULTA_SISTEMA_OSCURO.matches));
+  aplicarTema(temaAplicado);
 }
 
 inicializarAlmacenamiento().then(reprogramarSiCorresponde);

@@ -2,6 +2,31 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.110.0] - 2026-11-15
+
+### Agregado
+
+- **Confirmar «cumplida» en un modal** (H25): en Resumen, «✅ Cumplida» abre «✔️ ¿Se cumplió «…»?» (con el campo de mejora si es una tarea que se repite); **Enter confirma y Esc cancela**. Nuevo `confirmarConCampo` en `avisos.js`.
+- **La agenda se reorganiza sola después de cumplir una tarea** (H26), para aprovechar el hueco (con 1 s de espera por si cumplís varias seguidas). Nuevo `assets/js/tras-cumplir.js` y `reorganizarAgenda()` en `app.js` (la misma que usa el refresco de Calendar).
+- **Tema «💻 Igual que el sistema»** (H27), además de claro y oscuro, en Configuraciones; sigue en vivo el tema del dispositivo. Sin elección guardada sigue siendo oscuro. Nuevo `assets/js/tema.js`, y un script en `index.html` que aplica el tema antes de cargar para que no parpadee.
+
+### Cambiado
+
+- **Por ahora, al cumplir una tarea ya no se pregunta el tiempo real ni se ofrece guardarla en Google Calendar** (H25). Se puede volver a activar en Configuraciones → «✔️ Al cumplir una tarea» (preferencias nuevas `pref_tiempo_real_al_cumplir` y `pref_ofrecer_calendar_al_cumplir`, apagadas; `pref_preguntar_tiempo_real` queda en los datos sin uso). Lo medido con el cronómetro se sigue anotando solo.
+- **«🧭 Próximos por categoría» sin repetidas** (P48): cada subcategoría muestra la mejor tarea de su rama que no apareció más arriba; si no le queda ninguna, no se muestra.
+- **Buscador**: a igualdad, primero las tareas con fecha sugerida más cercana a hoy, pasada o futura (P45-B).
+
+## [v0.109.0] - 2026-11-12
+
+### Agregado
+
+- **Buscador** (H02, opción B «paleta rápida»): botón «🔎 Buscar» en el menú o **Ctrl+K** (Cmd+K en Mac) desde cualquier lado. Busca tareas por nombre (sin importar mayúsculas ni acentos) y módulos; ↑↓ para moverse, Enter abre la tarea o el módulo, Esc cierra. Al final ofrece «➕ Crear tarea» con lo escrito. Nuevos `assets/js/buscador.js`, `assets/js/paleta-busqueda.js` y `assets/css/buscador.css`.
+
+### Cambiado
+
+- **«🧭 Próximos por categoría» en árbol plegable** (H05, opciones A + C): cada categoría padre muestra la mejor tarea de toda su rama y, al desplegarla, cada subcategoría (de cualquier nivel) con la suya. Los padres arrancan plegados y se recuerda cuáles abriste (en este navegador).
+- **Próximos también muestra tareas que ya están en Urgentes, Hoy o Mañana** (H06), marcadas «también en …», y «📋 Resto de tus pendientes» ya no las saca (P39-B).
+
 ## [v0.108.1] - 2026-11-11
 
 ### Corregido

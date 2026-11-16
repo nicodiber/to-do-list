@@ -271,6 +271,8 @@ export const PREFERENCIAS_POR_DEFECTO = {
   pref_ubicacion_clima: null,
   pref_habitos_ocultos: [],
   pref_preguntar_tiempo_real: false,
+  pref_tiempo_real_al_cumplir: false, // H25: reemplaza a `pref_preguntar_tiempo_real` (ya no se usa, pero no se borra)
+  pref_ofrecer_calendar_al_cumplir: false,
   pref_bloques_dias: null,
   pref_fecha_nacimiento: '',
   pref_esperanza_vida: 80,

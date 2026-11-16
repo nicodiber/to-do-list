@@ -1,0 +1,45 @@
+/* Paleta de búsqueda rápida (H02-B). Ventana centrada arriba, con el campo y la lista de resultados. */
+.dialogo-buscador {
+  width: min(560px, 94vw);
+  padding: 0.75rem;
+  margin: 12vh auto auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.dialogo-buscador:not([open]) { display: none; }
+.dialogo-buscador .buscador-campo {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+.dialogo-buscador .buscador-campo:focus-visible { outline: 2px solid var(--color-primario); outline-offset: 1px; }
+.buscador-lista { max-height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.1rem; }
+.buscador-grupo { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-texto-suave); padding: 0.5rem 0.5rem 0.2rem; }
+.buscador-opcion { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 8px; cursor: pointer; }
+.buscador-opcion.activa { background: var(--color-fondo-info); color: var(--color-texto-info); }
+.buscador-nombre { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.buscador-nombre.completada { text-decoration: line-through; color: var(--color-texto-suave); }
+.buscador-opcion mark { background: transparent; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--color-primario); text-underline-offset: 2px; }
+.buscador-chip {
+  flex: none; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 0.75rem; padding: 0.05rem 0.5rem; border-radius: 999px;
+  border: 1px solid var(--color-chip, var(--color-borde));
+  border-left-width: 0.5rem;
+  color: var(--color-texto);
+}
+.buscador-fecha { flex: none; font-size: 0.8rem; color: var(--color-texto-suave); }
+.buscador-emoji { width: 1.4rem; text-align: center; flex: none; }
+.buscador-mas, .buscador-vacio { font-size: 0.85rem; color: var(--color-texto-suave); padding: 0.4rem 0.6rem; }
+.buscador-ayuda { margin: 0; font-size: 0.75rem; color: var(--color-texto-suave); }
+.buscador-ayuda kbd { margin-right: 0.2rem; }
+@media (max-width: 800px) { .buscador-ayuda { display: none; } }
+
+/* Botón «Buscar» del menú lateral (los estilos generales de `.sidebar button` ya le dan borde y fondo). */
+.sidebar .boton-buscar { color: var(--color-texto-suave); }

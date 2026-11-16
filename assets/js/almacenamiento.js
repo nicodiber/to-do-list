@@ -340,6 +340,8 @@ function migrarPreferencias(p) {
     pref_capacidad_por_fecha: p.pref_capacidad_por_fecha && typeof p.pref_capacidad_por_fecha === 'object' ? p.pref_capacidad_por_fecha : {},
     pref_habitos_ocultos: Array.isArray(p.pref_habitos_ocultos) ? p.pref_habitos_ocultos : [],
     pref_preguntar_tiempo_real: !!p.pref_preguntar_tiempo_real,
+    pref_tiempo_real_al_cumplir: !!p.pref_tiempo_real_al_cumplir,
+    pref_ofrecer_calendar_al_cumplir: !!p.pref_ofrecer_calendar_al_cumplir,
     pref_bloques_dias: Array.isArray(p.pref_bloques_dias) && p.pref_bloques_dias.length === 7 ? p.pref_bloques_dias : null,
     pref_fecha_nacimiento: /^\d{4}-\d{2}-\d{2}$/.test(p.pref_fecha_nacimiento || '') ? p.pref_fecha_nacimiento : '',
     pref_esperanza_vida: Number.isFinite(p.pref_esperanza_vida) && p.pref_esperanza_vida >= 40 && p.pref_esperanza_vida <= 120 ? p.pref_esperanza_vida : 80,

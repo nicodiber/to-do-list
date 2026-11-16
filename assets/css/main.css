@@ -3238,6 +3238,8 @@ kbd {
 .dialogo-aviso { max-width: 30rem; }
 .dialogo-aviso .aviso-mensaje { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.4rem 0 1rem; line-height: 1.45; }
 .dialogo-aviso .aviso-campo { width: 100%; box-sizing: border-box; margin-bottom: 1rem; }
+.dialogo-aviso .aviso-campo-etiqueta { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.4rem 0 1rem; }
+.dialogo-aviso .aviso-campo-etiqueta .aviso-campo { margin-bottom: 0; }
 
 /* Mejoras con notas pendientes (v0.100.0): resaltado para que llame la atención, distinto del azul de la pestaña activa. */
 .enlace-nav.con-pendientes:not(.activo) {
@@ -3502,3 +3504,12 @@ dialog[open]::backdrop { animation: aparecer-fondo 0.16s ease-out; }
 .agenda-reorganizando { color: var(--color-primario); }
 .barra-agenda { display: block; height: 4px; margin-top: 4px; background: var(--color-borde); border-radius: 2px; overflow: hidden; }
 .barra-agenda > span { display: block; height: 100%; background: var(--color-primario); transition: width 0.2s ease; }
+
+/* v0.109.0 (H05/H06): «Próximos por categoría» en árbol desplegable. */
+.proximos-toggle { list-style: none; margin: -4px 0 6px; }
+.proximos-toggle button { background: none; border: 0; padding: 2px 8px; color: var(--color-texto-suave, inherit); font-size: 0.85rem; cursor: pointer; }
+.proximos-toggle button:hover { color: var(--color-primario); }
+.item-tarea.proximo-hijo { margin-left: calc(var(--nivel, 1) * 1.25rem); }
+.rotulo-subcategoria { display: block; font-size: 0.8rem; color: var(--color-primario); margin-bottom: 2px; }
+.etiqueta-tambien { border: 1px dashed currentColor; }
+.item-tarea.proximo-hijo[hidden] { display: none; }
