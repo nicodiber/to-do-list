@@ -7,7 +7,7 @@ import { abrirEdicionTarea, abrirAltaTarea, copiaDeTarea, ofrecerCrearTareaSegui
 import { abrirEdicionMasiva } from '../assets/js/edicion-masiva.js';
 import { DIAS_SEMANA, crearPanelReprogramar } from '../assets/js/reprogramar.js';
 import { abrirListaPlantillas, abrirGuardarCadenaComoPlantilla } from '../assets/js/plantillas.js';
-import { trasCumplirTarea } from '../assets/js/tras-cumplir.js';
+import { trasCumplirTarea, confirmarCumplida } from '../assets/js/tras-cumplir.js';
 import { cronometroCorriendo, iniciarCronometro, detenerCronometro, tiempoMedidoMinutos, formatearMinutosMedidos } from '../assets/js/cronometro.js';
 import { crearPanelIAPrioridades } from '../assets/js/panel-ia-prioridades.js';
 import { obtenerUbicacionActual, establecerUbicacionActual } from '../assets/js/ubicacion-actual.js';
@@ -623,12 +623,11 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
   const detalle = document.createElement('tr');
   detalle.className = 'fila-detalle-tabla';
   detalle.hidden = true;
-  detalle.innerHTML = `<td colspan="${anchoTotal}"><div class="contenedor-panel-reprogramar" hidden></div><div class="contenedor-panel-mejora" hidden></div><div class="contenedor-checklist-tabla" hidden>${htmlChecklistTarjeta(tarea)}</div></td>`;
+  detalle.innerHTML = `<td colspan="${anchoTotal}"><div class="contenedor-panel-reprogramar" hidden></div><div class="contenedor-checklist-tabla" hidden>${htmlChecklistTarjeta(tarea)}</div></td>`;
   const panelReprogramar = detalle.querySelector('.contenedor-panel-reprogramar');
-  const panelMejora = detalle.querySelector('.contenedor-panel-mejora');
   const panelChecklist = detalle.querySelector('.contenedor-checklist-tabla');
   const actualizarDetalle = () => {
-    detalle.hidden = panelReprogramar.hidden && panelMejora.hidden && panelChecklist.hidden;
+    detalle.hidden = panelReprogramar.hidden && panelChecklist.hidden;
   };
   if (checklist.length > 0 && checklistsAbiertos.has(tarea.tarea_id)) panelChecklist.hidden = false;
   actualizarDetalle();
@@ -644,37 +643,14 @@ function renderFila(tarea, columnas, ordenManual, actualizarBarraSeleccionTabla 
 
   fila.querySelector('[data-accion="cambiar-estado"]')?.addEventListener('change', async (evento) => {
     const nuevoEstado = evento.target.value;
-    if (nuevoEstado === 'completada' && tarea.tarea_mantenimiento) {
-      panelMejora.innerHTML = `
-        <div class="panel-cierre">
-          <label>¿Qué podrías mejorar la próxima vez? (opcional)
-            <input type="text" data-campo="mejora" />
-          </label>
-          <button title="Confirmar que se cumplió y guardar la nota" type="button" data-accion="confirmar-mejora" class="boton-primario">✔️ Confirmar</button>
-          <button title="No completarla" type="button" data-accion="cancelar-mejora">Cancelar</button>
-        </div>`;
-      panelMejora.hidden = false;
-      actualizarDetalle();
-      panelMejora.querySelector('[data-campo="mejora"]').focus();
-      panelMejora.querySelector('[data-accion="cancelar-mejora"]').addEventListener('click', () => {
-        panelMejora.hidden = true;
-        panelMejora.innerHTML = '';
-        evento.target.value = tarea.tarea_estado;
-        actualizarDetalle();
-      });
-      panelMejora.querySelector('[data-accion="confirmar-mejora"]').addEventListener('click', async () => {
-        const notaMejora = panelMejora.querySelector('[data-campo="mejora"]').value.trim();
-        cumplirTarea(tarea, estado, { notaMejora });
-        panelMejora.hidden = true;
-        panelMejora.innerHTML = '';
-        await persistirYNotificar();
-        await trasCumplirTarea(tarea);
-        ofrecerCrearTareaSeguimiento(tarea);
-      });
-      return;
-    }
     if (nuevoEstado === 'completada') {
-      cumplirTarea(tarea, estado);
+      // P53-A: mismo modal de confirmación que Resumen; Esc/Cancelar deja la tarea como estaba.
+      const notaMejora = await confirmarCumplida(tarea);
+      if (notaMejora === null) {
+        evento.target.value = tarea.tarea_estado;
+        return;
+      }
+      cumplirTarea(tarea, estado, { notaMejora });
       await persistirYNotificar();
       await trasCumplirTarea(tarea);
       ofrecerCrearTareaSeguimiento(tarea);

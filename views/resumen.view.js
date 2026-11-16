@@ -30,7 +30,7 @@ import {
 } from '../assets/js/tareas-logica.js';
 import { iniciarRevisionDia } from '../assets/js/revision-dia.js';
 import { ofrecerExportarACalendar } from '../assets/js/exportar-calendar.js';
-import { trasCumplirTarea } from '../assets/js/tras-cumplir.js';
+import { trasCumplirTarea, confirmarCumplida } from '../assets/js/tras-cumplir.js';
 import { ofrecerCrearTareaSeguimiento, abrirDetalleTarea, abrirEdicionTarea } from '../assets/js/modal-tarea.js';
 import { evaluarClimaTarea } from '../assets/js/clima.js';
 import { hayConexionGoogleCalendar, obtenerEventosDelHorizonte, calcularSolapamiento, buscarHuecoLibre, diasHorizonteCalendar } from '../assets/js/google-calendar.js';
@@ -38,7 +38,7 @@ import { bloquesDeSemana } from '../assets/js/bloques-horarios.js';
 import { obtenerPreferencias } from '../assets/js/preferencias.js';
 import { htmlChecklistTarjeta, conectarChecklistTarjeta } from '../assets/js/checklist-tarjeta.js';
 import { superaLimite } from '../assets/js/programador.js';
-import { avisar, confirmar, confirmarConCampo } from '../assets/js/avisos.js';
+import { avisar, confirmar } from '../assets/js/avisos.js';
 import { PREFIJO_APP } from '../assets/js/entorno.js';
 
 /** ¿Se completó en el día de hoy (hora local)? */
@@ -639,11 +639,7 @@ function renderItem(tarea, { soloInfo = false, caminoCompleto = false } = {}) {
     contenedorPanel.hidden = true;
     contenedorPanel.innerHTML = '';
     // H25: la confirmación es un modal (Enter confirma, Esc cancela); ya no se pregunta tiempo real ni Calendar por defecto.
-    const notaMejora = await confirmarConCampo(`✔️ ¿Se cumplió «${tarea.tarea_nombre}»?`, {
-      etiquetaCampo: tarea.tarea_mantenimiento ? '💡 ¿Qué podrías mejorar la próxima vez? (opcional)' : '',
-      textoAceptar: '✔️ Confirmar',
-      textoCancelar: '↩️ Cancelar',
-    });
+    const notaMejora = await confirmarCumplida(tarea);
     if (notaMejora === null) return;
     cumplirTarea(tarea, estado, { notaMejora });
     await persistirYNotificar();

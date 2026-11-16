@@ -26,6 +26,7 @@ const OPCIONES_TEMA = [
   ['claro', '☀️ Claro'],
   ['oscuro', '🌙 Oscuro'],
   ['sistema', '💻 Igual que el sistema'],
+  ['sol', '🌅 Según el sol (claro de día, oscuro de noche)'],
 ];
 
 const PALABRA_CONFIRMACION = 'BORRAR';
@@ -38,7 +39,7 @@ export function renderVistaConfiguraciones(contenedor) {
     <section class="seccion-config">
       <h3>🎨 Apariencia</h3>
       <div class="acciones-config">
-        <label title="Se guarda en este dispositivo. «Igual que el sistema» sigue el tema claro u oscuro de tu dispositivo y cambia solo cuando él cambia.">🎨 Tema
+        <label title="Se guarda en este dispositivo. «Igual que el sistema» sigue el tema claro u oscuro de tu dispositivo y cambia solo cuando él cambia. «Según el sol» usa la salida y la puesta del sol de la ubicación del clima (sin datos, claro de 7 a 20 h).">🎨 Tema
           <select id="tema-app">${OPCIONES_TEMA.map(([valor, texto]) => `<option value="${valor}" ${valor === obtenerTema() ? 'selected' : ''}>${texto}</option>`).join('')}</select>
         </label>
       </div>
