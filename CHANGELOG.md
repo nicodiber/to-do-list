@@ -2,6 +2,17 @@
 
 Formato de versión: `vMayor.Menor.Parche` (semver).
 
+## [v0.111.0] - 2026-11-15
+
+### Agregado
+
+- **Menú lateral compacto que se abre con el mouse** (H01, opción A): arranca mostrando solo íconos; al pasar el mouse (o al llegar con Tab) se despliega **por encima** del contenido, que no se mueve. El botón 📌 lo deja fijo abierto (quien ya lo tenía expandido queda fijado). En el celular (P52-A) el menú se abre con ☰ como panel lateral y se cierra al elegir, tocando el fondo, con ✕ o con Esc.
+- **Tema «🌅 Según el sol»** (H11, P54-A): claro entre la salida y la puesta del sol de la ubicación del clima y oscuro el resto; cambia solo a la hora justa. Sin datos, claro de 7 a 20 h.
+
+### Cambiado
+
+- **El mismo modal para confirmar «cumplida» en todos lados** (P53-A): Tabla (al pasar el estado a completada; con Esc vuelve al estado anterior), el detalle de la tarea (Agenda) y la edición. Nuevo `confirmarCumplida(tarea)` en `tras-cumplir.js`; se sacaron los paneles de mejora en línea.
+
 ## [v0.110.0] - 2026-11-15
 
 ### Agregado

@@ -28,7 +28,7 @@ import { abrirCargaTareas } from './carga-tareas.js';
 import { abrirAltaTarea } from './modal-tarea.js';
 import { hayConexionGoogleCalendar, invalidarCacheEventos, leerEventosParaAgendar, errorLecturaCalendar, ultimaLecturaCalendar } from './google-calendar.js';
 import { capturarBorradores, restaurarBorradores } from './borradores.js';
-import { nombrarConCategoria, escaparHtml, tieneHora } from './utilidades.js';
+import { nombrarConCategoria, escaparHtml, tieneHora, fechaLocalISO } from './utilidades.js';
 import { hayToken, conectadoAlgunaVez } from './google-auth.js';
 import { renderVistaResumen } from '../../views/resumen.view.js';
 import { renderVistaAgendaConSelector } from '../../views/agenda.view.js';
@@ -53,11 +53,12 @@ import { deshacer, rehacer, puedeDeshacer, puedeRehacer } from './deshacer.js';
 import { renderVistaConfiguraciones } from '../../views/configuraciones.view.js';
 import { avisar, confirmar } from './avisos.js';
 import { PREFIJO_APP, ES_PRUEBAS } from './entorno.js';
-import { normalizarEleccionTema, resolverTema } from './tema.js';
+import { normalizarEleccionTema, resolverTema, proximoCambioPorSol } from './tema.js';
+import { obtenerCoordenadasClima, obtenerPronosticoDiario } from './clima.js';
 import { conReorganizacion, iniciarReorganizacion, pasoAgendaHecho, estadoAgenda, suscribirAgenda } from './estado-agenda.js';
 
 // Mantener sincronizada con la última entrada de CHANGELOG.md (ver AGENTS.md).
-const VERSION = 'v0.110.0';
+const VERSION = 'v0.111.0';
 
 const CONTENEDOR = document.getElementById('vista');
 const NAV = document.getElementById('nav-vistas');
@@ -570,41 +571,84 @@ if (ES_PRUEBAS) {
 }
 activarSonidoDeClic();
 
-// Menú lateral (v0.102.0): se compacta a solo emojis (se recuerda en este navegador) y, en pantallas angostas, se abre
-// como un panel encima del contenido desde el botón ☰.
+// Menú lateral (H01): en pantallas anchas arranca compacto (solo íconos) y se despliega por encima del contenido al
+// pasar el mouse o con el foco del teclado (ver main.css). El botón 📌 lo deja fijo abierto. La preferencia reutiliza la
+// clave histórica: '0' = «no compacto» (quien ya la tenía queda con el menú fijado), '1' o sin dato = compacto.
+// `body.sidebar-compacto` significa «menú sin fijar». En pantallas angostas es un panel que se abre con ☰.
 const CLAVE_SIDEBAR_COMPACTO = `${PREFIJO_APP}:sidebar-compacto`;
-const BOTON_COMPACTAR = document.getElementById('boton-compactar-sidebar');
-function aplicarSidebarCompacto(compacto) {
-  document.body.classList.toggle('sidebar-compacto', compacto);
-  BOTON_COMPACTAR.textContent = compacto ? '»' : '«';
-  BOTON_COMPACTAR.title = compacto ? 'Expandir el menú' : 'Compactar el menú';
-  BOTON_COMPACTAR.setAttribute('aria-label', BOTON_COMPACTAR.title);
+const BOTON_FIJAR_MENU = document.getElementById('boton-compactar-sidebar');
+function aplicarMenuFijado(fijado) {
+  document.body.classList.toggle('sidebar-compacto', !fijado);
+  BOTON_FIJAR_MENU.setAttribute('aria-pressed', String(fijado));
+  BOTON_FIJAR_MENU.title = fijado ? 'Volver al menú compacto' : 'Dejar el menú abierto';
+  BOTON_FIJAR_MENU.setAttribute('aria-label', BOTON_FIJAR_MENU.title);
 }
-let sidebarCompacto = false;
+let menuFijado = false;
 try {
-  sidebarCompacto = localStorage.getItem(CLAVE_SIDEBAR_COMPACTO) === '1';
+  menuFijado = localStorage.getItem(CLAVE_SIDEBAR_COMPACTO) === '0';
 } catch {
   // Es solo una preferencia de pantalla.
 }
-aplicarSidebarCompacto(sidebarCompacto);
-BOTON_COMPACTAR.addEventListener('click', () => {
-  sidebarCompacto = !sidebarCompacto;
-  aplicarSidebarCompacto(sidebarCompacto);
+aplicarMenuFijado(menuFijado);
+BOTON_FIJAR_MENU.addEventListener('click', () => {
+  menuFijado = !menuFijado;
+  aplicarMenuFijado(menuFijado);
   try {
-    localStorage.setItem(CLAVE_SIDEBAR_COMPACTO, sidebarCompacto ? '1' : '0');
+    localStorage.setItem(CLAVE_SIDEBAR_COMPACTO, menuFijado ? '0' : '1');
   } catch {
-    // Sin almacenamiento local se vuelve a expandir al recargar.
+    // Sin almacenamiento local se vuelve a compactar al recargar.
   }
 });
+
 const VELO_SIDEBAR = document.getElementById('velo-sidebar');
+const SIDEBAR = document.getElementById('sidebar');
+const BOTON_MENU_MOVIL = document.getElementById('boton-menu-movil');
+const BOTON_CERRAR_MENU = document.getElementById('boton-cerrar-menu');
+const PANTALLA_ANGOSTA = window.matchMedia('(max-width: 800px)');
+function menuMovilAbierto() {
+  return document.body.classList.contains('menu-abierto');
+}
 function alternarMenuMovil(abierto) {
+  if (abierto === menuMovilAbierto()) return;
+  const teniaFoco = SIDEBAR.contains(document.activeElement);
   document.body.classList.toggle('menu-abierto', abierto);
   VELO_SIDEBAR.hidden = !abierto;
-  document.getElementById('boton-menu-movil').setAttribute('aria-expanded', String(abierto));
+  BOTON_MENU_MOVIL.setAttribute('aria-expanded', String(abierto));
+  if (abierto) BOTON_CERRAR_MENU.focus();
+  else if (teniaFoco && PANTALLA_ANGOSTA.matches) BOTON_MENU_MOVIL.focus();
 }
-document.getElementById('boton-menu-movil').addEventListener('click', () => alternarMenuMovil(!document.body.classList.contains('menu-abierto')));
+BOTON_MENU_MOVIL.addEventListener('click', () => alternarMenuMovil(true));
+BOTON_CERRAR_MENU.addEventListener('click', () => alternarMenuMovil(false));
 VELO_SIDEBAR.addEventListener('click', () => alternarMenuMovil(false));
 window.addEventListener('hashchange', () => alternarMenuMovil(false));
+// Los botones que abren una ventana (buscar, nueva tarea, completar carga) cierran el panel para no dejarlo detrás.
+SIDEBAR.addEventListener('click', (e) => {
+  if (e.target.closest('#boton-buscar, #boton-nueva-tarea, #boton-completar-carga')) alternarMenuMovil(false);
+});
+PANTALLA_ANGOSTA.addEventListener('change', () => alternarMenuMovil(false));
+document.addEventListener('keydown', (e) => {
+  if (!menuMovilAbierto()) return;
+  if (e.key === 'Escape' && !document.querySelector('dialog[open]')) {
+    e.preventDefault();
+    alternarMenuMovil(false);
+  } else if (e.key === 'Tab') {
+    // Mientras el panel está abierto, el foco no sale de él.
+    const enfocables = [...SIDEBAR.querySelectorAll('a[href], button:not([disabled]):not([hidden])')].filter((el) => el.offsetParent !== null);
+    if (enfocables.length === 0) return;
+    const primero = enfocables[0];
+    const ultimo = enfocables[enfocables.length - 1];
+    if (!SIDEBAR.contains(document.activeElement)) {
+      e.preventDefault();
+      primero.focus();
+    } else if (e.shiftKey && document.activeElement === primero) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primero.focus();
+    }
+  }
+});
 
 window.addEventListener('hashchange', () => render());
 /**
@@ -698,9 +742,66 @@ function aplicarTema(tema) {
   if (colorTema) colorTema.content = tema === 'oscuro' ? '#1c1f27' : '#ffffff';
 }
 
+// H11 (v0.111.0): con 'sol', claro de día y oscuro de noche según la salida y la puesta del sol en la ubicación del
+// clima. La última salida/puesta conocida se guarda en este dispositivo (`…:tema-sol`) para aplicarla al abrir sin
+// esperar la red (también la lee el script temprano de index.html); sin datos, claro de 7 a 20 h.
+const CLAVE_TEMA_SOL = `${PREFIJO_APP}:tema-sol`;
+let temporizadorSol = null;
+
+function solGuardado() {
+  try {
+    return JSON.parse(localStorage.getItem(CLAVE_TEMA_SOL) || 'null') || {};
+  } catch {
+    return {};
+  }
+}
+
+function resolverTemaActual() {
+  const { salida, puesta } = solGuardado();
+  return resolverTema(eleccionTema, !!(CONSULTA_SISTEMA_OSCURO && CONSULTA_SISTEMA_OSCURO.matches), { ahora: new Date(), salida, puesta });
+}
+
+function reaplicarTema() {
+  temaAplicado = resolverTemaActual();
+  aplicarTema(temaAplicado);
+  programarCambioPorSol();
+}
+
+/** Con 'sol', deja agendado el próximo cambio (salida o puesta); con otra elección, lo cancela. */
+function programarCambioPorSol() {
+  clearTimeout(temporizadorSol);
+  temporizadorSol = null;
+  if (eleccionTema !== 'sol') return;
+  const { salida, puesta } = solGuardado();
+  const espera = Math.max(1000, proximoCambioPorSol(new Date(), salida, puesta) - Date.now() + 1000);
+  temporizadorSol = setTimeout(reaplicarTema, Math.min(espera, 6 * 60 * 60 * 1000)); // como mucho cada 6 h se recalcula
+}
+
+/** Trae la salida y la puesta del sol de hoy (si hay ubicación del clima) y reaplica el tema. Falla en silencio. */
+async function actualizarSolDeHoy() {
+  if (eleccionTema !== 'sol') return;
+  try {
+    const coordenadas = await obtenerCoordenadasClima();
+    if (!coordenadas) return;
+    const pronostico = await obtenerPronosticoDiario(coordenadas.latitud, coordenadas.longitud);
+    const hoy = pronostico?.dias?.find((d) => d.fecha === fechaLocalISO(new Date())) || pronostico?.dias?.[0];
+    if (!hoy?.sunrise || !hoy?.sunset) return;
+    localStorage.setItem(CLAVE_TEMA_SOL, JSON.stringify({ salida: hoy.sunrise, puesta: hoy.sunset }));
+    reaplicarTema();
+  } catch {
+    // Sin datos se usa la última salida/puesta guardada o el horario aproximado.
+  }
+}
+
 let eleccionTema = leerEleccionTema();
-let temaAplicado = resolverTema(eleccionTema, !!(CONSULTA_SISTEMA_OSCURO && CONSULTA_SISTEMA_OSCURO.matches));
+let temaAplicado = resolverTemaActual();
 aplicarTema(temaAplicado);
+programarCambioPorSol();
+actualizarSolDeHoy();
+// Al volver a la pestaña (la PC pudo dormir y el temporizador atrasarse), se recalcula.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && eleccionTema === 'sol') reaplicarTema();
+});
 
 if (CONSULTA_SISTEMA_OSCURO) {
   CONSULTA_SISTEMA_OSCURO.addEventListener('change', (evento) => {
@@ -710,7 +811,7 @@ if (CONSULTA_SISTEMA_OSCURO) {
   });
 }
 
-/** La elección del usuario: 'claro' | 'oscuro' | 'sistema'. Lo usa Configuraciones. */
+/** La elección del usuario: 'claro' | 'oscuro' | 'sistema' | 'sol'. Lo usa Configuraciones. */
 export function obtenerTema() {
   return eleccionTema;
 }
@@ -724,11 +825,14 @@ export function obtenerTemaAplicado() {
 export function establecerTema(eleccion) {
   eleccionTema = normalizarEleccionTema(eleccion);
   localStorage.setItem(CLAVE_LOCALSTORAGE_TEMA, eleccionTema);
-  temaAplicado = resolverTema(eleccionTema, !!(CONSULTA_SISTEMA_OSCURO && CONSULTA_SISTEMA_OSCURO.matches));
-  aplicarTema(temaAplicado);
+  reaplicarTema();
+  actualizarSolDeHoy();
 }
 
-inicializarAlmacenamiento().then(reprogramarSiCorresponde);
+inicializarAlmacenamiento().then(() => {
+  actualizarSolDeHoy(); // H11: la ubicación fija del clima recién se conoce con los datos cargados
+  return reprogramarSiCorresponde();
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch((error) => {

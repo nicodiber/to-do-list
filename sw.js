@@ -2,7 +2,7 @@
 // solo sus propias versiones viejas, nunca la caché de la otra.
 const ES_APP_REAL = self.location.hostname === 'nicodiber.github.io' && self.location.pathname.startsWith('/to-do-list/');
 const PREFIJO_CACHE = ES_APP_REAL ? 'super-todo-list-v' : 'super-todo-list-pruebas-v';
-const CACHE_NAME = `${PREFIJO_CACHE}76`;
+const CACHE_NAME = `${PREFIJO_CACHE}77`;
 
 // Archivos del app shell para que la primera carga offline (sin visitas
 // previas) también funcione. Si agregás un archivo assets/js/*.js o

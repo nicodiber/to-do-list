@@ -7,13 +7,23 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1c1f27" />
   <script>
-    // Evita el parpadeo del tema equivocado: aplica la elección guardada (claro / oscuro / sistema) antes de cargar los módulos.
+    // Evita el parpadeo del tema equivocado: aplica la elección guardada (claro / oscuro / sistema / sol) antes de cargar los módulos.
     // Misma lógica que `assets/js/tema.js` y `app.js`; sin elección guardada queda oscuro.
     (function () {
       try {
         var real = location.hostname === 'nicodiber.github.io' && location.pathname.indexOf('/to-do-list/') === 0;
-        var eleccion = localStorage.getItem((real ? 'super-todo-list' : 'super-todo-list-pruebas') + ':tema');
+        var prefijo = real ? 'super-todo-list' : 'super-todo-list-pruebas';
+        var eleccion = localStorage.getItem(prefijo + ':tema');
         var tema = eleccion === 'claro' ? 'claro' : eleccion === 'sistema' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro') : 'oscuro';
+        if (eleccion === 'sol') {
+          // Última salida/puesta guardada (horas de ese día aplicadas a hoy); sin datos, claro de 7 a 20 h.
+          var sol = JSON.parse(localStorage.getItem(prefijo + ':tema-sol') || '{}');
+          var ahora = new Date();
+          var minutos = ahora.getHours() * 60 + ahora.getMinutes();
+          var aMin = function (iso, h) { var d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d.getHours() * 60 + d.getMinutes() : h * 60; };
+          var desde = aMin(sol.salida, 7), hasta = aMin(sol.puesta, 20);
+          tema = minutos >= desde && minutos < hasta ? 'claro' : 'oscuro';
+        }
         document.documentElement.dataset.tema = tema;
         document.querySelector('meta[name="theme-color"]').content = tema === 'oscuro' ? '#1c1f27' : '#ffffff';
       } catch (e) {}
@@ -28,18 +38,19 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <button id="boton-menu-movil" class="boton-menu-movil" type="button" aria-label="Abrir el menú" aria-controls="sidebar" title="Menú">☰</button>
+  <button id="boton-menu-movil" class="boton-menu-movil" type="button" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false" title="Abrir menú">☰</button>
   <div id="velo-sidebar" class="velo-sidebar" hidden></div>
   <div class="app-layout">
     <aside id="sidebar" class="sidebar" aria-label="Menú de módulos">
       <div class="sidebar-marca">
         <h1>STDL</h1>
         <span id="version-app" class="version-app"></span>
-        <button id="boton-compactar-sidebar" class="boton-compactar" type="button" aria-label="Compactar el menú" title="Compactar o expandir el menú">«</button>
+        <button id="boton-compactar-sidebar" class="boton-compactar" type="button" aria-pressed="false" aria-label="Dejar el menú abierto" title="Dejar el menú abierto"><span aria-hidden="true">📌</span></button>
+        <button id="boton-cerrar-menu" class="boton-cerrar-menu" type="button" aria-label="Cerrar menú" title="Cerrar menú">✕</button>
       </div>
       <div class="sidebar-estado">
         <div id="indicador-sync" class="indicador-sync" role="status" aria-live="polite"></div>
-        <button id="boton-sync" type="button" title="Verifica contra Drive y sube lo pendiente"><span aria-hidden="true">🔄</span><span class="texto-sidebar"> Sincronizar ahora</span></button>
+        <button id="boton-sync" type="button" aria-label="Sincronizar ahora" title="Verifica contra Drive y sube lo pendiente"><span aria-hidden="true">🔄</span><span class="texto-sidebar"> Sincronizar ahora</span></button>
       </div>
       <button id="boton-buscar" class="boton-buscar" type="button" aria-label="Buscar (Ctrl+K)" title="Buscar una tarea o un módulo (Ctrl+K)"><span aria-hidden="true">🔎</span><span class="texto-sidebar"> Buscar</span></button>
       <nav id="nav-vistas" class="nav-vistas" aria-label="Módulos"></nav>

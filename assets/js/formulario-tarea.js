@@ -345,7 +345,7 @@ export function htmlFormularioTarea(tarea, { modo = 'edicion', botonesNombre = '
 
 /**
  * Interruptor "Completada" de la ventana de edición. Deshabilitado si la tarea está bloqueada (primero hay
- * que completar su previa). Si es de mantenimiento, al activarlo se pide la nota de mejora (opcional).
+ * que completar su previa). Al guardar con el interruptor recién activado, `modal-tarea.js` pide el mismo modal de confirmación que Resumen (`confirmarCumplida`).
  */
 function htmlEstadoCompletada(tarea) {
   const bloqueada = tarea.tarea_estado === 'bloqueada';
@@ -353,9 +353,6 @@ function htmlEstadoCompletada(tarea) {
     <div class="fila-estado-tarea">
       ${htmlInterruptor('estado_completada', tarea.tarea_estado === 'completada', '✅ Completada', bloqueada ? 'disabled' : '')}
       ${bloqueada ? '<span class="ayuda">Bloqueada por otra tarea: completá primero la previa.</span>' : ''}
-      <label class="campo" data-nota-mejora hidden><span class="campo-titulo">💡 ¿Qué podrías mejorar la próxima vez? (opcional)</span>
-        <input type="text" name="nota_mejora" />
-      </label>
     </div>`;
 }
 
@@ -489,19 +486,6 @@ export function conectarFormularioTarea(formulario, { modo = 'edicion', precarga
   const campos = formulario.querySelectorAll('.campos-mantenimiento');
   const checkbox = formulario.tarea_mantenimiento;
   checkbox.addEventListener('change', () => campos.forEach((c) => (c.hidden = !checkbox.checked)));
-
-  // Interruptor "Completada" (solo en la edición): en una tarea de mantenimiento que todavía no estaba completa,
-  // al activarlo aparece la nota de mejora.
-  const interruptorEstado = formulario.estado_completada;
-  if (interruptorEstado) {
-    const notaMejora = formulario.querySelector('[data-nota-mejora]');
-    const estabaCompletada = interruptorEstado.defaultChecked;
-    const actualizarNota = () => {
-      notaMejora.hidden = !(interruptorEstado.checked && !estabaCompletada && checkbox.checked);
-    };
-    interruptorEstado.addEventListener('change', actualizarNota);
-    checkbox.addEventListener('change', actualizarNota);
-  }
 
   // "＋ Crear nueva…" en categoría, ubicación, meta y persona: ver `conectarCrearNueva`.
   [
@@ -656,7 +640,6 @@ export function leerFormularioTarea(formulario) {
     proximaId: datos.get('tarea_proxima') || null,
     // Solo existen en la edición: `null` = el formulario no trae el interruptor de estado (o está deshabilitado).
     completada: formulario.estado_completada && !formulario.estado_completada.disabled ? datos.get('estado_completada') === 'on' : null,
-    notaMejora: String(datos.get('nota_mejora') || '').trim(),
   };
 }
 

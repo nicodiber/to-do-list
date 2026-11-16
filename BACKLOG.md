@@ -7,6 +7,9 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 ## 📥 Backlog
 
 ### Previos a v1.0.0
+- [ ] **Reconexión con Google sin necesidad de un clic (investigar en una versión futura, después de la v1.0)**: hoy, al abrir la app sin sesión de Google, el navegador bloquea el popup silencioso de Google Identity Services (no hay ningún gesto del usuario todavía) y el primer clic o tecla en cualquier parte reconecta y sincroniza solo; es un solo clic por apertura (y otro cada ~1 hora si la pestaña sigue abierta y vence el token). El usuario decidió dejarlo así por ahora. Alternativas a investigar: (1) **flujo OAuth por redirección de página completa con `prompt=none`**: sin popup ni clic, porque las redirecciones no las bloquea el navegador; costo: una navegación extra a Google en cada apertura, registrar un URI de redireccionamiento en Google Cloud Console, manejar el token que vuelve en la URL con un parámetro `state` contra CSRF y volver a la misma vista, y verificar que Google siga permitiendo ese flujo para este tipo de credencial (no se puede probar en el entorno de desarrollo, solo en el navegador real); (2) **servidor intermedio liviano** (por ejemplo el Google Apps Script de la idea de analítica) que guarde un permiso de larga duración (refresh token) y entregue tokens de acceso: más robusto pero contradice el principio de app 100% cliente y sumaría otra dependencia de Google, así que solo tendría sentido si ese servidor ya se construye por otra razón *En observación (v0.105.0): con la renovación silenciosa y el botón «Reconectar» el usuario no volvió a ver el modal de sesión; se retoma solo si aparecen molestias.*
+  - *v0.107.4: retomado como parte de H14 (en Brave la renovación silenciosa falla siempre con popup_closed).*
+  - *v0.111.0: H14 resuelta (sin pedidos de reconexión); vuelve al Backlog como mejora futura.*
 
 - [ ] Se le puede conectar a un LLM para tener una asistente con la cual poder conversar por texto y/o voz: con rol y contexto ya sea tanto para solicitarle cargar un registro nuevo en STDL, conversar para editar algo ya registrado en STDL (ejemplo replanificar) o poder conversar para ayudar a descrubrir las metas de una persona y así poder con STDL lograr crear una hoja de ruta y crear las tareas necesarias para que con STDL el usurio pueda lograr sus memtas? 
 - [ ] **Conectar una tarea a un evento de Google Calendar** (idea del usuario): poder elegir un evento existente de Calendar como "tarea próxima" de una tarea de STDL — usando la fecha y hora de inicio del evento como la fecha límite de la tarea. Se apoya en la lectura de eventos ya existente (`assets/js/google-calendar.js`) y en un selector de eventos parecido al que tenía el asistente de examen retirado en la v0.63.0 ("Elegir de Calendar"). A definir: qué pasa si el evento se mueve o se borra en Calendar después (STDL no se entera hasta la próxima lectura), y si el vínculo es solo informativo o también actualiza la fecha límite automáticamente cuando cambia.
@@ -69,28 +72,16 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 - [ ] **H08** Como usuario quiero ver arriba en Resumen la fecha, la hora y el tiempo actual, para ubicarme al abrir la app.
 - [ ] **H09** Como usuario quiero ver en Resumen cuándo es la próxima lluvia, para planificar.
 - [ ] **H10** Como usuario quiero ver en Resumen el porcentaje transcurrido de la semana (se reinicia cada lunes 00:00) y del año, para dimensionar el tiempo.
-- [ ] **H11** Como usuario quiero que el modo claro/oscuro cambie solo según la salida y la puesta del sol, para no hacerlo a mano.
 - [ ] **H12** Como usuario quiero vincular mis tareas a mis metas, para medir su avance (hoy hay 4 metas y ninguna tarea vinculada).
 - [ ] **H13** Como usuario quiero un plan de acción por meta (y por tarea cuando sirva) con pasos, fechas, recursos y métricas, armado con ayuda de la IA, para saber qué hacer y medir el avance.
 
 
 ## 🔨 En curso
 
-- [ ] **H01** Como usuario quiero el sidebar compacto por defecto (solo ícono por módulo) y que se expanda al pasar el mouse mostrando el nombre, para ganar espacio sin perder la navegación. *Elegida como próxima (P47-B); 3 opciones visuales en el lienzo (H01-A/B/C).*
-- [ ] **H14** Como usuario quiero que la sesión de Google no se corte seguido, para no tener que reconectar a mano. *Sucede seguido en PC con Brave (ventana emergente que aparece y desaparece, y botón «Reconectar»). Plan P10-C: primero diagnosticar, después reconexión por redirección sin clic.* *v0.107.3-v0.108.0: la sesión se renueva siempre con la misma cuenta (pista `hint`) y hay «Cerrar sesión» en Configuraciones; en observación con los Shields de Brave desactivados.*
-- [ ] **Reconexión con Google sin necesidad de un clic (investigar en una versión futura, después de la v1.0)**: hoy, al abrir la app sin sesión de Google, el navegador bloquea el popup silencioso de Google Identity Services (no hay ningún gesto del usuario todavía) y el primer clic o tecla en cualquier parte reconecta y sincroniza solo; es un solo clic por apertura (y otro cada ~1 hora si la pestaña sigue abierta y vence el token). El usuario decidió dejarlo así por ahora. Alternativas a investigar: (1) **flujo OAuth por redirección de página completa con `prompt=none`**: sin popup ni clic, porque las redirecciones no las bloquea el navegador; costo: una navegación extra a Google en cada apertura, registrar un URI de redireccionamiento en Google Cloud Console, manejar el token que vuelve en la URL con un parámetro `state` contra CSRF y volver a la misma vista, y verificar que Google siga permitiendo ese flujo para este tipo de credencial (no se puede probar en el entorno de desarrollo, solo en el navegador real); (2) **servidor intermedio liviano** (por ejemplo el Google Apps Script de la idea de analítica) que guarde un permiso de larga duración (refresh token) y entregue tokens de acceso: más robusto pero contradice el principio de app 100% cliente y sumaría otra dependencia de Google, así que solo tendría sentido si ese servidor ya se construye por otra razón *En observación (v0.105.0): con la renovación silenciosa y el botón «Reconectar» el usuario no volvió a ver el modal de sesión; se retoma solo si aparecen molestias.*
-  - *v0.107.4: retomado como parte de H14 (en Brave la renovación silenciosa falla siempre con popup_closed).*
 
 
 ## 🧪 Para probar
 
-- [ ] **H25** Como usuario quiero que al marcar una tarea cumplida desde Resumen la confirmación sea un modal con Enter y Esc, y que por ahora no me pregunte el tiempo real ni si guardarla en Google Calendar. *v0.110.0.*
-- [ ] **H26** Como usuario quiero que después de cada tarea que marco como cumplida la agenda se reorganice sola, para aprovechar el hueco. *v0.110.0.*
-- [ ] **H27** Como usuario quiero elegir tema claro, oscuro o igual que el sistema, para que la app siga el tema de mi dispositivo si quiero. *v0.110.0.*
-- [ ] **H05** Como usuario quiero que 🧭 Próximos por categoría muestre también las subcategorías, no solo las categorías padre, para ver opciones más finas. *Decisión P30: árbol con sangría (A) + poder plegar/desplegar cada padre (C).* *v0.109.0: árbol plegable (padres plegados al empezar, P43), la fila del padre muestra la mejor de toda la rama (P38-A).* *v0.110.0: sin tareas repetidas entre padre y subcategorías (P48).*
-- [ ] **H06** Como usuario quiero que una tarea pueda aparecer a la vez en 🧭 Próximos por categoría y en Hoy o Urgentes, para no perderla de vista. *v0.109.0: Próximos usa todas las disponibles y marca «también en Urgentes/Hoy/Mañana»; Resto también las muestra (P39-B).*
-- [ ] **H02** Como usuario quiero un buscador en el sidebar, para llegar rápido a un módulo o a una tarea. *Pedido el 11/11 (costó encontrar una tarea). Pendiente elegir entre 3 opciones visuales (H02-A/B/C).* *v0.109.0: paleta rápida (H02-B): lupa en el menú o Ctrl+K, busca tareas por nombre y módulos.*
-- [ ] **H04** Como usuario quiero que la primera repetición de una tarea en día fijo respete ese día, para que caiga cuando corresponde. *Implementado en la v0.107.2 (`anclarRepeticionesDiaFijo`); si el día fijo no es un día permitido, pasa al siguiente permitido (decisión P7-A). Falta que el usuario lo pruebe en la URL de pruebas.* *v0.108.1: importar un respaldo ahora reagenda (por eso en pruebas seguía el 14/11).*
 
 ### Previos a v1.0.0
 
@@ -98,7 +89,7 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 
 ## ✔️ Hecho
 
-<details><summary>Ver ítems hechos (379)</summary>
+<details><summary>Ver ítems hechos (389)</summary>
 
 ### Previos a v1.0.0
 
@@ -511,6 +502,19 @@ Todos los pendientes. Marcar con `[x]` cuando se implemente, moverlo a ✔️ He
 - [x] El mapa de hábitos usa `cumplimiento_fecha_limite` para saber si hubo incumplimiento. Sin límite, ¿contra qué fecha se mide? (Propuesta: contra la fecha sugerida objetivo; con «día obligatorio», contra ese día.)
 - [x] Qué pasa con las tareas de mantenimiento y las copias ya cargadas con límite. (Propuesta: no se tocan; el cambio vale para las copias que se creen de ahí en más.)
 - [x] Interacción con «repetir hasta» (`tarea_repetir_hasta`, `tarea_repetir_hasta_tarea`) y con las cadenas de mantenimiento (anillo): el día fijo debe respetarlas. (Propuesta: sin cambios; la repetición se corta igual al llegar al «hasta».)
+
+### En la app real (v0.110.0 – v0.111.0)
+
+- [x] **H02** Como usuario quiero un buscador en el sidebar, para llegar rápido a un módulo o a una tarea. *Pedido el 11/11 (costó encontrar una tarea). Pendiente elegir entre 3 opciones visuales (H02-A/B/C).* *v0.109.0: paleta rápida (H02-B): lupa en el menú o Ctrl+K, busca tareas por nombre y módulos.* *Pasada a la app real en la v0.110.0 (P56).*
+- [x] **H04** Como usuario quiero que la primera repetición de una tarea en día fijo respete ese día, para que caiga cuando corresponde. *Implementado en la v0.107.2 (`anclarRepeticionesDiaFijo`); si el día fijo no es un día permitido, pasa al siguiente permitido (decisión P7-A). Falta que el usuario lo pruebe en la URL de pruebas.* *v0.108.1: importar un respaldo ahora reagenda (por eso en pruebas seguía el 14/11).* *Pasada a la app real en la v0.110.0 (P56).*
+- [x] **H05** Como usuario quiero que 🧭 Próximos por categoría muestre también las subcategorías, no solo las categorías padre, para ver opciones más finas. *Decisión P30: árbol con sangría (A) + poder plegar/desplegar cada padre (C).* *v0.109.0: árbol plegable (padres plegados al empezar, P43), la fila del padre muestra la mejor de toda la rama (P38-A).* *v0.110.0: sin tareas repetidas entre padre y subcategorías (P48).* *Pasada a la app real en la v0.110.0 (P56).*
+- [x] **H06** Como usuario quiero que una tarea pueda aparecer a la vez en 🧭 Próximos por categoría y en Hoy o Urgentes, para no perderla de vista. *v0.109.0: Próximos usa todas las disponibles y marca «también en Urgentes/Hoy/Mañana»; Resto también las muestra (P39-B).* *Pasada a la app real en la v0.110.0 (P56).*
+- [x] **H14** Como usuario quiero que la sesión de Google no se corte seguido, para no tener que reconectar a mano. *Sucede seguido en PC con Brave (ventana emergente que aparece y desaparece, y botón «Reconectar»). Plan P10-C: primero diagnosticar, después reconexión por redirección sin clic.* *v0.107.3-v0.108.0: la sesión se renueva siempre con la misma cuenta (pista `hint`) y hay «Cerrar sesión» en Configuraciones; en observación con los Shields de Brave desactivados.* *Sin pedidos de reconexión con los Shields de Brave bajos y la pista de cuenta (P57).*
+- [x] **H25** Como usuario quiero que al marcar una tarea cumplida desde Resumen la confirmación sea un modal con Enter y Esc, y que por ahora no me pregunte el tiempo real ni si guardarla en Google Calendar. *v0.110.0.* *Pasada a la app real en la v0.110.0 (P56).*
+- [x] **H26** Como usuario quiero que después de cada tarea que marco como cumplida la agenda se reorganice sola, para aprovechar el hueco. *v0.110.0.* *Pasada a la app real en la v0.110.0 (P56).*
+- [x] **H27** Como usuario quiero elegir tema claro, oscuro o igual que el sistema, para que la app siga el tema de mi dispositivo si quiero. *v0.110.0.* *Pasada a la app real en la v0.110.0 (P56).*
+- [x] **H01** Como usuario quiero el sidebar compacto por defecto (solo ícono por módulo) y que se expanda al pasar el mouse mostrando el nombre, para ganar espacio sin perder la navegación. *Elegida como próxima (P47-B); 3 opciones visuales en el lienzo (H01-A/B/C).* *v0.111.0, en la app real (P56).*
+- [x] **H11** Como usuario quiero que el modo claro/oscuro cambie solo según la salida y la puesta del sol, para no hacerlo a mano. *v0.111.0, en la app real (P56).*
 
 ### Confirmadas en la v0.108.1
 

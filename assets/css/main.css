@@ -3326,33 +3326,41 @@ kbd {
 .sidebar .boton-nueva-tarea[hidden], .sidebar .boton-completar-carga[hidden] { display: none; }
 .boton-menu-movil, .velo-sidebar { display: none; }
 
-/* Compacto: solo emojis. */
-body.sidebar-compacto .sidebar { width: 3.6rem; padding: 0.9rem 0.4rem; align-items: stretch; }
-body.sidebar-compacto .sidebar .texto-sidebar { display: none; }
-body.sidebar-compacto .sidebar-marca { grid-template-columns: 1fr; grid-template-areas: 'nombre' 'version' 'boton'; justify-items: center; row-gap: 0.2rem; }
-body.sidebar-compacto .sidebar-marca h1 { font-size: 0.85rem; }
-body.sidebar-compacto .sidebar-marca .version-app { font-size: 0.55rem; }
-body.sidebar-compacto .sidebar .enlace-nav { justify-content: center; padding: 0.45rem 0; }
-body.sidebar-compacto .sidebar button { text-align: center; padding: 0.4rem 0.2rem; }
-body.sidebar-compacto .sidebar-acciones { flex-direction: column; }
-body.sidebar-compacto .sidebar .indicador-sync { align-items: center; }
+/* H01: menú compacto por defecto (solo íconos). Al pasar el mouse o con el foco del teclado se despliega POR ENCIMA del
+   contenido: el ancho que ocupa en el diseño no cambia (el margen negativo compensa el ancho extra). «Fijado» = sin la
+   clase sidebar-compacto: queda expandido empujando el contenido. */
+.boton-cerrar-menu { display: none; }
+.boton-compactar[aria-pressed='true'] { border-color: var(--color-primario); }
+@media (min-width: 801px) {
+  .sidebar { overflow-x: hidden; transition: width 0.15s ease, margin-right 0.15s ease, box-shadow 0.15s ease; }
+  body.sidebar-compacto .sidebar { width: 3.6rem; padding: 0.9rem 0.4rem; align-items: stretch; }
+  body.sidebar-compacto .sidebar:is(:hover, :has(:focus-visible)) { width: 15.5rem; margin-right: -11.9rem; padding: 0.9rem 0.75rem; box-shadow: 6px 0 24px rgba(15, 23, 42, 0.3); }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .texto-sidebar { display: none; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .indicador-sync-detalle { display: none; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .sidebar-marca { grid-template-columns: 1fr; grid-template-areas: 'nombre' 'version' 'boton'; justify-items: center; row-gap: 0.2rem; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .sidebar-marca h1 { font-size: 0.85rem; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .sidebar-marca .version-app { font-size: 0.55rem; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .enlace-nav { justify-content: center; padding: 0.45rem 0; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) button { text-align: center; padding: 0.4rem 0.2rem; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .sidebar-acciones { flex-direction: column; }
+  body.sidebar-compacto .sidebar:not(:hover, :has(:focus-visible)) .indicador-sync { align-items: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none !important; }
+}
 
-/* Pantallas angostas: el menú es un panel que se abre con ☰ (siempre expandido). */
+/* Pantallas angostas: el menú es un panel lateral que se abre con ☰ (siempre expandido), con fondo oscuro detrás. */
 @media (max-width: 800px) {
-  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: min(17rem, 85vw) !important; transform: translateX(-105%); transition: transform 0.18s ease; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.35); }
-  body.menu-abierto .sidebar { transform: none; }
-  body.sidebar-compacto .sidebar .texto-sidebar { display: inline; }
-  body.sidebar-compacto .sidebar-marca { grid-template-columns: 1fr auto; grid-template-areas: 'nombre boton' 'version boton'; justify-items: stretch; }
-  body.sidebar-compacto .sidebar-marca .version-app { font-size: 0.7rem; }
-  body.sidebar-compacto .sidebar .enlace-nav { justify-content: flex-start; padding: 0.45rem 0.6rem; }
-  body.sidebar-compacto .sidebar button { text-align: left; }
-  body.sidebar-compacto .sidebar-acciones { flex-direction: row; }
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: min(17rem, 85vw); transform: translateX(-105%); visibility: hidden; transition: transform 0.18s ease, visibility 0s linear 0.18s; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.35); overflow-x: hidden; }
+  body.menu-abierto .sidebar { transform: none; visibility: visible; transition: transform 0.18s ease, visibility 0s; }
+  .sidebar-marca { grid-template-columns: 1fr auto; grid-template-areas: 'nombre cerrar' 'version cerrar'; }
+  .sidebar-marca .boton-cerrar-menu { grid-area: cerrar; display: block; min-width: 44px; min-height: 44px; font-size: 1.1rem; text-align: center; }
   .boton-compactar { display: none; }
-  .boton-menu-movil { display: block; position: fixed; top: 0.6rem; left: 0.6rem; z-index: 15; border: 1px solid var(--color-borde); background: var(--color-superficie); color: var(--color-texto); border-radius: var(--radio); padding: 0.35rem 0.65rem; font-size: 1.1rem; cursor: pointer; }
+  .boton-menu-movil { display: flex; align-items: center; justify-content: center; position: fixed; top: 0.5rem; left: 0.5rem; z-index: 15; min-width: 44px; min-height: 44px; border: 1px solid var(--color-borde); background: var(--color-superficie); color: var(--color-texto); border-radius: var(--radio); font-size: 1.3rem; cursor: pointer; }
   body.menu-abierto .boton-menu-movil { display: none; }
-  .velo-sidebar { display: block; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); z-index: 19; }
+  .velo-sidebar { display: block; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 19; }
   .velo-sidebar[hidden] { display: none; }
-  .app-layout > .vista { padding-top: 3.2rem; }
+  .app-layout > .vista { padding-top: 4rem; }
 }
 
 
